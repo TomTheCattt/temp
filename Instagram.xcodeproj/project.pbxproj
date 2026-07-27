@@ -6,14 +6,69 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		807D4F173015C25B00E953EC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F163015C25B00E953EC /* Alamofire */; };
+		807D4F193015C25B00E953EC /* AlamofireDynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F183015C25B00E953EC /* AlamofireDynamic */; };
+		807D4F283015C78500E953EC /* CombineExt in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F273015C78500E953EC /* CombineExt */; };
+		807D4F2B3015C89B00E953EC /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2A3015C89B00E953EC /* Swinject */; };
+		807D4F2E3015C97100E953EC /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2D3015C97100E953EC /* Nuke */; };
+		807D4F303015C97100E953EC /* NukeExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2F3015C97100E953EC /* NukeExtensions */; };
+		807D4F323015C97100E953EC /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F313015C97100E953EC /* NukeUI */; };
+		807D4F343015C97100E953EC /* NukeVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F333015C97100E953EC /* NukeVideo */; };
+		807D4F373015C9C600E953EC /* PopupView in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F363015C9C600E953EC /* PopupView */; };
+		807D4F3A3015CA0600E953EC /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F393015CA0600E953EC /* Pow */; };
+		807D4F3D3015CA4800E953EC /* SkeletonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F3C3015CA4800E953EC /* SkeletonUI */; };
+		807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F3F3015CA6B00E953EC /* ProgressHUD */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		80887F10300D4ECD007EF3E5 /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		80887F12300D4ECD007EF3E5 /* Instagram */ = {
+		80887F12300D4ECD007EF3E5 /* Application */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Instagram;
+			path = Application;
+			sourceTree = "<group>";
+		};
+		80887F1E300D4EFA007EF3E5 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		80887F1F300D4F58007EF3E5 /* Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Core;
+			sourceTree = "<group>";
+		};
+		80887F20300D4F63007EF3E5 /* Domain */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		80887F21300D4F69007EF3E5 /* Presentations */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Presentations;
+			sourceTree = "<group>";
+		};
+		80887F22300D4F8C007EF3E5 /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
+			sourceTree = "<group>";
+		};
+		80887F23300D5147007EF3E5 /* Config */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Config;
+			sourceTree = "<group>";
+		};
+		80887F28300D5229007EF3E5 /* Persistence */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		80887F29300D523A007EF3E5 /* Documentations */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Documentations;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +78,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				807D4F2B3015C89B00E953EC /* Swinject in Frameworks */,
+				807D4F323015C97100E953EC /* NukeUI in Frameworks */,
+				807D4F173015C25B00E953EC /* Alamofire in Frameworks */,
+				807D4F373015C9C600E953EC /* PopupView in Frameworks */,
+				807D4F343015C97100E953EC /* NukeVideo in Frameworks */,
+				807D4F3A3015CA0600E953EC /* Pow in Frameworks */,
+				807D4F193015C25B00E953EC /* AlamofireDynamic in Frameworks */,
+				807D4F3D3015CA4800E953EC /* SkeletonUI in Frameworks */,
+				807D4F283015C78500E953EC /* CombineExt in Frameworks */,
+				807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */,
+				807D4F2E3015C97100E953EC /* Nuke in Frameworks */,
+				807D4F303015C97100E953EC /* NukeExtensions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,7 +99,15 @@
 		80887F07300D4ECD007EF3E5 = {
 			isa = PBXGroup;
 			children = (
-				80887F12300D4ECD007EF3E5 /* Instagram */,
+				80887F29300D523A007EF3E5 /* Documentations */,
+				80887F28300D5229007EF3E5 /* Persistence */,
+				80887F23300D5147007EF3E5 /* Config */,
+				80887F22300D4F8C007EF3E5 /* Common */,
+				80887F21300D4F69007EF3E5 /* Presentations */,
+				80887F20300D4F63007EF3E5 /* Domain */,
+				80887F1F300D4F58007EF3E5 /* Core */,
+				80887F1E300D4EFA007EF3E5 /* Resources */,
+				80887F12300D4ECD007EF3E5 /* Application */,
 				80887F11300D4ECD007EF3E5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,10 +136,30 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				80887F12300D4ECD007EF3E5 /* Instagram */,
+				80887F12300D4ECD007EF3E5 /* Application */,
+				80887F1E300D4EFA007EF3E5 /* Resources */,
+				80887F1F300D4F58007EF3E5 /* Core */,
+				80887F20300D4F63007EF3E5 /* Domain */,
+				80887F21300D4F69007EF3E5 /* Presentations */,
+				80887F22300D4F8C007EF3E5 /* Common */,
+				80887F23300D5147007EF3E5 /* Config */,
+				80887F28300D5229007EF3E5 /* Persistence */,
+				80887F29300D523A007EF3E5 /* Documentations */,
 			);
 			name = Instagram;
 			packageProductDependencies = (
+				807D4F163015C25B00E953EC /* Alamofire */,
+				807D4F183015C25B00E953EC /* AlamofireDynamic */,
+				807D4F273015C78500E953EC /* CombineExt */,
+				807D4F2A3015C89B00E953EC /* Swinject */,
+				807D4F2D3015C97100E953EC /* Nuke */,
+				807D4F2F3015C97100E953EC /* NukeExtensions */,
+				807D4F313015C97100E953EC /* NukeUI */,
+				807D4F333015C97100E953EC /* NukeVideo */,
+				807D4F363015C9C600E953EC /* PopupView */,
+				807D4F393015CA0600E953EC /* Pow */,
+				807D4F3C3015CA4800E953EC /* SkeletonUI */,
+				807D4F3F3015CA6B00E953EC /* ProgressHUD */,
 			);
 			productName = Instagram;
 			productReference = 80887F10300D4ECD007EF3E5 /* Instagram.app */;
@@ -94,6 +189,16 @@
 			);
 			mainGroup = 80887F07300D4ECD007EF3E5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */,
+				807D4F263015C78500E953EC /* XCRemoteSwiftPackageReference "CombineExt" */,
+				807D4F293015C89B00E953EC /* XCRemoteSwiftPackageReference "Swinject" */,
+				807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */,
+				807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */,
+				807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */,
+				807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */,
+				807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 80887F11300D4ECD007EF3E5 /* Products */;
 			projectDirPath = "";
@@ -259,16 +364,20 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.Instagram;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.InstagramClone;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -291,16 +400,20 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.Instagram;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.InstagramClone;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -332,6 +445,131 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../Downloads/Nuke-13.0.6";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.12.0;
+			};
+		};
+		807D4F263015C78500E953EC /* XCRemoteSwiftPackageReference "CombineExt" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CombineCommunity/CombineExt.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.0;
+			};
+		};
+		807D4F293015C89B00E953EC /* XCRemoteSwiftPackageReference "Swinject" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Swinject/Swinject.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
+		807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exyte/PopupView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.3;
+			};
+		};
+		807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/EmergeTools/Pow";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.6;
+			};
+		};
+		807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CSolanaM/SkeletonUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.2;
+			};
+		};
+		807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/relatedcode/ProgressHUD.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 15.0.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		807D4F163015C25B00E953EC /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		807D4F183015C25B00E953EC /* AlamofireDynamic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = AlamofireDynamic;
+		};
+		807D4F273015C78500E953EC /* CombineExt */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F263015C78500E953EC /* XCRemoteSwiftPackageReference "CombineExt" */;
+			productName = CombineExt;
+		};
+		807D4F2A3015C89B00E953EC /* Swinject */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F293015C89B00E953EC /* XCRemoteSwiftPackageReference "Swinject" */;
+			productName = Swinject;
+		};
+		807D4F2D3015C97100E953EC /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Nuke;
+		};
+		807D4F2F3015C97100E953EC /* NukeExtensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NukeExtensions;
+		};
+		807D4F313015C97100E953EC /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NukeUI;
+		};
+		807D4F333015C97100E953EC /* NukeVideo */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NukeVideo;
+		};
+		807D4F363015C9C600E953EC /* PopupView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */;
+			productName = PopupView;
+		};
+		807D4F393015CA0600E953EC /* Pow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */;
+			productName = Pow;
+		};
+		807D4F3C3015CA4800E953EC /* SkeletonUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */;
+			productName = SkeletonUI;
+		};
+		807D4F3F3015CA6B00E953EC /* ProgressHUD */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */;
+			productName = ProgressHUD;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 80887F08300D4ECD007EF3E5 /* Project object */;
 }
