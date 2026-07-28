@@ -6,9 +6,10 @@
 //
 
 import Foundation
-import CallKit
+internal import CallKit
 import AVFoundation
 import Combine
+import UIKit
 
 // MARK: - CallManager
 
@@ -42,9 +43,7 @@ final class CallManager: NSObject, @unchecked Sendable {
 
     private override init() {
         let configuration = CXProviderConfiguration()
-        configuration.localizedName = "Instagram"
         configuration.supportsVideo = true
-        configuration.maximumCallsPerGroup = 1
         configuration.maximumCallGroups = 1
         configuration.supportedHandleTypes = [.generic]
         configuration.includesCallsInRecents = true
@@ -95,7 +94,7 @@ final class CallManager: NSObject, @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
                 if let error {
-                    self?.queue.sync { self?.activeCalls.removeValue(forKey: uuid) }
+                    self?.queue.sync { _ = self?.activeCalls.removeValue(forKey: uuid) }
                     self?.logger.error("Failed to report incoming call: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                 } else {
@@ -163,7 +162,7 @@ final class CallManager: NSObject, @unchecked Sendable {
     /// Report that a call has ended (e.g. remote hangup).
     func reportCallEnded(uuid: UUID, reason: CXCallEndedReason) {
         provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
-        queue.sync { activeCalls.removeValue(forKey: uuid) }
+        queue.sync { _ = activeCalls.removeValue(forKey: uuid) }
     }
 
     // MARK: - Mute
@@ -219,7 +218,7 @@ extension CallManager: CXProviderDelegate {
         logger.info("CXProvider: end call action")
         let uuid = action.callUUID
         callEventSubject.send(.endCall(uuid: uuid))
-        queue.sync { activeCalls.removeValue(forKey: uuid) }
+        queue.sync { _ = activeCalls.removeValue(forKey: uuid) }
         action.fulfill()
     }
 
@@ -248,7 +247,7 @@ extension CallManager: CXProviderDelegate {
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothA2DP])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             logger.error("Failed to configure audio session: \(error.localizedDescription)")

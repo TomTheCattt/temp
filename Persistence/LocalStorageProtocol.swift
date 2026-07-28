@@ -44,7 +44,8 @@ protocol LocalStorageProtocol: Sendable {
 // MARK: - Storable
 
 /// Any domain object that can be persisted must conform to Storable.
-protocol Storable: Sendable, Identifiable where ID == String {
+/// Uses `nonisolated` to avoid actor-isolation conflicts with Sendable.
+protocol Storable: Sendable {
     var id: String { get }
 }
 

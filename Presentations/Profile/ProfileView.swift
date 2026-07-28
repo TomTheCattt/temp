@@ -21,9 +21,9 @@ struct ProfileView: View {
         self.userId = userId
         _viewModel = State(initialValue: ProfileViewModel(
             userId: userId,
-            fetchProfileUseCase: FetchProfileUseCase(userRepository: UserRepository()),
-            toggleFollowUseCase: ToggleFollowUseCase(userRepository: UserRepository()),
-            postRepository: PostRepository()
+            fetchProfileUseCase: DIContainer.shared.resolve(FetchProfileUseCaseProtocol.self),
+            toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self),
+            postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
         ))
     }
 
@@ -56,7 +56,7 @@ struct ProfileView: View {
         .toolbar {
             if viewModel.isCurrentUser {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 16) {
+                    HStack(spacing: DS.Spacing.md) {
                         Button {
                             AppRouter.shared.present(sheet: .createPost)
                         } label: {
@@ -82,16 +82,16 @@ struct ProfileView: View {
     // MARK: - Header
 
     private func profileHeader(_ user: User) -> some View {
-        HStack(spacing: 24) {
+        HStack(spacing: DS.Spacing.xl) {
             // Avatar
             LazyImage(url: user.avatarURL) { state in
                 if let image = state.image {
                     image.resizable()
                 } else {
-                    Circle().fill(Color(.systemGray5))
+                    Circle().fill(ColorTokens.buttonSecondary)
                 }
             }
-            .frame(width: 80, height: 80)
+            .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
             .clipShape(Circle())
             .overlay(Circle().stroke(Color(.systemGray4), lineWidth: 0.5))
 
@@ -111,17 +111,17 @@ struct ProfileView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.top, DS.Spacing.sm)
     }
 
     private func statItem(count: Int, label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: DS.Spacing.xxxs) {
             Text(formatCount(count))
-                .font(.subheadline)
+                .font(DS.Font.subheadline)
                 .fontWeight(.bold)
             Text(label)
-                .font(.caption)
+                .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -129,39 +129,39 @@ struct ProfileView: View {
     // MARK: - Bio
 
     private func bioSection(_ user: User) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
+            HStack(spacing: DS.Spacing.xxs) {
                 Text(user.fullName)
-                    .font(.subheadline)
+                    .font(DS.Font.subheadline)
                     .fontWeight(.semibold)
                 if user.isVerified {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(ColorTokens.accentPrimary)
                 }
             }
 
             if let bio = user.bio, !bio.isEmpty {
                 Text(bio)
-                    .font(.subheadline)
+                    .font(DS.Font.subheadline)
             }
 
             if let website = user.website, !website.isEmpty {
                 Link(website.replacingOccurrences(of: "https://", with: ""),
                      destination: URL(string: website) ?? URL(string: "https://example.com")!)
-                    .font(.subheadline)
+                    .font(DS.Font.subheadline)
                     .fontWeight(.medium)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.top, DS.Spacing.xs)
     }
 
     // MARK: - Action Buttons
 
     private func actionButtons(_ user: User) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.Spacing.xs) {
             if viewModel.isCurrentUser {
                 profileButton(title: "Edit Profile") {
                     AppRouter.shared.push(.editProfile)
@@ -174,14 +174,14 @@ struct ProfileView: View {
                     Task { await viewModel.toggleFollow() }
                 } label: {
                     Text(user.isFollowing ? "Following" : "Follow")
-                        .font(.subheadline)
+                        .font(DS.Font.subheadline)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 32)
-                        .foregroundStyle(user.isFollowing ? .primary : .white)
+                        .frame(height: DS.Size.avatarCompact)
+                        .foregroundStyle(user.isFollowing ? Color.primary : .white)
                         .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(user.isFollowing ? Color(.systemGray5) : .blue)
+                            RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                                .fill(user.isFollowing ? ColorTokens.buttonSecondary : ColorTokens.accentPrimary)
                         )
                 }
 
@@ -190,20 +190,20 @@ struct ProfileView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.top, DS.Spacing.sm)
     }
 
     private func profileButton(title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.subheadline)
+                .font(DS.Font.subheadline)
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
-                .frame(height: 32)
+                .frame(height: DS.Size.avatarCompact)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color(.systemGray5))
+                    RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                        .fill(ColorTokens.buttonSecondary)
                 )
         }
         .tint(.primary)
@@ -220,9 +220,9 @@ struct ProfileView: View {
                     }
                 } label: {
                     Image(systemName: grid.icon)
-                        .font(.title3)
+                        .font(DS.Font.title3)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, DS.Padding.inputBar)
                         .foregroundStyle(selectedGrid == grid ? .primary : .secondary)
                 }
             }
@@ -236,7 +236,7 @@ struct ProfileView: View {
             }
             .frame(height: 1)
         }
-        .padding(.top, 16)
+        .padding(.top, DS.Spacing.md)
     }
 
     // MARK: - Posts Grid
@@ -256,7 +256,7 @@ struct ProfileView: View {
                                     .resizable()
                                     .aspectRatio(1, contentMode: .fill)
                             } else {
-                                Color(.systemGray6)
+                                ColorTokens.backgroundSecondary
                             }
                         }
                         .aspectRatio(1, contentMode: .fill)

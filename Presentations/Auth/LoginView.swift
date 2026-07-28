@@ -20,8 +20,8 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 40)
+                VStack(spacing: DS.Spacing.xl) {
+                    Spacer().frame(height: DS.Spacing.xxxl)
 
                     // MARK: Logo
                     logoSection
@@ -49,7 +49,7 @@ struct LoginView: View {
 
                     Spacer()
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, DS.Spacing.xxl)
             }
             .scrollDismissesKeyboard(.interactively)
             .disabled(viewModel.isLoading)
@@ -59,19 +59,19 @@ struct LoginView: View {
     // MARK: - Subviews
 
     private var logoSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: DS.Spacing.xs) {
             Text("Instagram")
                 .font(.system(size: 40, weight: .bold, design: .serif))
 
             Text(viewModel.isLoginMode ? "Sign in to continue" : "Create your account")
-                .font(.subheadline)
+                .font(DS.Font.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, DS.Spacing.md)
     }
 
     private var loginForm: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: DS.Spacing.formGap) {
             AuthTextField(
                 placeholder: "Email",
                 text: $viewModel.email,
@@ -91,7 +91,7 @@ struct LoginView: View {
     }
 
     private var registerForm: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: DS.Spacing.formGap) {
             AuthTextField(
                 placeholder: "Full Name",
                 text: $viewModel.fullName,
@@ -134,16 +134,16 @@ struct LoginView: View {
     }
 
     private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.Spacing.xs) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(ColorTokens.destructive)
             Text(message)
-                .font(.caption)
-                .foregroundStyle(.red)
+                .font(DS.Font.caption)
+                .foregroundStyle(ColorTokens.destructive)
             Spacer()
         }
-        .padding(12)
-        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .padding(DS.Spacing.sm)
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
     }
 
     private var primaryButton: some View {
@@ -166,11 +166,11 @@ struct LoginView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 48)
+            .frame(height: DS.Size.inputBarHeight)
             .foregroundStyle(.white)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isFormValid ? Color.blue : Color.blue.opacity(0.5))
+                RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
+                    .fill(isFormValid ? ColorTokens.accentPrimary : ColorTokens.accentPrimary.opacity(DS.Opacity.overlay))
             )
         }
         .disabled(!isFormValid || viewModel.isLoading)
@@ -182,7 +182,7 @@ struct LoginView: View {
                 .fill(Color.secondary.opacity(0.3))
                 .frame(height: 0.5)
             Text("OR")
-                .font(.caption)
+                .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
             Rectangle()
                 .fill(Color.secondary.opacity(0.3))
@@ -191,16 +191,16 @@ struct LoginView: View {
     }
 
     private var toggleModeSection: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: DS.Spacing.xxs) {
             Text(viewModel.isLoginMode ? "Don't have an account?" : "Already have an account?")
-                .font(.subheadline)
+                .font(DS.Font.subheadline)
                 .foregroundStyle(.secondary)
             Button(viewModel.isLoginMode ? "Sign Up" : "Log In") {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     viewModel.toggleMode()
                 }
             }
-            .font(.subheadline)
+            .font(DS.Font.subheadline)
             .fontWeight(.semibold)
         }
     }
@@ -225,11 +225,11 @@ struct AuthTextField: View {
     @State private var isPasswordVisible = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             if !icon.isEmpty {
                 Image(systemName: icon)
                     .foregroundStyle(.secondary)
-                    .frame(width: 20)
+                    .frame(width: DS.Spacing.lg)
             }
 
             if isSecure && !isPasswordVisible {
@@ -252,14 +252,14 @@ struct AuthTextField: View {
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, DS.Spacing.formGap)
+        .padding(.vertical, DS.Spacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(.systemGray6))
+            RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
+                .fill(ColorTokens.backgroundSecondary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
                 .stroke(Color(.systemGray4), lineWidth: 0.5)
         )
     }

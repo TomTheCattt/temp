@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+internal import CallKit
 
 // MARK: - CallState
 

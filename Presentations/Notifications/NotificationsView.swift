@@ -13,10 +13,8 @@ import NukeUI
 struct NotificationsView: View {
 
     @State private var viewModel = NotificationsViewModel(
-        fetchNotificationsUseCase: FetchNotificationsUseCase(
-            notificationRepository: NotificationRepository()
-        ),
-        notificationRepository: NotificationRepository()
+        fetchNotificationsUseCase: DIContainer.shared.resolve(FetchNotificationsUseCaseProtocol.self),
+        notificationRepository: DIContainer.shared.resolve(NotificationRepositoryProtocol.self)
     )
 
     var body: some View {
@@ -29,7 +27,7 @@ struct NotificationsView: View {
                 ForEach(viewModel.notifications) { notification in
                     NotificationRow(notification: notification)
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: DS.Spacing.iconGap, leading: DS.Spacing.md, bottom: DS.Spacing.iconGap, trailing: DS.Spacing.md))
                 }
             }
         }
@@ -43,17 +41,17 @@ struct NotificationsView: View {
     }
 
     private var notificationPlaceholder: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             Circle()
-                .fill(Color(.systemGray5))
-                .frame(width: 44, height: 44)
-            VStack(alignment: .leading, spacing: 4) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 200, height: 12)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray6))
-                    .frame(width: 100, height: 10)
+                .fill(ColorTokens.buttonSecondary)
+                .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
+            VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(ColorTokens.buttonSecondary)
+                    .frame(width: 200, height: DS.Spacing.sm)
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(ColorTokens.backgroundSecondary)
+                    .frame(width: 100, height: DS.Padding.inputBar)
             }
             Spacer()
         }
@@ -67,29 +65,29 @@ private struct NotificationRow: View {
     let notification: AppNotification
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             // Avatar
             LazyImage(url: notification.actor.avatarURL) { state in
                 if let image = state.image {
                     image.resizable()
                 } else {
-                    Circle().fill(Color(.systemGray5))
+                    Circle().fill(ColorTokens.buttonSecondary)
                 }
             }
-            .frame(width: 44, height: 44)
+            .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
             .clipShape(Circle())
             .onTapGesture {
                 AppRouter.shared.push(.userProfile(userId: notification.actor.id))
             }
 
             // Content
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 notificationText
-                    .font(.subheadline)
+                    .font(DS.Font.subheadline)
                     .lineLimit(2)
 
                 Text(notification.createdAt.timeAgoDisplay())
-                    .font(.caption)
+                    .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -101,11 +99,11 @@ private struct NotificationRow: View {
                     if let image = state.image {
                         image.resizable()
                     } else {
-                        Color(.systemGray6)
+                        ColorTokens.backgroundSecondary
                     }
                 }
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
                 .onTapGesture {
                     if let postId = notification.postId {
                         AppRouter.shared.push(.postDetail(postId: postId))
@@ -118,8 +116,8 @@ private struct NotificationRow: View {
                 followButton
             }
         }
-        .padding(.vertical, 4)
-        .background(notification.isRead ? Color.clear : Color.blue.opacity(0.04))
+        .padding(.vertical, DS.Spacing.xxs)
+        .background(notification.isRead ? Color.clear : ColorTokens.accentPrimary.opacity(DS.Opacity.subtle))
         .contentShape(Rectangle())
     }
 
@@ -154,14 +152,14 @@ private struct NotificationRow: View {
             // Follow back
         } label: {
             Text("Follow")
-                .font(.caption)
+                .font(DS.Font.caption)
                 .fontWeight(.semibold)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.horizontal, DS.Padding.horizontal)
+                .padding(.vertical, DS.Spacing.iconGap)
                 .foregroundStyle(.white)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(.blue)
+                    RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard, style: .continuous)
+                        .fill(ColorTokens.accentPrimary)
                 )
         }
     }

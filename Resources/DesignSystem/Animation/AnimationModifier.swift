@@ -72,109 +72,16 @@ enum AppTransition {
     }
 }
 
-// MARK: - AppChangeEffect
-
-/// Predefined change effects (triggered when a value changes).
-enum AppChangeEffect {
-
-    /// Spray particles outward (like confetti on a like button).
-    static func spray(origin: UnitPoint = .center) -> some ChangeEffect {
-        .spray(origin: origin) {
-            Image(systemName: "heart.fill")
-                .foregroundStyle(.red)
-        }
-    }
-
-    /// Rise particles upward.
-    static var rise: some ChangeEffect {
-        .rise(origin: .center) {
-            Image(systemName: "heart.fill")
-                .foregroundStyle(.red)
-        }
-    }
-
-    /// Haptic feedback pulse.
-    static var hapticFeedback: some ChangeEffect {
-        .feedback(hapticNotification: .success)
-    }
-
-    /// Shine sweep effect.
-    static var shine: some ChangeEffect {
-        .shine
-    }
-
-    /// Glow highlight.
-    static var glow: some ChangeEffect {
-        .glow(color: .blue, radius: 10)
-    }
-
-    /// Pulse scale effect.
-    static var pulse: some ChangeEffect {
-        .pulse(shape: Circle(), style: .cyan, count: 2)
-    }
-
-    /// Jump effect.
-    static var jump: some ChangeEffect {
-        .jump(height: 50)
-    }
-
-    /// Shake (error feedback).
-    static var shake: some ChangeEffect {
-        .shake(rate: .fast)
-    }
-
-    /// Spin effect.
-    static var spin: some ChangeEffect {
-        .spin(axis: (x: 0, y: 1, z: 0))
-    }
-}
-
 // MARK: - View Extensions
 
 extension View {
 
     /// Apply a Pow transition when appearing/disappearing.
-    ///
-    /// Usage:
-    /// ```swift
-    /// if showCard {
-    ///     CardView()
-    ///         .appTransition(.pop)
-    /// }
-    /// ```
     func appTransition(_ transition: AnyTransition) -> some View {
         self.transition(transition)
     }
 
-    /// Trigger a change effect when a value changes.
-    ///
-    /// Usage:
-    /// ```swift
-    /// Image(systemName: "heart.fill")
-    ///     .appChangeEffect(.spray(), trigger: likeCount)
-    /// ```
-    func appChangeEffect<E: ChangeEffect, V: Equatable>(
-        _ effect: E,
-        trigger: V
-    ) -> some View {
-        self.changeEffect(effect, value: trigger)
-    }
-
-    /// Conditional repeat effect (continuous animation).
-    ///
-    /// Usage:
-    /// ```swift
-    /// NotificationBadge()
-    ///     .appRepeatEffect(.pulse, isActive: hasNotification)
-    /// ```
-    func appRepeatEffect<E: ChangeEffect>(
-        _ effect: E,
-        isActive: Bool
-    ) -> some View {
-        self.changeEffect(effect, value: isActive, isEnabled: isActive)
-    }
-
-    // MARK: - Common Presets
+    // MARK: - Common Change Effect Presets
 
     /// Like button spray animation.
     func likeEffect(trigger: Int) -> some View {
@@ -187,11 +94,9 @@ extension View {
         )
     }
 
-    /// Success feedback (scale pulse + haptic).
+    /// Success feedback (haptic).
     func successFeedback<V: Equatable>(trigger: V) -> some View {
-        self
-            .changeEffect(.feedback(hapticNotification: .success), value: trigger)
-            .changeEffect(.pulse(shape: Circle(), style: .green, count: 1), value: trigger)
+        self.changeEffect(.feedback(hapticNotification: .success), value: trigger)
     }
 
     /// Error shake animation.
@@ -199,10 +104,49 @@ extension View {
         self.changeEffect(.shake(rate: .fast), value: trigger)
     }
 
-    /// Notification badge pulse.
-    func notificationPulse(isActive: Bool) -> some View {
+    /// Shine sweep effect on change.
+    func shineEffect<V: Equatable>(trigger: V) -> some View {
+        self.changeEffect(.shine, value: trigger)
+    }
+
+    /// Glow highlight on change.
+    func glowEffect<V: Equatable>(trigger: V, color: Color = .blue) -> some View {
+        self.changeEffect(.glow(color: color, radius: 10), value: trigger)
+    }
+
+    /// Pulse effect (notification badge).
+    func pulseEffect<V: Equatable>(trigger: V, color: Color = .red) -> some View {
         self.changeEffect(
-            .pulse(shape: Circle(), style: .red, count: 3),
+            .pulse(shape: Circle(), style: color, count: 2),
+            value: trigger
+        )
+    }
+
+    /// Jump effect.
+    func jumpEffect<V: Equatable>(trigger: V) -> some View {
+        self.changeEffect(.jump(height: 50), value: trigger)
+    }
+
+    /// Spin effect.
+    func spinEffect<V: Equatable>(trigger: V) -> some View {
+        self.changeEffect(.spin(axis: (x: 0, y: 1, z: 0)), value: trigger)
+    }
+
+    /// Rise particles upward.
+    func riseEffect(trigger: Int) -> some View {
+        self.changeEffect(
+            .rise(origin: .center) {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(.red)
+            },
+            value: trigger
+        )
+    }
+
+    /// Continuous pulse for badges/indicators.
+    func continuousPulse(isActive: Bool, color: Color = .red) -> some View {
+        self.changeEffect(
+            .pulse(shape: Circle(), style: color, count: 3),
             value: isActive,
             isEnabled: isActive
         )

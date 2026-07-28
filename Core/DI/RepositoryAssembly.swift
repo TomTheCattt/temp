@@ -23,32 +23,72 @@ final class RepositoryAssembly: Assembly {
 
         // MARK: UserRepository
 
-        container.register(UserRepositoryProtocol.self) { _ in
-            UserRepository()
+        container.register(UserRepositoryProtocol.self) { resolver in
+            UserRepository(
+                remoteDataSource: RemoteUserDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
 
         // MARK: PostRepository
 
-        container.register(PostRepositoryProtocol.self) { _ in
-            PostRepository()
+        container.register(PostRepositoryProtocol.self) { resolver in
+            PostRepository(
+                remoteDataSource: RemotePostDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
 
         // MARK: StoryRepository
 
-        container.register(StoryRepositoryProtocol.self) { _ in
-            StoryRepository()
+        container.register(StoryRepositoryProtocol.self) { resolver in
+            StoryRepository(
+                remoteDataSource: RemoteStoryDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
 
         // MARK: NotificationRepository
 
-        container.register(NotificationRepositoryProtocol.self) { _ in
-            NotificationRepository()
+        container.register(NotificationRepositoryProtocol.self) { resolver in
+            NotificationRepository(
+                remoteDataSource: RemoteNotificationDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
 
         // MARK: MessageRepository
 
-        container.register(MessageRepositoryProtocol.self) { _ in
-            MessageRepository()
+        container.register(MessageRepositoryProtocol.self) { resolver in
+            MessageRepository(
+                remoteDataSource: RemoteMessageDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
+        }.inObjectScope(.container)
+
+        // MARK: CommentRepository
+
+        container.register(CommentRepositoryProtocol.self) { resolver in
+            CommentRepository(
+                remoteDataSource: RemoteCommentDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
+        }.inObjectScope(.container)
+
+        // MARK: ReelRepository
+
+        container.register(ReelRepositoryProtocol.self) { resolver in
+            ReelRepository(
+                remoteDataSource: RemoteReelDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
     }
 }

@@ -11,7 +11,7 @@ import SwiftData
 // MARK: - SwiftDataStorage
 
 /// Concrete implementation of `LocalStorageProtocol` using SwiftData.
-/// This is the only file that imports SwiftData — keeping the rest of the app decoupled.
+/// Uses type-dispatching to route generic calls to typed SwiftData operations.
 @ModelActor
 actor SwiftDataStorage: LocalStorageProtocol {
 
@@ -22,40 +22,58 @@ actor SwiftDataStorage: LocalStorageProtocol {
         predicate: StoragePredicate?,
         sortBy: [StorageSortDescriptor]
     ) async throws -> [T] {
-        guard let modelType = type as? any (PersistentModel & Storable).Type else {
-            throw StorageError.unsupportedType(String(describing: type))
+        switch type {
+        case is Post.Type:
+            let descriptor = FetchDescriptor<SDCachedPost>(
+                sortBy: [SortDescriptor(\.feedIndex, order: .forward)]
+            )
+            let models = try modelContext.fetch(descriptor)
+            return models.map { $0.toEntity() } as! [T]
+
+        case is User.Type:
+            let descriptor = FetchDescriptor<SDCachedUser>(
+                sortBy: [SortDescriptor(\.cachedAt, order: .reverse)]
+            )
+            let models = try modelContext.fetch(descriptor)
+            return models.map { $0.toEntity() } as! [T]
+
+        default:
+            return []
         }
-
-        let models = try fetchModels(modelType)
-
-        // Apply predicate filtering in memory (simplified)
-        var results = models.compactMap { $0 as? T }
-
-        if let predicate {
-            results = applyPredicate(predicate, to: results)
-        }
-
-        return results
     }
 
     // MARK: - Fetch by ID
 
     func fetch<T: Storable>(_ type: T.Type, id: String) async throws -> T? {
-        guard let modelType = type as? any (PersistentModel & Storable).Type else {
-            throw StorageError.unsupportedType(String(describing: type))
-        }
+        switch type {
+        case is Post.Type:
+            let predicate = #Predicate<SDCachedPost> { $0.id == id }
+            let descriptor = FetchDescriptor<SDCachedPost>(predicate: predicate)
+            let models = try modelContext.fetch(descriptor)
+            return models.first?.toEntity() as? T
 
-        let models = try fetchModels(modelType)
-        return models.first { ($0 as? T)?.id == id } as? T
+        case is User.Type:
+            let predicate = #Predicate<SDCachedUser> { $0.id == id }
+            let descriptor = FetchDescriptor<SDCachedUser>(predicate: predicate)
+            let models = try modelContext.fetch(descriptor)
+            return models.first?.toEntity() as? T
+
+        default:
+            return nil
+        }
     }
 
     // MARK: - Save
 
     func save<T: Storable>(_ object: T) async throws {
-        guard let model = object as? any PersistentModel else {
-            throw StorageError.unsupportedType(String(describing: T.self))
+        if let post = object as? Post {
+            // Upsert: delete existing then insert new
+            try deleteModel(SDCachedPost.self, id: post.id)
+            modelContext.insert(SDCachedPost(from: post))
+        } else if let user = object as? User {
+            try deleteModel(SDCachedUser.self, id: user.id)
+            modelContext.insert(SDCachedUser(from: user))
         }
-        modelContext.insert(model)
         try modelContext.save()
     }
 
@@ -63,10 +81,13 @@ actor SwiftDataStorage: LocalStorageProtocol {
 
     func saveAll<T: Storable>(_ objects: [T]) async throws {
         for object in objects {
-            guard let model = object as? any PersistentModel else {
-                throw StorageError.unsupportedType(String(describing: T.self))
+            if let post = object as? Post {
+                try deleteModel(SDCachedPost.self, id: post.id)
+                modelContext.insert(SDCachedPost(from: post, feedIndex: 0))
+            } else if let user = object as? User {
+                try deleteModel(SDCachedUser.self, id: user.id)
+                modelContext.insert(SDCachedUser(from: user))
             }
-            modelContext.insert(model)
         }
         try modelContext.save()
     }
@@ -74,35 +95,27 @@ actor SwiftDataStorage: LocalStorageProtocol {
     // MARK: - Delete
 
     func delete<T: Storable>(_ type: T.Type, id: String) async throws {
-        guard let modelType = type as? any (PersistentModel & Storable).Type else {
-            throw StorageError.unsupportedType(String(describing: type))
+        switch type {
+        case is Post.Type:
+            try deleteModel(SDCachedPost.self, id: id)
+        case is User.Type:
+            try deleteModel(SDCachedUser.self, id: id)
+        default:
+            break
         }
-
-        let models = try fetchModels(modelType)
-        if let target = models.first(where: { ($0 as? T)?.id == id }) {
-            modelContext.delete(target as! any PersistentModel)
-            try modelContext.save()
-        }
+        try modelContext.save()
     }
 
     // MARK: - Delete All
 
     func deleteAll<T: Storable>(_ type: T.Type, predicate: StoragePredicate?) async throws {
-        guard let modelType = type as? any (PersistentModel & Storable).Type else {
-            throw StorageError.unsupportedType(String(describing: type))
-        }
-
-        let models = try fetchModels(modelType)
-        var targets = models.compactMap { $0 as? T }
-
-        if let predicate {
-            targets = applyPredicate(predicate, to: targets)
-        }
-
-        for target in targets {
-            if let model = target as? any PersistentModel {
-                modelContext.delete(model)
-            }
+        switch type {
+        case is Post.Type:
+            try modelContext.delete(model: SDCachedPost.self)
+        case is User.Type:
+            try modelContext.delete(model: SDCachedUser.self)
+        default:
+            break
         }
         try modelContext.save()
     }
@@ -110,25 +123,33 @@ actor SwiftDataStorage: LocalStorageProtocol {
     // MARK: - Count
 
     func count<T: Storable>(_ type: T.Type, predicate: StoragePredicate?) async throws -> Int {
-        let results: [T] = try await fetchAll(type, predicate: predicate, sortBy: [])
-        return results.count
+        switch type {
+        case is Post.Type:
+            let descriptor = FetchDescriptor<SDCachedPost>()
+            return try modelContext.fetchCount(descriptor)
+        case is User.Type:
+            let descriptor = FetchDescriptor<SDCachedUser>()
+            return try modelContext.fetchCount(descriptor)
+        default:
+            return 0
+        }
     }
 
-    // MARK: - Private Helpers
+    // MARK: - Private
 
-    private func fetchModels(_ type: any PersistentModel.Type) throws -> [any PersistentModel] {
-        // Use a generic fetch via the model context
-        let descriptor = FetchDescriptor<any PersistentModel>()
-        // SwiftData requires concrete type for FetchDescriptor — this is a limitation.
-        // In practice, each SwiftData model will have its own typed fetch method.
-        // This fallback uses the model context's enumerate or direct fetch.
-        return []
-    }
-
-    private func applyPredicate<T: Storable>(_ predicate: StoragePredicate, to items: [T]) -> [T] {
-        // Simplified in-memory filtering
-        // In production, build NSPredicate or #Predicate from StoragePredicate
-        return items
+    private func deleteModel<M: PersistentModel>(_ modelType: M.Type, id: String) throws {
+        // Fetch and delete by ID — SwiftData doesn't support predicate delete by arbitrary field easily,
+        // so we fetch then delete.
+        let descriptor = FetchDescriptor<M>()
+        let all = try modelContext.fetch(descriptor)
+        // Find by id attribute — models should have `id` property
+        for model in all {
+            if let idValue = Mirror(reflecting: model).children.first(where: { $0.label == "id" })?.value as? String,
+               idValue == id {
+                modelContext.delete(model)
+                break
+            }
+        }
     }
 }
 
@@ -142,11 +163,16 @@ enum StorageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedType(let type):
-            return "Unsupported storage type: \(type)"
+            return "Unsupported storage type: \(type). Register the corresponding @Model."
         case .notFound(let id):
-            return "Object not found: \(id)"
+            return "Object not found with id: \(id)"
         case .saveFailed(let error):
             return "Save failed: \(error.localizedDescription)"
         }
     }
 }
+
+// MARK: - Domain Entities Storable Conformance
+
+extension Post: Storable {}
+extension User: Storable {}

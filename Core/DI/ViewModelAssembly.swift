@@ -60,5 +60,40 @@ final class ViewModelAssembly: Assembly {
                 messageRepository: resolver.resolve(MessageRepositoryProtocol.self)!
             )
         }
+
+        // MARK: ReelsViewModel
+
+        container.register(ReelsViewModel.self) { resolver in
+            ReelsViewModel(
+                fetchReelsUseCase: resolver.resolve(FetchReelsUseCaseProtocol.self)!,
+                toggleLikeReelUseCase: resolver.resolve(ToggleLikeReelUseCaseProtocol.self)!
+            )
+        }
+
+        // MARK: CreatePostViewModel
+
+        container.register(CreatePostViewModel.self) { resolver in
+            CreatePostViewModel(
+                createPostUseCase: resolver.resolve(CreatePostUseCaseProtocol.self)!
+            )
+        }
+
+        // MARK: EditProfileViewModel
+
+        container.register(EditProfileViewModel.self) { resolver in
+            EditProfileViewModel(
+                updateProfileUseCase: resolver.resolve(UpdateProfileUseCaseProtocol.self)!,
+                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+            )
+        }
+
+        // MARK: SettingsViewModel
+
+        container.register(SettingsViewModel.self) { resolver in
+            SettingsViewModel(
+                authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
+                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+            )
+        }
     }
 }

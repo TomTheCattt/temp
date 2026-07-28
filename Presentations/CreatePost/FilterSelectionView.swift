@@ -73,9 +73,9 @@ struct FilterSelectionView: View {
     // MARK: - Intensity Slider
 
     private var intensitySlider: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             Image(systemName: "circle.lefthalf.filled")
-                .font(.caption)
+                .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
 
             Slider(value: Binding(
@@ -85,13 +85,13 @@ struct FilterSelectionView: View {
             .tint(.primary)
 
             Text("\(Int(filterIntensity * 100))")
-                .font(.caption)
+                .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 32)
+                .frame(width: DS.Spacing.xxl)
                 .monospacedDigit()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
+        .padding(.horizontal, DS.Spacing.lg)
+        .padding(.vertical, DS.Padding.inputBar)
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
@@ -99,7 +99,7 @@ struct FilterSelectionView: View {
 
     private var filterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
+            LazyHStack(spacing: DS.Spacing.sm) {
                 if isLoadingThumbnails {
                     ForEach(0..<8, id: \.self) { _ in
                         thumbnailPlaceholder
@@ -124,21 +124,21 @@ struct FilterSelectionView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DS.Padding.horizontal)
+            .padding(.vertical, DS.Spacing.sm)
         }
         .frame(height: 110)
         .background(Color(.systemBackground))
     }
 
     private var thumbnailPlaceholder: some View {
-        VStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color(.systemGray5))
-                .frame(width: 72, height: 72)
+        VStack(spacing: DS.Spacing.iconGap) {
+            RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
+                .fill(ColorTokens.buttonSecondary)
+                .frame(width: DS.Size.captureButton, height: DS.Size.captureButton)
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color(.systemGray6))
-                .frame(width: 50, height: 10)
+                .fill(ColorTokens.backgroundSecondary)
+                .frame(width: DS.Size.buttonLargeHeight, height: DS.Padding.inputBar)
         }
     }
 
@@ -170,23 +170,23 @@ struct FilterThumbnailCell: View {
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: DS.Spacing.iconGap) {
             Image(uiImage: thumbnail.image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .frame(width: DS.Size.captureButton, height: DS.Size.captureButton)
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
                         .stroke(isSelected ? Color.primary : Color.clear, lineWidth: 2.5)
                 )
 
             Text(thumbnail.displayName)
-                .font(.caption2)
+                .font(DS.Font.caption2)
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundStyle(isSelected ? .primary : .secondary)
                 .lineLimit(1)
         }
-        .frame(width: 72)
+        .frame(width: DS.Size.captureButton)
     }
 }

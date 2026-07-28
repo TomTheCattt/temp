@@ -13,8 +13,8 @@ import NukeUI
 struct ExploreView: View {
 
     @State private var viewModel = ExploreViewModel(
-        postRepository: PostRepository(),
-        searchUsersUseCase: SearchUsersUseCase(userRepository: UserRepository())
+        postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self),
+        searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self)
     )
 
     var body: some View {
@@ -49,7 +49,7 @@ struct ExploreView: View {
         ScrollView {
             LazyVGrid(
                 columns: exploreColumns,
-                spacing: 2
+                spacing: DS.Size.gridSpacing
             ) {
                 ForEach(Array(viewModel.explorePosts.enumerated()), id: \.element.id) { index, post in
                     ExploreGridItem(post: post, index: index)
@@ -63,9 +63,9 @@ struct ExploreView: View {
 
     private var exploreColumns: [GridItem] {
         [
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2),
-            GridItem(.flexible(), spacing: 2)
+            GridItem(.flexible(), spacing: DS.Size.gridSpacing),
+            GridItem(.flexible(), spacing: DS.Size.gridSpacing),
+            GridItem(.flexible(), spacing: DS.Size.gridSpacing)
         ]
     }
 
@@ -114,7 +114,7 @@ private struct ExploreGridItem: View {
                         .resizable()
                         .aspectRatio(1, contentMode: .fill)
                 } else {
-                    Color(.systemGray6)
+                    ColorTokens.backgroundSecondary
                 }
             }
             .aspectRatio(1, contentMode: .fill)
@@ -122,10 +122,10 @@ private struct ExploreGridItem: View {
             .overlay(alignment: .topTrailing) {
                 if post.mediaItems.count > 1 {
                     Image(systemName: "square.on.square")
-                        .font(.caption)
+                        .font(DS.Font.caption)
                         .foregroundStyle(.white)
                         .shadow(radius: 2)
-                        .padding(6)
+                        .padding(DS.Spacing.iconGap)
                 }
             }
         }
@@ -138,32 +138,32 @@ private struct SearchResultRow: View {
     let user: User
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             LazyImage(url: user.avatarURL) { state in
                 if let image = state.image {
                     image.resizable()
                 } else {
-                    Circle().fill(Color(.systemGray5))
+                    Circle().fill(ColorTokens.buttonSecondary)
                 }
             }
-            .frame(width: 44, height: 44)
+            .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
             .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
+                HStack(spacing: DS.Spacing.xxs) {
                     Text(user.username)
-                        .font(.subheadline)
+                        .font(DS.Font.subheadline)
                         .fontWeight(.semibold)
 
                     if user.isVerified {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(ColorTokens.accentPrimary)
                     }
                 }
 
                 Text(user.fullName)
-                    .font(.caption)
+                    .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
             }
 

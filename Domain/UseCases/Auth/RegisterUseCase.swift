@@ -56,12 +56,16 @@ final class RegisterUseCase: RegisterUseCaseProtocol, Sendable {
 // MARK: - ValidationError
 
 enum ValidationError: LocalizedError {
+    case emptyComment
+    case commentTooLong
     case emptyField(String)
 
     var errorDescription: String? {
         switch self {
         case .emptyField(let field):
             return "\(field.capitalized) cannot be empty."
+        case .emptyComment:  return "Comment cannot be empty."
+        case .commentTooLong: return "Comment exceeds maximum length (2200 characters)."
         }
     }
 }

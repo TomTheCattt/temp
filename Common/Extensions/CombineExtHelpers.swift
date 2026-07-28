@@ -6,36 +6,15 @@
 //
 
 import Combine
-import CombineExt
 import Foundation
 
-// MARK: - Publisher Convenience Extensions (using CombineExt)
+// MARK: - Publisher Convenience Extensions
 
 extension Publisher {
 
     /// Ignore all output and only complete or fail.
-    /// Useful for fire-and-forget side effects.
     func asVoid() -> Publishers.Map<Self, Void> {
         map { _ in }
-    }
-
-    /// Materialize the publisher into `Event<Output, Failure>`,
-    /// turning errors into values so downstream never fails.
-    ///
-    /// Usage:
-    /// ```swift
-    /// apiPublisher
-    ///     .materializeResults()
-    ///     .sink { event in
-    ///         switch event {
-    ///         case .value(let data): handleData(data)
-    ///         case .failure(let err): handleError(err)
-    ///         case .finished: break
-    ///         }
-    ///     }
-    /// ```
-    func materializeResults() -> AnyPublisher<Event<Output, Failure>, Never> {
-        self.materialize().eraseToAnyPublisher()
     }
 
     /// Assigns output to a published property using a weak reference,
@@ -49,22 +28,20 @@ extension Publisher {
         }
     }
 
-    /// Retry with an exponential backoff delay.
-    ///
-    /// Usage:
-    /// ```swift
-    /// networkPublisher
-    ///     .retryWithDelay(retries: 3, delay: 1.0)
-    /// ```
+    /// Retry with a fixed delay between attempts.
     func retryWithDelay(
         retries: Int,
-        delay: TimeInterval,
-        scheduler: some Scheduler = DispatchQueue.main
+        delay: TimeInterval
     ) -> AnyPublisher<Output, Failure> {
-        self.retry(retries) { attempt in
-            let backoff = delay * pow(2.0, Double(attempt))
+        self.catch { error -> AnyPublisher<Output, Failure> in
+            guard retries > 0 else {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
             return Just(())
-                .delay(for: .seconds(backoff), scheduler: scheduler)
+                .delay(for: .seconds(delay), scheduler: DispatchQueue.main)
+                .flatMap { _ in
+                    self.retryWithDelay(retries: retries - 1, delay: delay * 2)
+                }
                 .eraseToAnyPublisher()
         }
         .eraseToAnyPublisher()
@@ -75,7 +52,7 @@ extension Publisher {
 
 extension Publisher where Failure == Never {
 
-    /// Receive on main queue — shorthand for `.receive(on: DispatchQueue.main)`.
+    /// Receive on main queue — shorthand.
     func onMain() -> Publishers.ReceiveOn<Self, DispatchQueue> {
         receive(on: DispatchQueue.main)
     }
@@ -101,23 +78,8 @@ extension Publisher where Output == Bool, Failure == Never {
 extension Collection where Element: Publisher {
 
     /// Merge all publishers in the collection into a single stream.
-    ///
-    /// Usage:
-    /// ```swift
-    /// let publishers = urls.map { networkService.fetch($0) }
-    /// publishers
-    ///     .mergeAll()
-    ///     .collect()
-    ///     .sink { results in ... }
-    /// ```
     func mergeAll() -> AnyPublisher<Element.Output, Element.Failure> {
-        MergeMany(self).eraseToAnyPublisher()
-    }
-
-    /// Zip all publishers, emitting an array when all complete.
-    /// ⚠️ Only works with up to a reasonable number of publishers.
-    func zipAll() -> AnyPublisher<[Element.Output], Element.Failure> {
-        self.zip().eraseToAnyPublisher()
+        Publishers.MergeMany(self).eraseToAnyPublisher()
     }
 }
 
@@ -135,20 +97,6 @@ extension PassthroughSubject {
 // MARK: - CancellableStore
 
 /// A lightweight store for AnyCancellable subscriptions.
-/// Use as an alternative to `Set<AnyCancellable>` with a cleaner API.
-///
-/// Usage:
-/// ```swift
-/// class MyViewModel {
-///     private let cancellables = CancellableStore()
-///
-///     func bind() {
-///         somePublisher
-///             .sink { ... }
-///             .store(in: cancellables)
-///     }
-/// }
-/// ```
 final class CancellableStore {
     private var cancellables = Set<AnyCancellable>()
 

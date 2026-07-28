@@ -1,6 +1,6 @@
 # Instagram Clone — Project Status
 
-> Last updated: 2026-07-26
+> Last updated: 2026-07-28
 
 ---
 
@@ -62,18 +62,20 @@
 
 - [x] Entities: User, Post, Story, Comment, Reel, Message, Conversation, AppNotification
 - [x] Repository Protocols: Auth, User, Post, Story, Comment, Message, Notification, Reel
-- [x] UseCases: Login, Register, FetchFeed, ToggleLike, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications
+- [x] UseCases: Login, Register, FetchFeed, ToggleLike, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications, FetchComments, AddComment, FetchPostDetail, CreatePost, FetchReels, ToggleLikeReel, FetchMessages, SendMessage, UpdateProfile, FetchFollowers, FetchFollowing
 - [x] Base types: UseCase protocol, PaginationInput, NoInput, AuthSession
 - [x] Error types: APIError, AuthError, ValidationError, CallServiceError, WebSocketError, LUTError
 
 ### Data Layer
 
 - [x] MockData (users, posts, stories, comments, notifications, conversations)
-- [x] Mock DataSources: Auth, User, Post, Story, Notification, Message
-- [x] Repository implementations (all using Mock DataSources)
-- [ ] Remote DataSources (real API calls via NetworkService)
-- [ ] DTOs (API response models)
-- [ ] Mappers (DTO ↔ Entity)
+- [x] Mock DataSources: Auth, User, Post, Story, Notification, Message, Comment, Reel
+- [x] Repository implementations (all using Mock DataSources, including Comment + Reel)
+- [x] Remote DataSources (real API calls via NetworkService): Post, User, Comment, Story, Reel, Message, Notification
+- [x] DTOs (API response models): User, Post, Comment, Story, Reel, Message, Notification, PaginatedResponse
+- [x] Mappers (DTO ↔ Entity): User, Post, Comment, Story, Reel, Message, Notification, Date
+- [x] Repositories refactored: remote-first with mock fallback (AppConfig.isMockAPI toggle)
+- [x] Instagram API Endpoints: Post, User, Comment, Story, Reel, Conversation, Notification
 
 ### Persistence Layer
 
@@ -97,15 +99,25 @@
 - [x] Direct Messages: DirectMessagesView + DirectMessagesViewModel
 - [x] Call: CallView + CallViewModel (audio/video, incoming/active controls)
 - [x] Create Post: FilterSelectionView (preview + filter strip + intensity)
-- [ ] Post Detail View
-- [ ] Comments View
-- [ ] Create Post Flow (photo picker, crop, caption)
-- [ ] Story Viewer (full-screen, progress bar, swipe)
-- [ ] Story Camera
-- [ ] Chat/Conversation View (message bubbles, input)
-- [ ] Edit Profile View
-- [ ] Settings View
-- [ ] Reels Player
+- [x] Post Detail View (full post + comments + like + add comment)
+- [x] Comments View (threaded replies, reply indicator, pagination)
+- [x] Create Post Flow (PhotosPicker, filter selection, caption, location, share)
+- [x] Story Viewer (full-screen, progress bars, auto-advance, tap/swipe navigation)
+- [x] Story Camera (capture photo/video, filters, edit tools, publish to story/close friends)
+- [x] Chat/Conversation View (message bubbles, text/image/audio/video/like, status indicators)
+- [x] Edit Profile View (avatar picker, name/bio/website, character counter)
+- [x] Settings View (notifications, privacy, security, data, logout)
+- [x] Reels Player (vertical paging, full-screen, action buttons, audio track)
+- [x] Followers/Following List (searchable, follow/unfollow, pagination)
+- [x] Likes List (user list with follow buttons, search)
+- [x] Search Results (tabs: top/accounts/tags/places, grid + list)
+- [x] Hashtag Page (header with post count, follow, post grid)
+- [x] Location Page (map placeholder, directions, post grid)
+- [x] Media Viewer (full-screen, pinch zoom, drag dismiss)
+- [x] Share Post sheet (search contacts, quick share, send as DM, copy link)
+- [x] Report Post sheet (10 report reasons, submit, confirmation)
+- [x] Create Reel (camera + gallery picker, duration selector, editor, publish)
+- [x] Dark Mode (ThemeManager, ColorTokens, theme picker in Settings)
 
 ### Design System
 
@@ -116,39 +128,41 @@
 - [x] ShimmerModifier + SkeletonListView + SkeletonCardView
 - [x] AnimationModifier + AppTransition + AppChangeEffect
 - [x] CombineExt helpers
+- [x] Theme system (AppTheme, ThemeManager, ColorTokens, FontTokens, SpacingTokens)
 
 ---
 
 ## What's Next (Priority Order)
 
-### Phase 2: Core Feature Completion
+### Phase 2: Core Feature Completion (Base UI Done ✅)
 
-1. [ ] Create Post full flow (photo picker, crop, filter, caption, post)
-2. [ ] Chat/Conversation screen (message bubbles, text input, send via WebSocket)
-3. [ ] Post Detail View (full post + comments)
-4. [ ] Comments View (list + add comment)
-5. [ ] Story Viewer (full-screen with progress, swipe between users)
-6. [ ] Edit Profile screen
+1. [x] Create Post full flow (photo picker, crop, filter, caption, post)
+2. [x] Chat/Conversation screen (message bubbles, text input, send via WebSocket)
+3. [x] Post Detail View (full post + comments)
+4. [x] Comments View (list + add comment)
+5. [x] Story Viewer (full-screen with progress, swipe between users)
+6. [x] Edit Profile screen
 
 ### Phase 3: Advanced Features
 
-7. [ ] Reels Player (vertical paging, video playback)
-8. [ ] Story Camera (capture + filters + stickers)
-9. [ ] Settings screen (notifications, privacy, account)
+7. [x] Reels Player (vertical paging, video playback — base UI done, needs AVPlayer)
+8. [x] Story Camera (capture + filters + edit tools + publish — base UI done, needs real AVCaptureSession)
+9. [x] Settings screen (notifications, privacy, account)
 10. [ ] WebRTC integration (actual audio/video media for calls)
-11. [ ] Search: hashtags, locations, posts (not just users)
-12. [ ] Followers/Following list screens
+11. [x] Search: hashtags, locations, posts (SearchResultsView with tabs)
+12. [x] Followers/Following list screens
 
 ### Phase 4: Polish & Production
 
-13. [ ] Real API integration (replace Mock with Remote DataSources)
+13. [x] Real API integration (Remote DataSources + DTOs + Mappers + Endpoints — ready, switch API_MODE=live to activate)
 14. [ ] SwiftData offline cache
 15. [ ] Pagination improvements (cursor-based)
 16. [ ] Deep link handling
-17. [ ] Localization (Vietnamese + English)
-18. [ ] Accessibility (VoiceOver, Dynamic Type)
-19. [ ] Unit tests + snapshot tests
-20. [ ] Performance optimization (lazy loading, prefetch)
+17. [x] Dark mode / Theming (ThemeManager + ColorTokens + system/light/dark toggle)
+18. [ ] Localization (Vietnamese + English)
+19. [ ] Accessibility (VoiceOver, Dynamic Type)
+20. [ ] Unit tests + snapshot tests
+21. [ ] Performance optimization (lazy loading, prefetch)
 
 ---
 
@@ -247,7 +261,15 @@ Instagram/
 │   ├── Networking/
 │   │   ├── APIEndPoint.swift
 │   │   ├── NetworkService.swift
-│   │   └── RequestInterceptor.swift
+│   │   ├── RequestInterceptor.swift
+│   │   └── Endpoints/
+│   │       ├── PostEndpoint.swift
+│   │       ├── UserEndpoints.swift
+│   │       ├── CommentEndpoint.swift
+│   │       ├── StoryEndpoint.swift
+│   │       ├── ReelEndpoint.swift
+│   │       ├── MessageEndpoints.swift
+│   │       └── NotificationEndpoint.swift
 │   ├── PermissionHandler/
 │   │   ├── PermissionService.swift
 │   │   └── SystemPermissionService.swift
@@ -265,17 +287,47 @@ Instagram/
 ├── Data/
 │   ├── DataSources/Mock/
 │   │   ├── MockAuthDataSource.swift
+│   │   ├── MockCommentDataSource.swift
 │   │   ├── MockData.swift
 │   │   ├── MockMessageDataSource.swift
 │   │   ├── MockNotificationDataSource.swift
 │   │   ├── MockPostDataSource.swift
+│   │   ├── MockReelDataSource.swift
 │   │   ├── MockStoryDataSource.swift
 │   │   └── MockUserDataSource.swift
+│   ├── DataSources/Remote/
+│   │   ├── RemoteCommentDataSource.swift
+│   │   ├── RemoteMessageDataSource.swift
+│   │   ├── RemoteNotificationDataSource.swift
+│   │   ├── RemotePostDataSource.swift
+│   │   ├── RemoteReelDataSource.swift
+│   │   ├── RemoteStoryDataSource.swift
+│   │   └── RemoteUserDataSource.swift
+│   ├── DTOs/
+│   │   ├── CommentDTO.swift
+│   │   ├── MessageDTO.swift
+│   │   ├── NotificationDTO.swift
+│   │   ├── PaginatedResponseDTO.swift
+│   │   ├── PostDTO.swift
+│   │   ├── ReelDTO.swift
+│   │   ├── StoryDTO.swift
+│   │   └── UserDTO.swift
+│   ├── Mappers/
+│   │   ├── CommentMapper.swift
+│   │   ├── DateMapper.swift
+│   │   ├── MessageMapper.swift
+│   │   ├── NotificationMapper.swift
+│   │   ├── PostMapper.swift
+│   │   ├── ReelMapper.swift
+│   │   ├── StoryMapper.swift
+│   │   └── UserMapper.swift
 │   └── Repositories/
 │       ├── AuthRepository.swift
+│       ├── CommentRepository.swift
 │       ├── MessageRepository.swift
 │       ├── NotificationRepository.swift
 │       ├── PostRepository.swift
+│       ├── ReelRepository.swift
 │       ├── StoryRepository.swift
 │       └── UserRepository.swift
 ├── Domain/
@@ -300,11 +352,21 @@ Instagram/
 │       ├── UseCase.swift               (base protocol)
 │       ├── Auth/LoginUseCase.swift
 │       ├── Auth/RegisterUseCase.swift
+│       ├── Comment/FetchCommentsUseCase.swift
+│       ├── Comment/AddCommentUseCase.swift
 │       ├── Feed/FetchFeedUseCase.swift
+│       ├── Feed/FetchPostDetailUseCase.swift
+│       ├── Feed/CreatePostUseCase.swift
 │       ├── Feed/ToggleLikePostUseCase.swift
+│       ├── Message/FetchMessagesUseCase.swift
+│       ├── Message/SendMessageUseCase.swift
 │       ├── Notification/FetchNotificationsUseCase.swift
 │       ├── Profile/FetchProfileUseCase.swift
 │       ├── Profile/ToggleFollowUseCase.swift
+│       ├── Profile/UpdateProfileUseCase.swift
+│       ├── Profile/FetchFollowersUseCase.swift
+│       ├── Reel/FetchReelsUseCase.swift
+│       ├── Reel/ToggleLikeReelUseCase.swift
 │       ├── Search/SearchUsersUseCase.swift
 │       └── Story/FetchStoriesUseCase.swift
 ├── Persistence/
@@ -320,11 +382,22 @@ Instagram/
 │   ├── Call/
 │   │   ├── CallView.swift
 │   │   └── CallViewModel.swift
+│   ├── Chat/
+│   │   ├── ChatView.swift
+│   │   └── ChatViewModel.swift
+│   ├── Comments/
+│   │   ├── CommentsView.swift
+│   │   └── CommentsViewModel.swift
 │   ├── CreatePost/
+│   │   ├── CreatePostView.swift
+│   │   ├── CreatePostViewModel.swift
 │   │   └── FilterSelectionView.swift
 │   ├── DirectMessages/
 │   │   ├── DirectMessagesView.swift
 │   │   └── DirectMessagesViewModel.swift
+│   ├── EditProfile/
+│   │   ├── EditProfileView.swift
+│   │   └── EditProfileViewModel.swift
 │   ├── Explore/
 │   │   ├── ExploreView.swift
 │   │   └── ExploreViewModel.swift
@@ -339,11 +412,42 @@ Instagram/
 │   ├── Notifications/
 │   │   ├── NotificationsView.swift
 │   │   └── NotificationsViewModel.swift
+│   ├── PostDetail/
+│   │   ├── PostDetailView.swift
+│   │   └── PostDetailViewModel.swift
 │   ├── Profile/
 │   │   ├── ProfileView.swift
 │   │   └── ProfileViewModel.swift
+│   ├── Reels/
+│   │   ├── ReelsView.swift
+│   │   └── ReelsViewModel.swift
+│   ├── Settings/
+│   │   ├── SettingsView.swift
+│   │   └── SettingsViewModel.swift
+│   ├── StoryCamera/
+│   │   ├── StoryCameraView.swift
+│   │   └── StoryCameraViewModel.swift
+│   ├── FollowList/
+│   │   ├── FollowListView.swift
+│   │   └── FollowListViewModel.swift
+│   ├── LikesList/
+│   │   ├── LikesListView.swift
+│   │   └── LikesListViewModel.swift
+│   ├── Search/
+│   │   ├── SearchResultsView.swift
+│   │   └── SearchResultsViewModel.swift
+│   ├── Hashtag/
+│   │   ├── HashtagView.swift
+│   │   └── HashtagViewModel.swift
+│   ├── Location/
+│   │   ├── LocationView.swift
+│   │   └── LocationViewModel.swift
+│   ├── MediaViewer/
+│   │   └── MediaViewerView.swift
 │   └── Stories/
-│       └── StoriesBarView.swift
+│       ├── StoriesBarView.swift
+│       ├── StoryViewerView.swift
+│       └── StoryViewerViewModel.swift
 ├── Resources/
 │   ├── Assets/Assets.xcassets/
 │   ├── DesignSystem/

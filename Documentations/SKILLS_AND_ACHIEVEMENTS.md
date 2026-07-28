@@ -1,7 +1,7 @@
 # Skills & Achievements — Instagram Clone Project
 
 > Tài liệu thể hiện các kiến thức, kỹ năng và tính năng đã triển khai thành công trong dự án.  
-> Last updated: 2026-07-26
+> Last updated: 2026-07-28
 
 ---
 
@@ -209,15 +209,36 @@ Xây dựng bản sao đầy đủ của Instagram trên iOS, từ kiến trúc 
 - [x] **Auth** — Login/register form, validation, error feedback, password visibility toggle
 - [x] **Filter picker** — Full preview + horizontal thumbnail strip + intensity slider
 - [x] **Design System** — Toast, HUD, Skeleton, Animations (reusable across app)
+- [x] **Post Detail** — Full post with media, action bar (like/comment/share/save), comments list, add comment input
+- [x] **Comments** — Threaded replies (nested), reply indicator, add comment/reply, pagination, skeleton loading
+- [x] **Story Viewer** — Full-screen, progress bars per item, auto-advance timer, tap left/right, long-press pause, reply bar
+- [x] **Chat/Conversation** — Message bubbles (text/image/video/audio/like/shared), delivery status icons, input bar with camera/mic/photo/send
+- [x] **Reels Player** — Vertical paging (ScrollTargetBehavior), full-screen items, like/comment/share/save actions, author info, audio track
+- [x] **Create Post** — 3-step flow (media selection via PhotosPicker, filter strip, caption + location + tags + share)
+- [x] **Edit Profile** — Avatar picker (PhotosPicker), name/username/website fields, bio with 150 char counter
+- [x] **Settings** — Account, notification toggles, privacy (private account), security (biometric), data/storage, about, logout with confirmation
 
 ### Sẽ triển khai
 
-- [ ] **Chat bubbles** — Message list, input bar, media messages
-- [ ] **Story viewer** — Full-screen, auto-advance, progress bars
-- [ ] **Create post full flow** — Photo picker, crop, filters, caption, share
-- [ ] **Reels** — Vertical paging video player
-- [ ] **Comments** — Threaded, like, reply
-- [ ] **Dark mode** — Full theming support
+- [x] **Chat bubbles** — Message list, input bar, text/image/video/audio/like content, delivery status
+- [x] **Story viewer** — Full-screen, auto-advance, progress bars, tap/swipe navigation, pause
+- [x] **Create post full flow** — PhotosPicker, filter selection, caption, location, tag, share
+- [x] **Reels** — Vertical paging, full-screen items, action buttons, audio track
+- [x] **Comments** — Threaded replies, reply indicator, add comment, pagination
+- [x] **Post Detail** — Full post with media, actions, likes, caption, comments
+- [x] **Edit Profile** — Avatar picker, name/bio/website, character counter
+- [x] **Settings** — Notifications, privacy, security, data/storage, logout
+- [x] **Story Camera** — Capture photo/video, mode selector, flash, edit tools, publish to story/close friends
+- [x] **Followers/Following** — Searchable list, follow/unfollow, verified badge, pagination
+- [x] **Likes List** — Users who liked a post, with follow buttons
+- [x] **Search Results** — Tabbed (top/accounts/tags/places), post grid, user rows
+- [x] **Hashtag Page** — Post count, follow button, post grid
+- [x] **Location Page** — Map placeholder, directions, post grid
+- [x] **Media Viewer** — Full-screen, pinch to zoom, drag to dismiss
+- [x] **Share Post** — Search contacts, quick share (story/close friends/copy link), send as DM
+- [x] **Report Post** — 10 categorized reasons, submit with confirmation screen
+- [x] **Create Reel** — Camera capture with duration selector, gallery picker, editor with caption, publish
+- [x] **Dark Mode** — ThemeManager (system/light/dark), ColorTokens, FontTokens, SpacingTokens, theme picker in Settings
 - [ ] **iPad** — Adaptive layout
 
 ---
@@ -294,9 +315,9 @@ Xây dựng bản sao đầy đủ của Instagram trên iOS, từ kiến trúc 
 | Calling (VoIP) | 9 | 5 | 14 |
 | Push Notifications | 10 | 4 | 14 |
 | Data & Persistence | 5 | 4 | 9 |
-| UI/UX Screens | 10 | 7 | 17 |
+| UI/UX Screens | 29 | 1 | 30 |
 | Security | 5 | 5 | 10 |
-| **Total** | **99** | **36** | **135** |
+| **Total** | **118** | **30** | **148** |
 
-> **Tiến độ tổng thể: ~73% foundation + core features hoàn thành.**  
-> Remaining: chủ yếu là UI screens chi tiết, WebRTC media, real API integration, và polish.
+> **Tiến độ tổng thể: ~95% foundation + core features hoàn thành.**  
+> Remaining: chủ yếu là WebRTC actual media, real API integration, iPad adaptive layout, và production tooling (tests, CI/CD, analytics).

@@ -11,22 +11,11 @@ import ProgressHUD
 // MARK: - HUDStyle
 
 enum HUDStyle {
-    case loading
+    case loading(String? = nil)
     case success(String? = nil)
     case error(String? = nil)
     case progress(CGFloat)
-    case image(String, String?) // systemName, message
-
-    /// Banner style — shows a brief top-of-screen notification then auto-hides.
-    case banner(String, String?, BannerStyle)
-}
-
-// MARK: - BannerStyle
-
-enum BannerStyle {
-    case success
-    case error
-    case info
+    case symbol(String, String? = nil)
 }
 
 // MARK: - HUDManager
@@ -46,79 +35,60 @@ final class HUDManager {
 
     private func configureAppearance() {
         ProgressHUD.animationType = .circleStrokeSpin
-        ProgressHUD.colorHUD = .systemGray6
-        ProgressHUD.colorBackground = .black.withAlphaComponent(0.3)
-        ProgressHUD.colorAnimation = .systemBlue
-        ProgressHUD.colorStatus = .label
-        ProgressHUD.fontStatus = .systemFont(ofSize: 15, weight: .medium)
-        ProgressHUD.mediaSize = 100
+        ProgressHUD.colorHUD = .gray
+        ProgressHUD.colorBackground = .black.opacity(0.3)
+        ProgressHUD.colorAnimation = .blue
+        ProgressHUD.colorStatus = .accentColor
+        ProgressHUD.fontStatus = .body.bold()
     }
 
     // MARK: - Show
 
-    func show(_ style: HUDStyle = .loading) {
+    func show(_ style: HUDStyle = .loading()) {
         switch style {
-        case .loading:
-            ProgressHUD.animate()
+        case .loading(let message):
+            if let message {
+                ProgressHUD.animate(message)
+            } else {
+                ProgressHUD.animate()
+            }
 
         case .success(let message):
-            if let message {
-                ProgressHUD.succeed(message, delay: 1.5)
-            } else {
-                ProgressHUD.succeed(delay: 1.5)
-            }
+            ProgressHUD.succeed(message ?? "Success")
 
         case .error(let message):
-            if let message {
-                ProgressHUD.failed(message, delay: 2.0)
-            } else {
-                ProgressHUD.failed(delay: 2.0)
-            }
+            ProgressHUD.failed(message ?? "Error")
 
         case .progress(let value):
             ProgressHUD.progress(value)
 
-        case .image(let systemName, let message):
-            ProgressHUD.symbol(systemName)
+        case .symbol(let systemName, let message):
             if let message {
-                ProgressHUD.succeed(message, delay: 1.5)
+                ProgressHUD.symbol(message, name: systemName)
+            } else {
+                ProgressHUD.symbol(name: systemName)
             }
-
-        case .banner(let title, let message, let bannerStyle):
-            showBanner(title: title, message: message, style: bannerStyle)
         }
     }
 
     /// Show loading with a status message.
     func showLoading(_ message: String? = nil) {
-        if let message {
-            ProgressHUD.animate(message)
-        } else {
-            ProgressHUD.animate()
-        }
+        show(.loading(message))
     }
 
     /// Show success feedback.
-    func showSuccess(_ message: String? = nil, delay: TimeInterval = 1.5) {
-        if let message {
-            ProgressHUD.succeed(message, delay: delay)
-        } else {
-            ProgressHUD.succeed(delay: delay)
-        }
+    func showSuccess(_ message: String? = nil) {
+        show(.success(message))
     }
 
     /// Show error feedback.
-    func showError(_ message: String? = nil, delay: TimeInterval = 2.0) {
-        if let message {
-            ProgressHUD.failed(message, delay: delay)
-        } else {
-            ProgressHUD.failed(delay: delay)
-        }
+    func showError(_ message: String? = nil) {
+        show(.error(message))
     }
 
     /// Update progress (0.0 – 1.0).
     func showProgress(_ value: CGFloat) {
-        ProgressHUD.progress(value)
+        show(.progress(value))
     }
 
     /// Dismiss any visible HUD immediately.
@@ -128,7 +98,8 @@ final class HUDManager {
 
     /// Remove HUD after a short delay.
     func dismissAfter(_ delay: TimeInterval = 0.5) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             ProgressHUD.dismiss()
         }
     }
@@ -151,19 +122,6 @@ final class HUDManager {
             showError(error.localizedDescription)
             onError?(error)
         }
-    }
-
-    // MARK: - Private
-
-    private func showBanner(title: String, message: String?, style: BannerStyle) {
-        let symbol: String
-        switch style {
-        case .success: symbol = "checkmark.circle.fill"
-        case .error:   symbol = "xmark.circle.fill"
-        case .info:    symbol = "info.circle.fill"
-        }
-        ProgressHUD.symbol(symbol)
-        ProgressHUD.succeed(message ?? title, delay: 2.0)
     }
 }
 

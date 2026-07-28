@@ -28,6 +28,31 @@ final class MockStoryDataSource: Sendable {
         try await simulateDelay(seconds: 0.1)
     }
 
+    func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
+        try await simulateDelay(seconds: 1.0)
+        return Story(
+            id: "story_new_\(UUID().uuidString.prefix(8))",
+            author: MockData.currentUser,
+            items: [
+                StoryItem(
+                    id: "story_item_new",
+                    mediaURL: URL(string: "https://picsum.photos/seed/newstory/1080/1920")!,
+                    type: type,
+                    duration: duration,
+                    createdAt: .now,
+                    sticker: nil
+                )
+            ],
+            isViewed: false,
+            createdAt: .now,
+            expiresAt: Date(timeIntervalSinceNow: 24 * 3600)
+        )
+    }
+
+    func deleteStory(id: String) async throws {
+        try await simulateDelay(seconds: 0.3)
+    }
+
     // MARK: - Private
 
     private func simulateDelay(seconds: Double = 0.5) async throws {

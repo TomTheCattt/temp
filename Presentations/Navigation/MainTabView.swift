@@ -37,10 +37,15 @@ struct MainTabView: View {
 
             // MARK: Reels Tab
             NavigationStack(path: $router.reelsPath) {
-                ReelsPlaceholderView()
-                    .navigationDestination(for: AppRoute.self) { route in
-                        routeDestination(route)
-                    }
+                ReelsView(
+                    viewModel: ReelsViewModel(
+                        fetchReelsUseCase: DIContainer.shared.resolve(FetchReelsUseCaseProtocol.self),
+                        toggleLikeReelUseCase: DIContainer.shared.resolve(ToggleLikeReelUseCaseProtocol.self)
+                    )
+                )
+                .navigationDestination(for: AppRoute.self) { route in
+                    routeDestination(route)
+                }
             }
             .tag(AppTab.reels)
             .tabItem { tabLabel(for: .reels) }
@@ -89,32 +94,116 @@ struct MainTabView: View {
         switch route {
         case .userProfile(let userId):
             ProfileView(userId: userId)
+
         case .editProfile:
-            Text("Edit Profile") // Placeholder
+            EditProfileView(
+                viewModel: EditProfileViewModel(
+                    updateProfileUseCase: DIContainer.shared.resolve(UpdateProfileUseCaseProtocol.self),
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
+                )
+            )
+
         case .followers(let userId):
-            Text("Followers for \(userId)") // Placeholder
+            FollowListView(
+                viewModel: FollowListViewModel(
+                    userId: userId,
+                    mode: .followers,
+                    fetchFollowersUseCase: DIContainer.shared.resolve(FetchFollowersUseCaseProtocol.self),
+                    fetchFollowingUseCase: DIContainer.shared.resolve(FetchFollowingUseCaseProtocol.self),
+                    toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self)
+                )
+            )
+
         case .following(let userId):
-            Text("Following for \(userId)") // Placeholder
+            FollowListView(
+                viewModel: FollowListViewModel(
+                    userId: userId,
+                    mode: .following,
+                    fetchFollowersUseCase: DIContainer.shared.resolve(FetchFollowersUseCaseProtocol.self),
+                    fetchFollowingUseCase: DIContainer.shared.resolve(FetchFollowingUseCaseProtocol.self),
+                    toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self)
+                )
+            )
+
         case .settings:
-            Text("Settings") // Placeholder
+            SettingsView(
+                viewModel: SettingsViewModel(
+                    authRepository: DIContainer.shared.resolve(AuthRepositoryProtocol.self),
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
+                )
+            )
+
         case .postDetail(let postId):
-            Text("Post \(postId)") // Placeholder
+            PostDetailView(
+                viewModel: PostDetailViewModel(
+                    postId: postId,
+                    fetchPostDetailUseCase: DIContainer.shared.resolve(FetchPostDetailUseCaseProtocol.self),
+                    fetchCommentsUseCase: DIContainer.shared.resolve(FetchCommentsUseCaseProtocol.self),
+                    toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self),
+                    addCommentUseCase: DIContainer.shared.resolve(AddCommentUseCaseProtocol.self)
+                )
+            )
+
         case .comments(let postId):
-            Text("Comments for \(postId)") // Placeholder
+            CommentsView(
+                viewModel: CommentsViewModel(
+                    postId: postId,
+                    fetchCommentsUseCase: DIContainer.shared.resolve(FetchCommentsUseCaseProtocol.self),
+                    addCommentUseCase: DIContainer.shared.resolve(AddCommentUseCaseProtocol.self)
+                )
+            )
+
         case .likes(let postId):
-            Text("Likes for \(postId)") // Placeholder
+            LikesListView(
+                viewModel: LikesListViewModel(
+                    postId: postId,
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self),
+                    toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self)
+                )
+            )
+
         case .directMessages:
             DirectMessagesView()
+
         case .conversation(let conversationId):
-            Text("Chat \(conversationId)") // Placeholder
-        case .storyViewer(let userId):
-            Text("Story \(userId)") // Placeholder
+            ChatView(
+                viewModel: ChatViewModel(
+                    conversationId: conversationId,
+                    fetchMessagesUseCase: DIContainer.shared.resolve(FetchMessagesUseCaseProtocol.self),
+                    sendMessageUseCase: DIContainer.shared.resolve(SendMessageUseCaseProtocol.self),
+                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+                )
+            )
+
+        case .storyViewer:
+            // Story viewer is typically presented via fullScreenCover
+            // When pushed, show a placeholder that redirects
+            Text("Use fullScreenCover for story viewer")
+
         case .searchResults(let query):
-            Text("Search: \(query)") // Placeholder
+            SearchResultsView(
+                viewModel: SearchResultsViewModel(
+                    query: query,
+                    searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self),
+                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+                )
+            )
+
         case .hashtag(let name):
-            Text("#\(name)") // Placeholder
+            HashtagView(
+                viewModel: HashtagViewModel(
+                    hashtagName: name,
+                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+                )
+            )
+
         case .location(let name):
-            Text("📍 \(name)") // Placeholder
+            LocationView(
+                viewModel: LocationViewModel(
+                    locationName: name,
+                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+                )
+            )
         }
     }
 
@@ -124,17 +213,40 @@ struct MainTabView: View {
     private func sheetContent(_ sheet: AppSheet) -> some View {
         switch sheet {
         case .createPost:
-            Text("Create Post") // Placeholder
+            CreatePostView(
+                viewModel: CreatePostViewModel(
+                    createPostUseCase: DIContainer.shared.resolve(CreatePostUseCaseProtocol.self)
+                )
+            )
+
         case .createStory:
-            Text("Create Story") // Placeholder
+            StoryCameraView(
+                viewModel: StoryCameraViewModel(
+                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
+                )
+            )
+
         case .createReel:
-            Text("Create Reel") // Placeholder
-        case .sharePost:
-            Text("Share Post") // Placeholder
-        case .reportPost:
-            Text("Report Post") // Placeholder
+            CreateReelView(
+                viewModel: CreateReelViewModel(
+                    reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
+                )
+            )
+
+        case .sharePost(let postId):
+            SharePostView(
+                viewModel: SharePostViewModel(
+                    postId: postId,
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self),
+                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+                )
+            )
+
+        case .reportPost(let postId):
+            ReportPostView(postId: postId)
+
         case .editPost:
-            Text("Edit Post") // Placeholder
+            Text("Edit Post") // TODO: EditPostView
         }
     }
 
@@ -144,29 +256,21 @@ struct MainTabView: View {
     private func fullScreenContent(_ fullScreen: AppFullScreen) -> some View {
         switch fullScreen {
         case .camera:
-            Text("Camera") // Placeholder
+            StoryCameraView(
+                viewModel: StoryCameraViewModel(
+                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
+                )
+            )
+
         case .mediaViewer(let url):
-            Text("Media: \(url.lastPathComponent)") // Placeholder
+            MediaViewerView(url: url)
+
         case .storyCamera:
-            Text("Story Camera") // Placeholder
+            StoryCameraView(
+                viewModel: StoryCameraViewModel(
+                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
+                )
+            )
         }
-    }
-}
-
-// MARK: - Reels Placeholder
-
-private struct ReelsPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "play.square.stack")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("Reels")
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text("Coming soon")
-                .foregroundStyle(.secondary)
-        }
-        .navigationTitle("Reels")
     }
 }

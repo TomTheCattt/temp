@@ -12,8 +12,8 @@ import SwiftUI
 struct FeedView: View {
 
     @State private var viewModel = FeedViewModel(
-        fetchFeedUseCase: FetchFeedUseCase(postRepository: PostRepository()),
-        toggleLikeUseCase: ToggleLikePostUseCase(postRepository: PostRepository())
+        fetchFeedUseCase: DIContainer.shared.resolve(FetchFeedUseCaseProtocol.self),
+        toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self)
     )
 
     var body: some View {

@@ -11,7 +11,7 @@ import OSLog
 
 // MARK: - AuthInterceptor
 
-final class AuthInterceptor: RequestInterceptor, Sendable {
+final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
     private let authManager: AuthManagerProtocol
     private let logger = AppLogger.network
     
@@ -21,7 +21,7 @@ final class AuthInterceptor: RequestInterceptor, Sendable {
     
     // MARK: - Adapt
     
-    func adapt(_ urlRequest: URLRequest,
+    @MainActor func adapt(_ urlRequest: URLRequest,
                for session: Session,
                completion: @escaping (Result<URLRequest, any Error>) -> Void) {
         var request = urlRequest
@@ -57,7 +57,7 @@ final class AuthInterceptor: RequestInterceptor, Sendable {
                 try await authManager.refreshToken()
                 await completionBox.call(.retry)
             } catch {
-                logger.error("Token refresh failed: \(error.localizedDescription)")
+                await logger.error("Token refresh failed: \(error.localizedDescription)")
                 // logout() IS @MainActor — switch explicitly
                 await MainActor.run { authManager.logout() }
                 await completionBox.call(.doNotRetryWithError(APIError.unauthorized))

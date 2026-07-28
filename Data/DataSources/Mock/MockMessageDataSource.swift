@@ -51,6 +51,32 @@ final class MockMessageDataSource: Sendable {
         try await simulateDelay(seconds: 0.1)
     }
 
+    func createConversation(participantIds: [String]) async throws -> Conversation {
+        try await simulateDelay(seconds: 0.4)
+        let participants = participantIds.compactMap { id in
+            MockData.users.first(where: { $0.id == id })
+        }
+        return Conversation(
+            id: "conv_new_\(UUID().uuidString.prefix(8))",
+            participants: [MockData.currentUser] + participants,
+            lastMessage: nil,
+            unreadCount: 0,
+            isGroup: participantIds.count > 1,
+            groupName: nil,
+            groupAvatarURL: nil,
+            updatedAt: .now,
+            isMuted: false
+        )
+    }
+
+    func deleteMessage(id: String) async throws {
+        try await simulateDelay(seconds: 0.2)
+    }
+
+    func muteConversation(id: String, mute: Bool) async throws {
+        try await simulateDelay(seconds: 0.2)
+    }
+
     // MARK: - Private
 
     private let mockMessages = [

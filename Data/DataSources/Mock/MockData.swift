@@ -110,32 +110,70 @@ enum MockData {
 
     // MARK: - Comments
 
-    static func comments(forPostId postId: String) -> [Comment] {
-        (0..<5).map { index in
+    static let comments: [Comment] = {
+        let reply = Comment(
+            id: "reply_0_0",
+            postId: "post_0",
+            author: users[1],
+            text: "Thanks! 🙏",
+            likesCount: 2,
+            isLiked: false,
+            replies: [],
+            parentId: "comment_0",
+            createdAt: Date(timeIntervalSinceNow: -1800)
+        )
+
+        return (0..<8).map { index in
             Comment(
-                id: "comment_\(postId)_\(index)",
-                postId: postId,
+                id: "comment_\(index)",
+                postId: "post_\(index % 3)",
                 author: users[index % users.count],
                 text: mockCommentTexts[index % mockCommentTexts.count],
                 likesCount: Int.random(in: 0...50),
-                isLiked: index % 3 == 0,
-                replies: index == 0 ? [
-                    Comment(
-                        id: "reply_\(postId)_\(index)_0",
-                        postId: postId,
-                        author: users[(index + 1) % users.count],
-                        text: "Thanks! 🙏",
-                        likesCount: 2,
-                        isLiked: false,
-                        replies: [],
-                        parentId: "comment_\(postId)_\(index)",
-                        createdAt: Date(timeIntervalSinceNow: -Double(index) * 1800)
-                    )
-                ] : [],
+                isLiked: false,
+                replies: index == 0 ? [reply] : [],
                 parentId: nil,
                 createdAt: Date(timeIntervalSinceNow: -Double(index) * 3600)
             )
         }
+    }()
+
+    static func comments(forPostId postId: String) -> [Comment] {
+        comments.filter { $0.postId == postId }
+    }
+
+    // MARK: - Reels
+
+    static let reels: [Reel] = (0..<8).map { index in
+        let author = users[index % users.count]
+        return Reel(
+            id: "reel_\(index)",
+            author: author,
+            videoURL: URL(string: "https://example.com/reels/reel_\(index).mp4")!,
+            thumbnailURL: URL(string: "https://picsum.photos/seed/reel\(index)/1080/1920"),
+            caption: mockReelCaptions[index % mockReelCaptions.count],
+            audioTrack: index % 2 == 0 ? AudioTrack(
+                id: "audio_\(index)",
+                name: "Original Audio",
+                artistName: author.username,
+                coverURL: author.avatarURL,
+                isOriginal: true
+            ) : AudioTrack(
+                id: "audio_trending_\(index)",
+                name: "Trending Sound #\(index)",
+                artistName: "Various Artists",
+                coverURL: URL(string: "https://picsum.photos/seed/audio\(index)/100/100"),
+                isOriginal: false
+            ),
+            likesCount: Int.random(in: 100...50_000),
+            commentsCount: Int.random(in: 10...500),
+            sharesCount: Int.random(in: 5...200),
+            viewsCount: Int.random(in: 1000...500_000),
+            duration: Double.random(in: 5...60),
+            isLiked: index % 3 == 0,
+            isSaved: index % 5 == 0,
+            createdAt: Date(timeIntervalSinceNow: -Double(index) * 7200)
+        )
     }
 
     // MARK: - Notifications
@@ -211,5 +249,16 @@ enum MockData {
         "Let's catch up this weekend!",
         "Thanks for sharing!",
         "See you tomorrow 👋",
+    ]
+
+    private static let mockReelCaptions: [String?] = [
+        "Wait for it... 😂 #funny #viral",
+        "Tutorial: How I did this effect ✨ #tips",
+        nil,
+        "Day in my life as a developer 💻 #dayinmylife",
+        "This view is unreal! 🏔️ #travel",
+        "Trying this trend 🎶 #trend #dance",
+        "Recipe of the day 🍳 #cooking",
+        "POV: When you finally fix that bug 🐛✅",
     ]
 }

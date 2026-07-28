@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		807D4F173015C25B00E953EC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F163015C25B00E953EC /* Alamofire */; };
-		807D4F193015C25B00E953EC /* AlamofireDynamic in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F183015C25B00E953EC /* AlamofireDynamic */; };
 		807D4F283015C78500E953EC /* CombineExt in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F273015C78500E953EC /* CombineExt */; };
 		807D4F2B3015C89B00E953EC /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2A3015C89B00E953EC /* Swinject */; };
 		807D4F2E3015C97100E953EC /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2D3015C97100E953EC /* Nuke */; };
@@ -21,11 +20,29 @@
 		807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F3F3015CA6B00E953EC /* ProgressHUD */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		807D52AD3019273200E953EC /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		80887F10300D4ECD007EF3E5 /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		80887F10300D4ECD007EF3E5 /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Instagram.app; path = "/Users/tomthecat/Instagram/build/Debug-iphoneos/Instagram.app"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		807D527C30191D2F00E953EC /* Data */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Data;
+			sourceTree = "<group>";
+		};
 		80887F12300D4ECD007EF3E5 /* Application */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Application;
@@ -84,7 +101,6 @@
 				807D4F373015C9C600E953EC /* PopupView in Frameworks */,
 				807D4F343015C97100E953EC /* NukeVideo in Frameworks */,
 				807D4F3A3015CA0600E953EC /* Pow in Frameworks */,
-				807D4F193015C25B00E953EC /* AlamofireDynamic in Frameworks */,
 				807D4F3D3015CA4800E953EC /* SkeletonUI in Frameworks */,
 				807D4F283015C78500E953EC /* CombineExt in Frameworks */,
 				807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */,
@@ -108,16 +124,8 @@
 				80887F1F300D4F58007EF3E5 /* Core */,
 				80887F1E300D4EFA007EF3E5 /* Resources */,
 				80887F12300D4ECD007EF3E5 /* Application */,
-				80887F11300D4ECD007EF3E5 /* Products */,
+				807D527C30191D2F00E953EC /* Data */,
 			);
-			sourceTree = "<group>";
-		};
-		80887F11300D4ECD007EF3E5 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				80887F10300D4ECD007EF3E5 /* Instagram.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -130,12 +138,14 @@
 				80887F0C300D4ECD007EF3E5 /* Sources */,
 				80887F0D300D4ECD007EF3E5 /* Frameworks */,
 				80887F0E300D4ECD007EF3E5 /* Resources */,
+				807D52AD3019273200E953EC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				807D527C30191D2F00E953EC /* Data */,
 				80887F12300D4ECD007EF3E5 /* Application */,
 				80887F1E300D4EFA007EF3E5 /* Resources */,
 				80887F1F300D4F58007EF3E5 /* Core */,
@@ -149,7 +159,6 @@
 			name = Instagram;
 			packageProductDependencies = (
 				807D4F163015C25B00E953EC /* Alamofire */,
-				807D4F183015C25B00E953EC /* AlamofireDynamic */,
 				807D4F273015C78500E953EC /* CombineExt */,
 				807D4F2A3015C89B00E953EC /* Swinject */,
 				807D4F2D3015C97100E953EC /* Nuke */,
@@ -200,7 +209,7 @@
 				807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 80887F11300D4ECD007EF3E5 /* Products */;
+			productRefGroup = 80887F07300D4ECD007EF3E5;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -517,11 +526,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
-		};
-		807D4F183015C25B00E953EC /* AlamofireDynamic */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */;
-			productName = AlamofireDynamic;
 		};
 		807D4F273015C78500E953EC /* CombineExt */ = {
 			isa = XCSwiftPackageProductDependency;

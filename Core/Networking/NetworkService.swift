@@ -14,26 +14,26 @@ import Combine
 protocol NetworkServiceProtocol: Sendable {
 
     /// Perform a request and decode the response into `T`.
-    func request<T: Decodable & Sendable>(
+    nonisolated func request<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
-    ) async throws -> T
+    ) async throws -> sending T
 
     /// Perform a request expecting the standard server envelope `APIEnvelope<T>`,
     /// and return only the `data` field.
-    func requestEnvelope<T: Decodable & Sendable>(
+    nonisolated func requestEnvelope<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
-    ) async throws -> T
+    ) async throws -> sending T
 
     /// Perform a request with no expected response body (e.g. DELETE, 204).
-    func requestVoid(
+    nonisolated func requestVoid(
         _ endpoint: APIEndpoint
     ) async throws
 
     /// Upload multipart form data.
-    func upload<T: Decodable & Sendable>(
+    nonisolated func upload<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint,
         multipartFormData: @Sendable @escaping (MultipartFormData) -> Void
-    ) async throws -> T
+    ) async throws -> sending T
 
     /// Download a file to a temporary URL.
     func download(
@@ -61,9 +61,9 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
     // MARK: - Request<T>
 
-    func request<T: Decodable & Sendable>(
+    nonisolated func request<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
-    ) async throws -> T {
+    ) async throws -> sending T {
         let urlRequest = try endpoint.asURLRequest()
 
         let response = await session
@@ -82,9 +82,9 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
     // MARK: - Request Envelope<T>
 
-    func requestEnvelope<T: Decodable & Sendable>(
+    nonisolated func requestEnvelope<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
-    ) async throws -> T {
+    ) async throws -> sending T {
         let urlRequest = try endpoint.asURLRequest()
 
         let response = await session
@@ -109,7 +109,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
     // MARK: - Request Void
 
-    func requestVoid(
+    nonisolated func requestVoid(
         _ endpoint: APIEndpoint
     ) async throws {
         let urlRequest = try endpoint.asURLRequest()
@@ -127,10 +127,10 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
     // MARK: - Upload
 
-    func upload<T: Decodable & Sendable>(
+    nonisolated func upload<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint,
         multipartFormData: @Sendable @escaping (MultipartFormData) -> Void
-    ) async throws -> T {
+    ) async throws -> sending T {
         let urlRequest = try endpoint.asURLRequest()
 
         let response = await session

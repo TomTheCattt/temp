@@ -19,8 +19,8 @@ struct ContentView: View {
             } else {
                 LoginView(
                     viewModel: AuthViewModel(
-                        loginUseCase: LoginUseCase(authRepository: AuthRepository()),
-                        registerUseCase: RegisterUseCase(authRepository: AuthRepository())
+                        loginUseCase: DIContainer.shared.resolve(LoginUseCaseProtocol.self),
+                        registerUseCase: DIContainer.shared.resolve(RegisterUseCaseProtocol.self)
                     )
                 )
                 .withToast()

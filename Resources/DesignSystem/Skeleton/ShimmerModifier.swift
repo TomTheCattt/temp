@@ -6,61 +6,63 @@
 //
 
 import SwiftUI
-import SkeletonUI
-
-// MARK: - ShimmerShape
-
-/// Predefined shapes for skeleton placeholders.
-enum ShimmerShape {
-    case rectangle
-    case rounded(CGFloat)
-    case capsule
-    case circle
-}
 
 // MARK: - ShimmerModifier
 
-/// A ViewModifier that wraps SkeletonUI to display a shimmer loading placeholder.
+/// A custom shimmer/skeleton loading effect implemented in pure SwiftUI.
+/// No external dependency — uses gradient animation for the shimmer effect.
 ///
 /// Usage:
 /// ```swift
-/// Text("Hello")
-///     .shimmer(active: isLoading)
-///
-/// Image("avatar")
-///     .shimmer(active: isLoading, shape: .circle)
-///
 /// RoundedRectangle(cornerRadius: 8)
 ///     .frame(height: 200)
-///     .shimmer(active: isLoading, shape: .rounded(8))
+///     .shimmer(active: isLoading)
+///
+/// Circle()
+///     .frame(width: 48, height: 48)
+///     .shimmer(active: isLoading)
 /// ```
 struct ShimmerModifier: ViewModifier {
+
     let active: Bool
-    let shape: ShimmerShape
-    let multiline: Int
-    let spacing: CGFloat
+    @State private var phase: CGFloat = 0
 
     func body(content: Content) -> some View {
         if active {
             content
-                .skeleton(with: active, shape: skeletonShape)
-                .multiline(lines: multiline, scales: nil, spacing: spacing)
+                .redacted(reason: .placeholder)
+                .overlay(shimmerOverlay)
+                .mask(content)
         } else {
             content
         }
     }
 
-    private var skeletonShape: RoundedType {
-        switch shape {
-        case .rectangle:
-            return .radius(0, style: .continuous)
-        case .rounded(let radius):
-            return .radius(radius, style: .continuous)
-        case .capsule:
-            return .radius(.infinity, style: .continuous)
-        case .circle:
-            return .radius(.infinity, style: .continuous)
+    private var shimmerOverlay: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: Color.white.opacity(0.4), location: 0.3),
+                    .init(color: Color.white.opacity(0.6), location: 0.5),
+                    .init(color: Color.white.opacity(0.4), location: 0.7),
+                    .init(color: .clear, location: 1.0)
+                ]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: geometry.size.width * 2)
+            .offset(x: -geometry.size.width + (geometry.size.width * 2 * phase))
+            .onAppear {
+                withAnimation(
+                    .linear(duration: 1.5)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    phase = 1.0
+                }
+            }
         }
+        .clipped()
     }
 }
 
@@ -69,27 +71,13 @@ struct ShimmerModifier: ViewModifier {
 extension View {
 
     /// Apply shimmer skeleton loading effect.
-    /// - Parameters:
-    ///   - active: Whether the skeleton is visible (typically bound to a loading state).
-    ///   - shape: The shape of the skeleton placeholder.
-    ///   - multiline: Number of skeleton lines (for text-like placeholders).
-    ///   - spacing: Spacing between lines when multiline > 1.
-    func shimmer(
-        active: Bool,
-        shape: ShimmerShape = .rounded(8),
-        multiline: Int = 1,
-        spacing: CGFloat = 8
-    ) -> some View {
-        modifier(ShimmerModifier(
-            active: active,
-            shape: shape,
-            multiline: multiline,
-            spacing: spacing
-        ))
+    /// - Parameter active: Whether the skeleton shimmer is visible.
+    func shimmer(active: Bool) -> some View {
+        modifier(ShimmerModifier(active: active))
     }
 }
 
-// MARK: - SkeletonList Helper
+// MARK: - SkeletonListView
 
 /// A convenience view that renders a skeleton list while data is loading.
 ///
@@ -99,11 +87,15 @@ extension View {
 ///     SkeletonListView(count: 5) {
 ///         HStack {
 ///             Circle()
+///                 .fill(Color.gray.opacity(0.2))
 ///                 .frame(width: 48, height: 48)
-///                 .shimmer(active: true, shape: .circle)
 ///             VStack(alignment: .leading, spacing: 6) {
-///                 Text("Placeholder")
-///                     .shimmer(active: true, multiline: 2)
+///                 RoundedRectangle(cornerRadius: 4)
+///                     .fill(Color.gray.opacity(0.2))
+///                     .frame(height: 14)
+///                 RoundedRectangle(cornerRadius: 4)
+///                     .fill(Color.gray.opacity(0.2))
+///                     .frame(width: 100, height: 10)
 ///             }
 ///         }
 ///     }
@@ -119,60 +111,58 @@ struct SkeletonListView<Row: View>: View {
     }
 
     var body: some View {
-        LazyVStack(spacing: 12) {
+        LazyVStack(spacing: DS.Spacing.sm) {
             ForEach(0..<count, id: \.self) { _ in
                 row()
+                    .shimmer(active: true)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DS.Padding.horizontal)
     }
 }
 
-// MARK: - Skeleton Card Preset
+// MARK: - SkeletonCardView
 
 /// A ready-to-use skeleton card for feed-like content.
 struct SkeletonCardView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             // Header: avatar + name
-            HStack(spacing: 10) {
+            HStack(spacing: DS.Spacing.sm) {
                 Circle()
-                    .frame(width: 40, height: 40)
-                    .shimmer(active: true, shape: .circle)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: DS.Spacing.xxxl, height: DS.Spacing.xxxl)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .frame(width: 120, height: 14)
-                        .shimmer(active: true)
+                VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
+                    RoundedRectangle(cornerRadius: DS.Radius.small)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 120, height: DS.Spacing.formGap)
 
-                    RoundedRectangle(cornerRadius: 4)
-                        .frame(width: 80, height: 10)
-                        .shimmer(active: true)
+                    RoundedRectangle(cornerRadius: DS.Radius.small)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 80, height: DS.Padding.inputBar)
                 }
 
                 Spacer()
             }
 
             // Image placeholder
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: DS.Radius.medium)
+                .fill(Color.gray.opacity(0.2))
                 .frame(height: 200)
-                .shimmer(active: true, shape: .rounded(8))
 
             // Caption lines
-            VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: 4)
-                    .frame(height: 12)
-                    .shimmer(active: true)
+            VStack(alignment: .leading, spacing: DS.Spacing.iconGap) {
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: DS.Spacing.sm)
 
-                RoundedRectangle(cornerRadius: 4)
-                    .frame(width: 200, height: 12)
-                    .shimmer(active: true)
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 200, height: DS.Spacing.sm)
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
+        .padding(DS.Padding.horizontal)
+        .shimmer(active: true)
     }
 }

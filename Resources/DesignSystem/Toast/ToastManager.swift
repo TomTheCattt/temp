@@ -71,7 +71,7 @@ final class ToastManager {
 
     static let shared = ToastManager()
 
-    private(set) var currentToast: ToastItem?
+    var currentToast: ToastItem?
 
     private init() {}
 

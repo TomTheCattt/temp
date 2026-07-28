@@ -13,7 +13,7 @@ import NukeUI
 struct DirectMessagesView: View {
 
     @State private var viewModel = DirectMessagesViewModel(
-        messageRepository: MessageRepository()
+        messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
     )
 
     var body: some View {
@@ -29,7 +29,7 @@ struct DirectMessagesView: View {
                             AppRouter.shared.push(.conversation(conversationId: conversation.id))
                         }
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: DS.Spacing.xxs, leading: DS.Spacing.md, bottom: DS.Spacing.xxs, trailing: DS.Spacing.md))
                 }
             }
         }
@@ -42,7 +42,7 @@ struct DirectMessagesView: View {
                     // New message
                 } label: {
                     Image(systemName: "square.and.pencil")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
                 .tint(.primary)
             }
@@ -55,17 +55,17 @@ struct DirectMessagesView: View {
     }
 
     private var conversationPlaceholder: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             Circle()
-                .fill(Color(.systemGray5))
-                .frame(width: 56, height: 56)
-            VStack(alignment: .leading, spacing: 4) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 120, height: 14)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray6))
-                    .frame(width: 180, height: 12)
+                .fill(ColorTokens.buttonSecondary)
+                .frame(width: DS.Size.avatarStoryCircle, height: DS.Size.avatarStoryCircle)
+            VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(ColorTokens.buttonSecondary)
+                    .frame(width: 120, height: DS.Spacing.formGap)
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .fill(ColorTokens.backgroundSecondary)
+                    .frame(width: 180, height: DS.Spacing.sm)
             }
             Spacer()
         }
@@ -79,7 +79,7 @@ private struct ConversationRow: View {
     let conversation: Conversation
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             // Avatar
             let otherUser = conversation.participants.first { $0.id != MockData.currentUser.id }
 
@@ -87,34 +87,34 @@ private struct ConversationRow: View {
                 if let image = state.image {
                     image.resizable()
                 } else {
-                    Circle().fill(Color(.systemGray5))
+                    Circle().fill(ColorTokens.buttonSecondary)
                 }
             }
-            .frame(width: 56, height: 56)
+            .frame(width: DS.Size.avatarStoryCircle, height: DS.Size.avatarStoryCircle)
             .clipShape(Circle())
 
             // Content
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
+                HStack(spacing: DS.Spacing.xxs) {
                     Text(otherUser?.username ?? "Unknown")
-                        .font(.subheadline)
+                        .font(DS.Font.subheadline)
                         .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
 
                     if otherUser?.isVerified == true {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(ColorTokens.accentPrimary)
                     }
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: DS.Spacing.xxs) {
                     lastMessageText
-                        .font(.subheadline)
+                        .font(DS.Font.subheadline)
                         .foregroundStyle(conversation.unreadCount > 0 ? .primary : .secondary)
                         .lineLimit(1)
 
                     Text("· \(conversation.updatedAt.timeAgoDisplay())")
-                        .font(.subheadline)
+                        .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -124,18 +124,18 @@ private struct ConversationRow: View {
             // Unread badge
             if conversation.unreadCount > 0 {
                 Circle()
-                    .fill(.blue)
-                    .frame(width: 8, height: 8)
+                    .fill(ColorTokens.accentPrimary)
+                    .frame(width: DS.Size.iconXSmall, height: DS.Size.iconXSmall)
             }
 
             // Muted indicator
             if conversation.isMuted {
                 Image(systemName: "bell.slash.fill")
-                    .font(.caption)
+                    .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.Spacing.xxs)
         .contentShape(Rectangle())
     }
 

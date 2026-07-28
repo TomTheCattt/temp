@@ -40,7 +40,7 @@ struct CallView: View {
                 // Controls
                 controlButtons
 
-                Spacer().frame(height: 50)
+                Spacer().frame(height: DS.Size.buttonLargeHeight)
             }
         }
         .ignoresSafeArea()
@@ -57,7 +57,7 @@ struct CallView: View {
         } else {
             // Audio call: gradient background
             LinearGradient(
-                colors: [Color(.systemGray6), Color(.systemGray4)],
+                colors: [ColorTokens.backgroundSecondary, Color(.systemGray4)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -71,21 +71,21 @@ struct CallView: View {
             // In production: WebRTC remote video view here
             Text("Remote Video")
                 .foregroundStyle(.white.opacity(0.3))
-                .font(.title3)
+                .font(DS.Font.title3)
 
             // Local video (picture-in-picture)
             VStack {
                 HStack {
                     Spacer()
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: DS.Radius.large)
                         .fill(Color(.systemGray3))
                         .frame(width: 120, height: 160)
                         .overlay {
                             Text("You")
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.5))
+                                .font(DS.Font.caption)
+                                .foregroundStyle(.white.opacity(DS.Opacity.overlay))
                         }
-                        .padding(.trailing, 16)
+                        .padding(.trailing, DS.Spacing.md)
                         .padding(.top, 60)
                 }
                 Spacer()
@@ -96,7 +96,7 @@ struct CallView: View {
     // MARK: - Caller Info
 
     private var callerInfo: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DS.Spacing.sm) {
             // Avatar
             LazyImage(url: URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
                 if let image = state.image {
@@ -109,24 +109,24 @@ struct CallView: View {
             .clipShape(Circle())
             .overlay(
                 Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                    .stroke(Color.white.opacity(0.3), lineWidth: DS.Stroke.medium)
             )
             .shadow(radius: 10)
             .opacity(viewModel.hasVideo && viewModel.callState == .connected ? 0 : 1)
 
             // Name
             Text(viewModel.remoteName)
-                .font(.title)
+                .font(DS.Font.title)
                 .fontWeight(.semibold)
                 .foregroundStyle(viewModel.hasVideo ? .white : .primary)
 
             // Call type
             if viewModel.callState != .connected {
-                HStack(spacing: 4) {
+                HStack(spacing: DS.Spacing.xxs) {
                     Image(systemName: viewModel.hasVideo ? "video.fill" : "phone.fill")
-                        .font(.caption)
+                        .font(DS.Font.caption)
                     Text(viewModel.hasVideo ? "Video Call" : "Audio Call")
-                        .font(.caption)
+                        .font(DS.Font.caption)
                 }
                 .foregroundStyle(.secondary)
             }
@@ -146,13 +146,13 @@ struct CallView: View {
                 pulsingText("Ringing...")
             case .incomingRinging:
                 Text("Incoming Call")
-                    .font(.headline)
+                    .font(DS.Font.headline)
                     .foregroundStyle(.secondary)
             case .connecting:
                 pulsingText("Connecting...")
             case .connected:
                 Text(viewModel.callDuration)
-                    .font(.title3)
+                    .font(DS.Font.title3)
                     .fontWeight(.medium)
                     .foregroundStyle(viewModel.hasVideo ? .white : .primary)
                     .monospacedDigit()
@@ -170,7 +170,7 @@ struct CallView: View {
 
     private func pulsingText(_ text: String) -> some View {
         Text(text)
-            .font(.headline)
+            .font(DS.Font.headline)
             .foregroundStyle(.secondary)
     }
 
@@ -211,9 +211,9 @@ struct CallView: View {
     }
 
     private var activeCallControls: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: DS.Spacing.xl) {
             // Top row: mute, speaker, video toggle
-            HStack(spacing: 40) {
+            HStack(spacing: DS.Spacing.xxxl) {
                 CallToggleButton(
                     icon: viewModel.isMuted ? "mic.slash.fill" : "mic.fill",
                     isActive: viewModel.isMuted,
@@ -296,17 +296,17 @@ struct CallToggleButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: DS.Spacing.iconGap) {
                 Image(systemName: icon)
                     .font(.system(size: 22))
-                    .frame(width: 50, height: 50)
+                    .frame(width: DS.Size.buttonLargeHeight, height: DS.Size.buttonLargeHeight)
                     .foregroundStyle(isActive ? .white : .primary)
                     .background(
-                        Circle().fill(isActive ? Color.white.opacity(0.3) : Color(.systemGray5))
+                        Circle().fill(isActive ? Color.white.opacity(0.3) : ColorTokens.buttonSecondary)
                     )
 
                 Text(label)
-                    .font(.caption2)
+                    .font(DS.Font.caption2)
                     .foregroundStyle(.secondary)
             }
         }

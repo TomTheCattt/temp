@@ -8,6 +8,7 @@
 import Foundation
 import PushKit
 import Combine
+internal import CallKit
 
 // MARK: - VoIPPushServiceProtocol
 

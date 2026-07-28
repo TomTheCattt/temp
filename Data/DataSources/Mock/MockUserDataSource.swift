@@ -42,6 +42,24 @@ final class MockUserDataSource: Sendable {
         try await simulateDelay(seconds: 0.3)
     }
 
+    func block(userId: String) async throws {
+        try await simulateDelay(seconds: 0.3)
+    }
+
+    func unblock(userId: String) async throws {
+        try await simulateDelay(seconds: 0.3)
+    }
+
+    func updateProfile(name: String?, bio: String?, website: String?) async throws -> User {
+        try await simulateDelay(seconds: 0.5)
+        return MockData.currentUser
+    }
+
+    func updateAvatar(imageData: Data) async throws -> User {
+        try await simulateDelay(seconds: 0.8)
+        return MockData.currentUser
+    }
+
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay()
         return Array(MockData.users.prefix(3))

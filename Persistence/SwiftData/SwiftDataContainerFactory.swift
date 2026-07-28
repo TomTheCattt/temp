@@ -15,15 +15,10 @@ import SwiftData
 enum SwiftDataContainerFactory {
 
     /// Creates the shared ModelContainer with all app schemas.
+    /// NOTE: Add @Model types here as they are created in Persistence/SwiftData/Models/.
     @MainActor
     static func create(inMemory: Bool = false) -> ModelContainer {
-        let schema = Schema([
-            // Register all SwiftData @Model types here:
-            // SDUser.self,
-            // SDPost.self,
-            // SDStory.self,
-            // SDMessage.self,
-        ])
+        let schema = Schema(versionedSchema: SchemaV1.self)
 
         let configuration = ModelConfiguration(
             schema: schema,
@@ -41,5 +36,22 @@ enum SwiftDataContainerFactory {
     @MainActor
     static func createPreview() -> ModelContainer {
         create(inMemory: true)
+    }
+}
+
+// MARK: - Schema Versioning
+
+/// Versioned schema — add @Model types here as they are created.
+/// When adding new models, create a new schema version (SchemaV2, etc.) for migration support.
+enum SchemaV1: VersionedSchema {
+    static var versionIdentifier = Schema.Version(1, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        [
+            SDCachedUser.self,
+            SDCachedPost.self,
+            SDCachedConversation.self,
+            SDCachedMessage.self,
+        ]
     }
 }

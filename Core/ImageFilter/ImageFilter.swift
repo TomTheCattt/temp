@@ -93,11 +93,11 @@ struct GinghamFilter: ImageFilter {
         // Fade blacks (lift shadows)
         let toneCurve = CIFilter.toneCurve()
         toneCurve.inputImage = output
-        toneCurve.point0 = CIVector(x: 0, y: 0.08)
-        toneCurve.point1 = CIVector(x: 0.25, y: 0.25)
-        toneCurve.point2 = CIVector(x: 0.5, y: 0.5)
-        toneCurve.point3 = CIVector(x: 0.75, y: 0.75)
-        toneCurve.point4 = CIVector(x: 1, y: 0.95)
+        toneCurve.point0 = CGPoint(x: 0, y: 0.08)
+        toneCurve.point1 = CGPoint(x: 0.25, y: 0.25)
+        toneCurve.point2 = CGPoint(x: 0.5, y: 0.5)
+        toneCurve.point3 = CGPoint(x: 0.75, y: 0.75)
+        toneCurve.point4 = CGPoint(x: 1, y: 0.95)
         output = toneCurve.outputImage ?? output
 
         return output
@@ -155,11 +155,11 @@ struct LarkFilter: ImageFilter {
         // Lift shadows
         let toneCurve = CIFilter.toneCurve()
         toneCurve.inputImage = output
-        toneCurve.point0 = CIVector(x: 0, y: 0.05)
-        toneCurve.point1 = CIVector(x: 0.25, y: 0.28)
-        toneCurve.point2 = CIVector(x: 0.5, y: 0.52)
-        toneCurve.point3 = CIVector(x: 0.75, y: 0.76)
-        toneCurve.point4 = CIVector(x: 1, y: 1)
+        toneCurve.point0 = CGPoint(x: 0, y: 0.05)
+        toneCurve.point1 = CGPoint(x: 0.25, y: 0.28)
+        toneCurve.point2 = CGPoint(x: 0.5, y: 0.52)
+        toneCurve.point3 = CGPoint(x: 0.75, y: 0.76)
+        toneCurve.point4 = CGPoint(x: 1, y: 1)
         output = toneCurve.outputImage ?? output
 
         return output
@@ -212,11 +212,11 @@ struct ValenciaFilter: ImageFilter {
         // Slight fade
         let toneCurve = CIFilter.toneCurve()
         toneCurve.inputImage = output
-        toneCurve.point0 = CIVector(x: 0, y: 0.06)
-        toneCurve.point1 = CIVector(x: 0.25, y: 0.26)
-        toneCurve.point2 = CIVector(x: 0.5, y: 0.52)
-        toneCurve.point3 = CIVector(x: 0.75, y: 0.74)
-        toneCurve.point4 = CIVector(x: 1, y: 0.94)
+        toneCurve.point0 = CGPoint(x: 0, y: 0.06)
+        toneCurve.point1 = CGPoint(x: 0.25, y: 0.26)
+        toneCurve.point2 = CGPoint(x: 0.5, y: 0.52)
+        toneCurve.point3 = CGPoint(x: 0.75, y: 0.74)
+        toneCurve.point4 = CGPoint(x: 1, y: 0.94)
         output = toneCurve.outputImage ?? output
 
         // Reduce saturation slightly
@@ -255,11 +255,11 @@ struct AdenFilter: ImageFilter {
         // Lift shadows heavily
         let toneCurve = CIFilter.toneCurve()
         toneCurve.inputImage = output
-        toneCurve.point0 = CIVector(x: 0, y: 0.1)
-        toneCurve.point1 = CIVector(x: 0.25, y: 0.3)
-        toneCurve.point2 = CIVector(x: 0.5, y: 0.53)
-        toneCurve.point3 = CIVector(x: 0.75, y: 0.75)
-        toneCurve.point4 = CIVector(x: 1, y: 0.93)
+        toneCurve.point0 = CGPoint(x: 0, y: 0.1)
+        toneCurve.point1 = CGPoint(x: 0.25, y: 0.3)
+        toneCurve.point2 = CGPoint(x: 0.5, y: 0.53)
+        toneCurve.point3 = CGPoint(x: 0.75, y: 0.75)
+        toneCurve.point4 = CGPoint(x: 1, y: 0.93)
         output = toneCurve.outputImage ?? output
 
         return output

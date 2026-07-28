@@ -11,37 +11,49 @@ import Foundation
 
 final class StoryRepository: StoryRepositoryProtocol, @unchecked Sendable {
 
+    private let remoteDataSource: RemoteStoryDataSource
     private let mockDataSource: MockStoryDataSource
 
-    init(mockDataSource: MockStoryDataSource = MockStoryDataSource()) {
+    init(
+        remoteDataSource: RemoteStoryDataSource,
+        mockDataSource: MockStoryDataSource = MockStoryDataSource()
+    ) {
+        self.remoteDataSource = remoteDataSource
         self.mockDataSource = mockDataSource
     }
 
     func fetchStories() async throws -> [Story] {
-        try await mockDataSource.fetchStories()
+        guard !AppConfig.shared.isMockAPI else {
+            return try await mockDataSource.fetchStories()
+        }
+        return try await remoteDataSource.fetchStories()
     }
 
     func fetchStoryItems(userId: String) async throws -> [StoryItem] {
-        try await mockDataSource.fetchStoryItems(userId: userId)
+        guard !AppConfig.shared.isMockAPI else {
+            return try await mockDataSource.fetchStoryItems(userId: userId)
+        }
+        return try await remoteDataSource.fetchStoryItems(userId: userId)
     }
 
     func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
-        try await Task.sleep(nanoseconds: 800_000_000)
-        return Story(
-            id: "story_new_\(UUID().uuidString.prefix(8))",
-            author: MockData.currentUser,
-            items: [],
-            isViewed: false,
-            createdAt: .now,
-            expiresAt: Date(timeIntervalSinceNow: 24 * 3600)
-        )
+        guard !AppConfig.shared.isMockAPI else {
+            return try await mockDataSource.createStory(mediaData: mediaData, type: type, duration: duration)
+        }
+        return try await remoteDataSource.createStory(mediaData: mediaData, type: type, duration: duration)
     }
 
     func markViewed(storyId: String) async throws {
-        try await mockDataSource.markViewed(storyId: storyId)
+        guard !AppConfig.shared.isMockAPI else {
+            return try await mockDataSource.markViewed(storyId: storyId)
+        }
+        try await remoteDataSource.markViewed(storyId: storyId)
     }
 
     func deleteStory(id: String) async throws {
-        try await Task.sleep(nanoseconds: 300_000_000)
+        guard !AppConfig.shared.isMockAPI else {
+            return try await mockDataSource.deleteStory(id: id)
+        }
+        try await remoteDataSource.deleteStory(id: id)
     }
 }
