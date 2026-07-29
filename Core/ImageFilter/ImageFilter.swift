@@ -389,9 +389,9 @@ private func applyVignette(to image: CIImage, intensity: Float) -> CIImage {
 // MARK: - FilterRegistry
 
 /// Central registry of all available filters.
-enum FilterRegistry {
+enum FilterRegistry: Sendable {
 
-    static let allFilters: [ImageFilter] = [
+    nonisolated static let allFilters: [ImageFilter] = [
         OriginalFilter(),
         ClarendonFilter(),
         GinghamFilter(),
@@ -406,7 +406,7 @@ enum FilterRegistry {
         SierraFilter()
     ]
 
-    static func filter(byId id: String) -> ImageFilter? {
+    static func filter(byId id: String) -> (any ImageFilter)? {
         allFilters.first { $0.id == id }
     }
 }

@@ -50,7 +50,7 @@ final class AuthManager: AuthManagerProtocol {
     // MARK: - Refresh
 
     func refreshToken() async throws {
-        guard let currentRefresh = refreshToken else {
+        guard let _ = refreshToken else {
             throw APIError.unauthorized
         }
 

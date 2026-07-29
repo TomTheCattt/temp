@@ -10,11 +10,25 @@ import Combine
 
 // MARK: - WebSocketConnectionState
 
-enum WebSocketConnectionState: Sendable, Equatable {
+enum WebSocketConnectionState: Sendable {
     case disconnected
     case connecting
     case connected
     case reconnecting(attempt: Int)
+}
+
+// MARK: - WebSocketConnectionState + Equatable
+
+extension WebSocketConnectionState: Equatable {
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case (.disconnected, .disconnected): return true
+        case (.connecting, .connecting): return true
+        case (.connected, .connected): return true
+        case (.reconnecting(let a), .reconnecting(let b)): return a == b
+        default: return false
+        }
+    }
 }
 
 // MARK: - WebSocketEvent
@@ -274,7 +288,10 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + pingInterval, repeating: pingInterval)
         timer.setEventHandler { [weak self] in
-            Task { await self?.ping() }
+            guard let self else { return }
+            Task { [weak self] in
+                await self?.ping()
+            }
         }
         timer.resume()
         pingTimer = timer
@@ -313,7 +330,8 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
             guard let self, self.shouldReconnect else { return }
             let headers = self.lastHeaders
 
-            Task {
+            Task { [weak self] in
+                guard let self else { return }
                 await self.connect(url: url, headers: headers)
             }
         }

@@ -64,7 +64,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     nonisolated func request<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
     ) async throws -> sending T {
-        let urlRequest = try endpoint.asURLRequest()
+        let urlRequest = try await endpoint.asURLRequest()
 
         let response = await session
             .request(urlRequest)
@@ -76,7 +76,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
         case .success(let value):
             return value
         case .failure(let afError):
-            throw mapError(afError, response: response.response)
+            throw await mapError(afError, response: response.response)
         }
     }
 
@@ -85,7 +85,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     nonisolated func requestEnvelope<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
     ) async throws -> sending T {
-        let urlRequest = try endpoint.asURLRequest()
+        let urlRequest = try await endpoint.asURLRequest()
 
         let response = await session
             .request(urlRequest)
@@ -103,7 +103,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
             }
             return data
         case .failure(let afError):
-            throw mapError(afError, response: response.response)
+            throw await mapError(afError, response: response.response)
         }
     }
 
@@ -112,7 +112,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     nonisolated func requestVoid(
         _ endpoint: APIEndpoint
     ) async throws {
-        let urlRequest = try endpoint.asURLRequest()
+        let urlRequest = try await endpoint.asURLRequest()
 
         let response = await session
             .request(urlRequest)
@@ -121,7 +121,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
             .response
 
         if let afError = response.error {
-            throw mapError(afError, response: response.response)
+            throw await mapError(afError, response: response.response)
         }
     }
 
@@ -131,7 +131,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
         _ endpoint: APIEndpoint,
         multipartFormData: @Sendable @escaping (MultipartFormData) -> Void
     ) async throws -> sending T {
-        let urlRequest = try endpoint.asURLRequest()
+        let urlRequest = try await endpoint.asURLRequest()
 
         let response = await session
             .upload(multipartFormData: multipartFormData, with: urlRequest)
@@ -143,7 +143,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
         case .success(let value):
             return value
         case .failure(let afError):
-            throw mapError(afError, response: response.response)
+            throw await mapError(afError, response: response.response)
         }
     }
 

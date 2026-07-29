@@ -29,7 +29,7 @@ public enum ImagePipelineManager {
             imageCache.costLimit = policy.memoryCacheSize
             imageCache.countLimit = 0
 
-            let pipeline = ImagePipeline {
+            let _ = ImagePipeline {
                 $0.imageCache = imageCache
             }
 

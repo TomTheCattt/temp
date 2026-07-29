@@ -20,8 +20,8 @@ final class NotificationRouter {
     private var cancellables = Set<AnyCancellable>()
     private let pushService: PushNotificationService
 
-    private init(pushService: PushNotificationService = .shared) {
-        self.pushService = pushService
+    private init(pushService: PushNotificationService? = nil) {
+        self.pushService = pushService ?? PushNotificationService.shared
         subscribe()
     }
 
@@ -29,7 +29,10 @@ final class NotificationRouter {
         pushService.notificationTapped
             .receive(on: DispatchQueue.main)
             .sink { [weak self] payload in
-                self?.pushService.navigateFromPayload(payload)
+                guard let self else { return }
+                Task { @MainActor in
+                    self.pushService.navigateFromPayload(payload)
+                }
             }
             .store(in: &cancellables)
     }

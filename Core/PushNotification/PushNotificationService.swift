@@ -203,7 +203,7 @@ final class PushNotificationService: NSObject, PushNotificationServiceProtocol, 
             }
 
         case .callMissed:
-            if let userId = payload.userId {
+            if let _ = payload.userId {
                 router.switchTab(.feed)
                 router.push(.directMessages)
             }

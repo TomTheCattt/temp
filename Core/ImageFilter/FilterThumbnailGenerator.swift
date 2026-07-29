@@ -24,14 +24,18 @@ struct FilterThumbnail: Identifiable, Sendable {
 ///
 /// Performance strategy:
 /// - Downscale source image ONCE to thumbnail size before applying filters
-/// - Generate all thumbnails on a background task concurrently
+/// - Generate all thumbnails sequentially (150x150 is fast, avoids Sendable issues with CIImage)
 /// - Cache results in memory so re-opening the picker is instant
-actor FilterThumbnailGenerator {
+///
+/// Thread-safe via NSLock. Uses @unchecked Sendable instead of actor to avoid
+/// crossing-boundary warnings with non-Sendable types (CIImage, existential ImageFilter).
+final class FilterThumbnailGenerator: @unchecked Sendable {
 
     static let shared = FilterThumbnailGenerator()
 
     // MARK: - Cache
 
+    private let lock = NSLock()
     private var cache: [String: [FilterThumbnail]] = [:]
     private let thumbnailSize = CGSize(width: 150, height: 150)
 
@@ -45,7 +49,8 @@ actor FilterThumbnailGenerator {
         filters: [ImageFilter] = FilterRegistry.allFilters
     ) async -> [FilterThumbnail] {
         // Return cached if available
-        if let cached = cache[cacheKey] {
+        let cached: [FilterThumbnail]? = lock.withLock { cache[cacheKey] }
+        if let cached {
             return cached
         }
 
@@ -55,45 +60,36 @@ actor FilterThumbnailGenerator {
         }
 
         let engine = FilterEngine.shared
+        let size = thumbnailSize
 
-        // Generate thumbnails concurrently
-        let thumbnails = await withTaskGroup(of: (Int, FilterThumbnail?).self) { group in
-            for (index, filter) in filters.enumerated() {
-                group.addTask {
-                    let filtered = engine.apply(filter: filter, to: sourceCIImage)
-                    guard let uiImage = engine.renderThumbnail(filtered, size: self.thumbnailSize) else {
-                        return (index, nil)
-                    }
-                    let thumbnail = FilterThumbnail(
-                        id: filter.id,
-                        displayName: filter.displayName,
-                        image: uiImage
-                    )
-                    return (index, thumbnail)
-                }
-            }
+        // Process sequentially — 150x150 renders are fast, no need for TaskGroup
+        var thumbnails: [FilterThumbnail] = []
+        thumbnails.reserveCapacity(filters.count)
 
-            // Collect results maintaining order
-            var results = [(Int, FilterThumbnail?)]()
-            for await result in group {
-                results.append(result)
+        for filter in filters {
+            let filtered = engine.apply(filter: filter, to: sourceCIImage)
+            if let uiImage = engine.renderThumbnail(filtered, size: size) {
+                thumbnails.append(FilterThumbnail(
+                    id: filter.id,
+                    displayName: filter.displayName,
+                    image: uiImage
+                ))
             }
-            return results
-                .sorted { $0.0 < $1.0 }
-                .compactMap { $0.1 }
         }
 
         // Cache
-        cache[cacheKey] = thumbnails
+        lock.withLock { cache[cacheKey] = thumbnails }
         return thumbnails
     }
 
     /// Invalidate cached thumbnails (e.g., when switching to a different photo).
     func invalidateCache(key: String? = nil) {
-        if let key {
-            cache.removeValue(forKey: key)
-        } else {
-            cache.removeAll()
+        lock.withLock {
+            if let key {
+                cache.removeValue(forKey: key)
+            } else {
+                cache.removeAll()
+            }
         }
     }
 

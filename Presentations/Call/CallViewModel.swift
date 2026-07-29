@@ -37,12 +37,12 @@ final class CallViewModel {
         remoteUserId: String,
         remoteName: String,
         hasVideo: Bool,
-        callService: CallService = .shared
+        callService: CallService? = nil
     ) {
         self.remoteUserId = remoteUserId
         self.remoteName = remoteName
         self.hasVideo = hasVideo
-        self.callService = callService
+        self.callService = callService ?? CallService.shared
 
         subscribeToState()
     }

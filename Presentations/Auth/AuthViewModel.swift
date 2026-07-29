@@ -36,11 +36,11 @@ final class AuthViewModel {
     init(
         loginUseCase: LoginUseCaseProtocol,
         registerUseCase: RegisterUseCaseProtocol,
-        router: AppRouter = .shared
+        router: AppRouter? = nil
     ) {
         self.loginUseCase = loginUseCase
         self.registerUseCase = registerUseCase
-        self.router = router
+        self.router = router ?? AppRouter.shared
     }
 
     // MARK: - Computed

@@ -124,10 +124,10 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Init
 
     private init(
-        callManager: CallManager = .shared,
+        callManager: CallManager? = nil,
         messageHandler: WebSocketMessageHandler? = nil
     ) {
-        self.callManager = callManager
+        self.callManager = callManager ?? CallManager.shared
         self.messageHandler = messageHandler
         subscribeToCallKitEvents()
         subscribeToSignaling()
