@@ -34,7 +34,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		80887F10300D4ECD007EF3E5 /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Instagram.app; path = "/Users/tomthecat/Instagram/build/Debug-iphoneos/Instagram.app"; sourceTree = "<absolute>"; };
+		FB272021301B3AA600CE68FE /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -125,6 +125,7 @@
 				80887F1E300D4EFA007EF3E5 /* Resources */,
 				80887F12300D4ECD007EF3E5 /* Application */,
 				807D527C30191D2F00E953EC /* Data */,
+				FB272021301B3AA600CE68FE /* Instagram.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -171,7 +172,7 @@
 				807D4F3F3015CA6B00E953EC /* ProgressHUD */,
 			);
 			productName = Instagram;
-			productReference = 80887F10300D4ECD007EF3E5 /* Instagram.app */;
+			productReference = FB272021301B3AA600CE68FE /* Instagram.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -455,18 +456,7 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
-		807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kean/Nuke.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 13.0.0;
-			};
-		};
 		807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
@@ -489,6 +479,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.10.0;
+			};
+		};
+		807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.0;
 			};
 		};
 		807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */ = {

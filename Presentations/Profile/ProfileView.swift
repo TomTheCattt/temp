@@ -203,7 +203,7 @@ struct ProfileView: View {
                 .frame(height: DS.Size.avatarCompact)
                 .background(
                     RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
-                        .fill(ColorTokens.buttonSecondary)
+                        .fill(ColorTokens.backgroundSubtler)
                 )
         }
         .tint(.primary)
