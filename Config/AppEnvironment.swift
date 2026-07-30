@@ -16,8 +16,14 @@ enum AppEnvironment: String {
     case staging      = "staging"
     case production   = "prod"
 
-    // Reads from Info.plist key APP_ENVIRONMENT set via xcconfig / build settings.
+    // Reads from process environment (scheme) first, then Info.plist key APP_ENVIRONMENT.
     static var current: AppEnvironment {
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment["APP_ENVIRONMENT"],
+           let env = AppEnvironment(rawValue: envValue) {
+            return env
+        }
+        // Priority 2: Info.plist
         let raw = Bundle.main.infoDictionary?["APP_ENVIRONMENT"] as? String ?? "prod"
         return AppEnvironment(rawValue: raw) ?? .production
     }
@@ -49,7 +55,17 @@ enum APIMode: String {
     case live
     case mock
 
+    /// Resolves API mode from:
+    /// 1. Process environment variable (set via Xcode scheme) — highest priority
+    /// 2. Info.plist key (set via xcconfig / build settings)
+    /// 3. Defaults to `.live`
     static var current: APIMode {
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment["API_MODE"]?.lowercased(),
+           let mode = APIMode(rawValue: envValue) {
+            return mode
+        }
+        // Priority 2: Info.plist
         let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String ?? "live").lowercased()
         return APIMode(rawValue: raw) ?? .live
     }

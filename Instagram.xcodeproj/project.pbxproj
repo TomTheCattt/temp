@@ -34,7 +34,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		80887F10300D4ECD007EF3E5 /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Instagram.app; path = "/Users/tomthecat/Instagram/build/Debug-iphoneos/Instagram.app"; sourceTree = "<absolute>"; };
+		FB272021301B3AA600CE68FE /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB2723CD301B601A00CE68FE /* Instagram-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Instagram-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -115,6 +116,7 @@
 		80887F07300D4ECD007EF3E5 = {
 			isa = PBXGroup;
 			children = (
+				FB2723CD301B601A00CE68FE /* Instagram-Info.plist */,
 				80887F29300D523A007EF3E5 /* Documentations */,
 				80887F28300D5229007EF3E5 /* Persistence */,
 				80887F23300D5147007EF3E5 /* Config */,
@@ -125,6 +127,7 @@
 				80887F1E300D4EFA007EF3E5 /* Resources */,
 				80887F12300D4ECD007EF3E5 /* Application */,
 				807D527C30191D2F00E953EC /* Data */,
+				FB272021301B3AA600CE68FE /* Instagram.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -171,7 +174,7 @@
 				807D4F3F3015CA6B00E953EC /* ProgressHUD */,
 			);
 			productName = Instagram;
-			productReference = 80887F10300D4ECD007EF3E5 /* Instagram.app */;
+			productReference = FB272021301B3AA600CE68FE /* Instagram.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -202,7 +205,7 @@
 				807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */,
 				807D4F263015C78500E953EC /* XCRemoteSwiftPackageReference "CombineExt" */,
 				807D4F293015C89B00E953EC /* XCRemoteSwiftPackageReference "Swinject" */,
-				807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */,
+				807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */,
 				807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */,
 				807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */,
 				807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */,
@@ -370,6 +373,7 @@
 				DEVELOPMENT_TEAM = GAJCLMLJ23;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Instagram-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -406,6 +410,7 @@
 				DEVELOPMENT_TEAM = GAJCLMLJ23;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Instagram-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -455,13 +460,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../Downloads/Nuke-13.0.6";
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
 		807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -485,6 +483,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.10.0;
+			};
+		};
+		807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.0;
 			};
 		};
 		807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */ = {
@@ -539,18 +545,22 @@
 		};
 		807D4F2D3015C97100E953EC /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;
 		};
 		807D4F2F3015C97100E953EC /* NukeExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeExtensions;
 		};
 		807D4F313015C97100E953EC /* NukeUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
 		};
 		807D4F333015C97100E953EC /* NukeVideo */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeVideo;
 		};
 		807D4F363015C9C600E953EC /* PopupView */ = {
