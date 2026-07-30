@@ -16,6 +16,11 @@ struct InstagramApp: App {
 
         // Configure image pipeline
         ImagePipelineManager.configure()
+
+        // Auto-login in mock API mode for development/testing
+        if AppConfig.shared.isMockAPI {
+            AppRouter.shared.isAuthenticated = true
+        }
     }
 
     var body: some Scene {
