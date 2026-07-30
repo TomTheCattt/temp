@@ -8,6 +8,14 @@
 import SwiftUI
 
 struct SplashView: View {
+    
+    private enum Constants {
+        static let splashIconSize: CGFloat = 88
+        static let splashFooterWidth: CGFloat = 77
+        static let splashFooterHeight: CGFloat = 39
+        static let spacing: CGFloat = 283
+        static let paddingBottomConstant: CGFloat = 51
+    }
 
     @State private var isActive = false
     @State private var logoScale: CGFloat = 0.7
@@ -38,55 +46,26 @@ struct SplashView: View {
             ColorTokens.backgroundPrimary
                 .ignoresSafeArea()
 
-            VStack(spacing: DS.Spacing.lg) {
+            VStack(spacing: Constants.spacing) {
+                
+                Spacer()
+                
                 // Instagram camera/gradient icon
-                Image(systemName: "camera.fill")
+                Image(.splashIcon)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: DS.Size.iconJumbo, height: DS.Size.iconJumbo)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                ColorTokens.brandGradientEnd,
-                                ColorTokens.brandGradientMid,
-                                ColorTokens.brandGradientStart
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .frame(width: Constants.splashIconSize, height: Constants.splashIconSize)
 
                 // App name
-                Text("Instagram")
-                    .font(.system(size: 34, weight: .thin))
-                    .foregroundColor(ColorTokens.textPrimary)
+                Image(.splashFooter)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: Constants.splashFooterWidth, height: Constants.splashFooterHeight)
             }
             .scaleEffect(logoScale)
             .opacity(logoOpacity)
-
-            // "from" label at the bottom (like the real Instagram splash)
-            VStack {
-                Spacer()
-                VStack(spacing: DS.Spacing.xxs) {
-                    Text("from")
-                        .font(DS.Font.caption)
-                        .foregroundColor(ColorTokens.textTertiary)
-                    Text("Meta")
-                        .font(DS.Font.subheadlineBold)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    ColorTokens.brandGradientEnd,
-                                    ColorTokens.brandGradientMid,
-                                    ColorTokens.brandGradientStart
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                }
-                .padding(.bottom, DS.Spacing.xxxl)
-            }
+            .ignoresSafeArea()
+            .padding(.bottom, Constants.paddingBottomConstant)
         }
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Instagram Sans.ttf</string>
+		<string>Instagram Sans Light.ttf</string>
+		<string>Instagram Sans Medium.ttf</string>
+		<string>Instagram Sans Bold.ttf</string>
+		<string>Instagram Sans Headline.ttf</string>
+	</array>
+</dict>
+</plist>
