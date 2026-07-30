@@ -202,7 +202,7 @@
 				807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */,
 				807D4F263015C78500E953EC /* XCRemoteSwiftPackageReference "CombineExt" */,
 				807D4F293015C89B00E953EC /* XCRemoteSwiftPackageReference "Swinject" */,
-				807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */,
+				807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */,
 				807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */,
 				807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */,
 				807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */,
@@ -456,13 +456,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		807D4F2C3015C97100E953EC /* XCLocalSwiftPackageReference "../Downloads/Nuke-13.0.6" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../Downloads/Nuke-13.0.6";
-		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.0;
+			};
+		};
 		807D4F153015C25B00E953EC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
@@ -539,18 +543,22 @@
 		};
 		807D4F2D3015C97100E953EC /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;
 		};
 		807D4F2F3015C97100E953EC /* NukeExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeExtensions;
 		};
 		807D4F313015C97100E953EC /* NukeUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
 		};
 		807D4F333015C97100E953EC /* NukeVideo */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeVideo;
 		};
 		807D4F363015C9C600E953EC /* PopupView */ = {
