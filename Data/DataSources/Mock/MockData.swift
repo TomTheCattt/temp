@@ -12,6 +12,13 @@ import Foundation
 /// Central fake data store for UI development.
 enum MockData {
 
+    // MARK: - Test Account Credentials
+
+    /// Default test account for development/testing.
+    /// Use these credentials on the login screen, or enable mock API mode for auto-login.
+    static let testEmail = "tom@example.com"
+    static let testPassword = "password123"
+
     // MARK: - Users
 
     static let currentUser = User(
