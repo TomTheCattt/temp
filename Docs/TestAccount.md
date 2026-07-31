@@ -37,13 +37,25 @@ InstagramApp.init()
     │  AppConfig.shared.isMockAPI == true
     │
     ▼
-AppRouter.shared.isAuthenticated = true  ← Auto-login
+performMockAutoLogin()
+    │  MockAuthDataSource.login(email, password)
+    │  → AuthSession(user: MockData.currentUser)
     │
     ▼
-ContentView → MainTabView (skip LoginView hoàn toàn)
+SessionStore.shared.setSession(user: session.user)
+    │  → currentUserId = "user_current"
+    │  → currentUser = User(...)
+    │
+    ▼
+AppRouter.shared.isAuthenticated = true
+    │
+    ▼
+SplashView (2s animation) → ContentView → MainTabView
 ```
 
 **Không cần nhập credentials.** App tự động vào trang chính với full mock data.
+**SessionStore được populate** giống hệt production flow — đảm bảo tất cả features
+sử dụng `SessionStore.shared.currentUserId` hoạt động đúng.
 
 ### Chế độ 2: Manual Login (Live API Mode hoặc test login flow)
 
@@ -57,10 +69,31 @@ ContentView → LoginView
     │  Email/Password đã được pre-fill sẵn (DEBUG + mock only)
     │
     ▼
-User tap "Login" → MockAuthDataSource chấp nhận mọi email/password hợp lệ
+User tap "Login" → AuthRepository → Remote API (hoặc MockAuthDataSource)
     │
     ▼
-handleAuthSuccess() → router.isAuthenticated = true → MainTabView
+handleAuthSuccess(session)
+    │  → SessionStore.shared.setSession(user: session.user)
+    │  → router.isAuthenticated = true
+    │
+    ▼
+MainTabView
+```
+
+### Logout Flow
+
+```
+SettingsView → Tap "Log Out"
+    │
+    ▼
+SettingsViewModel.logout()
+    │  → authRepository.logout() (API call)
+    │  → SessionStore.shared.clear()  ← Xóa user session
+    │  → AppRouter.shared.isAuthenticated = false
+    │  → AppRouter.shared.reset()
+    │
+    ▼
+ContentView → LoginView
 ```
 
 ---
@@ -113,9 +146,9 @@ Sau khi login, tài khoản test có đầy đủ:
 
 | Feature | Mock Data |
 |---------|-----------|
-| Feed | 10 posts với images từ picsum.photos |
-| Stories | 5 stories từ users khác nhau |
-| Reels | 8 reels với captions |
+| Feed | 10 posts (7 images + 3 videos) từ picsum.photos và Google Storage |
+| Stories | 5 stories, mỗi story 2-4 items (mix image + video), có stickers |
+| Reels | 8 reels với video thật (Google Storage MP4), captions, audio tracks |
 | Notifications | 5 notifications (like, comment, follow, mention) |
 | Direct Messages | 5 conversations với last messages |
 | Comments | 8 comments với replies |
@@ -124,18 +157,23 @@ Sau khi login, tài khoản test có đầy đủ:
 
 **Mock users:** 5 users ngoài currentUser (`jane_doe`, `john_smith`, `sara_design`, `mike_dev`, `lisa_art`)
 
+**Video URLs:** Sử dụng sample videos từ `https://storage.googleapis.com/gtv-videos-bucket/sample/` (public, HTTPS)
+
+**Story Stickers:** location, mention, music, poll — hiển thị overlay trên story viewer
+
 ---
 
 ## Files Liên Quan
 
 | File | Vai trò |
 |------|---------|
-| `Application/InstagramApp.swift` | Auto-login logic |
-| `Presentations/Auth/AuthViewModel.swift` | Pre-fill credentials |
-| `Data/DataSources/Mock/MockData.swift` | Test credentials + all mock data |
-| `Data/DataSources/Mock/MockAuthDataSource.swift` | Mock login/register (accepts any valid input) |
+| `Application/InstagramApp.swift` | Auto-login logic (calls MockAuthDataSource → SessionStore) |
+| `Presentations/Auth/AuthViewModel.swift` | Pre-fill credentials, handleAuthSuccess → SessionStore |
+| `Data/DataSources/Mock/MockData.swift` | Test credentials + all mock data (posts, stories, reels, etc.) |
+| `Data/DataSources/Mock/MockAuthDataSource.swift` | Mock login/register (accepts any valid input, returns MockData.currentUser) |
 | `Config/AppEnvironment.swift` | `AppConfig.isMockAPI` flag |
-| `Core/Security/AuthManager.swift` | Token storage (skipped in mock) |
+| `Core/Security/AuthManager.swift` | Token storage + logout (clears SessionStore) |
+| `Core/Security/SessionStore.swift` | Current user session (currentUserId, currentUser) — single source of truth |
 
 ---
 

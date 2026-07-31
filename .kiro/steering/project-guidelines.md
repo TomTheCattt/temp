@@ -42,8 +42,16 @@ Before making changes, consult these documents:
 - Entities: `struct` conforming to `Identifiable, Hashable, Sendable`
 - Repositories: `final class: {Protocol}, @unchecked Sendable`
 - UseCases: `final class: {Protocol}, Sendable` with `func execute(_ input:) async throws -> Output`
-- Navigation: Always via `AppRouter.shared.push(...)`, never inline `NavigationLink(destination:)`
 - Errors: `enum: LocalizedError` with `errorDescription`
+- Video player holders: `final class: ObservableObject` with explicit `objectWillChange`
+
+### Navigation
+
+- Push navigation: `AppRouter.shared.push(.routeName)` for in-stack navigation
+- Sheet presentation: `AppRouter.shared.present(sheet: .sheetName)` for modals with own NavigationStack
+- Full-screen: `AppRouter.shared.present(fullScreen: .coverName)`
+- NEVER use inline `NavigationLink(destination:)`
+- Views with their own `NavigationStack` (Cancel/Done toolbar) → present as sheet, NOT push
 
 ### Performance (MUST follow)
 
@@ -53,6 +61,18 @@ Before making changes, consult these documents:
 - Use `LazyImage` (NukeUI) for remote images
 - Heavy work (filters, I/O) must be `async` on background
 - Thumbnail previews render at 150x150, never full resolution
+- Video players MUST use `VideoPlayerManager.shared` for registration/lifecycle
+- Video player holder classes MUST declare `let objectWillChange = ObservableObjectPublisher()` (strict concurrency)
+- Video players MUST use lazy activate/deactivate pattern (no AVPlayer creation on init)
+- Max 3 concurrent AVPlayer instances (enforced by VideoPlayerManager)
+- Use `await item.asset.load(.duration)` for video duration (NOT deprecated `.duration` property)
+
+### Session & Identity (MUST follow)
+
+- Current user identity: ALWAYS use `SessionStore.shared.currentUserId` or `.currentUser`
+- NEVER reference `MockData.currentUser` outside of `Data/DataSources/Mock/` folder
+- Login flow MUST call `SessionStore.shared.setSession(user:)`
+- Logout flow MUST call `SessionStore.shared.clear()`
 
 ### Design Constants (MUST follow)
 

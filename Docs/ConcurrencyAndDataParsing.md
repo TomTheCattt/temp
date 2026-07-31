@@ -906,6 +906,8 @@ Core/
 ├── Networking/RequestInterceptor.swift → @preconcurrency, Sendable
 ├── WebSocket/WebSocketService.swift    → @unchecked Sendable, serial DispatchQueue
 ├── Security/AuthManager.swift          → @MainActor
+├── Security/SessionStore.swift         → @MainActor (singleton, current user identity)
+├── Video/VideoPlayerManager.swift      → @MainActor ObservableObject (player lifecycle + pooling)
 ├── DI/DIContainer.swift                → @unchecked Sendable (singleton)
 └── PushNotification/*.swift            → @unchecked Sendable, @MainActor methods
 ```
@@ -1075,6 +1077,119 @@ không rõ ràng — compiler cảnh báo về implicit strong capture across is
 | `AuthManager.swift` | `guard let currentRefresh` → `guard let _` (unused variable) |
 | `ImagePipelineManager.swift` | `let pipeline` → `let _` (unused variable) |
 | `NetworkService.swift` | `try endpoint.asURLRequest()` → `try await endpoint.asURLRequest()` (async requirement) |
+
+---
+
+### 9.9 SessionStore + Video Playback + Navigation (Commit `229d367`)
+
+> Commit: `229d367` — "TomTheCat: WIP"
+> 37 files changed
+
+#### SessionStore — Single Source of Truth cho Current User
+
+**Vấn đề:** `MockData.currentUser` bị reference trực tiếp từ Presentation layer và Repositories.
+Khi chạy production (live API), các giá trị này sẽ sai hoặc crash.
+
+**Giải pháp:** Tạo `Core/Security/SessionStore.swift` — `@MainActor` singleton lưu current user identity.
+
+```swift
+@MainActor
+final class SessionStore: SessionStoreProtocol {
+    static let shared = SessionStore()
+    private(set) var currentUserId: String = ""
+    private(set) var currentUser: User?
+
+    func setSession(user: User) { ... }
+    func clear() { ... }
+}
+```
+
+**Flow:**
+- Mock mode: `InstagramApp.performMockAutoLogin()` → `MockAuthDataSource.login()` → `SessionStore.setSession(user:)`
+- Production mode: `AuthViewModel.handleAuthSuccess(session)` → `SessionStore.setSession(user: session.user)`
+- Logout: `SessionStore.shared.clear()` (called by AuthManager + SettingsViewModel)
+
+**Files đã loại bỏ `MockData.currentUser`:**
+
+| File | Trước | Sau |
+|------|-------|-----|
+| `PostRepository.createPost()` | `author: MockData.currentUser` | `author: await SessionStore.shared.currentUser!` |
+| `ReelRepository.createReel()` | `author: MockData.currentUser` | `author: await SessionStore.shared.currentUser!` |
+| `DirectMessagesView` | `MockData.currentUser.id` (3 chỗ) | `SessionStore.shared.currentUserId` |
+| `StoriesBarView` | `MockData.currentUser.avatarURL` | `SessionStore.shared.currentUser?.avatarURL` |
+| `ChatView` | `"current_user"` (hardcoded string) | `viewModel.currentUserId` (injected from SessionStore) |
+
+#### VideoPlayerManager — Player Lifecycle + Pooling
+
+**File:** `Core/Video/VideoPlayerManager.swift`
+
+```swift
+@MainActor
+final class VideoPlayerManager: ObservableObject {
+    static let shared = VideoPlayerManager()
+
+    private let maxConcurrentPlayers = 3  // LRU eviction
+    private var activePlayers: [String: AVPlayer] = [:]
+    private var preloadedItems: [String: AVPlayerItem] = [:]
+    @Published private(set) var isPlaybackAllowed: Bool = true
+
+    func register(player:for:) { ... }  // LRU eviction at capacity
+    func unregister(key:) { ... }       // Pause + release item
+    func preload(url:for:) { ... }      // Buffer next video
+    func handleMemoryWarning() { ... }  // Aggressive cleanup
+}
+```
+
+**Tối ưu:**
+- Max 3 concurrent AVPlayer instances (LRU eviction)
+- Preload API: buffer video tiếp theo trước khi user swipe
+- Memory warning: giữ lại player đang play, evict hết còn lại
+- Background: pause all khi `willResignActive`, allow resume khi `didBecomeActive`
+
+#### Video Player Components
+
+| Component | File | Pattern |
+|-----------|------|---------|
+| `ReelVideoPlayer` | `Presentations/Reels/ReelVideoPlayer.swift` | Lazy activate/deactivate, looping, preload-aware |
+| `FeedVideoPlayer` | `Presentations/Feed/FeedVideoPlayer.swift` | Lazy activate/deactivate, looping, muted by default |
+| `StoryVideoPlayer` | `Presentations/Stories/StoryVideoPlayer.swift` | Progress tracking, no loop, onVideoEnded callback |
+
+**Shared pattern — `ObservableObject` holder classes:**
+
+```swift
+final class ReelPlayerHolder: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()  // Required for strict concurrency
+    let player = AVPlayer()
+
+    func activate(url:id:) { ... }   // Create/swap item, register, play
+    func deactivate(id:) { ... }     // Pause, unregister, release item
+}
+```
+
+**Tại sao `let objectWillChange = ObservableObjectPublisher()`?**
+- Swift strict concurrency không thể synthesize `objectWillChange` cho class có non-Sendable properties
+- Explicit declaration bypasses the conformance issue
+- Áp dụng cho: `ReelPlayerHolder`, `FeedPlayerHolder`, `StoryPlayerHolder`
+
+#### Navigation — Settings Sub-screens + EditProfile as Sheet
+
+**AppRoute mới:**
+`savedPosts`, `closeFriends`, `blockedAccounts`, `changePassword`, `twoFactorAuth`, `termsOfService`, `privacyPolicy`, `openSourceLicenses`
+
+**EditProfile:** Chuyển từ `AppRoute` (push) sang `AppSheet` (modal) vì view có `NavigationStack` riêng — tránh nested NavigationStack conflict.
+
+#### ATS Exception
+
+**File:** `Instagram-Info.plist`
+```xml
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoadsInMedia</key>
+    <true/>
+</dict>
+```
+
+Cho phép AVPlayer load media từ mọi HTTP/HTTPS source — cần cho sample video URLs.
 
 ---
 
