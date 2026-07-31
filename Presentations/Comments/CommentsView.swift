@@ -50,7 +50,7 @@ struct CommentsView: View {
             // Input bar
             commentInputBar
         }
-        .navigationTitle("Comments")
+        .navigationTitle(L10n.Comments.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadComments()
@@ -82,10 +82,10 @@ struct CommentsView: View {
                 HStack(spacing: DS.Spacing.sm) {
                     Text(comment.createdAt, style: .relative)
                     if comment.likesCount > 0 {
-                        Text("\(comment.likesCount) likes")
+                        Text(L10n.Comments.likesCount(comment.likesCount))
                             .fontWeight(.medium)
                     }
-                    Button("Reply") {
+                    Button(L10n.Common.reply) {
                         viewModel.handleReply(to: comment)
                         isInputFocused = true
                     }
@@ -158,7 +158,7 @@ struct CommentsView: View {
     @ViewBuilder
     private func replyIndicator(_ comment: Comment) -> some View {
         HStack {
-            Text("Replying to ")
+            Text(L10n.Comments.replyingTo)
                 .foregroundStyle(.secondary) +
             Text("@\(comment.author.username)")
                 .foregroundStyle(ColorTokens.accentPrimary)
@@ -187,7 +187,7 @@ struct CommentsView: View {
                 .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
 
             TextField(
-                viewModel.replyingTo != nil ? "Reply..." : "Add a comment...",
+                viewModel.replyingTo != nil ? L10n.Comments.replyPlaceholder : L10n.Comments.addComment,
                 text: $commentText
             )
             .textFieldStyle(.plain)
@@ -195,7 +195,7 @@ struct CommentsView: View {
             .focused($isInputFocused)
 
             if !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button("Post") {
+                Button(L10n.Common.post) {
                     let text = commentText
                     commentText = ""
                     Task { await viewModel.addComment(text: text) }

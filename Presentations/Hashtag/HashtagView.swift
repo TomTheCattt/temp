@@ -61,7 +61,7 @@ struct HashtagView: View {
                     .font(DS.Font.username)
 
                 Button(action: {}) {
-                    Text("Follow")
+                    Text(L10n.Common.follow)
                         .font(DS.Font.subheadlineBold)
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.xl)

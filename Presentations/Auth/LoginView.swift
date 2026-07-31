@@ -19,71 +19,76 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: DS.Spacing.xl) {
-                    Spacer().frame(height: DS.Spacing.xxxl)
+            VStack(spacing: 0) {
+                Spacer()
 
-                    // MARK: Logo
-                    logoSection
+                // MARK: Logo
+                instagramLogo
+                    .padding(.bottom, DS.Spacing.xxxl)
 
-                    // MARK: Form
-                    if viewModel.isLoginMode {
-                        loginForm
-                    } else {
-                        registerForm
-                    }
-
-                    // MARK: Error
-                    if let error = viewModel.errorMessage {
-                        errorBanner(error)
-                    }
-
-                    // MARK: Action Button
-                    primaryButton
-
-                    // MARK: Divider
-                    dividerSection
-
-                    // MARK: Toggle Mode
-                    toggleModeSection
-
-                    Spacer()
+                // MARK: Form
+                if viewModel.isLoginMode {
+                    loginForm
+                } else {
+                    registerForm
                 }
-                .padding(.horizontal, DS.Spacing.xxl)
+
+                // MARK: Error
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                        .padding(.top, DS.Spacing.sm)
+                }
+
+                // MARK: Login Button
+                primaryButton
+                    .padding(.top, DS.Spacing.lg)
+
+                // MARK: Forgot Password
+                if viewModel.isLoginMode {
+                    Button {
+                        // TODO: Forgot password action
+                    } label: {
+                        Text(L10n.Auth.forgotPassword)
+                            .font(DS.Font.headline)
+                            .foregroundStyle(ColorTokens.textPrimary)
+                    }
+                    .padding(.top, DS.Spacing.lg)
+                }
+
+                Spacer()
+                Spacer()
+
+                // MARK: Bottom Section
+                bottomSection
             }
-            .scrollDismissesKeyboard(.interactively)
+            .padding(.horizontal, DS.Padding.horizontal)
             .disabled(viewModel.isLoading)
+            .dismissKeyboardOnTap()
+            .background(.backgroundSecondary)
         }
     }
 
     // MARK: - Subviews
 
-    private var logoSection: some View {
-        VStack(spacing: DS.Spacing.xs) {
-            Text("Instagram")
-                .font(.system(size: 40, weight: .bold, design: .serif))
-
-            Text(viewModel.isLoginMode ? "Sign in to continue" : "Create your account")
-                .font(DS.Font.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.bottom, DS.Spacing.md)
+    private var instagramLogo: some View {
+        Image(.splashIcon)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 60, height: 60)
     }
 
     private var loginForm: some View {
-        VStack(spacing: DS.Spacing.formGap) {
-            AuthTextField(
-                placeholder: "Email",
+        VStack(spacing: DS.Spacing.sm) {
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.usernameOrEmail,
                 text: $viewModel.email,
-                icon: "envelope",
                 keyboardType: .emailAddress,
                 textContentType: .emailAddress
             )
 
-            AuthTextField(
-                placeholder: "Password",
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.password,
                 text: $viewModel.password,
-                icon: "lock",
                 isSecure: true,
                 textContentType: .password
             )
@@ -91,42 +96,37 @@ struct LoginView: View {
     }
 
     private var registerForm: some View {
-        VStack(spacing: DS.Spacing.formGap) {
-            AuthTextField(
-                placeholder: "Full Name",
+        VStack(spacing: DS.Spacing.sm) {
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.fullName,
                 text: $viewModel.fullName,
-                icon: "person",
                 textContentType: .name
             )
 
-            AuthTextField(
-                placeholder: "Email",
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.email,
                 text: $viewModel.email,
-                icon: "envelope",
                 keyboardType: .emailAddress,
                 textContentType: .emailAddress
             )
 
-            AuthTextField(
-                placeholder: "Phone Number",
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.phone,
                 text: $viewModel.phone,
-                icon: "phone",
                 keyboardType: .phonePad,
                 textContentType: .telephoneNumber
             )
 
-            AuthTextField(
-                placeholder: "Password",
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.password,
                 text: $viewModel.password,
-                icon: "lock",
                 isSecure: true,
                 textContentType: .newPassword
             )
 
-            AuthTextField(
-                placeholder: "Confirm Password",
+            FloatingTextField(
+                placeholder: L10n.Auth.Placeholder.confirmPassword,
                 text: $viewModel.confirmPassword,
-                icon: "lock.shield",
                 isSecure: true,
                 textContentType: .newPassword
             )
@@ -161,47 +161,50 @@ struct LoginView: View {
                     ProgressView()
                         .tint(.white)
                 } else {
-                    Text(viewModel.isLoginMode ? "Log In" : "Sign Up")
-                        .fontWeight(.semibold)
+                    Text(viewModel.isLoginMode ? L10n.Auth.login : L10n.Auth.register)
+                        .font(DS.Font.headline)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: DS.Size.inputBarHeight)
+            .frame(height: DS.Size.buttonDefaultHeight)
             .foregroundStyle(.white)
             .background(
-                RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                    .fill(isFormValid ? ColorTokens.accentPrimary : ColorTokens.accentPrimary.opacity(DS.Opacity.overlay))
+                RoundedRectangle(cornerRadius: DS.Radius.pill, style: .continuous)
+                    .fill(isFormValid ? ColorTokens.accentPrimary : ColorTokens.accentPrimary.opacity(DS.Opacity.medium))
             )
         }
         .disabled(!isFormValid || viewModel.isLoading)
     }
 
-    private var dividerSection: some View {
-        HStack {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(height: 0.5)
-            Text("OR")
-                .font(DS.Font.caption)
-                .foregroundStyle(.secondary)
-            Rectangle()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(height: 0.5)
-        }
-    }
-
-    private var toggleModeSection: some View {
-        HStack(spacing: DS.Spacing.xxs) {
-            Text(viewModel.isLoginMode ? "Don't have an account?" : "Already have an account?")
-                .font(DS.Font.subheadline)
-                .foregroundStyle(.secondary)
-            Button(viewModel.isLoginMode ? "Sign Up" : "Log In") {
+    private var bottomSection: some View {
+        VStack(spacing: DS.Spacing.md) {
+            // Create account / Toggle mode button
+            Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     viewModel.toggleMode()
                 }
+            } label: {
+                Text(viewModel.isLoginMode ? L10n.Auth.createAccount : L10n.Auth.haveAccount)
+                    .font(DS.Font.headline)
+                    .foregroundStyle(ColorTokens.accentPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: DS.Size.buttonDefaultHeight)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DS.Radius.pill, style: .continuous)
+                            .stroke(ColorTokens.accentPrimary, lineWidth: DS.Stroke.thin)
+                    )
             }
-            .font(DS.Font.subheadline)
-            .fontWeight(.semibold)
+
+            // Meta logo
+            HStack(spacing: DS.Spacing.xxs) {
+                Image(systemName: "infinity")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(ColorTokens.textPrimary)
+                Text("Meta")
+                    .font(DS.Font.headline)
+                    .foregroundStyle(ColorTokens.textPrimary)
+            }
+            .padding(.bottom, DS.Spacing.md)
         }
     }
 
@@ -209,58 +212,5 @@ struct LoginView: View {
 
     private var isFormValid: Bool {
         viewModel.isLoginMode ? viewModel.isLoginValid : viewModel.isRegisterValid
-    }
-}
-
-// MARK: - AuthTextField
-
-struct AuthTextField: View {
-    let placeholder: String
-    @Binding var text: String
-    var icon: String = ""
-    var isSecure: Bool = false
-    var keyboardType: UIKeyboardType = .default
-    var textContentType: UITextContentType?
-
-    @State private var isPasswordVisible = false
-
-    var body: some View {
-        HStack(spacing: DS.Spacing.sm) {
-            if !icon.isEmpty {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .frame(width: DS.Spacing.lg)
-            }
-
-            if isSecure && !isPasswordVisible {
-                SecureField(placeholder, text: $text)
-                    .textContentType(textContentType)
-            } else {
-                TextField(placeholder, text: $text)
-                    .keyboardType(keyboardType)
-                    .textContentType(textContentType)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            }
-
-            if isSecure {
-                Button {
-                    isPasswordVisible.toggle()
-                } label: {
-                    Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(.horizontal, DS.Spacing.formGap)
-        .padding(.vertical, DS.Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                .fill(ColorTokens.backgroundSecondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                .stroke(Color(.systemGray4), lineWidth: 0.5)
-        )
     }
 }

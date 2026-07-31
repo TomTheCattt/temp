@@ -18,11 +18,11 @@ enum ColorTokens {
 
     /// Primary background (main content area).
     /// Light: white | Dark: gray100
-    static let backgroundPrimary = Color(.systemBackground)
+    static let backgroundPrimary = Color(.backgroundPrimary)
 
     /// Secondary background (grouped sections, cards).
     /// Light: gray10 | Dark: gray90
-    static let backgroundSecondary = Color(.secondarySystemBackground)
+    static let backgroundSecondary = Color(.backgroundSecondary)
 
     /// Tertiary background (nested groups).
     /// Light: gray20 | Dark: gray80
@@ -45,13 +45,13 @@ enum ColorTokens {
     // MARK: - Text
 
     /// Primary text — Light: Black 100 | Dark: White 100.
-    static let textPrimary = Color(.label)
+    static let textPrimary = Color(.textPrimary)
 
     /// Secondary text (subtitles, captions) — Light: Gray 60 | Dark: Gray 40.
-    static let textSecondary = Color(.secondaryLabel)
+    static let textSecondary = Color(.textSecondary)
 
     /// Tertiary text (placeholders, disabled) — Light: Gray 40 | Dark: Gray 60.
-    static let textTertiary = Color(.tertiaryLabel)
+    static let textTertiary = Color(.textTertiary)
 
     /// Inverted text (on colored/brand backgrounds).
     static let textInverted = PrimitiveColors.Neutral.white100
@@ -153,6 +153,11 @@ enum ColorTokens {
 
     /// Light overlay.
     static let overlayLight = PrimitiveColors.Neutral.black40
+    
+    // MARK: - Stroke
+    
+    /// Stroke (for border).
+    static let stroke = Color.stroke
 }
 
 // MARK: - Legacy Aliases (use DS.* instead for new code)

@@ -101,7 +101,7 @@ struct ReportPostView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.Common.cancel) { dismiss() }
             }
         }
         .overlay {
@@ -137,7 +137,7 @@ struct ReportPostView: View {
             Spacer()
 
             Button(action: { dismiss() }) {
-                Text("Done")
+                Text(L10n.Common.done)
                     .font(DS.Font.subheadlineBold)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

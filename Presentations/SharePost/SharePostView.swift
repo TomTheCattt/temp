@@ -56,11 +56,11 @@ struct SharePostView: View {
                 // Bottom: external share options
                 externalShareBar
             }
-            .navigationTitle("Share")
+            .navigationTitle(L10n.Common.share)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(L10n.Common.cancel) { dismiss() }
                 }
             }
             .task {

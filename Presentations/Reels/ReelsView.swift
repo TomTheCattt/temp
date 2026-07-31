@@ -116,7 +116,7 @@ struct ReelItemView: View {
                     .foregroundStyle(.white)
 
                 Button(action: {}) {
-                    Text("Follow")
+                    Text(L10n.Common.follow)
                         .font(DS.Font.captionBold)
                         .padding(.horizontal, DS.Spacing.sm)
                         .padding(.vertical, DS.Spacing.xxs)

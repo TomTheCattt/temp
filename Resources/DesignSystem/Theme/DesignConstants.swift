@@ -167,52 +167,68 @@ enum DS {
 
     // MARK: - Font (typography)
 
+    /// Typography tokens backed by Instagram Sans custom font.
+    /// Maps semantic names to `AppTypography` styles.
     enum Font {
-        // System scale
-        /// 34pt bold — large titles (Settings, Profile).
-        static let largeTitle = SwiftUI.Font.largeTitle.weight(.bold)
-        /// 22pt semibold — section titles.
-        static let title = SwiftUI.Font.title2.weight(.semibold)
-        /// 20pt semibold — sub-titles.
-        static let title3 = SwiftUI.Font.title3.weight(.semibold)
-        /// 17pt semibold — headlines.
-        static let headline = SwiftUI.Font.headline
-        /// 15pt regular — subheadlines.
-        static let subheadline = SwiftUI.Font.subheadline
-        /// 15pt semibold — bold subheadline.
-        static let subheadlineBold = SwiftUI.Font.subheadline.weight(.semibold)
-        /// 17pt regular — body text.
-        static let body = SwiftUI.Font.body
-        /// 13pt regular — captions, timestamps.
-        static let caption = SwiftUI.Font.caption
-        /// 13pt semibold — bold caption (likes count, reply).
-        static let captionBold = SwiftUI.Font.caption.weight(.semibold)
-        /// 11pt regular — tiny labels.
-        static let caption2 = SwiftUI.Font.caption2
-        /// 11pt semibold — tiny bold labels (filter names, tab bar).
-        static let caption2Bold = SwiftUI.Font.caption2.weight(.semibold)
+        // MARK: Scale
 
-        // Instagram-specific
-        /// Username display (15pt semibold).
-        static let username = SwiftUI.Font.subheadline.weight(.semibold)
-        /// Nav bar brand title (20pt bold).
-        static let navBrand = SwiftUI.Font.title3.weight(.bold)
-        /// Feed action count (15pt semibold).
-        static let actionCount = SwiftUI.Font.subheadline.weight(.semibold)
-        /// Story username (11pt regular).
-        static let storyLabel = SwiftUI.Font.caption2
-        /// Tab bar label.
-        static let tabLabel = SwiftUI.Font.caption2
-        /// Comment text.
-        static let commentText = SwiftUI.Font.subheadline
-        /// Message text.
-        static let messageText = SwiftUI.Font.subheadline
-        /// Bio text.
-        static let bioText = SwiftUI.Font.subheadline
-        /// Stats number (17pt semibold).
-        static let statNumber = SwiftUI.Font.body.weight(.semibold)
-        /// Stats label (13pt regular).
-        static let statLabel = SwiftUI.Font.caption
+        /// 21pt bold — large titles (Settings, Profile).
+        static let largeTitle = AppTypography.title1Bold
+        /// 21pt regular — large title regular variant.
+        static let largeTitleRegular = AppTypography.title1Regular
+        /// 15pt bold — section titles.
+        static let title = AppTypography.title2Bold
+        /// 15pt regular — section title regular variant.
+        static let titleRegular = AppTypography.title2Regular
+        /// 14pt bold — sub-titles.
+        static let title3 = AppTypography.title3Bold
+        /// 14pt regular — sub-title regular variant.
+        static let title3Regular = AppTypography.title3Regular
+        /// 13pt semibold — headlines.
+        static let headline = AppTypography.headlineBold
+        /// 13pt regular — subheadlines.
+        static let subheadline = AppTypography.headlineRegular
+        /// 13pt semibold — bold subheadline.
+        static let subheadlineBold = AppTypography.headlineBold
+        /// 13pt regular — body text.
+        static let body = AppTypography.bodyRegular
+        /// 13pt bold — body bold.
+        static let bodyBold = AppTypography.bodyBold
+        /// 12pt regular — callout.
+        static let callout = AppTypography.calloutRegular
+        /// 12pt medium — callout bold.
+        static let calloutBold = AppTypography.calloutBold
+        /// 11pt regular — footnote, captions, timestamps.
+        static let caption = AppTypography.footnoteRegular
+        /// 11pt semibold — bold caption (likes count, reply).
+        static let captionBold = AppTypography.footnoteSemibold
+        /// 10pt regular — tiny labels.
+        static let caption2 = AppTypography.caption1Regular
+        /// 10pt semibold — tiny bold labels (filter names, tab bar).
+        static let caption2Bold = AppTypography.caption1Bold
+
+        // MARK: Instagram-specific
+
+        /// Username display (15pt bold).
+        static let username = AppTypography.title2Bold
+        /// Nav bar brand title (Instagram Sans Headline 24pt).
+        static let navBrand = AppTypography.brandLogo
+        /// Feed action count (13pt bold).
+        static let actionCount = AppTypography.bodyBold
+        /// Story username (10pt regular).
+        static let storyLabel = AppTypography.caption1Regular
+        /// Tab bar label (10pt regular).
+        static let tabLabel = AppTypography.caption1Regular
+        /// Comment text (13pt regular).
+        static let commentText = AppTypography.bodyRegular
+        /// Message text (13pt regular).
+        static let messageText = AppTypography.bodyRegular
+        /// Bio text (13pt regular).
+        static let bioText = AppTypography.bodyRegular
+        /// Stats number (14pt bold).
+        static let statNumber = AppTypography.title3Bold
+        /// Stats label (11pt regular).
+        static let statLabel = AppTypography.footnoteRegular
     }
 
     // MARK: - Opacity

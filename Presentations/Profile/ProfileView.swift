@@ -97,14 +97,14 @@ struct ProfileView: View {
 
             // Stats
             HStack(spacing: 0) {
-                statItem(count: user.postsCount, label: "Posts")
+                statItem(count: user.postsCount, label: L10n.Profile.posts)
                 Spacer()
-                statItem(count: user.followersCount, label: "Followers")
+                statItem(count: user.followersCount, label: L10n.Profile.followers)
                     .onTapGesture {
                         AppRouter.shared.push(.followers(userId: user.id))
                     }
                 Spacer()
-                statItem(count: user.followingCount, label: "Following")
+                statItem(count: user.followingCount, label: L10n.Profile.following)
                     .onTapGesture {
                         AppRouter.shared.push(.following(userId: user.id))
                     }
@@ -163,17 +163,17 @@ struct ProfileView: View {
     private func actionButtons(_ user: User) -> some View {
         HStack(spacing: DS.Spacing.xs) {
             if viewModel.isCurrentUser {
-                profileButton(title: "Edit Profile") {
+                profileButton(title: L10n.Profile.editProfile) {
                     AppRouter.shared.push(.editProfile)
                 }
-                profileButton(title: "Share Profile") {
+                profileButton(title: L10n.Profile.shareProfile) {
                     // Share
                 }
             } else {
                 Button {
                     Task { await viewModel.toggleFollow() }
                 } label: {
-                    Text(user.isFollowing ? "Following" : "Follow")
+                    Text(user.isFollowing ? L10n.Common.following : L10n.Common.follow)
                         .font(DS.Font.subheadline)
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
@@ -185,7 +185,7 @@ struct ProfileView: View {
                         )
                 }
 
-                profileButton(title: "Message") {
+                profileButton(title: L10n.Common.message) {
                     AppRouter.shared.push(.directMessages)
                 }
             }

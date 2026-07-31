@@ -163,7 +163,7 @@ struct ChatView: View {
             HStack(spacing: DS.Spacing.xs) {
                 Image(systemName: "square.and.arrow.up")
                     .font(DS.Font.caption)
-                Text("Shared content")
+                Text(L10n.Common.sharedContent)
                     .font(DS.Font.messageText)
             }
             .foregroundStyle(isMe ? .white : .primary)
@@ -217,7 +217,7 @@ struct ChatView: View {
 
             // Text field
             HStack(spacing: DS.Spacing.xs) {
-                TextField("Message...", text: $messageText)
+                TextField(L10n.Chat.messagePlaceholder, text: $messageText)
                     .textFieldStyle(.plain)
                     .font(DS.Font.subheadline)
                     .focused($isInputFocused)

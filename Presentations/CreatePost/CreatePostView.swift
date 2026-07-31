@@ -36,7 +36,7 @@ struct CreatePostView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.currentStep == .selectMedia {
-                        Button("Cancel") { dismiss() }
+                        Button(L10n.Common.cancel) { dismiss() }
                     } else {
                         Button(action: { viewModel.goToPreviousStep() }) {
                             Image(systemName: "chevron.left")
@@ -46,7 +46,7 @@ struct CreatePostView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     if viewModel.currentStep == .captionAndShare {
-                        Button("Share") {
+                        Button(L10n.Common.share) {
                             Task {
                                 await viewModel.publish()
                                 if viewModel.isPublished {
@@ -58,7 +58,7 @@ struct CreatePostView: View {
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .disabled(!viewModel.canPublish)
                     } else {
-                        Button("Next") {
+                        Button(L10n.Common.next) {
                             viewModel.goToNextStep()
                         }
                         .fontWeight(.semibold)
@@ -67,11 +67,11 @@ struct CreatePostView: View {
                     }
                 }
             }
-            .alert("Error", isPresented: .init(
+            .alert(L10n.Common.error, isPresented: .init(
                 get: { viewModel.publishError != nil },
                 set: { if !$0 { viewModel.publishError = nil } }
             )) {
-                Button("OK") {}
+                Button(L10n.Common.ok) {}
             } message: {
                 Text(viewModel.publishError ?? "")
             }
@@ -82,9 +82,9 @@ struct CreatePostView: View {
 
     private var navigationTitle: String {
         switch viewModel.currentStep {
-        case .selectMedia: return "New Post"
-        case .applyFilter: return "Filter"
-        case .captionAndShare: return "New Post"
+        case .selectMedia: return L10n.CreatePost.title
+        case .applyFilter: return L10n.CreatePost.filter
+        case .captionAndShare: return L10n.CreatePost.title
         }
     }
 
@@ -94,7 +94,7 @@ struct CreatePostView: View {
         VStack(spacing: DS.Spacing.md) {
             // Preview area
             if viewModel.isLoadingMedia {
-                ProgressView("Loading...")
+                ProgressView(L10n.Common.loading)
                     .frame(maxWidth: .infinity, minHeight: 300)
             } else if !viewModel.selectedImages.isEmpty {
                 if let firstData = viewModel.selectedImages.first,
@@ -108,7 +108,7 @@ struct CreatePostView: View {
                 }
 
                 if viewModel.mediaCount > 1 {
-                    Text("\(viewModel.mediaCount) items selected")
+                    Text(L10n.CreatePost.itemsSelected(viewModel.mediaCount))
                         .font(DS.Font.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -117,7 +117,7 @@ struct CreatePostView: View {
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.system(size: DS.Size.iconHero))
                         .foregroundStyle(.secondary)
-                    Text("Select photos or videos")
+                    Text(L10n.CreatePost.selectMedia)
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -132,7 +132,7 @@ struct CreatePostView: View {
                 maxSelectionCount: DS.Layout.maxPostMedia,
                 matching: .any(of: [.images, .videos])
             ) {
-                Label("Select from Library", systemImage: "photo.stack")
+                Label(L10n.CreatePost.selectFromLibrary, systemImage: "photo.stack")
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -224,7 +224,7 @@ struct CreatePostView: View {
                             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
                     }
 
-                    TextField("Write a caption...", text: $viewModel.caption, axis: .vertical)
+                    TextField(L10n.CreatePost.captionPlaceholder, text: $viewModel.caption, axis: .vertical)
                         .font(DS.Font.subheadline)
                         .lineLimit(5...10)
                 }
@@ -235,7 +235,7 @@ struct CreatePostView: View {
                 // Location
                 Button(action: {}) {
                     HStack {
-                        Text("Add location")
+                        Text(L10n.CreatePost.addLocation)
                             .foregroundStyle(.primary)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -252,7 +252,7 @@ struct CreatePostView: View {
                 // Tag people
                 Button(action: {}) {
                     HStack {
-                        Text("Tag people")
+                        Text(L10n.CreatePost.tagPeople)
                             .foregroundStyle(.primary)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -268,7 +268,7 @@ struct CreatePostView: View {
 
                 // Share options
                 VStack(alignment: .leading, spacing: DS.Spacing.sm) {
-                    Text("Also share to")
+                    Text(L10n.CreatePost.alsoShareTo)
                         .font(DS.Font.subheadlineBold)
                         .padding(.horizontal, DS.Padding.horizontal)
 

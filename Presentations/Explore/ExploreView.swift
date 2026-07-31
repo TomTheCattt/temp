@@ -29,12 +29,12 @@ struct ExploreView: View {
         .searchable(
             text: $viewModel.searchText,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search"
+            prompt: L10n.Common.search
         )
         .onChange(of: viewModel.searchText) { _, _ in
             Task { await viewModel.search() }
         }
-        .navigationTitle("Explore")
+        .navigationTitle(L10n.Tab.explore)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel.explorePosts.isEmpty {

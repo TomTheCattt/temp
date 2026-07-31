@@ -52,7 +52,7 @@ struct FeedView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Text("Instagram")
+                Text(L10n.Feed.title)
                     .font(.system(size: 24, weight: .bold, design: .serif))
             }
             ToolbarItem(placement: .topBarTrailing) {

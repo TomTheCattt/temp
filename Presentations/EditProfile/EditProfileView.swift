@@ -26,14 +26,14 @@ struct EditProfileView: View {
                 profileFieldsSection
                 bioSection
             }
-            .navigationTitle("Edit Profile")
+            .navigationTitle(L10n.EditProfile.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(L10n.Common.cancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(L10n.Common.done) {
                         Task {
                             await viewModel.save()
                             if viewModel.isSaved {
@@ -50,11 +50,11 @@ struct EditProfileView: View {
                     ProgressView()
                 }
             }
-            .alert("Error", isPresented: .init(
+            .alert(L10n.Common.error, isPresented: .init(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
             )) {
-                Button("OK") {}
+                Button(L10n.Common.ok) {}
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
@@ -95,7 +95,7 @@ struct EditProfileView: View {
                         selection: $viewModel.avatarPickerItem,
                         matching: .images
                     ) {
-                        Text("Change Profile Photo")
+                        Text(L10n.EditProfile.changePhoto)
                             .font(DS.Font.subheadlineBold)
                             .foregroundStyle(ColorTokens.accentPrimary)
                     }
@@ -110,21 +110,21 @@ struct EditProfileView: View {
 
     private var profileFieldsSection: some View {
         Section {
-            LabeledContent("Name") {
-                TextField("Name", text: $viewModel.name)
+            LabeledContent(L10n.EditProfile.name) {
+                TextField(L10n.EditProfile.name, text: $viewModel.name)
                     .multilineTextAlignment(.trailing)
             }
 
-            LabeledContent("Username") {
-                TextField("Username", text: $viewModel.username)
+            LabeledContent(L10n.EditProfile.username) {
+                TextField(L10n.EditProfile.username, text: $viewModel.username)
                     .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .disabled(true)
                     .foregroundStyle(.secondary)
             }
 
-            LabeledContent("Website") {
-                TextField("Website", text: $viewModel.website)
+            LabeledContent(L10n.EditProfile.website) {
+                TextField(L10n.EditProfile.website, text: $viewModel.website)
                     .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
@@ -138,11 +138,11 @@ struct EditProfileView: View {
     private var bioSection: some View {
         Section {
             VStack(alignment: .leading, spacing: DS.Spacing.xs) {
-                Text("Bio")
+                Text(L10n.EditProfile.bio)
                     .font(DS.Font.subheadline)
                     .foregroundStyle(.secondary)
 
-                TextField("Bio", text: $viewModel.bio, axis: .vertical)
+                TextField(L10n.EditProfile.bio, text: $viewModel.bio, axis: .vertical)
                     .font(DS.Font.subheadline)
                     .lineLimit(3...5)
 

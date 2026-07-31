@@ -141,27 +141,27 @@ private struct ConversationRow: View {
 
     private var lastMessageText: Text {
         guard let message = conversation.lastMessage else {
-            return Text("No messages yet")
+            return Text(L10n.DirectMessages.noMessages)
         }
 
         let isMine = message.sender.id == MockData.currentUser.id
-        let prefix = isMine ? "You: " : ""
+        let prefix = isMine ? L10n.DirectMessages.you : ""
 
         switch message.content {
         case .text(let text):
             return Text(prefix + text)
         case .image:
-            return Text(prefix + "Sent a photo")
+            return Text(prefix + L10n.DirectMessages.sentPhoto)
         case .video:
-            return Text(prefix + "Sent a video")
+            return Text(prefix + L10n.DirectMessages.sentVideo)
         case .audio:
-            return Text(prefix + "Sent a voice message")
+            return Text(prefix + L10n.DirectMessages.sentVoice)
         case .post:
-            return Text(prefix + "Shared a post")
+            return Text(prefix + L10n.DirectMessages.sharedPost)
         case .story:
-            return Text(prefix + "Shared a story")
+            return Text(prefix + L10n.DirectMessages.sharedStory)
         case .reel:
-            return Text(prefix + "Shared a reel")
+            return Text(prefix + L10n.DirectMessages.sharedReel)
         case .like:
             return Text(prefix + "❤️")
         }

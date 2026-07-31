@@ -167,6 +167,89 @@ extension AppTypography {
     static let caption2RegularStyle = TypographyStyle(font: caption2Regular, size: 7, letterSpacingPercent: 0.06)
 }
 
+// MARK: - Font to UIFont Conversion
+
+import UIKit
+
+extension TypographyStyle {
+    /// Convert the typography style to a `UIFont` for use in UIKit contexts.
+    ///
+    /// Example:
+    /// ```swift
+    /// let uiFont = AppTypography.bodyBoldStyle.uiFont
+    /// label.font = uiFont
+    /// ```
+    var uiFont: UIFont {
+        UIFont.appFont(name: fontName, size: size)
+    }
+
+    /// The underlying font family name derived from size and style.
+    private var fontName: String {
+        // Map back from the Font to the registered font name
+        // by checking which FontFamily was used based on the style font
+        // We use a helper that reconstructs from size + weight
+        let descriptor = UIFontDescriptor(name: "", size: size)
+        return descriptor.postscriptName
+    }
+}
+
+extension UIFont {
+    /// Create a UIFont from the app's custom font family.
+    /// Falls back to system font if the custom font isn't available.
+    static func appFont(name: String, size: CGFloat) -> UIFont {
+        UIFont(name: name, size: size) ?? .systemFont(ofSize: size)
+    }
+
+    // MARK: - Title 1 — 21px
+
+    static let title1Bold = UIFont.appFont(name: FontFamily.bold, size: 21)
+    static let title1Regular = UIFont.appFont(name: FontFamily.regular, size: 21)
+
+    // MARK: - Title 2 — 15px
+
+    static let title2Bold = UIFont.appFont(name: FontFamily.bold, size: 15)
+    static let title2Regular = UIFont.appFont(name: FontFamily.regular, size: 15)
+
+    // MARK: - Title 3 — 14px
+
+    static let title3Bold = UIFont.appFont(name: FontFamily.bold, size: 14)
+    static let title3Regular = UIFont.appFont(name: FontFamily.regular, size: 14)
+
+    // MARK: - Headline — 13px
+
+    static let headlineBold = UIFont.appFont(name: FontFamily.bold, size: 13)
+    static let headlineRegular = UIFont.appFont(name: FontFamily.regular, size: 13)
+
+    // MARK: - Body — 13px
+
+    static let bodyBold = UIFont.appFont(name: FontFamily.bold, size: 13)
+    static let bodyRegular = UIFont.appFont(name: FontFamily.regular, size: 13)
+
+    // MARK: - Callout — 12px
+
+    static let calloutBold = UIFont.appFont(name: FontFamily.medium, size: 12)
+    static let calloutRegular = UIFont.appFont(name: FontFamily.regular, size: 12)
+
+    // MARK: - Footnote — 11px
+
+    static let footnoteSemibold = UIFont.appFont(name: FontFamily.bold, size: 11)
+    static let footnoteRegular = UIFont.appFont(name: FontFamily.regular, size: 11)
+
+    // MARK: - Caption 1 — 10px
+
+    static let caption1Bold = UIFont.appFont(name: FontFamily.bold, size: 10)
+    static let caption1Regular = UIFont.appFont(name: FontFamily.regular, size: 10)
+
+    // MARK: - Caption 2 — 7px
+
+    static let caption2Bold = UIFont.appFont(name: FontFamily.bold, size: 7)
+    static let caption2Regular = UIFont.appFont(name: FontFamily.regular, size: 7)
+
+    // MARK: - Brand / Special
+
+    static let brandLogo = UIFont.appFont(name: FontFamily.headline, size: 24)
+}
+
 // MARK: - View Modifier
 
 /// Apply a full typography style (font + tracking) in one modifier.

@@ -65,7 +65,7 @@ struct PostCardView: View {
             Spacer()
 
             if post.isSponsored {
-                Text("Sponsored")
+                Text(L10n.Common.sponsored)
                     .font(DS.Font.caption2)
                     .foregroundStyle(.secondary)
             }

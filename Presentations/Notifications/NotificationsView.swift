@@ -32,7 +32,7 @@ struct NotificationsView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Activity")
+        .navigationTitle(L10n.Notifications.title)
         .task {
             if viewModel.notifications.isEmpty {
                 await viewModel.loadNotifications()
@@ -128,22 +128,22 @@ private struct NotificationRow: View {
 
         switch notification.type {
         case .like:
-            return username + Text(" liked your post.")
+            return username + Text(L10n.Notifications.likedPost)
         case .comment:
             let comment = notification.commentText ?? ""
-            return username + Text(" commented: \(comment)")
+            return username + Text(L10n.Notifications.commented(comment))
         case .follow:
-            return username + Text(" started following you.")
+            return username + Text(L10n.Notifications.startedFollowing)
         case .followRequest:
-            return username + Text(" requested to follow you.")
+            return username + Text(L10n.Notifications.followRequest)
         case .mention:
-            return username + Text(" mentioned you in a post.")
+            return username + Text(L10n.Notifications.mentionedInPost)
         case .taggedInPost:
-            return username + Text(" tagged you in a post.")
+            return username + Text(L10n.Notifications.taggedInPost)
         case .storyMention:
-            return username + Text(" mentioned you in their story.")
+            return username + Text(L10n.Notifications.mentionedInStory)
         case .liveVideo:
-            return username + Text(" started a live video.")
+            return username + Text(L10n.Notifications.liveVideo)
         }
     }
 
@@ -151,7 +151,7 @@ private struct NotificationRow: View {
         Button {
             // Follow back
         } label: {
-            Text("Follow")
+            Text(L10n.Common.follow)
                 .font(DS.Font.caption)
                 .fontWeight(.semibold)
                 .padding(.horizontal, DS.Padding.horizontal)

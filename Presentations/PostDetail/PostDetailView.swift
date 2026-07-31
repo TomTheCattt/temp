@@ -35,7 +35,7 @@ struct PostDetailView: View {
 
             commentInputBar
         }
-        .navigationTitle("Post")
+        .navigationTitle(L10n.Common.post)
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
             if viewModel.isLoading && viewModel.post == nil {
@@ -169,12 +169,12 @@ struct PostDetailView: View {
 
     private var commentInputBar: some View {
         HStack(spacing: DS.Spacing.sm) {
-            TextField("Add a comment...", text: $commentText)
+            TextField(L10n.Comments.addComment, text: $commentText)
                 .textFieldStyle(.plain)
                 .font(DS.Font.subheadline)
 
             if !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button("Post") {
+                Button(L10n.Common.post) {
                     let text = commentText
                     commentText = ""
                     Task { await viewModel.addComment(text: text) }
@@ -217,7 +217,7 @@ struct CommentRowView: View {
                     if comment.likesCount > 0 {
                         Text("\(comment.likesCount) likes")
                     }
-                    Button("Reply") {}
+                    Button(L10n.Common.reply) {}
                 }
                 .font(DS.Font.caption)
                 .foregroundStyle(.secondary)

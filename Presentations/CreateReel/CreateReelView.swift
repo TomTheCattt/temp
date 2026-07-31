@@ -50,7 +50,7 @@ struct CreateReelView: View {
                     VStack(spacing: DS.Spacing.xs) {
                         Image(systemName: "video.fill")
                             .font(.system(size: DS.Spacing.xxxl))
-                        Text("Camera Preview")
+                        Text(L10n.CreatePost.captionPlaceholder)
                             .font(DS.Font.caption)
                     }
                     .foregroundStyle(.white.opacity(DS.Opacity.overlay))
@@ -72,7 +72,7 @@ struct CreateReelView: View {
                     Button(action: {}) {
                         HStack(spacing: DS.Spacing.xxs) {
                             Image(systemName: "music.note")
-                            Text("Add audio")
+                            Text(L10n.CreateReel.addAudio)
                         }
                         .font(DS.Font.captionBold)
                         .foregroundStyle(.white)
@@ -189,14 +189,14 @@ struct CreateReelView: View {
             .padding()
 
             // Caption
-            TextField("Write a caption...", text: $viewModel.caption, axis: .vertical)
+            TextField(L10n.CreatePost.captionPlaceholder, text: $viewModel.caption, axis: .vertical)
                 .font(DS.Font.subheadline)
                 .lineLimit(3...5)
                 .padding(.horizontal)
 
             Spacer()
         }
-        .navigationTitle("New Reel")
+        .navigationTitle(L10n.CreateReel.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -208,7 +208,7 @@ struct CreateReelView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Share") {
+                Button(L10n.Common.share) {
                     Task { await viewModel.publish() }
                 }
                 .fontWeight(.semibold)

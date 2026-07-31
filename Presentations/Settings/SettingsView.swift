@@ -44,34 +44,34 @@ struct SettingsView: View {
             // Logout
             logoutSection
         }
-        .navigationTitle("Settings")
+        .navigationTitle(L10n.Settings.title)
         .navigationBarTitleDisplayMode(.large)
         .task {
             await viewModel.loadSettings()
         }
-        .confirmationDialog("Log Out", isPresented: $showLogoutConfirmation) {
-            Button("Log Out", role: .destructive) {
+        .confirmationDialog(L10n.Auth.logoutConfirmTitle, isPresented: $showLogoutConfirmation) {
+            Button(L10n.Settings.logOut, role: .destructive) {
                 Task { await viewModel.logout() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.Common.cancel, role: .cancel) {}
         } message: {
-            Text("Are you sure you want to log out?")
+            Text(L10n.Auth.logoutConfirmMessage)
         }
     }
 
     // MARK: - Account Section
 
     private var accountSection: some View {
-        Section("Account") {
+        Section(L10n.Settings.account) {
             NavigationLink(value: AppRoute.editProfile) {
-                Label("Edit Profile", systemImage: "person.circle")
+                Label(L10n.Settings.editProfile, systemImage: "person.circle")
             }
 
-            Label("Saved", systemImage: "bookmark")
+            Label(L10n.Settings.saved, systemImage: "bookmark")
 
-            Label("Close Friends", systemImage: "star.circle")
+            Label(L10n.Settings.closeFriends, systemImage: "star.circle")
 
-            Label("Blocked Accounts", systemImage: "nosign")
+            Label(L10n.Settings.blockedAccounts, systemImage: "nosign")
         }
     }
 
@@ -80,14 +80,14 @@ struct SettingsView: View {
     @State private var themeManager = ThemeManager.shared
 
     private var appearanceSection: some View {
-        Section("Appearance") {
+        Section(L10n.Settings.appearance) {
             Picker(selection: $themeManager.themeMode) {
                 ForEach(AppThemeMode.allCases, id: \.self) { mode in
                     Label(mode.displayName, systemImage: mode.icon)
                         .tag(mode)
                 }
             } label: {
-                Label("Theme", systemImage: "paintbrush")
+                Label(L10n.Settings.theme, systemImage: "paintbrush")
             }
         }
     }
@@ -95,16 +95,16 @@ struct SettingsView: View {
     // MARK: - Notifications Section
 
     private var notificationsSection: some View {
-        Section("Notifications") {
+        Section(L10n.Settings.notifications) {
             Toggle(isOn: $viewModel.isPushEnabled) {
-                Label("Push Notifications", systemImage: "bell")
+                Label(L10n.Settings.pushNotifications, systemImage: "bell")
             }
 
             if viewModel.isPushEnabled {
-                Toggle("Likes", isOn: $viewModel.isLikeNotificationEnabled)
-                Toggle("Comments", isOn: $viewModel.isCommentNotificationEnabled)
-                Toggle("New Followers", isOn: $viewModel.isFollowNotificationEnabled)
-                Toggle("Direct Messages", isOn: $viewModel.isDirectMessageNotificationEnabled)
+                Toggle(L10n.Settings.likes, isOn: $viewModel.isLikeNotificationEnabled)
+                Toggle(L10n.Settings.comments, isOn: $viewModel.isCommentNotificationEnabled)
+                Toggle(L10n.Settings.newFollowers, isOn: $viewModel.isFollowNotificationEnabled)
+                Toggle(L10n.Settings.directMessages, isOn: $viewModel.isDirectMessageNotificationEnabled)
             }
         }
     }
@@ -112,16 +112,16 @@ struct SettingsView: View {
     // MARK: - Privacy Section
 
     private var privacySection: some View {
-        Section("Privacy") {
+        Section(L10n.Settings.privacy) {
             Toggle(isOn: $viewModel.isPrivateAccount) {
-                Label("Private Account", systemImage: "lock")
+                Label(L10n.Settings.privateAccount, systemImage: "lock")
             }
             .onChange(of: viewModel.isPrivateAccount) { _, _ in
                 Task { await viewModel.togglePrivateAccount() }
             }
 
             Toggle(isOn: $viewModel.isActivityStatusVisible) {
-                Label("Activity Status", systemImage: "circle.fill")
+                Label(L10n.Settings.activityStatus, systemImage: "circle.fill")
             }
         }
     }
@@ -129,31 +129,31 @@ struct SettingsView: View {
     // MARK: - Security Section
 
     private var securitySection: some View {
-        Section("Security") {
+        Section(L10n.Settings.security) {
             Toggle(isOn: $viewModel.isBiometricEnabled) {
-                Label("Face ID / Touch ID", systemImage: "faceid")
+                Label(L10n.Settings.faceIdTouchId, systemImage: "faceid")
             }
 
-            Label("Password", systemImage: "key")
+            Label(L10n.Settings.password, systemImage: "key")
 
-            Label("Two-Factor Authentication", systemImage: "shield.checkered")
+            Label(L10n.Settings.twoFactor, systemImage: "shield.checkered")
         }
     }
 
     // MARK: - Data Section
 
     private var dataSection: some View {
-        Section("Data & Storage") {
+        Section(L10n.Settings.dataStorage) {
             Toggle(isOn: $viewModel.isHighQualityUploads) {
-                Label("High Quality Uploads", systemImage: "arrow.up.circle")
+                Label(L10n.Settings.highQualityUploads, systemImage: "arrow.up.circle")
             }
 
             Toggle(isOn: $viewModel.isCellularDataEnabled) {
-                Label("Use Cellular Data", systemImage: "antenna.radiowaves.left.and.right")
+                Label(L10n.Settings.useCellularData, systemImage: "antenna.radiowaves.left.and.right")
             }
 
             Button(action: {}) {
-                Label("Clear Cache", systemImage: "trash")
+                Label(L10n.Settings.clearCache, systemImage: "trash")
                     .foregroundStyle(.primary)
             }
         }
@@ -162,14 +162,14 @@ struct SettingsView: View {
     // MARK: - About Section
 
     private var aboutSection: some View {
-        Section("About") {
-            LabeledContent("App Version", value: "1.0.0")
+        Section(L10n.Settings.about) {
+            LabeledContent(L10n.Settings.appVersion, value: "1.0.0")
 
-            Label("Terms of Service", systemImage: "doc.text")
+            Label(L10n.Settings.termsOfService, systemImage: "doc.text")
 
-            Label("Privacy Policy", systemImage: "hand.raised")
+            Label(L10n.Settings.privacyPolicy, systemImage: "hand.raised")
 
-            Label("Open Source Licenses", systemImage: "chevron.left.forwardslash.chevron.right")
+            Label(L10n.Settings.openSourceLicenses, systemImage: "chevron.left.forwardslash.chevron.right")
         }
     }
 
@@ -185,7 +185,7 @@ struct SettingsView: View {
                     if viewModel.isLoggingOut {
                         ProgressView()
                     } else {
-                        Text("Log Out")
+                        Text(L10n.Settings.logOut)
                             .fontWeight(.semibold)
                     }
                     Spacer()
