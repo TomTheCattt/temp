@@ -147,7 +147,7 @@ Sau khi login, tài khoản test có đầy đủ:
 | Feature | Mock Data |
 |---------|-----------|
 | Feed | 10 posts (7 images + 3 videos) từ picsum.photos và Google Storage |
-| Stories | 5 stories, mỗi story 2-4 items (mix image + video), có stickers |
+| Stories | 5 stories (other users, 2-4 items each) + 1 My Story (image + video), stickers |
 | Reels | 8 reels với video thật (Google Storage MP4), captions, audio tracks |
 | Notifications | 5 notifications (like, comment, follow, mention) |
 | Direct Messages | 5 conversations với last messages |
@@ -160,6 +160,12 @@ Sau khi login, tài khoản test có đầy đủ:
 **Video URLs:** Sử dụng sample videos từ `https://storage.googleapis.com/gtv-videos-bucket/sample/` (public, HTTPS)
 
 **Story Stickers:** location, mention, music, poll — hiển thị overlay trên story viewer
+
+**My Story:** Current user có mock story riêng (2 items: image + video). StoriesBarView hiển thị "Your Story" riêng biệt — tap mở MyStoryView (viewers, close friends, delete) nếu đã đăng, hoặc Story Camera nếu chưa.
+
+**Video Thumbnails:** `VideoThumbnailView` hiển thị thumbnail ưu tiên từ remote URL, fallback tự generate từ video frame đầu tiên (cached, half-resolution)
+
+**Loading States:** Skeleton shimmer placeholders cho Feed và Reels trong lúc tải dữ liệu ban đầu
 
 ---
 

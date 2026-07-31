@@ -78,9 +78,6 @@ enum AppRoute: Hashable {
     case directMessages
     case conversation(conversationId: String)
 
-    // Stories
-    case storyViewer(userId: String)
-
     // Explore
     case searchResults(query: String)
     case hashtag(name: String)
@@ -119,12 +116,16 @@ enum AppFullScreen: Identifiable {
     case camera
     case mediaViewer(url: URL)
     case storyCamera
+    case storyViewer(userId: String)
+    case myStory
 
     var id: String {
         switch self {
         case .camera:               return "camera"
         case .mediaViewer(let url): return "media_\(url.absoluteString)"
         case .storyCamera:          return "storyCamera"
+        case .storyViewer(let id):  return "storyViewer_\(id)"
+        case .myStory:              return "myStory"
         }
     }
 }

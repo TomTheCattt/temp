@@ -30,9 +30,10 @@ final class MockStoryDataSource: Sendable {
 
     func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
         try await simulateDelay(seconds: 1.0)
+        let currentUser = await SessionStore.shared.currentUser ?? MockData.currentUser
         return Story(
             id: "story_new_\(UUID().uuidString.prefix(8))",
-            author: MockData.currentUser,
+            author: currentUser,
             items: [
                 StoryItem(
                     id: "story_item_new",

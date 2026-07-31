@@ -1,15 +1,20 @@
 //
-//  StoryViewerView.swift
+//  MyStoryView.swift
 //  Instagram
 //
-//  Created by Kiro on 28/7/26.
+//  Created by Kiro on 31/7/26.
 //
 
 import SwiftUI
 
-// MARK: - StoryViewerView
+// MARK: - MyStoryView
 
-struct StoryViewerView: View {
+/// Story viewer for the current user's own stories.
+/// Differs from StoryViewerView:
+/// - Bottom bar shows viewers count, close friends indicator, delete & share actions
+/// - No reply bar (you don't reply to yourself)
+/// - Shows viewer avatars at bottom-left
+struct MyStoryView: View {
 
     @State private var viewModel: StoryViewerViewModel
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +22,7 @@ struct StoryViewerView: View {
 
     @State private var timer: Timer?
     @State private var videoPlayerKey: String = UUID().uuidString
+    @State private var showDeleteConfirmation = false
 
     private let contentCornerRadius: CGFloat = 12
 
@@ -30,7 +36,6 @@ struct StoryViewerView: View {
             let bottomPadding = geometry.safeAreaInsets.bottom
 
             ZStack {
-                // Full-screen black background
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -46,11 +51,11 @@ struct StoryViewerView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: contentCornerRadius))
                         }
 
-                        // Tap overlay for prev/next (inside content area)
+                        // Tap overlay
                         tapOverlay(size: geometry.size)
                             .clipShape(RoundedRectangle(cornerRadius: contentCornerRadius))
 
-                        // Top controls: progress + header (inside content card)
+                        // Top controls: progress + header
                         VStack(spacing: DS.Spacing.xs) {
                             progressBars
                             storyHeader
@@ -58,7 +63,7 @@ struct StoryViewerView: View {
                         .padding(.top, DS.Spacing.sm)
                         .padding(.horizontal, DS.Spacing.sm)
 
-                        // Sticker (centered in content)
+                        // Sticker
                         if let sticker = viewModel.currentItem?.sticker {
                             VStack {
                                 Spacer()
@@ -70,8 +75,8 @@ struct StoryViewerView: View {
                     .padding(.top, topPadding)
                     .padding(.horizontal, DS.Spacing.xxxs)
 
-                    // MARK: Reply Bar (below content, on black background)
-                    replyBar
+                    // MARK: Bottom Bar (My Story actions)
+                    myStoryBottomBar
                         .padding(.horizontal, DS.Padding.horizontal)
                         .padding(.top, DS.Spacing.sm)
                         .padding(.bottom, max(bottomPadding, DS.Spacing.sm))
@@ -108,6 +113,76 @@ struct StoryViewerView: View {
                 .onChanged { _ in viewModel.pause() }
                 .onEnded { _ in viewModel.resume() }
         )
+        .confirmationDialog("Delete Story", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                // TODO: Delete story item
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this story?")
+        }
+    }
+
+    // MARK: - My Story Bottom Bar
+
+    private var myStoryBottomBar: some View {
+        HStack(spacing: DS.Spacing.md) {
+            // Viewers info (left side)
+            Button(action: {}) {
+                HStack(spacing: DS.Spacing.xs) {
+                    // Stacked viewer avatars
+                    ZStack {
+                        Circle()
+                            .fill(Color(.systemGray4))
+                            .frame(width: 24, height: 24)
+                        Circle()
+                            .fill(Color(.systemGray3))
+                            .frame(width: 24, height: 24)
+                            .offset(x: 12)
+                    }
+                    .frame(width: 36)
+
+                    Text("Viewers")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            // Close Friends indicator
+            Button(action: {}) {
+                HStack(spacing: DS.Spacing.xxs) {
+                    Image(systemName: "star.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.green)
+                    Text("Close Friends")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            Spacer()
+
+            // Delete button
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+
+            // Share button
+            Button(action: {}) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+        }
     }
 
     // MARK: - Story Content
@@ -117,7 +192,7 @@ struct StoryViewerView: View {
         let contentWidth = geometry.size.width - DS.Spacing.xxxs * 2
         let contentHeight = geometry.size.height
             - geometry.safeAreaInsets.top - DS.Spacing.xxs
-            - 60 // reply bar area
+            - 60
             - geometry.safeAreaInsets.bottom
 
         switch item.type {
@@ -182,13 +257,9 @@ struct StoryViewerView: View {
     }
 
     private func progressWidth(for index: Int, totalWidth: CGFloat) -> CGFloat {
-        if index < viewModel.currentItemIndex {
-            return totalWidth
-        } else if index == viewModel.currentItemIndex {
-            return totalWidth * viewModel.itemProgress
-        } else {
-            return 0
-        }
+        if index < viewModel.currentItemIndex { return totalWidth }
+        else if index == viewModel.currentItemIndex { return totalWidth * viewModel.itemProgress }
+        else { return 0 }
     }
 
     // MARK: - Header
@@ -196,7 +267,6 @@ struct StoryViewerView: View {
     private var storyHeader: some View {
         HStack(spacing: DS.Spacing.xs) {
             if let story = viewModel.currentStory {
-                // Avatar with gradient ring
                 AsyncImage(url: story.author.avatarURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
@@ -206,7 +276,7 @@ struct StoryViewerView: View {
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1))
 
-                Text(story.author.username)
+                Text("Your Story")
                     .font(DS.Font.username)
                     .foregroundStyle(.white)
 
@@ -219,10 +289,7 @@ struct StoryViewerView: View {
 
             Spacer()
 
-            // Close button — large tap area
-            Button {
-                dismiss()
-            } label: {
+            Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
@@ -248,35 +315,6 @@ struct StoryViewerView: View {
                 .fill(Color.clear)
                 .contentShape(Rectangle())
                 .onTapGesture { advanceOrDismiss() }
-        }
-    }
-
-    // MARK: - Reply Bar
-
-    private var replyBar: some View {
-        HStack(spacing: DS.Spacing.sm) {
-            TextField("Send message", text: .constant(""))
-                .textFieldStyle(.plain)
-                .font(DS.Font.subheadline)
-                .foregroundStyle(.white)
-                .padding(.horizontal, DS.Spacing.md)
-                .padding(.vertical, DS.Spacing.sm)
-                .background(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                )
-
-            Button(action: {}) {
-                Image(systemName: "heart")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.white)
-            }
-
-            Button(action: {}) {
-                Image(systemName: "paperplane")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.white)
-            }
         }
     }
 
@@ -323,8 +361,16 @@ struct StoryViewerView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
                 HStack(spacing: DS.Spacing.sm) {
-                    pollButton(text: "Yes", color: ColorTokens.accentPrimary)
-                    pollButton(text: "No", color: ColorTokens.destructive)
+                    Text("Yes")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 80, height: 36)
+                        .background(ColorTokens.accentPrimary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+                    Text("No")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 80, height: 36)
+                        .background(ColorTokens.destructive, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
                 }
             }
             .padding(DS.Spacing.md)
@@ -335,21 +381,12 @@ struct StoryViewerView: View {
         }
     }
 
-    private func pollButton(text: String, color: Color) -> some View {
-        Text(text)
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: 80, height: 36)
-            .background(color, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
-    }
-
     // MARK: - Timer & Navigation
 
     private func handleItemChange() {
         stopTimer()
         viewModel.itemProgress = 0
         videoPlayerKey = UUID().uuidString
-
         guard let item = viewModel.currentItem else { return }
         if item.type == .image { startImageTimer() }
     }
@@ -357,7 +394,6 @@ struct StoryViewerView: View {
     private func startImageTimer() {
         stopTimer()
         guard let item = viewModel.currentItem, item.type == .image else { return }
-
         let duration = item.duration > 0 ? item.duration : DS.Duration.storyItem
         let interval = DS.Duration.storyTick
 

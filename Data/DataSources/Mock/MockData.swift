@@ -98,7 +98,36 @@ enum MockData {
 
     // MARK: - Stories
 
-    static let stories: [Story] = users.enumerated().map { index, user in
+    static let stories: [Story] = {
+        // Current user's story
+        let myStory = Story(
+            id: "story_me",
+            author: currentUser,
+            items: [
+                StoryItem(
+                    id: "story_item_me_0",
+                    mediaURL: URL(string: "https://picsum.photos/seed/mystory0/1080/1920")!,
+                    type: .image,
+                    duration: 5,
+                    createdAt: Date(timeIntervalSinceNow: -1800),
+                    sticker: StoryStickerInfo(type: .location, data: "Ho Chi Minh City")
+                ),
+                StoryItem(
+                    id: "story_item_me_1",
+                    mediaURL: URL(string: sampleVideoURLs[0])!,
+                    type: .video,
+                    duration: 15,
+                    createdAt: Date(timeIntervalSinceNow: -900),
+                    sticker: nil
+                )
+            ],
+            isViewed: true,
+            createdAt: Date(timeIntervalSinceNow: -1800),
+            expiresAt: Date(timeIntervalSinceNow: 22 * 3600)
+        )
+
+        // Other users' stories
+        let otherStories: [Story] = users.enumerated().map { index, user in
         let itemCount = (index % 3) + 2 // 2-4 items per story
         let items: [StoryItem] = (0..<itemCount).map { itemIndex in
             let isVideo = itemIndex % 3 == 1 // Every 2nd item in a story is video
@@ -131,6 +160,9 @@ enum MockData {
             expiresAt: Date(timeIntervalSinceNow: Double(24 - index) * 3600)
         )
     }
+
+        return [myStory] + otherStories
+    }()
 
     // MARK: - Comments
 
@@ -169,14 +201,12 @@ enum MockData {
     // MARK: - Reels
 
     static let sampleVideoURLs: [String] = [
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-        "https://storage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4"
+        "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
+        "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4",
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4",
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_10MB.mp4"
     ]
 
     static let reels: [Reel] = (0..<8).map { index in

@@ -879,14 +879,24 @@ struct PostDTO: Decodable, Sendable { ... }
 ```
 Presentations/
 ├── Feed/FeedViewModel.swift            → @MainActor @Observable
+├── Feed/FeedVideoPlayer.swift          → ObservableObject (FeedPlayerHolder, lazy activate/deactivate)
+├── Feed/PostCardView.swift             → Uses VideoThumbnailView for video posts + skeleton loading
 ├── Auth/AuthViewModel.swift            → @MainActor @Observable
 ├── Chat/ChatViewModel.swift            → @MainActor @Observable
-├── Reels/ReelsViewModel.swift          → @MainActor @Observable
+├── Reels/ReelsViewModel.swift          → @MainActor @Observable (preloads next reel)
+├── Reels/ReelVideoPlayer.swift         → ObservableObject (ReelPlayerHolder, always in hierarchy)
+├── Stories/StoryVideoPlayer.swift      → ObservableObject (StoryPlayerHolder, progress tracking)
+├── Stories/StoryViewerView.swift       → fullScreenCover presentation, scenePhase background handling
+├── Stories/MyStoryView.swift           → fullScreenCover, viewers/close friends/delete bottom bar
 ├── Explore/ExploreViewModel.swift      → @MainActor @Observable
 ├── Profile/ProfileViewModel.swift      → @MainActor @Observable
 ├── CreatePost/CreatePostViewModel.swift → @MainActor @Observable
 ├── Notifications/NotificationsViewModel.swift → @MainActor @Observable
 ├── DirectMessages/DirectMessagesViewModel.swift → @MainActor @Observable
+├── Common/VideoThumbnailView.swift     → Remote URL → generated → skeleton fallback
+├── Common/ShimmerView.swift            → Animated gradient shimmer effect
+├── Common/PostSkeletonView.swift       → Skeleton for PostCardView layout
+├── Common/ReelSkeletonView.swift       → Full-screen skeleton for Reels
 └── Navigation/AppRouter.swift          → @MainActor @Observable (singleton)
 
 Domain/
@@ -908,6 +918,7 @@ Core/
 ├── Security/AuthManager.swift          → @MainActor
 ├── Security/SessionStore.swift         → @MainActor (singleton, current user identity)
 ├── Video/VideoPlayerManager.swift      → @MainActor ObservableObject (player lifecycle + pooling)
+├── Video/VideoThumbnailGenerator.swift → @unchecked Sendable (NSCache + DispatchQueue, singleton)
 ├── DI/DIContainer.swift                → @unchecked Sendable (singleton)
 └── PushNotification/*.swift            → @unchecked Sendable, @MainActor methods
 ```
@@ -1190,6 +1201,55 @@ final class ReelPlayerHolder: ObservableObject {
 ```
 
 Cho phép AVPlayer load media từ mọi HTTP/HTTPS source — cần cho sample video URLs.
+
+#### VideoThumbnailGenerator — Thumbnail Extraction
+
+**File:** `Core/Video/VideoThumbnailGenerator.swift`
+
+```swift
+final class VideoThumbnailGenerator: @unchecked Sendable {
+    static let shared = VideoThumbnailGenerator()
+    private let cache = NSCache<NSString, UIImage>()  // Max 50 items
+    private let queue = DispatchQueue(label: "...", qos: .utility)
+
+    func thumbnail(for url: URL, at time: TimeInterval = 0.1) async -> UIImage?
+    func clearCache()
+}
+```
+
+**Concurrency pattern:**
+- `@unchecked Sendable`: Thread safety via serial `DispatchQueue` + `NSCache` (thread-safe by design)
+- `withCheckedContinuation`: Bridges GCD-based work to async/await
+- Half-resolution output (540x960) — balances quality vs memory
+- Time offset 0.1s skips potential black frames at video start
+- `NSCache` auto-evicts under memory pressure (no manual cleanup needed)
+
+#### Skeleton Loading + VideoThumbnailView
+
+**Files:**
+- `Presentations/Common/ShimmerView.swift` — Animated gradient overlay
+- `Presentations/Common/PostSkeletonView.swift` — Mimics PostCardView while loading
+- `Presentations/Common/ReelSkeletonView.swift` — Full-screen dark skeleton for Reels
+- `Presentations/Common/VideoThumbnailView.swift` — Fallback chain: remote URL → generated → skeleton
+
+**Pattern:** Views show skeleton during initial `isLoading && data.isEmpty`, then transition to real content.
+Video players always have `VideoThumbnailView` as background layer — visible until video buffer renders on top.
+
+#### Story Viewer — FullScreenCover Presentation
+
+**Before:** `AppRoute.storyViewer(userId:)` → pushed into NavigationStack → nav bar + tab bar visible
+**After:** `AppFullScreen.storyViewer(userId:)` → presented as `fullScreenCover` → completely immersive
+
+**StoryViewerView layout:**
+- Media content: `.ignoresSafeArea()` — fills entire screen edge-to-edge
+- UI controls (progress bars, header/X button, reply bar): respects safe areas — stays within visible bounds
+- Tap overlay below UI controls in ZStack — X button always tappable
+
+#### Reel Video Replay Fix
+
+**Problem:** Video wouldn't play when swiping back to a previously viewed reel.
+**Root cause:** `if isActive { ReelVideoPlayer(...) }` destroyed the view when inactive → `@StateObject` recreated on return but `onChange(of: isActive)` didn't fire because value was already `true`.
+**Fix:** `ReelVideoPlayer` is always in the view hierarchy (never conditionally rendered). Playback controlled via `activate()`/`deactivate()`. `activate()` no longer guards with `guard !isActivated` — if already active, simply resumes playback.
 
 ---
 

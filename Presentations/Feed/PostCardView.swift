@@ -87,12 +87,19 @@ struct PostCardView: View {
             if let firstMedia = post.mediaItems.first {
                 switch firstMedia.type {
                 case .video:
-                    FeedVideoPlayer(
-                        url: firstMedia.url,
-                        id: "post_video_\(post.id)",
-                        isVisible: isVisible
-                    )
-                    .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                    ZStack {
+                        // Video thumbnail as background (visible before video loads)
+                        VideoThumbnailView(videoURL: firstMedia.url, thumbnailURL: firstMedia.thumbnailURL)
+                            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+
+                        // Video player overlays thumbnail
+                        FeedVideoPlayer(
+                            url: firstMedia.url,
+                            id: "post_video_\(post.id)",
+                            isVisible: isVisible
+                        )
+                        .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                    }
 
                 case .image:
                     LazyImage(url: firstMedia.url) { state in
@@ -108,9 +115,7 @@ struct PostCardView: View {
                                         .foregroundStyle(.secondary)
                                 }
                         } else {
-                            ColorTokens.backgroundSecondary
-                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                                .overlay { ProgressView() }
+                            skeletonMediaPlaceholder
                         }
                     }
                 }
@@ -228,6 +233,16 @@ struct PostCardView: View {
             .padding(.horizontal, DS.Padding.content)
             .padding(.top, DS.Spacing.xxs)
             .padding(.bottom, DS.Spacing.sm)
+    }
+
+    // MARK: - Skeleton Placeholder
+
+    private var skeletonMediaPlaceholder: some View {
+        ColorTokens.backgroundSubtler
+            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+            .overlay {
+                ShimmerView()
+            }
     }
 }
 

@@ -16,19 +16,32 @@ struct StoriesBarView: View {
     @State private var stories: [Story] = MockData.stories
     @State private var showYourStory = true
 
+    /// Whether current user has an active story.
+    private var hasMyStory: Bool {
+        let userId = SessionStore.shared.currentUserId
+        return stories.contains { $0.author.id == userId }
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: DS.Spacing.formGap) {
                 // "Your Story" button
                 if showYourStory {
                     yourStoryItem
+                        .onTapGesture {
+                            if hasMyStory {
+                                AppRouter.shared.present(fullScreen: .myStory)
+                            } else {
+                                AppRouter.shared.present(fullScreen: .storyCamera)
+                            }
+                        }
                 }
 
-                // Other users' stories
-                ForEach(stories) { story in
+                // Other users' stories (exclude current user — shown as "Your Story")
+                ForEach(stories.filter { $0.author.id != SessionStore.shared.currentUserId }) { story in
                     StoryCircleView(story: story)
                         .onTapGesture {
-                            AppRouter.shared.push(.storyViewer(userId: story.author.id))
+                            AppRouter.shared.present(fullScreen: .storyViewer(userId: story.author.id))
                         }
                 }
             }

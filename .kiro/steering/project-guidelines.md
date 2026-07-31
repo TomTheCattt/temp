@@ -49,9 +49,11 @@ Before making changes, consult these documents:
 
 - Push navigation: `AppRouter.shared.push(.routeName)` for in-stack navigation
 - Sheet presentation: `AppRouter.shared.present(sheet: .sheetName)` for modals with own NavigationStack
-- Full-screen: `AppRouter.shared.present(fullScreen: .coverName)`
+- Full-screen: `AppRouter.shared.present(fullScreen: .coverName)` for immersive views (story viewer, camera)
 - NEVER use inline `NavigationLink(destination:)`
 - Views with their own `NavigationStack` (Cancel/Done toolbar) → present as sheet, NOT push
+- Immersive media viewers (stories, camera) → present as fullScreenCover, NOT push
+- Story routing: `.storyViewer(userId:)` for other users, `.myStory` for current user, `.storyCamera` for creating new
 
 ### Performance (MUST follow)
 
@@ -64,8 +66,13 @@ Before making changes, consult these documents:
 - Video players MUST use `VideoPlayerManager.shared` for registration/lifecycle
 - Video player holder classes MUST declare `let objectWillChange = ObservableObjectPublisher()` (strict concurrency)
 - Video players MUST use lazy activate/deactivate pattern (no AVPlayer creation on init)
+- Video players MUST always be in the view hierarchy (NOT conditional `if isActive`) — control playback via `activate()`/`deactivate()`
 - Max 3 concurrent AVPlayer instances (enforced by VideoPlayerManager)
 - Use `await item.asset.load(.duration)` for video duration (NOT deprecated `.duration` property)
+- Video thumbnails: use `VideoThumbnailView` — priority: remote URL → generated → skeleton
+- Use `VideoThumbnailGenerator.shared` for generating thumbnails from video (cached, half-res, background)
+- Show skeleton loading (`FeedSkeletonView`, `ReelSkeletonView`) during initial data fetch
+- Use `ShimmerView` for animated loading placeholders
 
 ### Session & Identity (MUST follow)
 

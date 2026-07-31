@@ -20,8 +20,8 @@ struct ReelsView: View {
     var body: some View {
         GeometryReader { geometry in
             if viewModel.isLoading && viewModel.reels.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Skeleton loading for reels
+                ReelSkeletonView()
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 0) {
@@ -73,24 +73,16 @@ struct ReelItemView: View {
                 Color.black
 
                 // Thumbnail always visible as background (until video renders)
-                AsyncImage(url: reel.thumbnailURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } placeholder: {
-                    Color.black
-                }
+                VideoThumbnailView(videoURL: reel.videoURL, thumbnailURL: reel.thumbnailURL)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
 
-                // Video player overlays thumbnail when active
-                if isActive {
-                    ReelVideoPlayer(url: reel.videoURL, id: reel.id, isActive: isActive)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                }
+                // Video player always in hierarchy — controls playback via isActive
+                ReelVideoPlayer(url: reel.videoURL, id: reel.id, isActive: isActive)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
 
-                // Play icon overlay when not active
+                // Dim overlay + play icon when not active
                 if !isActive {
                     Color.black.opacity(DS.Opacity.low)
                     Image(systemName: "play.fill")

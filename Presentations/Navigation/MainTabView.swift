@@ -168,11 +168,6 @@ struct MainTabView: View {
                 )
             )
 
-        case .storyViewer:
-            // Story viewer is typically presented via fullScreenCover
-            // When pushed, show a placeholder that redirects
-            Text("Use fullScreenCover for story viewer")
-
         case .searchResults(let query):
             SearchResultsView(
                 viewModel: SearchResultsViewModel(
@@ -295,6 +290,22 @@ struct MainTabView: View {
             StoryCameraView(
                 viewModel: StoryCameraViewModel(
                     storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
+                )
+            )
+
+        case .storyViewer(let userId):
+            StoryViewerView(
+                viewModel: StoryViewerViewModel(
+                    targetUserId: userId,
+                    fetchStoriesUseCase: DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
+                )
+            )
+
+        case .myStory:
+            MyStoryView(
+                viewModel: StoryViewerViewModel(
+                    targetUserId: SessionStore.shared.currentUserId,
+                    fetchStoriesUseCase: DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
                 )
             )
         }

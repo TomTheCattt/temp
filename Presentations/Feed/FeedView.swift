@@ -27,30 +27,35 @@ struct FeedView: View {
 
                 Divider()
 
-                // Posts
-                ForEach(viewModel.posts) { post in
-                    PostCardView(
-                        post: post,
-                        isVisible: visiblePostIds.contains(post.id)
-                    ) {
-                        Task { await viewModel.toggleLike(for: post) }
-                    }
-                    .onAppear {
-                        visiblePostIds.insert(post.id)
-                        if post.id == viewModel.posts.last?.id {
-                            Task { await viewModel.loadMore() }
+                if viewModel.isLoading && viewModel.posts.isEmpty {
+                    // Skeleton loading state
+                    FeedSkeletonView()
+                } else {
+                    // Posts
+                    ForEach(viewModel.posts) { post in
+                        PostCardView(
+                            post: post,
+                            isVisible: visiblePostIds.contains(post.id)
+                        ) {
+                            Task { await viewModel.toggleLike(for: post) }
                         }
-                    }
-                    .onDisappear {
-                        visiblePostIds.remove(post.id)
+                        .onAppear {
+                            visiblePostIds.insert(post.id)
+                            if post.id == viewModel.posts.last?.id {
+                                Task { await viewModel.loadMore() }
+                            }
+                        }
+                        .onDisappear {
+                            visiblePostIds.remove(post.id)
+                        }
+
+                        Divider()
                     }
 
-                    Divider()
-                }
-
-                if viewModel.isLoading && !viewModel.posts.isEmpty {
-                    ProgressView()
-                        .padding()
+                    if viewModel.isLoading && !viewModel.posts.isEmpty {
+                        ProgressView()
+                            .padding()
+                    }
                 }
             }
         }

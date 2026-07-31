@@ -79,7 +79,11 @@ final class ReelPlayerHolder: ObservableObject {
 
     /// Start playback for the given URL. Uses preloaded item if available.
     func activate(url: URL, id: String) {
-        guard !isActivated else { return }
+        // If already active with the same content, just resume
+        if isActivated {
+            player.play()
+            return
+        }
         isActivated = true
 
         // Use preloaded item or create new one
@@ -103,6 +107,7 @@ final class ReelPlayerHolder: ObservableObject {
         isActivated = false
 
         player.pause()
+        player.seek(to: .zero)
         removeLoopObserver()
         VideoPlayerManager.shared.unregister(key: id)
         // Release the item to free network buffers

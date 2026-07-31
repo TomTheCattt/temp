@@ -58,16 +58,19 @@ final class StoryViewerViewModel {
     // MARK: - Dependencies
 
     private let fetchStoriesUseCase: FetchStoriesUseCaseProtocol
+    private let targetUserId: String?
 
     // MARK: - Init
 
     init(
-        stories: [Story],
-        initialIndex: Int,
+        stories: [Story] = [],
+        initialIndex: Int = 0,
+        targetUserId: String? = nil,
         fetchStoriesUseCase: FetchStoriesUseCaseProtocol
     ) {
         self.stories = stories
         self.currentStoryIndex = initialIndex
+        self.targetUserId = targetUserId
         self.fetchStoriesUseCase = fetchStoriesUseCase
     }
 
@@ -79,6 +82,11 @@ final class StoryViewerViewModel {
 
         do {
             stories = try await fetchStoriesUseCase.execute()
+            // Jump to target user's story if specified
+            if let userId = targetUserId,
+               let index = stories.firstIndex(where: { $0.author.id == userId }) {
+                currentStoryIndex = index
+            }
         } catch {
             // Silent fail
         }
