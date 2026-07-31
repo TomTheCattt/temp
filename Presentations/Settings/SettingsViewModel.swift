@@ -71,10 +71,12 @@ final class SettingsViewModel {
 
         do {
             try await authRepository.logout()
+            SessionStore.shared.clear()
             AppRouter.shared.isAuthenticated = false
             AppRouter.shared.reset()
         } catch {
             // Force logout locally even if API fails
+            SessionStore.shared.clear()
             AppRouter.shared.isAuthenticated = false
             AppRouter.shared.reset()
         }

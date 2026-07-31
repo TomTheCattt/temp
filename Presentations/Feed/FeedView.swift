@@ -16,6 +16,8 @@ struct FeedView: View {
         toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self)
     )
 
+    @State private var visiblePostIds: Set<String> = []
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -27,13 +29,20 @@ struct FeedView: View {
 
                 // Posts
                 ForEach(viewModel.posts) { post in
-                    PostCardView(post: post) {
+                    PostCardView(
+                        post: post,
+                        isVisible: visiblePostIds.contains(post.id)
+                    ) {
                         Task { await viewModel.toggleLike(for: post) }
                     }
                     .onAppear {
+                        visiblePostIds.insert(post.id)
                         if post.id == viewModel.posts.last?.id {
                             Task { await viewModel.loadMore() }
                         }
+                    }
+                    .onDisappear {
+                        visiblePostIds.remove(post.id)
                     }
 
                     Divider()

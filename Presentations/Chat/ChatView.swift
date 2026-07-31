@@ -15,6 +15,12 @@ struct ChatView: View {
     @State private var messageText = ""
     @FocusState private var isInputFocused: Bool
 
+    /// Horizontal drag offset for iMessage-style timestamp reveal.
+    /// Negative value means the user dragged left (revealing timestamps on the right).
+    @State private var dragOffset: CGFloat = 0
+
+    private let maxDragOffset: CGFloat = -80
+
     init(viewModel: ChatViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -36,14 +42,17 @@ struct ChatView: View {
                         }
 
                         // Messages (newest at bottom, reversed)
-                        ForEach(viewModel.messages.reversed()) { message in
-                            messageBubble(message)
+                        let reversed = viewModel.messages.reversed() as [Message]
+                        ForEach(Array(reversed.enumerated()), id: \.element.id) { index, message in
+                            let isLastOwnMessage = isLastMessageFromCurrentUser(message, in: reversed)
+                            messageBubble(message, showReadReceipt: isLastOwnMessage)
                         }
                     }
                 }
                 .padding(.vertical, DS.Spacing.xs)
             }
             .defaultScrollAnchor(.bottom)
+            .gesture(timestampDragGesture)
 
             // Input bar
             messageInputBar
@@ -54,42 +63,95 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Message Bubble
+    // MARK: - Timestamp Drag Gesture (iMessage-style)
 
-    @ViewBuilder
-    private func messageBubble(_ message: Message) -> some View {
-        let isMe = message.sender.id == "current_user"
-        HStack(alignment: .bottom, spacing: DS.Spacing.xs) {
-            if isMe { Spacer(minLength: 60) }
-
-            if !isMe {
-                AsyncImage(url: message.sender.avatarURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
-                }
-                .frame(width: DS.Size.avatarSmall, height: DS.Size.avatarSmall)
-                .clipShape(Circle())
-            }
-
-            VStack(alignment: isMe ? .trailing : .leading, spacing: DS.Spacing.xxxs) {
-                bubbleContent(message.content, isMe: isMe)
-
-                // Status + time
-                HStack(spacing: DS.Spacing.xxs) {
-                    Text(message.createdAt, style: .time)
-                        .font(DS.Font.caption2)
-                        .foregroundStyle(.secondary)
-                    if isMe {
-                        statusIcon(message.status)
+    private var timestampDragGesture: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .local)
+            .onChanged { value in
+                let translation = value.translation.width
+                // Only allow dragging left (negative)
+                if translation < 0 {
+                    // Apply rubber-band effect beyond maxDragOffset
+                    let clamped = max(translation, maxDragOffset * 1.5)
+                    withAnimation(.interactiveSpring()) {
+                        dragOffset = clamped
                     }
                 }
             }
+            .onEnded { _ in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    dragOffset = 0
+                }
+            }
+    }
 
-            if !isMe { Spacer(minLength: 60) }
+    // MARK: - Message Bubble
+
+    @ViewBuilder
+    private func messageBubble(_ message: Message, showReadReceipt: Bool) -> some View {
+        let isMe = message.sender.id == viewModel.currentUserId
+
+        HStack(spacing: 0) {
+            // Message content area (shifts left with drag)
+            HStack(alignment: .bottom, spacing: DS.Spacing.xs) {
+                if isMe { Spacer(minLength: 60) }
+
+                if !isMe {
+                    AsyncImage(url: message.sender.avatarURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                    }
+                    .frame(width: DS.Size.avatarSmall, height: DS.Size.avatarSmall)
+                    .clipShape(Circle())
+                }
+
+                VStack(alignment: isMe ? .trailing : .leading, spacing: DS.Spacing.xxxs) {
+                    bubbleContent(message.content, isMe: isMe)
+
+                    // "Đã xem" only for the last own message when status is .read
+                    if showReadReceipt && isMe && message.status == .read {
+                        Text(L10n.Chat.statusRead)
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !isMe { Spacer(minLength: 60) }
+            }
+            .offset(x: dragOffset)
+
+            // Timestamp revealed on the right when dragging left
+            if dragOffset < -5 {
+                Text(message.createdAt, style: .time)
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 60, alignment: .center)
+                    .offset(x: dragOffset + 80)
+                    .opacity(timestampOpacity)
+            }
         }
         .padding(.horizontal, DS.Padding.content)
         .padding(.vertical, DS.Spacing.xxxs)
+        .clipped()
+    }
+
+    /// Opacity for the timestamp based on drag progress
+    private var timestampOpacity: Double {
+        let progress = min(abs(dragOffset) / abs(maxDragOffset), 1.0)
+        return Double(progress)
+    }
+
+    // MARK: - Helpers (last own message check)
+
+    /// Determines if the given message is the last one sent by the current user
+    /// in the displayed (reversed) list. The reversed list shows newest at the bottom,
+    /// so the "last" own message is the last occurrence when iterating from top to bottom.
+    private func isLastMessageFromCurrentUser(_ message: Message, in displayedMessages: [Message]) -> Bool {
+        guard message.sender.id == viewModel.currentUserId else { return false }
+        // Find the last message from current user (newest = last in displayed array)
+        let lastOwn = displayedMessages.last { $0.sender.id == viewModel.currentUserId }
+        return lastOwn?.id == message.id
     }
 
     // MARK: - Bubble Content
@@ -173,34 +235,6 @@ struct ChatView: View {
                 isMe ? ColorTokens.brandBlue : ColorTokens.buttonSecondary,
                 in: RoundedRectangle(cornerRadius: DS.Radius.bubble)
             )
-        }
-    }
-
-    // MARK: - Status Icon
-
-    @ViewBuilder
-    private func statusIcon(_ status: MessageStatus) -> some View {
-        switch status {
-        case .sending:
-            Image(systemName: "clock")
-                .font(DS.Font.caption2)
-                .foregroundStyle(.secondary)
-        case .sent:
-            Image(systemName: "checkmark")
-                .font(DS.Font.caption2)
-                .foregroundStyle(.secondary)
-        case .delivered:
-            Image(systemName: "checkmark")
-                .font(DS.Font.caption2)
-                .foregroundStyle(ColorTokens.accentPrimary)
-        case .read:
-            Image(systemName: "eye.fill")
-                .font(DS.Font.caption2)
-                .foregroundStyle(ColorTokens.accentPrimary)
-        case .failed:
-            Image(systemName: "exclamationmark.circle")
-                .font(DS.Font.caption2)
-                .foregroundStyle(ColorTokens.destructive)
         }
     }
 

@@ -39,9 +39,10 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
         guard !AppConfig.shared.isMockAPI else {
             try await Task.sleep(nanoseconds: 1_000_000_000)
+            let currentUser = SessionStore.shared.currentUser!
             return Reel(
                 id: "reel_\(UUID().uuidString.prefix(8))",
-                author: MockData.currentUser,
+                author: currentUser,
                 videoURL: URL(string: "https://example.com/video.mp4")!,
                 thumbnailURL: nil,
                 caption: caption,

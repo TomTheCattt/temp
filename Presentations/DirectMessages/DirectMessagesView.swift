@@ -34,7 +34,7 @@ struct DirectMessagesView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle(MockData.currentUser.username)
+        .navigationTitle(SessionStore.shared.currentUser?.username ?? "")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -81,7 +81,7 @@ private struct ConversationRow: View {
     var body: some View {
         HStack(spacing: DS.Spacing.sm) {
             // Avatar
-            let otherUser = conversation.participants.first { $0.id != MockData.currentUser.id }
+            let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
 
             LazyImage(url: otherUser?.avatarURL) { state in
                 if let image = state.image {
@@ -116,6 +116,13 @@ private struct ConversationRow: View {
                     Text("· \(conversation.updatedAt.timeAgoDisplay())")
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
+
+                    // Show delivery/read status for own last message
+                    if let statusText = lastMessageStatusText {
+                        Text("· \(statusText)")
+                            .font(DS.Font.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -144,7 +151,7 @@ private struct ConversationRow: View {
             return Text(L10n.DirectMessages.noMessages)
         }
 
-        let isMine = message.sender.id == MockData.currentUser.id
+        let isMine = message.sender.id == SessionStore.shared.currentUserId
         let prefix = isMine ? L10n.DirectMessages.you : ""
 
         switch message.content {
@@ -164,6 +171,23 @@ private struct ConversationRow: View {
             return Text(prefix + L10n.DirectMessages.sharedReel)
         case .like:
             return Text(prefix + "❤️")
+        }
+    }
+
+    /// Returns status text for the last message only if it was sent by the current user.
+    /// Shows "Đã gửi" for sent/delivered, "Đã xem" for read, nil otherwise.
+    private var lastMessageStatusText: String? {
+        guard let message = conversation.lastMessage else { return nil }
+        let isMine = message.sender.id == SessionStore.shared.currentUserId
+        guard isMine else { return nil }
+
+        switch message.status {
+        case .sent, .delivered:
+            return L10n.Chat.statusSent
+        case .read:
+            return L10n.Chat.statusRead
+        case .sending, .failed:
+            return nil
         }
     }
 }

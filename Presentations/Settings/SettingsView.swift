@@ -63,15 +63,24 @@ struct SettingsView: View {
 
     private var accountSection: some View {
         Section(L10n.Settings.account) {
-            NavigationLink(value: AppRoute.editProfile) {
+            Button {
+                AppRouter.shared.present(sheet: .editProfile)
+            } label: {
                 Label(L10n.Settings.editProfile, systemImage: "person.circle")
+                    .foregroundStyle(.primary)
             }
 
-            Label(L10n.Settings.saved, systemImage: "bookmark")
+            NavigationLink(value: AppRoute.savedPosts) {
+                Label(L10n.Settings.saved, systemImage: "bookmark")
+            }
 
-            Label(L10n.Settings.closeFriends, systemImage: "star.circle")
+            NavigationLink(value: AppRoute.closeFriends) {
+                Label(L10n.Settings.closeFriends, systemImage: "star.circle")
+            }
 
-            Label(L10n.Settings.blockedAccounts, systemImage: "nosign")
+            NavigationLink(value: AppRoute.blockedAccounts) {
+                Label(L10n.Settings.blockedAccounts, systemImage: "nosign")
+            }
         }
     }
 
@@ -134,9 +143,13 @@ struct SettingsView: View {
                 Label(L10n.Settings.faceIdTouchId, systemImage: "faceid")
             }
 
-            Label(L10n.Settings.password, systemImage: "key")
+            NavigationLink(value: AppRoute.changePassword) {
+                Label(L10n.Settings.password, systemImage: "key")
+            }
 
-            Label(L10n.Settings.twoFactor, systemImage: "shield.checkered")
+            NavigationLink(value: AppRoute.twoFactorAuth) {
+                Label(L10n.Settings.twoFactor, systemImage: "shield.checkered")
+            }
         }
     }
 
@@ -165,11 +178,17 @@ struct SettingsView: View {
         Section(L10n.Settings.about) {
             LabeledContent(L10n.Settings.appVersion, value: "1.0.0")
 
-            Label(L10n.Settings.termsOfService, systemImage: "doc.text")
+            NavigationLink(value: AppRoute.termsOfService) {
+                Label(L10n.Settings.termsOfService, systemImage: "doc.text")
+            }
 
-            Label(L10n.Settings.privacyPolicy, systemImage: "hand.raised")
+            NavigationLink(value: AppRoute.privacyPolicy) {
+                Label(L10n.Settings.privacyPolicy, systemImage: "hand.raised")
+            }
 
-            Label(L10n.Settings.openSourceLicenses, systemImage: "chevron.left.forwardslash.chevron.right")
+            NavigationLink(value: AppRoute.openSourceLicenses) {
+                Label(L10n.Settings.openSourceLicenses, systemImage: "chevron.left.forwardslash.chevron.right")
+            }
         }
     }
 

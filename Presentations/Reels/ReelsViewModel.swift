@@ -112,9 +112,22 @@ final class ReelsViewModel {
     func onReelAppear(at index: Int) {
         currentIndex = index
 
-        // Prefetch more when near end
+        // Prefetch more data when near end
         if index >= reels.count - 3 {
             Task { await loadMore() }
         }
+
+        // Preload next reel's video for faster playback transition
+        preloadAdjacentReels(currentIndex: index)
+    }
+
+    // MARK: - Preloading
+
+    /// Preloads the next reel's video item for instant playback when user swipes.
+    private func preloadAdjacentReels(currentIndex: Int) {
+        let nextIndex = currentIndex + 1
+        guard reels.indices.contains(nextIndex) else { return }
+        let nextReel = reels[nextIndex]
+        VideoPlayerManager.shared.preload(url: nextReel.videoURL, for: nextReel.id)
     }
 }

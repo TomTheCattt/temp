@@ -68,6 +68,7 @@ enum MockData {
 
     static let posts: [Post] = (0..<10).map { index in
         let author = users[index % users.count]
+        let isVideo = index % 3 == 1 // Posts at index 1, 4, 7 are videos
         return Post(
             id: "post_\(index)",
             author: author,
@@ -75,12 +76,14 @@ enum MockData {
             mediaItems: [
                 MediaItem(
                     id: "media_\(index)_0",
-                    url: URL(string: "https://picsum.photos/seed/post\(index)/1080/1080")!,
+                    url: isVideo
+                        ? URL(string: sampleVideoURLs[index % sampleVideoURLs.count])!
+                        : URL(string: "https://picsum.photos/seed/post\(index)/1080/1080")!,
                     thumbnailURL: URL(string: "https://picsum.photos/seed/post\(index)/400/400"),
-                    type: .image,
+                    type: isVideo ? .video : .image,
                     width: 1080,
-                    height: 1080,
-                    duration: nil
+                    height: isVideo ? 1920 : 1080,
+                    duration: isVideo ? Double.random(in: 10...60) : nil
                 )
             ],
             location: index % 3 == 0 ? PostLocation(name: "Ho Chi Minh City", latitude: 10.8231, longitude: 106.6297) : nil,
@@ -96,19 +99,33 @@ enum MockData {
     // MARK: - Stories
 
     static let stories: [Story] = users.enumerated().map { index, user in
-        Story(
+        let itemCount = (index % 3) + 2 // 2-4 items per story
+        let items: [StoryItem] = (0..<itemCount).map { itemIndex in
+            let isVideo = itemIndex % 3 == 1 // Every 2nd item in a story is video
+            let sticker: StoryStickerInfo? = {
+                switch (index + itemIndex) % 5 {
+                case 0: return StoryStickerInfo(type: .location, data: "Ho Chi Minh City")
+                case 1: return StoryStickerInfo(type: .mention, data: "@\(users[(index + 1) % users.count].username)")
+                case 2: return StoryStickerInfo(type: .music, data: "Trending Song • Artist")
+                case 3: return StoryStickerInfo(type: .poll, data: "Yes or No?")
+                default: return nil
+                }
+            }()
+            return StoryItem(
+                id: "story_item_\(index)_\(itemIndex)",
+                mediaURL: isVideo
+                    ? URL(string: sampleVideoURLs[(index + itemIndex) % sampleVideoURLs.count])!
+                    : URL(string: "https://picsum.photos/seed/story\(index)_\(itemIndex)/1080/1920")!,
+                type: isVideo ? .video : .image,
+                duration: isVideo ? 15 : 5,
+                createdAt: Date(timeIntervalSinceNow: -Double(index) * 3600 - Double(itemIndex) * 600),
+                sticker: sticker
+            )
+        }
+        return Story(
             id: "story_\(index)",
             author: user,
-            items: [
-                StoryItem(
-                    id: "story_item_\(index)_0",
-                    mediaURL: URL(string: "https://picsum.photos/seed/story\(index)/1080/1920")!,
-                    type: .image,
-                    duration: 5,
-                    createdAt: Date(timeIntervalSinceNow: -Double(index) * 3600),
-                    sticker: nil
-                )
-            ],
+            items: items,
             isViewed: index > 2,
             createdAt: Date(timeIntervalSinceNow: -Double(index) * 3600),
             expiresAt: Date(timeIntervalSinceNow: Double(24 - index) * 3600)
@@ -151,12 +168,23 @@ enum MockData {
 
     // MARK: - Reels
 
+    static let sampleVideoURLs: [String] = [
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+        "https://storage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4"
+    ]
+
     static let reels: [Reel] = (0..<8).map { index in
         let author = users[index % users.count]
         return Reel(
             id: "reel_\(index)",
             author: author,
-            videoURL: URL(string: "https://example.com/reels/reel_\(index).mp4")!,
+            videoURL: URL(string: sampleVideoURLs[index % sampleVideoURLs.count])!,
             thumbnailURL: URL(string: "https://picsum.photos/seed/reel\(index)/1080/1920"),
             caption: mockReelCaptions[index % mockReelCaptions.count],
             audioTrack: index % 2 == 0 ? AudioTrack(

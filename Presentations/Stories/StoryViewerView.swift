@@ -13,9 +13,13 @@ struct StoryViewerView: View {
 
     @State private var viewModel: StoryViewerViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
-    /// Timer for auto-advance.
+    /// Timer for auto-advance (image items only).
     @State private var timer: Timer?
+
+    /// Unique key to force StoryVideoPlayer re-creation when item changes.
+    @State private var videoPlayerKey: String = UUID().uuidString
 
     init(viewModel: StoryViewerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -41,6 +45,11 @@ struct StoryViewerView: View {
                     Spacer()
                 }
 
+                // Sticker overlay
+                if let sticker = viewModel.currentItem?.sticker {
+                    stickerOverlay(sticker)
+                }
+
                 // Bottom: reply bar
                 VStack {
                     Spacer()
@@ -50,10 +59,36 @@ struct StoryViewerView: View {
         }
         .ignoresSafeArea()
         .statusBarHidden()
-        .onAppear { startTimer() }
+        .onAppear { handleItemChange() }
         .onDisappear { stopTimer() }
+        .onChange(of: viewModel.currentItemIndex) { _, _ in
+            handleItemChange()
+        }
+        .onChange(of: viewModel.currentStoryIndex) { _, _ in
+            handleItemChange()
+        }
         .onChange(of: viewModel.isPaused) { _, paused in
-            if paused { stopTimer() } else { startTimer() }
+            if paused {
+                stopTimer()
+            } else if viewModel.currentItem?.type == .image {
+                startImageTimer()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                if !viewModel.isPaused {
+                    if viewModel.currentItem?.type == .image {
+                        startImageTimer()
+                    }
+                    // Video resumes via VideoPlayerManager.isPlaybackAllowed
+                }
+            case .inactive, .background:
+                viewModel.pause()
+                stopTimer()
+            @unknown default:
+                break
+            }
         }
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
@@ -83,14 +118,103 @@ struct StoryViewerView: View {
                         .tint(.white)
                 }
             }
+
         case .video:
-            ZStack {
-                Color.black
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: DS.Size.iconJumbo))
-                    .foregroundStyle(.white.opacity(DS.Opacity.medium))
-            }
+            StoryVideoPlayer(
+                url: item.mediaURL,
+                id: videoPlayerKey,
+                isActive: true,
+                isPaused: viewModel.isPaused,
+                onProgressUpdate: { progress in
+                    viewModel.itemProgress = progress
+                },
+                onVideoEnded: {
+                    advanceOrDismiss()
+                }
+            )
+            .id(videoPlayerKey)
+            .frame(width: size.width, height: size.height)
+            .clipped()
         }
+    }
+
+    // MARK: - Sticker Overlay
+
+    @ViewBuilder
+    private func stickerOverlay(_ sticker: StoryStickerInfo) -> some View {
+        VStack {
+            Spacer()
+                .frame(height: 200) // Position sticker in the middle-upper area
+
+            HStack {
+                Spacer()
+                stickerView(sticker)
+                Spacer()
+            }
+
+            Spacer()
+        }
+    }
+
+    @ViewBuilder
+    private func stickerView(_ sticker: StoryStickerInfo) -> some View {
+        switch sticker.type {
+        case .location:
+            HStack(spacing: DS.Spacing.xxs) {
+                Image(systemName: "location.fill")
+                    .font(DS.Font.caption)
+                Text(sticker.data ?? "")
+                    .font(DS.Font.captionBold)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, DS.Spacing.sm)
+            .padding(.vertical, DS.Spacing.xs)
+            .background(.ultraThinMaterial, in: Capsule())
+
+        case .mention:
+            Text(sticker.data ?? "")
+                .font(DS.Font.subheadlineBold)
+                .foregroundStyle(.white)
+                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.vertical, DS.Spacing.xs)
+                .background(.ultraThinMaterial, in: Capsule())
+
+        case .music:
+            HStack(spacing: DS.Spacing.xxs) {
+                Image(systemName: "music.note")
+                    .font(DS.Font.caption)
+                Text(sticker.data ?? "")
+                    .font(DS.Font.caption)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, DS.Spacing.sm)
+            .padding(.vertical, DS.Spacing.xs)
+            .background(.ultraThinMaterial, in: Capsule())
+
+        case .poll:
+            VStack(spacing: DS.Spacing.xs) {
+                Text(sticker.data ?? "")
+                    .font(DS.Font.subheadlineBold)
+                    .foregroundStyle(.white)
+                HStack(spacing: DS.Spacing.sm) {
+                    pollButton(text: "Yes", color: ColorTokens.accentPrimary)
+                    pollButton(text: "No", color: ColorTokens.destructive)
+                }
+            }
+            .padding(DS.Spacing.md)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DS.Radius.large))
+
+        default:
+            EmptyView()
+        }
+    }
+
+    private func pollButton(text: String, color: Color) -> some View {
+        Text(text)
+            .font(DS.Font.subheadlineBold)
+            .foregroundStyle(.white)
+            .frame(width: 80, height: 36)
+            .background(color, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
     }
 
     // MARK: - Progress Bars
@@ -178,11 +302,7 @@ struct StoryViewerView: View {
                 .frame(width: size.width * 0.7)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if !viewModel.hasNextStory && viewModel.currentItemIndex >= viewModel.totalItemsInCurrentStory - 1 {
-                        dismiss()
-                    } else {
-                        viewModel.goToNext()
-                    }
+                    advanceOrDismiss()
                 }
         }
     }
@@ -218,11 +338,32 @@ struct StoryViewerView: View {
         .padding(.bottom, DS.Spacing.xl)
     }
 
-    // MARK: - Timer
+    // MARK: - Timer & Navigation
 
-    private func startTimer() {
+    /// Called whenever the current item changes. Sets up the correct playback mode.
+    private func handleItemChange() {
         stopTimer()
-        let duration = viewModel.currentItem?.duration ?? DS.Duration.storyItem
+        viewModel.itemProgress = 0
+        videoPlayerKey = UUID().uuidString
+
+        guard let item = viewModel.currentItem else { return }
+
+        switch item.type {
+        case .image:
+            startImageTimer()
+        case .video:
+            // Video progress is tracked by StoryVideoPlayer via onProgressUpdate callback.
+            // No timer needed — video drives its own progress.
+            break
+        }
+    }
+
+    /// Start the timer for image-based story items.
+    private func startImageTimer() {
+        stopTimer()
+        guard let item = viewModel.currentItem, item.type == .image else { return }
+
+        let duration = item.duration > 0 ? item.duration : DS.Duration.storyItem
         let interval = DS.Duration.storyTick
 
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
@@ -231,11 +372,7 @@ struct StoryViewerView: View {
 
                 viewModel.itemProgress += interval / duration
                 if viewModel.itemProgress >= 1.0 {
-                    if !viewModel.hasNextStory && viewModel.currentItemIndex >= viewModel.totalItemsInCurrentStory - 1 {
-                        dismiss()
-                    } else {
-                        viewModel.goToNext()
-                    }
+                    advanceOrDismiss()
                 }
             }
         }
@@ -244,5 +381,14 @@ struct StoryViewerView: View {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Advance to next item/story or dismiss if at the end.
+    private func advanceOrDismiss() {
+        if !viewModel.hasNextStory && viewModel.currentItemIndex >= viewModel.totalItemsInCurrentStory - 1 {
+            dismiss()
+        } else {
+            viewModel.goToNext()
+        }
     }
 }

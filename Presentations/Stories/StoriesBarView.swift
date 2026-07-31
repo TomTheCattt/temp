@@ -40,7 +40,7 @@ struct StoriesBarView: View {
     private var yourStoryItem: some View {
         VStack(spacing: DS.Spacing.xxs) {
             ZStack(alignment: .bottomTrailing) {
-                LazyImage(url: MockData.currentUser.avatarURL) { state in
+                LazyImage(url: SessionStore.shared.currentUser?.avatarURL) { state in
                     if let image = state.image {
                         image.resizable()
                     } else {

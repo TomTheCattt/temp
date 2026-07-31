@@ -13,6 +13,7 @@ import NukeUI
 struct PostCardView: View {
 
     let post: Post
+    let isVisible: Bool
     let onLikeTapped: () -> Void
 
     @State private var showHeart = false
@@ -84,22 +85,33 @@ struct PostCardView: View {
     private var imageSection: some View {
         ZStack {
             if let firstMedia = post.mediaItems.first {
-                LazyImage(url: firstMedia.url) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                    } else if state.error != nil {
-                        ColorTokens.buttonSecondary
-                            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.secondary)
-                            }
-                    } else {
-                        ColorTokens.backgroundSecondary
-                            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                            .overlay { ProgressView() }
+                switch firstMedia.type {
+                case .video:
+                    FeedVideoPlayer(
+                        url: firstMedia.url,
+                        id: "post_video_\(post.id)",
+                        isVisible: isVisible
+                    )
+                    .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+
+                case .image:
+                    LazyImage(url: firstMedia.url) { state in
+                        if let image = state.image {
+                            image
+                                .resizable()
+                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                        } else if state.error != nil {
+                            ColorTokens.buttonSecondary
+                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                                .overlay {
+                                    Image(systemName: "photo")
+                                        .foregroundStyle(.secondary)
+                                }
+                        } else {
+                            ColorTokens.backgroundSecondary
+                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                                .overlay { ProgressView() }
+                        }
                     }
                 }
             }

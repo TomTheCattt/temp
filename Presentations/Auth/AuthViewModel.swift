@@ -127,6 +127,7 @@ final class AuthViewModel {
 
     private func handleAuthSuccess(_ session: AuthSession) {
         // TODO: Store tokens via KeychainManager
+        SessionStore.shared.setSession(user: session.user)
         router.isAuthenticated = true
     }
 }

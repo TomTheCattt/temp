@@ -50,9 +50,10 @@ final class PostRepository: PostRepositoryProtocol, @unchecked Sendable {
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post {
         guard !AppConfig.shared.isMockAPI else {
             try await Task.sleep(nanoseconds: 1_000_000_000)
+            let currentUser = SessionStore.shared.currentUser!
             return Post(
                 id: "post_new_\(UUID().uuidString.prefix(8))",
-                author: MockData.currentUser,
+                author: currentUser,
                 caption: caption,
                 mediaItems: [],
                 location: location,

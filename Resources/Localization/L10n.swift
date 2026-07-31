@@ -202,6 +202,9 @@ enum L10n {
 
     enum Chat {
         static let messagePlaceholder = String(localized: "chat.messagePlaceholder")
+        static let statusSent = String(localized: "chat.statusSent")
+        static let statusDelivered = String(localized: "chat.statusDelivered")
+        static let statusRead = String(localized: "chat.statusRead")
     }
 
     // MARK: - Tabs

@@ -17,9 +17,10 @@ struct InstagramApp: App {
         // Configure image pipeline
         ImagePipelineManager.configure()
 
-        // Auto-login in mock API mode for development/testing
+        // Auto-login in mock API mode for development/testing.
+        // Uses the same flow as production: authenticate → populate SessionStore → set router state.
         if AppConfig.shared.isMockAPI {
-            AppRouter.shared.isAuthenticated = true
+            performMockAutoLogin()
         }
     }
 
@@ -28,6 +29,27 @@ struct InstagramApp: App {
             SplashView()
                 .withBaseFeatures()
                 .withAppTheme()
+        }
+    }
+
+    // MARK: - Mock Auto-Login
+
+    /// Simulates the production login flow using MockAuthDataSource.
+    /// This ensures SessionStore is populated identically to a real login.
+    private func performMockAutoLogin() {
+        let mockAuth = MockAuthDataSource()
+        Task { @MainActor in
+            do {
+                let session = try await mockAuth.login(
+                    email: MockData.testEmail,
+                    password: MockData.testPassword
+                )
+                SessionStore.shared.setSession(user: session.user)
+                AppRouter.shared.isAuthenticated = true
+            } catch {
+                // Fallback: still allow access in mock mode
+                AppRouter.shared.isAuthenticated = true
+            }
         }
     }
 }

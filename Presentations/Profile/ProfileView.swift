@@ -164,7 +164,7 @@ struct ProfileView: View {
         HStack(spacing: DS.Spacing.xs) {
             if viewModel.isCurrentUser {
                 profileButton(title: L10n.Profile.editProfile) {
-                    AppRouter.shared.push(.editProfile)
+                    AppRouter.shared.present(sheet: .editProfile)
                 }
                 profileButton(title: L10n.Profile.shareProfile) {
                     // Share

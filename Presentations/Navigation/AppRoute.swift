@@ -55,10 +55,19 @@ enum AppTab: Int, CaseIterable, Identifiable {
 enum AppRoute: Hashable {
     // Profile
     case userProfile(userId: String)
-    case editProfile
     case followers(userId: String)
     case following(userId: String)
     case settings
+
+    // Settings Sub-screens
+    case savedPosts
+    case closeFriends
+    case blockedAccounts
+    case changePassword
+    case twoFactorAuth
+    case termsOfService
+    case privacyPolicy
+    case openSourceLicenses
 
     // Feed / Post
     case postDetail(postId: String)
@@ -85,6 +94,7 @@ enum AppSheet: Identifiable {
     case createPost
     case createStory
     case createReel
+    case editProfile
     case sharePost(postId: String)
     case reportPost(postId: String)
     case editPost(postId: String)
@@ -94,6 +104,7 @@ enum AppSheet: Identifiable {
         case .createPost:             return "createPost"
         case .createStory:            return "createStory"
         case .createReel:             return "createReel"
+        case .editProfile:            return "editProfile"
         case .sharePost(let id):      return "sharePost_\(id)"
         case .reportPost(let id):     return "reportPost_\(id)"
         case .editPost(let id):       return "editPost_\(id)"

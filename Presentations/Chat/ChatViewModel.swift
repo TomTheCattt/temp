@@ -24,6 +24,7 @@ final class ChatViewModel {
     private var hasMorePages = true
 
     let conversationId: String
+    let currentUserId: String
 
     // MARK: - Dependencies
 
@@ -35,11 +36,13 @@ final class ChatViewModel {
 
     init(
         conversationId: String,
+        currentUserId: String,
         fetchMessagesUseCase: FetchMessagesUseCaseProtocol,
         sendMessageUseCase: SendMessageUseCaseProtocol,
         messageRepository: MessageRepositoryProtocol
     ) {
         self.conversationId = conversationId
+        self.currentUserId = currentUserId
         self.fetchMessagesUseCase = fetchMessagesUseCase
         self.sendMessageUseCase = sendMessageUseCase
         self.messageRepository = messageRepository
@@ -57,7 +60,7 @@ final class ChatViewModel {
             let result = try await fetchMessagesUseCase.execute(
                 FetchMessagesInput(conversationId: conversationId, page: 1)
             )
-            messages = result
+            messages = result.sorted { $0.createdAt > $1.createdAt }
             hasMorePages = result.count >= 30
 
             // Mark as read
@@ -79,6 +82,7 @@ final class ChatViewModel {
                 FetchMessagesInput(conversationId: conversationId, page: nextPage)
             )
             messages.append(contentsOf: result)
+            messages.sort { $0.createdAt > $1.createdAt }
             currentPage = nextPage
             hasMorePages = result.count >= 30
         } catch {

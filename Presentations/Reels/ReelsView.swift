@@ -63,35 +63,51 @@ struct ReelItemView: View {
     let onComment: () -> Void
     let onShare: () -> Void
 
+    /// Tab bar height (49) + home indicator (~34) = ~83pt on notch devices.
+    /// Using a safe constant that looks good on all devices.
+    private let tabBarBottomPadding: CGFloat = DS.Padding.bottomSafe + 49
+
     var body: some View {
-        ZStack {
-            Color.black
-
-            AsyncImage(url: reel.thumbnailURL) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
+        GeometryReader { geometry in
+            ZStack {
                 Color.black
-            }
-            .opacity(DS.Opacity.high)
 
-            // Play icon overlay (when not active)
-            if !isActive {
-                Image(systemName: "play.fill")
-                    .font(.system(size: DS.Size.iconHero))
-                    .foregroundStyle(.white.opacity(DS.Opacity.medium))
-            }
-
-            // Content overlay
-            VStack {
-                Spacer()
-                HStack(alignment: .bottom, spacing: DS.Spacing.sm) {
-                    reelInfo
-                    actionButtons
+                // Thumbnail always visible as background (until video renders)
+                AsyncImage(url: reel.thumbnailURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } placeholder: {
+                    Color.black
                 }
-                .padding(.horizontal, DS.Padding.content)
-                .padding(.bottom, DS.Spacing.md)
+
+                // Video player overlays thumbnail when active
+                if isActive {
+                    ReelVideoPlayer(url: reel.videoURL, id: reel.id, isActive: isActive)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                }
+
+                // Play icon overlay when not active
+                if !isActive {
+                    Color.black.opacity(DS.Opacity.low)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: DS.Size.iconHero))
+                        .foregroundStyle(.white.opacity(DS.Opacity.medium))
+                }
+
+                // Content overlay
+                VStack {
+                    Spacer()
+                    HStack(alignment: .bottom, spacing: DS.Spacing.sm) {
+                        reelInfo
+                        actionButtons
+                    }
+                    .padding(.horizontal, DS.Padding.content)
+                    .padding(.bottom, tabBarBottomPadding)
+                }
             }
         }
         .clipped()

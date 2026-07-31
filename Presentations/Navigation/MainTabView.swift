@@ -95,14 +95,6 @@ struct MainTabView: View {
         case .userProfile(let userId):
             ProfileView(userId: userId)
 
-        case .editProfile:
-            EditProfileView(
-                viewModel: EditProfileViewModel(
-                    updateProfileUseCase: DIContainer.shared.resolve(UpdateProfileUseCaseProtocol.self),
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
-                )
-            )
-
         case .followers(let userId):
             FollowListView(
                 viewModel: FollowListViewModel(
@@ -169,6 +161,7 @@ struct MainTabView: View {
             ChatView(
                 viewModel: ChatViewModel(
                     conversationId: conversationId,
+                    currentUserId: SessionStore.shared.currentUserId,
                     fetchMessagesUseCase: DIContainer.shared.resolve(FetchMessagesUseCaseProtocol.self),
                     sendMessageUseCase: DIContainer.shared.resolve(SendMessageUseCaseProtocol.self),
                     messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
@@ -204,6 +197,31 @@ struct MainTabView: View {
                     postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
                 )
             )
+
+        // Settings Sub-screens
+        case .savedPosts:
+            SavedPostsView()
+
+        case .closeFriends:
+            CloseFriendsView()
+
+        case .blockedAccounts:
+            BlockedAccountsView()
+
+        case .changePassword:
+            ChangePasswordView()
+
+        case .twoFactorAuth:
+            TwoFactorAuthView()
+
+        case .termsOfService:
+            TermsOfServiceView()
+
+        case .privacyPolicy:
+            PrivacyPolicyView()
+
+        case .openSourceLicenses:
+            OpenSourceLicensesView()
         }
     }
 
@@ -230,6 +248,14 @@ struct MainTabView: View {
             CreateReelView(
                 viewModel: CreateReelViewModel(
                     reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
+                )
+            )
+
+        case .editProfile:
+            EditProfileView(
+                viewModel: EditProfileViewModel(
+                    updateProfileUseCase: DIContainer.shared.resolve(UpdateProfileUseCaseProtocol.self),
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
                 )
             )
 

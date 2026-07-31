@@ -71,6 +71,9 @@ final class AuthManager: AuthManagerProtocol {
         keychainManager.delete(key: KeychainKeys.accessToken)
         keychainManager.delete(key: KeychainKeys.refreshToken)
 
+        // Clear session data
+        SessionStore.shared.clear()
+
         // Reset navigation
         AppRouter.shared.isAuthenticated = false
         AppRouter.shared.reset()
