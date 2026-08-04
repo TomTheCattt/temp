@@ -67,8 +67,8 @@ nonisolated struct APIEnvelope<T: Decodable & Sendable>: Decodable, Sendable {
 // MARK: - Example Endpoints
 
 enum AuthEndpoint: APIEndpoint {
-    case register(name: String, email: String, password: String, phone: String)
-    case login(email: String, password: String)
+    case login(idToken: String)
+    case register(idToken: String, name: String, phone: String?)
     case refreshToken(token: String)
     case logout
     case forgotPassword(phoneNumber: String)
@@ -82,7 +82,7 @@ enum AuthEndpoint: APIEndpoint {
         case .register:     return "/v1/auth/register"
         case .login:        return "/v1/auth/login"
         case .refreshToken: return "/v1/auth/refresh"
-        case .logout:       return "/v1/auth/logout"
+        case .logout:       return "/v1/auth/logout-all-devices"
         case .forgotPassword:      return "/v1/auth/forgot-password/phone"
         case .resetPassword:       return "/v1/auth/reset-password"
         case .verifyEmail:         return "/v1/auth/verify-email"
@@ -96,24 +96,26 @@ enum AuthEndpoint: APIEndpoint {
         case .register,
              .login,
              .refreshToken,
+             .logout,
              .forgotPassword,
              .resetPassword,
              .verifyEmail,
              .resendVerification,
              .changePassword:
             return .post
-        case .logout:               return .delete
         }
     }
 
     var parameters: Parameters? {
         switch self {
-        case .register(let name, let email, let password, let phone):
-            return ["name": name, "email": email, "password": password, "phone_number": phone]
-        case .login(let email, let password):
-            return ["email": email, "password": password]
+        case .login(let idToken):
+            return ["idToken": idToken]
+        case .register(let idToken, let name, let phone):
+            var params: Parameters = ["idToken": idToken, "name": name]
+            if let phone { params["phone"] = phone }
+            return params
         case .refreshToken(let token):
-            return ["refresh_token": token]
+            return ["refreshToken": token]
         case .logout:
             return nil
         case .forgotPassword(let phoneNumber):

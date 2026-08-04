@@ -6,54 +6,58 @@
 //
 
 import Foundation
+import Alamofire
 
 // MARK: - StoryRepository
 
 final class StoryRepository: StoryRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteStoryDataSource
-    private let mockDataSource: MockStoryDataSource
+    private let networkService: NetworkServiceProtocol
 
     init(
         remoteDataSource: RemoteStoryDataSource,
-        mockDataSource: MockStoryDataSource = MockStoryDataSource()
+        networkService: NetworkServiceProtocol
     ) {
         self.remoteDataSource = remoteDataSource
-        self.mockDataSource = mockDataSource
+        self.networkService = networkService
     }
 
     func fetchStories() async throws -> [Story] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchStories()
-        }
-        return try await remoteDataSource.fetchStories()
+        try await remoteDataSource.fetchStories()
     }
 
     func fetchStoryItems(userId: String) async throws -> [StoryItem] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchStoryItems(userId: userId)
-        }
-        return try await remoteDataSource.fetchStoryItems(userId: userId)
+        let stories = try await remoteDataSource.fetchUserStories(userId: userId)
+        return stories.flatMap { $0.items }
     }
 
     func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.createStory(mediaData: mediaData, type: type, duration: duration)
+        // Step 1: Upload media
+        let mediaType = type == .video ? "VIDEO" : "IMAGE"
+        let uploadEndpoint = type == .video ? UploadEndpoint.video : UploadEndpoint.image
+
+        let uploadResponse: UploadImageResponseDTO = try await networkService.upload(uploadEndpoint) { formData in
+            let mimeType = type == .video ? "video/mp4" : "image/jpeg"
+            let fileName = type == .video ? "story.mp4" : "story.jpg"
+            formData.append(mediaData, withName: "file", fileName: fileName, mimeType: mimeType)
         }
-        return try await remoteDataSource.createStory(mediaData: mediaData, type: type, duration: duration)
+
+        // Step 2: Create story with uploaded URL
+        return try await remoteDataSource.createStory(
+            mediaUrl: uploadResponse.url,
+            type: mediaType,
+            duration: duration,
+            stickerType: nil,
+            stickerData: nil
+        )
     }
 
     func markViewed(storyId: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.markViewed(storyId: storyId)
-        }
         try await remoteDataSource.markViewed(storyId: storyId)
     }
 
     func deleteStory(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.deleteStory(id: id)
-        }
         try await remoteDataSource.deleteStory(id: id)
     }
 }

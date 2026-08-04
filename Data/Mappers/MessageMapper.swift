@@ -13,32 +13,78 @@ enum MessageMapper {
 
     // MARK: - Conversation
 
-    static func toConversation(_ dto: ConversationDTO) -> Conversation {
-        Conversation(
+    static func toConversation(_ dto: ConversationDTO, currentUserId: String) -> Conversation {
+        let participants = dto.members.map { UserMapper.toEntity($0.user) }
+        let lastMessage = dto.messages?.first.map { toMessage($0, members: dto.members) }
+
+        // Determine if muted for current user
+        let isMuted = dto.members.first(where: { $0.userId == currentUserId })?.isMuted ?? false
+
+        // Calculate unread count: messages after lastReadAt for current user
+        let currentMember = dto.members.first(where: { $0.userId == currentUserId })
+        let unreadCount: Int
+        if let lastReadAt = currentMember?.lastReadAt {
+            let lastReadDate = DateMapper.toDate(lastReadAt)
+            unreadCount = dto.messages?.filter {
+                DateMapper.toDate($0.createdAt) > lastReadDate && $0.senderId != currentUserId
+            }.count ?? 0
+        } else {
+            unreadCount = dto.messages?.filter { $0.senderId != currentUserId }.count ?? 0
+        }
+
+        return Conversation(
             id: dto.id,
-            participants: UserMapper.toEntityList(dto.participants),
-            lastMessage: dto.lastMessage.map { toMessage($0) },
-            unreadCount: dto.unreadCount,
+            participants: participants,
+            lastMessage: lastMessage,
+            unreadCount: unreadCount,
             isGroup: dto.isGroup,
             groupName: dto.groupName,
-            groupAvatarURL: dto.groupAvatarUrl.flatMap { URL(string: $0) },
+            groupAvatarURL: dto.groupAvatar.flatMap { URL(string: $0) },
             updatedAt: DateMapper.toDate(dto.updatedAt),
-            isMuted: dto.isMuted
+            isMuted: isMuted
         )
     }
 
-    static func toConversationList(_ dtos: [ConversationDTO]) -> [Conversation] {
-        dtos.map { toConversation($0) }
+    static func toConversationList(_ dtos: [ConversationDTO], currentUserId: String) -> [Conversation] {
+        dtos.map { toConversation($0, currentUserId: currentUserId) }
     }
 
     // MARK: - Message
 
-    static func toMessage(_ dto: MessageDTO) -> Message {
-        Message(
+    static func toMessage(_ dto: MessageDTO, members: [ConversationMemberDTO]? = nil) -> Message {
+        // Resolve sender from dto.sender or from members list
+        let sender: User
+        if let senderDTO = dto.sender {
+            sender = UserMapper.toEntity(senderDTO)
+        } else if let member = members?.first(where: { $0.userId == dto.senderId }) {
+            sender = UserMapper.toEntity(member.user)
+        } else {
+            sender = User(
+                id: dto.senderId,
+                username: "",
+                fullName: "",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+        }
+
+        return Message(
             id: dto.id,
             conversationId: dto.conversationId,
-            sender: UserMapper.toEntity(dto.sender),
-            content: toMessageContent(type: dto.contentType, content: dto.content, thumbnailUrl: dto.thumbnailUrl, duration: dto.duration),
+            sender: sender,
+            content: toMessageContent(dto),
             status: toMessageStatus(dto.status),
             replyToId: dto.replyToId,
             createdAt: DateMapper.toDate(dto.createdAt)
@@ -51,40 +97,43 @@ enum MessageMapper {
 
     // MARK: - Content
 
-    private static func toMessageContent(type: String, content: String, thumbnailUrl: String?, duration: Double?) -> MessageContent {
+    private static func toMessageContent(_ dto: MessageDTO) -> MessageContent {
+        let type = dto.contentType.uppercased()
         switch type {
-        case "text":
-            return .text(content)
-        case "image":
-            return .image(URL(string: content)!)
-        case "video":
-            let thumb = thumbnailUrl.flatMap { URL(string: $0) }
-            return .video(URL(string: content)!, thumbnailURL: thumb)
-        case "audio":
-            return .audio(URL(string: content)!, duration: duration ?? 0)
-        case "post":
-            return .post(postId: content)
-        case "story":
-            return .story(storyId: content)
-        case "reel":
-            return .reel(reelId: content)
-        case "like":
+        case "TEXT":
+            return .text(dto.textContent ?? "")
+        case "IMAGE":
+            return .image(URL(string: dto.mediaUrl ?? "") ?? URL(string: "about:blank")!)
+        case "VIDEO":
+            let url = URL(string: dto.mediaUrl ?? "") ?? URL(string: "about:blank")!
+            let thumb = dto.mediaThumbnail.flatMap { URL(string: $0) }
+            return .video(url, thumbnailURL: thumb)
+        case "AUDIO":
+            let url = URL(string: dto.mediaUrl ?? "") ?? URL(string: "about:blank")!
+            return .audio(url, duration: dto.mediaDuration ?? 0)
+        case "POST":
+            return .post(postId: dto.referenceId ?? dto.textContent ?? "")
+        case "STORY":
+            return .story(storyId: dto.referenceId ?? dto.textContent ?? "")
+        case "REEL":
+            return .reel(reelId: dto.referenceId ?? dto.textContent ?? "")
+        case "LIKE":
             return .like
         default:
-            return .text(content)
+            return .text(dto.textContent ?? "")
         }
     }
 
     // MARK: - Status
 
     private static func toMessageStatus(_ raw: String) -> MessageStatus {
-        switch raw {
-        case "sending":   return .sending
-        case "sent":      return .sent
-        case "delivered": return .delivered
-        case "read":      return .read
-        case "failed":    return .failed
-        default:          return .sent
+        switch raw.uppercased() {
+        case "SENDING":     return .sending
+        case "SENT":        return .sent
+        case "DELIVERED":   return .delivered
+        case "READ":        return .read
+        case "FAILED":      return .failed
+        default:            return .sent
         }
     }
 
@@ -92,18 +141,18 @@ enum MessageMapper {
 
     static func contentTypeString(_ content: MessageContent) -> String {
         switch content {
-        case .text:    return "text"
-        case .image:   return "image"
-        case .video:   return "video"
-        case .audio:   return "audio"
-        case .post:    return "post"
-        case .story:   return "story"
-        case .reel:    return "reel"
-        case .like:    return "like"
+        case .text:    return "TEXT"
+        case .image:   return "IMAGE"
+        case .video:   return "VIDEO"
+        case .audio:   return "AUDIO"
+        case .post:    return "POST"
+        case .story:   return "STORY"
+        case .reel:    return "REEL"
+        case .like:    return "LIKE"
         }
     }
 
-    /// Extract the content string value for API request.
+    /// Extract the content string value for persistence/API requests.
     static func contentValue(_ content: MessageContent) -> String {
         switch content {
         case .text(let text):           return text

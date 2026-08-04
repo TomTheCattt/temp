@@ -12,42 +12,39 @@ import Alamofire
 
 enum CommentEndpoint: APIEndpoint {
     case list(postId: String, page: Int, perPage: Int)
-    case replies(commentId: String, page: Int, perPage: Int)
     case add(postId: String, text: String, parentId: String?)
-    case delete(id: String)
-    case like(id: String)
-    case unlike(id: String)
+    case delete(postId: String, commentId: String)
+    case like(postId: String, commentId: String)
+    case unlike(postId: String, commentId: String)
 
     var path: String {
         switch self {
-        case .list(let postId, _, _):       return "/v1/posts/\(postId)/comments"
-        case .replies(let commentId, _, _): return "/v1/comments/\(commentId)/replies"
-        case .add(let postId, _, _):        return "/v1/posts/\(postId)/comments"
-        case .delete(let id):               return "/v1/comments/\(id)"
-        case .like(let id):                 return "/v1/comments/\(id)/like"
-        case .unlike(let id):               return "/v1/comments/\(id)/unlike"
+        case .list(let postId, _, _):               return "/v1/posts/\(postId)/comments"
+        case .add(let postId, _, _):                return "/v1/posts/\(postId)/comments"
+        case .delete(let postId, let commentId):    return "/v1/posts/\(postId)/comments/\(commentId)"
+        case .like(let postId, let commentId):      return "/v1/posts/\(postId)/comments/\(commentId)/like"
+        case .unlike(let postId, let commentId):    return "/v1/posts/\(postId)/comments/\(commentId)/like"
         }
     }
 
     var method: HTTPMethod {
         switch self {
-        case .list, .replies:
+        case .list:
             return .get
-        case .add, .like, .unlike:
+        case .add, .like:
             return .post
-        case .delete:
+        case .delete, .unlike:
             return .delete
         }
     }
 
     var parameters: Parameters? {
         switch self {
-        case .list(_, let page, let perPage),
-             .replies(_, let page, let perPage):
-            return ["page": page, "per_page": perPage]
+        case .list(_, let page, let perPage):
+            return ["page": page, "perPage": perPage]
         case .add(_, let text, let parentId):
             var params: Parameters = ["text": text]
-            if let parentId { params["parent_id"] = parentId }
+            if let parentId { params["parentId"] = parentId }
             return params
         default:
             return nil

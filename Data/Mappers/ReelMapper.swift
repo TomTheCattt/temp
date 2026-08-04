@@ -12,37 +12,38 @@ import Foundation
 enum ReelMapper {
 
     static func toEntity(_ dto: ReelDTO) -> Reel {
-        Reel(
+        let audioTrack: AudioTrack?
+        if let audioName = dto.audioName {
+            audioTrack = AudioTrack(
+                id: dto.id, // Use reel ID as audio track ID (BE doesn't provide separate audio ID)
+                name: audioName,
+                artistName: dto.audioArtist ?? "",
+                coverURL: dto.audioCoverUrl.flatMap { URL(string: $0) },
+                isOriginal: dto.isOriginalAudio ?? true
+            )
+        } else {
+            audioTrack = nil
+        }
+
+        return Reel(
             id: dto.id,
             author: UserMapper.toEntity(dto.author),
-            videoURL: URL(string: dto.videoUrl)!,
+            videoURL: URL(string: dto.videoUrl) ?? URL(string: "about:blank")!,
             thumbnailURL: dto.thumbnailUrl.flatMap { URL(string: $0) },
             caption: dto.caption,
-            audioTrack: dto.audioTrack.map { toAudioTrack($0) },
+            audioTrack: audioTrack,
             likesCount: dto.likesCount,
             commentsCount: dto.commentsCount,
             sharesCount: dto.sharesCount,
             viewsCount: dto.viewsCount,
             duration: dto.duration,
-            isLiked: dto.isLiked,
-            isSaved: dto.isSaved,
+            isLiked: dto.isLiked ?? false,
+            isSaved: false, // BE doesn't return isSaved for reels currently
             createdAt: DateMapper.toDate(dto.createdAt)
         )
     }
 
     static func toEntityList(_ dtos: [ReelDTO]) -> [Reel] {
         dtos.map { toEntity($0) }
-    }
-
-    // MARK: - AudioTrack
-
-    private static func toAudioTrack(_ dto: AudioTrackDTO) -> AudioTrack {
-        AudioTrack(
-            id: dto.id,
-            name: dto.name,
-            artistName: dto.artistName,
-            coverURL: dto.coverUrl.flatMap { URL(string: $0) },
-            isOriginal: dto.isOriginal
-        )
     }
 }

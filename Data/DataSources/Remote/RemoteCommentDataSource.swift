@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - RemoteCommentDataSource
 
-final class RemoteCommentDataSource: Sendable {
+final class RemoteCommentDataSource: @unchecked Sendable {
 
     private let networkService: NetworkServiceProtocol
 
@@ -17,36 +17,37 @@ final class RemoteCommentDataSource: Sendable {
         self.networkService = networkService
     }
 
+    // MARK: - Fetch
+
     func fetchComments(postId: String, page: Int, perPage: Int) async throws -> [Comment] {
-        let response: PaginatedResponseDTO<CommentDTO> = try await networkService.request(
+        let response: PaginatedCommentsDTO = try await networkService.requestEnvelope(
             CommentEndpoint.list(postId: postId, page: page, perPage: perPage)
         )
         return CommentMapper.toEntityList(response.items)
     }
 
-    func fetchReplies(commentId: String, page: Int, perPage: Int) async throws -> [Comment] {
-        let response: PaginatedResponseDTO<CommentDTO> = try await networkService.request(
-            CommentEndpoint.replies(commentId: commentId, page: page, perPage: perPage)
-        )
-        return CommentMapper.toEntityList(response.items)
-    }
+    // MARK: - Add
 
     func addComment(postId: String, text: String, parentId: String?) async throws -> Comment {
-        let dto: CommentDTO = try await networkService.request(
+        let wrapper: CommentWrapperDTO = try await networkService.requestEnvelope(
             CommentEndpoint.add(postId: postId, text: text, parentId: parentId)
         )
-        return CommentMapper.toEntity(dto)
+        return CommentMapper.toEntity(wrapper.comment)
     }
 
-    func deleteComment(id: String) async throws {
-        try await networkService.requestVoid(CommentEndpoint.delete(id: id))
+    // MARK: - Like / Unlike
+
+    func likeComment(postId: String, commentId: String) async throws {
+        try await networkService.requestVoid(CommentEndpoint.like(postId: postId, commentId: commentId))
     }
 
-    func likeComment(id: String) async throws {
-        try await networkService.requestVoid(CommentEndpoint.like(id: id))
+    func unlikeComment(postId: String, commentId: String) async throws {
+        try await networkService.requestVoid(CommentEndpoint.unlike(postId: postId, commentId: commentId))
     }
 
-    func unlikeComment(id: String) async throws {
-        try await networkService.requestVoid(CommentEndpoint.unlike(id: id))
+    // MARK: - Delete
+
+    func deleteComment(postId: String, commentId: String) async throws {
+        try await networkService.requestVoid(CommentEndpoint.delete(postId: postId, commentId: commentId))
     }
 }

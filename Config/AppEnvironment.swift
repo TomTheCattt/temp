@@ -79,9 +79,20 @@ struct AppConfig {
     let environment: AppEnvironment = .current
     let apiMode: APIMode = .current
     var useLocalBackend: Bool {
-        (Bundle.main.infoDictionary?["APP_USE_LOCAL_BACKEND"] as? String) == "1"
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment["APP_USE_LOCAL_BACKEND"] {
+            return envValue == "1"
+        }
+        // Priority 2: Info.plist
+        return (Bundle.main.infoDictionary?["APP_USE_LOCAL_BACKEND"] as? String) == "1"
     }
     var localBaseURL: String? {
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment["APP_LOCAL_BASE_URL"],
+           !envValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return envValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // Priority 2: Info.plist
         guard let value = Bundle.main.infoDictionary?["APP_LOCAL_BASE_URL"] as? String else {
             return nil
         }
@@ -93,7 +104,12 @@ struct AppConfig {
             if let localBaseURL, let normalized = normalizedBaseURL(localBaseURL) {
                 return normalized
             }
+            // Auto-detect: Simulator uses localhost, physical device uses LAN IP
+            #if targetEnvironment(simulator)
             return "http://localhost:3000"
+            #else
+            return "http://192.168.1.107:3000"
+            #endif
         }
         if let raw = Bundle.main.infoDictionary?["APP_BASE_URL"] as? String,
            let normalized = normalizedBaseURL(raw) {

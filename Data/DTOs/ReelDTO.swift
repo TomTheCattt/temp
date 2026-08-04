@@ -9,30 +9,42 @@ import Foundation
 
 // MARK: - ReelDTO
 
-/// API response model for Reel.
+/// API response model for Reel. Matches BE response format.
+/// Audio fields are flat (not nested object) per BE design.
 nonisolated struct ReelDTO: Decodable, Sendable {
     let id: String
-    let author: UserDTO
+    let authorId: String
     let videoUrl: String
     let thumbnailUrl: String?
     let caption: String?
-    let audioTrack: AudioTrackDTO?
+    let audioName: String?
+    let audioArtist: String?
+    let audioCoverUrl: String?
+    let isOriginalAudio: Bool?
+    let duration: Double
     let likesCount: Int
     let commentsCount: Int
     let sharesCount: Int
     let viewsCount: Int
-    let duration: Double
-    let isLiked: Bool
-    let isSaved: Bool
     let createdAt: String
+    let author: UserDTO
+    let isLiked: Bool?
 }
 
-// MARK: - AudioTrackDTO
+// MARK: - ReelWrapperDTO
 
-nonisolated struct AudioTrackDTO: Decodable, Sendable {
-    let id: String
-    let name: String
-    let artistName: String
-    let coverUrl: String?
-    let isOriginal: Bool
+/// Wrapper for single reel response: `{ "reel": {...} }` inside data envelope.
+nonisolated struct ReelWrapperDTO: Decodable, Sendable {
+    let reel: ReelDTO
+}
+
+// MARK: - PaginatedReelsDTO
+
+/// Wrapper for paginated reel list responses.
+nonisolated struct PaginatedReelsDTO: Decodable, Sendable {
+    let items: [ReelDTO]
+    let page: Int
+    let perPage: Int
+    let total: Int
+    let hasMore: Bool
 }

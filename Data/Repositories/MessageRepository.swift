@@ -12,62 +12,54 @@ import Foundation
 final class MessageRepository: MessageRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteMessageDataSource
-    private let mockDataSource: MockMessageDataSource
 
-    init(
-        remoteDataSource: RemoteMessageDataSource,
-        mockDataSource: MockMessageDataSource = MockMessageDataSource()
-    ) {
+    init(remoteDataSource: RemoteMessageDataSource) {
         self.remoteDataSource = remoteDataSource
-        self.mockDataSource = mockDataSource
     }
 
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchConversations(page: page, perPage: perPage)
-        }
-        return try await remoteDataSource.fetchConversations(page: page, perPage: perPage)
+        let currentUserId = await SessionStore.shared.currentUserId
+        return try await remoteDataSource.fetchConversations(page: page, perPage: perPage, currentUserId: currentUserId)
     }
 
     func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchMessages(conversationId: conversationId, page: page, perPage: perPage)
-        }
-        return try await remoteDataSource.fetchMessages(conversationId: conversationId, page: page, perPage: perPage)
+        try await remoteDataSource.fetchMessages(conversationId: conversationId, page: page, perPage: perPage)
     }
 
     func sendMessage(conversationId: String, content: MessageContent) async throws -> Message {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.sendMessage(conversationId: conversationId, content: content)
+        switch content {
+        case .text(let text):
+            return try await remoteDataSource.sendTextMessage(conversationId: conversationId, text: text, replyToId: nil)
+        case .image(let url):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "IMAGE", mediaUrl: url.absoluteString, mediaThumbnail: nil, mediaDuration: nil)
+        case .video(let url, let thumbnailURL):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "VIDEO", mediaUrl: url.absoluteString, mediaThumbnail: thumbnailURL?.absoluteString, mediaDuration: nil)
+        case .audio(let url, let duration):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "AUDIO", mediaUrl: url.absoluteString, mediaThumbnail: nil, mediaDuration: duration)
+        case .post(let postId):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "POST", mediaUrl: postId, mediaThumbnail: nil, mediaDuration: nil)
+        case .story(let storyId):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "STORY", mediaUrl: storyId, mediaThumbnail: nil, mediaDuration: nil)
+        case .reel(let reelId):
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "REEL", mediaUrl: reelId, mediaThumbnail: nil, mediaDuration: nil)
+        case .like:
+            return try await remoteDataSource.sendMediaMessage(conversationId: conversationId, contentType: "LIKE", mediaUrl: "", mediaThumbnail: nil, mediaDuration: nil)
         }
-        return try await remoteDataSource.sendMessage(conversationId: conversationId, content: content)
     }
 
     func createConversation(participantIds: [String]) async throws -> Conversation {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.createConversation(participantIds: participantIds)
-        }
-        return try await remoteDataSource.createConversation(participantIds: participantIds)
+        try await remoteDataSource.createConversation(participantIds: participantIds, groupName: nil)
     }
 
     func markAsRead(conversationId: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.markAsRead(conversationId: conversationId)
-        }
-        try await remoteDataSource.markAsRead(conversationId: conversationId)
+        try await remoteDataSource.markRead(conversationId: conversationId)
     }
 
     func deleteMessage(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.deleteMessage(id: id)
-        }
-        try await remoteDataSource.deleteMessage(id: id)
+        try await remoteDataSource.deleteMessage(messageId: id)
     }
 
     func muteConversation(id: String, mute: Bool) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.muteConversation(id: id, mute: mute)
-        }
-        try await remoteDataSource.muteConversation(id: id, mute: mute)
+        try await remoteDataSource.muteConversation(conversationId: id, mute: mute)
     }
 }

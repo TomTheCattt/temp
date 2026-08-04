@@ -9,37 +9,53 @@ import Foundation
 
 // MARK: - PostDTO
 
-/// API response model for Post.
+/// API response model for Post. Matches BE response format.
 nonisolated struct PostDTO: Decodable, Sendable {
     let id: String
-    let author: UserDTO
+    let authorId: String
     let caption: String?
-    let mediaItems: [MediaItemDTO]
-    let location: PostLocationDTO?
+    let locationName: String?
+    let locationLat: Double?
+    let locationLng: Double?
     let likesCount: Int
     let commentsCount: Int
-    let createdAt: String
-    let isLiked: Bool
-    let isSaved: Bool
     let isSponsored: Bool
+    let createdAt: String
+    let updatedAt: String?
+    let author: UserDTO
+    let mediaItems: [MediaItemDTO]
+    let isLiked: Bool?
+    let isSaved: Bool?
 }
 
 // MARK: - MediaItemDTO
 
 nonisolated struct MediaItemDTO: Decodable, Sendable {
     let id: String
+    let postId: String?
     let url: String
     let thumbnailUrl: String?
-    let type: String // "image" | "video"
+    let type: String        // "IMAGE" | "VIDEO" (uppercase from BE)
     let width: Int?
     let height: Int?
     let duration: Double?
+    let sortOrder: Int?
 }
 
-// MARK: - PostLocationDTO
+// MARK: - PostWrapperDTO
 
-nonisolated struct PostLocationDTO: Decodable, Sendable {
-    let name: String
-    let latitude: Double?
-    let longitude: Double?
+/// Wrapper for single post responses: `{ "post": {...} }` inside data envelope.
+nonisolated struct PostWrapperDTO: Decodable, Sendable {
+    let post: PostDTO
+}
+
+// MARK: - PaginatedPostsDTO
+
+/// Wrapper for paginated post list responses.
+nonisolated struct PaginatedPostsDTO: Decodable, Sendable {
+    let items: [PostDTO]
+    let page: Int
+    let perPage: Int
+    let total: Int
+    let hasMore: Bool
 }

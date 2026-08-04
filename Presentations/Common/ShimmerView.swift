@@ -17,21 +17,28 @@ struct ShimmerView: View {
     var body: some View {
         GeometryReader { geometry in
             LinearGradient(
-                stops: [
-                    .init(color: .clear, location: max(0, phase - 0.3)),
-                    .init(color: Color.white.opacity(DS.Opacity.low), location: phase),
-                    .init(color: .clear, location: min(1, phase + 0.3))
-                ],
+                gradient: Gradient(colors: [
+                    .clear,
+                    Color.white.opacity(DS.Opacity.low),
+                    .clear
+                ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(width: geometry.size.width, height: geometry.size.height)
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height
+            )
+            .offset(
+                x: phase * geometry.size.width,
+                y: phase * geometry.size.height
+            )
             .onAppear {
                 withAnimation(
                     .linear(duration: 1.5)
                     .repeatForever(autoreverses: false)
                 ) {
-                    phase = 2.0
+                    phase = 1.0
                 }
             }
         }

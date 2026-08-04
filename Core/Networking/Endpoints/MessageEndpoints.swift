@@ -12,22 +12,30 @@ import Alamofire
 
 enum ConversationEndpoint: APIEndpoint {
     case list(page: Int, perPage: Int)
+    case create(participantIds: [String], groupName: String?)
     case messages(conversationId: String, page: Int, perPage: Int)
-    case send(conversationId: String, contentType: String, content: String)
-    case create(participantIds: [String])
+    case sendText(conversationId: String, textContent: String, replyToId: String?)
+    case sendMedia(conversationId: String, contentType: String, mediaUrl: String, mediaThumbnail: String?, mediaDuration: Double?)
     case markRead(conversationId: String)
-    case deleteMessage(messageId: String)
     case mute(conversationId: String, mute: Bool)
+    case deleteMessage(messageId: String)
 
     var path: String {
         switch self {
-        case .list:                                     return "/v1/conversations"
-        case .messages(let id, _, _):                   return "/v1/conversations/\(id)/messages"
-        case .send(let id, _, _):                       return "/v1/conversations/\(id)/messages"
-        case .create:                                   return "/v1/conversations"
-        case .markRead(let id):                         return "/v1/conversations/\(id)/read"
-        case .deleteMessage(let messageId):             return "/v1/messages/\(messageId)"
-        case .mute(let id, _):                          return "/v1/conversations/\(id)/mute"
+        case .list, .create:
+            return "/v1/conversations"
+        case .messages(let id, _, _):
+            return "/v1/conversations/\(id)/messages"
+        case .sendText(let id, _, _):
+            return "/v1/conversations/\(id)/messages"
+        case .sendMedia(let id, _, _, _, _):
+            return "/v1/conversations/\(id)/messages"
+        case .markRead(let id):
+            return "/v1/conversations/\(id)/read"
+        case .mute(let id, _):
+            return "/v1/conversations/\(id)/mute"
+        case .deleteMessage(let messageId):
+            return "/v1/conversations/messages/\(messageId)"
         }
     }
 
@@ -35,8 +43,10 @@ enum ConversationEndpoint: APIEndpoint {
         switch self {
         case .list, .messages:
             return .get
-        case .send, .create, .markRead, .mute:
+        case .create, .sendText, .sendMedia, .markRead:
             return .post
+        case .mute:
+            return .put
         case .deleteMessage:
             return .delete
         }
@@ -46,14 +56,23 @@ enum ConversationEndpoint: APIEndpoint {
         switch self {
         case .list(let page, let perPage),
              .messages(_, let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .send(_, let contentType, let content):
-            return ["content_type": contentType, "content": content]
-        case .create(let participantIds):
-            return ["participant_ids": participantIds]
+            return ["page": page, "perPage": perPage]
+        case .create(let participantIds, let groupName):
+            var params: Parameters = ["participantIds": participantIds]
+            if let groupName { params["groupName"] = groupName }
+            return params
+        case .sendText(_, let textContent, let replyToId):
+            var params: Parameters = ["contentType": "TEXT", "textContent": textContent]
+            if let replyToId { params["replyToId"] = replyToId }
+            return params
+        case .sendMedia(_, let contentType, let mediaUrl, let mediaThumbnail, let mediaDuration):
+            var params: Parameters = ["contentType": contentType, "mediaUrl": mediaUrl]
+            if let mediaThumbnail { params["mediaThumbnail"] = mediaThumbnail }
+            if let mediaDuration { params["mediaDuration"] = mediaDuration }
+            return params
         case .mute(_, let mute):
             return ["mute": mute]
-        default:
+        case .markRead, .deleteMessage:
             return nil
         }
     }

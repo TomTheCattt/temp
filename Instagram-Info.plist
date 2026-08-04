@@ -6,6 +6,8 @@
 	<dict>
 		<key>NSAllowsArbitraryLoadsInMedia</key>
 		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
 	</dict>
 	<key>UIAppFonts</key>
 	<array>
@@ -14,6 +16,31 @@
 		<string>Instagram Sans Medium.ttf</string>
 		<string>Instagram Sans Bold.ttf</string>
 		<string>Instagram Sans Headline.otf</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Instagram cần truy cập camera để chụp ảnh, quay video cho Stories, Reels và bài đăng.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Instagram cần truy cập microphone để ghi âm video, gọi thoại và gửi tin nhắn thoại.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Instagram cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài đăng, Stories và Reels.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Instagram cần quyền lưu ảnh và video vào thư viện của bạn.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và Stories của bạn.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và cung cấp trải nghiệm tốt hơn.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Instagram cần truy cập danh bạ để giúp bạn tìm và kết nối với bạn bè.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Instagram sử dụng Face ID để đăng nhập nhanh và bảo mật tài khoản của bạn.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Instagram sử dụng thông tin theo dõi để cải thiện quảng cáo và trải nghiệm của bạn.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+		<string>voip</string>
+		<string>audio</string>
 	</array>
 </dict>
 </plist>

@@ -18,7 +18,7 @@ enum CommentMapper {
             author: UserMapper.toEntity(dto.author),
             text: dto.text,
             likesCount: dto.likesCount,
-            isLiked: dto.isLiked,
+            isLiked: dto.isLiked ?? false,
             replies: dto.replies?.map { toEntity($0) } ?? [],
             parentId: dto.parentId,
             createdAt: DateMapper.toDate(dto.createdAt)

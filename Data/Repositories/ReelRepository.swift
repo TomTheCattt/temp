@@ -6,93 +6,66 @@
 //
 
 import Foundation
+import Alamofire
 
 // MARK: - ReelRepository
 
 final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteReelDataSource
-    private let mockDataSource: MockReelDataSource
+    private let networkService: NetworkServiceProtocol
 
     init(
         remoteDataSource: RemoteReelDataSource,
-        mockDataSource: MockReelDataSource = MockReelDataSource()
+        networkService: NetworkServiceProtocol
     ) {
         self.remoteDataSource = remoteDataSource
-        self.mockDataSource = mockDataSource
+        self.networkService = networkService
     }
 
     func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchReels(page: page, perPage: perPage)
-        }
-        return try await remoteDataSource.fetchReels(page: page, perPage: perPage)
+        try await remoteDataSource.fetchReels(page: page, perPage: perPage)
     }
 
     func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.fetchUserReels(userId: userId, page: page, perPage: perPage)
-        }
-        return try await remoteDataSource.fetchUserReels(userId: userId, page: page, perPage: perPage)
+        // BE doesn't have a dedicated user reels endpoint yet; return empty
+        return []
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
-        guard !AppConfig.shared.isMockAPI else {
-            try await Task.sleep(nanoseconds: 1_000_000_000)
-            let currentUser = SessionStore.shared.currentUser!
-            return Reel(
-                id: "reel_\(UUID().uuidString.prefix(8))",
-                author: currentUser,
-                videoURL: URL(string: "https://example.com/video.mp4")!,
-                thumbnailURL: nil,
-                caption: caption,
-                audioTrack: nil,
-                likesCount: 0,
-                commentsCount: 0,
-                sharesCount: 0,
-                viewsCount: 0,
-                duration: 15,
-                isLiked: false,
-                isSaved: false,
-                createdAt: .now
-            )
+        // Step 1: Upload video
+        let uploadResponse: UploadVideoResponseDTO = try await networkService.upload(UploadEndpoint.video) { formData in
+            formData.append(videoData, withName: "file", fileName: "reel.mp4", mimeType: "video/mp4")
         }
-        return try await remoteDataSource.createReel(videoData: videoData, caption: caption, audioTrackId: audioTrackId)
+
+        // Step 2: Create reel with uploaded URL
+        return try await remoteDataSource.createReel(
+            videoUrl: uploadResponse.url,
+            thumbnailUrl: uploadResponse.thumbnailUrl,
+            caption: caption,
+            duration: uploadResponse.duration ?? 15,
+            audioName: nil,
+            audioArtist: nil
+        )
     }
 
     func likeReel(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.likeReel(id: id)
-        }
         try await remoteDataSource.likeReel(id: id)
     }
 
     func unlikeReel(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.unlikeReel(id: id)
-        }
         try await remoteDataSource.unlikeReel(id: id)
     }
 
     func saveReel(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.saveReel(id: id)
-        }
-        try await remoteDataSource.saveReel(id: id)
+        // BE doesn't have save reel endpoint yet
     }
 
     func unsaveReel(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            return try await mockDataSource.unsaveReel(id: id)
-        }
-        try await remoteDataSource.unsaveReel(id: id)
+        // BE doesn't have unsave reel endpoint yet
     }
 
     func deleteReel(id: String) async throws {
-        guard !AppConfig.shared.isMockAPI else {
-            try await Task.sleep(nanoseconds: 300_000_000)
-            return
-        }
-        try await remoteDataSource.deleteReel(id: id)
+        // BE doesn't have delete reel endpoint yet
     }
 }

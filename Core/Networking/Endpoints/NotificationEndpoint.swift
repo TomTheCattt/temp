@@ -12,12 +12,14 @@ import Alamofire
 
 enum NotificationEndpoint: APIEndpoint {
     case list(page: Int, perPage: Int)
+    case unreadCount
     case markRead(id: String)
     case markAllRead
 
     var path: String {
         switch self {
         case .list:                 return "/v1/notifications"
+        case .unreadCount:          return "/v1/notifications/unread-count"
         case .markRead(let id):     return "/v1/notifications/\(id)/read"
         case .markAllRead:          return "/v1/notifications/read-all"
         }
@@ -25,7 +27,7 @@ enum NotificationEndpoint: APIEndpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .list:
+        case .list, .unreadCount:
             return .get
         case .markRead, .markAllRead:
             return .post
@@ -35,7 +37,7 @@ enum NotificationEndpoint: APIEndpoint {
     var parameters: Parameters? {
         switch self {
         case .list(let page, let perPage):
-            return ["page": page, "per_page": perPage]
+            return ["page": page, "perPage": perPage]
         default:
             return nil
         }

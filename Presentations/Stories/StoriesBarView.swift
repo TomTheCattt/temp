@@ -13,8 +13,16 @@ import NukeUI
 /// Horizontal scrolling bar of story circles displayed at the top of the feed.
 struct StoriesBarView: View {
 
-    @State private var stories: [Story] = MockData.stories
+    @State private var stories: [Story] = []
     @State private var showYourStory = true
+    @State private var isLoading = true
+
+    private let fetchStoriesUseCase: FetchStoriesUseCaseProtocol
+
+    init(fetchStoriesUseCase: FetchStoriesUseCaseProtocol? = nil) {
+        self.fetchStoriesUseCase = fetchStoriesUseCase
+            ?? DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
+    }
 
     /// Whether current user has an active story.
     private var hasMyStory: Bool {
@@ -48,6 +56,18 @@ struct StoriesBarView: View {
             .padding(.horizontal, DS.Padding.content)
             .padding(.vertical, DS.Spacing.xs)
         }
+        .task {
+            await loadStories()
+        }
+    }
+
+    private func loadStories() async {
+        do {
+            stories = try await fetchStoriesUseCase.execute()
+        } catch {
+            stories = []
+        }
+        isLoading = false
     }
 
     private var yourStoryItem: some View {

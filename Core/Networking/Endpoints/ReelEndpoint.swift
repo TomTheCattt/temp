@@ -12,47 +12,45 @@ import Alamofire
 
 enum ReelEndpoint: APIEndpoint {
     case feed(page: Int, perPage: Int)
-    case userReels(userId: String, page: Int, perPage: Int)
-    case create(caption: String?, audioTrackId: String?)
-    case delete(id: String)
+    case create(videoUrl: String, thumbnailUrl: String?, caption: String?, duration: Double, audioName: String?, audioArtist: String?)
     case like(id: String)
     case unlike(id: String)
-    case save(id: String)
-    case unsave(id: String)
+    case view(id: String)
 
     var path: String {
         switch self {
-        case .feed:                             return "/v1/reels/feed"
-        case .userReels(let userId, _, _):      return "/v1/users/\(userId)/reels"
-        case .create:                           return "/v1/reels"
-        case .delete(let id):                   return "/v1/reels/\(id)"
-        case .like(let id):                     return "/v1/reels/\(id)/like"
-        case .unlike(let id):                   return "/v1/reels/\(id)/unlike"
-        case .save(let id):                     return "/v1/reels/\(id)/save"
-        case .unsave(let id):                   return "/v1/reels/\(id)/unsave"
+        case .feed:                 return "/v1/reels/feed"
+        case .create:               return "/v1/reels"
+        case .like(let id):         return "/v1/reels/\(id)/like"
+        case .unlike(let id):       return "/v1/reels/\(id)/like"
+        case .view(let id):         return "/v1/reels/\(id)/view"
         }
     }
 
     var method: HTTPMethod {
         switch self {
-        case .feed, .userReels:
+        case .feed:
             return .get
-        case .create, .like, .unlike, .save, .unsave:
+        case .create, .like, .view:
             return .post
-        case .delete:
+        case .unlike:
             return .delete
         }
     }
 
     var parameters: Parameters? {
         switch self {
-        case .feed(let page, let perPage),
-             .userReels(_, let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .create(let caption, let audioTrackId):
-            var params: Parameters = [:]
+        case .feed(let page, let perPage):
+            return ["page": page, "perPage": perPage]
+        case .create(let videoUrl, let thumbnailUrl, let caption, let duration, let audioName, let audioArtist):
+            var params: Parameters = [
+                "videoUrl": videoUrl,
+                "duration": duration
+            ]
+            if let thumbnailUrl { params["thumbnailUrl"] = thumbnailUrl }
             if let caption { params["caption"] = caption }
-            if let audioTrackId { params["audio_track_id"] = audioTrackId }
+            if let audioName { params["audioName"] = audioName }
+            if let audioArtist { params["audioArtist"] = audioArtist }
             return params
         default:
             return nil

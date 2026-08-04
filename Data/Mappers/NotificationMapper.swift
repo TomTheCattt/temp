@@ -17,7 +17,7 @@ enum NotificationMapper {
             type: toNotificationType(dto.type),
             actor: UserMapper.toEntity(dto.actor),
             postId: dto.postId,
-            postThumbnailURL: dto.postThumbnailUrl.flatMap { URL(string: $0) },
+            postThumbnailURL: nil, // BE doesn't include post thumbnail in notification
             commentText: dto.commentText,
             isRead: dto.isRead,
             createdAt: DateMapper.toDate(dto.createdAt)
@@ -28,18 +28,18 @@ enum NotificationMapper {
         dtos.map { toEntity($0) }
     }
 
-    // MARK: - Type
+    // MARK: - NotificationType
 
     private static func toNotificationType(_ raw: String) -> NotificationType {
-        switch raw {
-        case "like":            return .like
-        case "comment":         return .comment
-        case "follow":          return .follow
-        case "followRequest":   return .followRequest
-        case "mention":         return .mention
-        case "taggedInPost":    return .taggedInPost
-        case "storyMention":    return .storyMention
-        case "liveVideo":       return .liveVideo
+        switch raw.uppercased() {
+        case "LIKE":            return .like
+        case "COMMENT":         return .comment
+        case "FOLLOW":          return .follow
+        case "FOLLOW_REQUEST":  return .followRequest
+        case "MENTION":         return .mention
+        case "TAGGED_IN_POST":  return .taggedInPost
+        case "STORY_MENTION":   return .storyMention
+        case "LIVE_VIDEO":      return .liveVideo
         default:                return .like
         }
     }

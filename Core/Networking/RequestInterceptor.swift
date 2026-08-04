@@ -29,7 +29,7 @@ final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
             request.setValue("Bearer \(token)",
                              forHTTPHeaderField: "Authorization")
         }
-        request.setValue("application/json", forHTTPHeaderField: "Accepted")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(AppConfig.shared.clientVersion, forHTTPHeaderField: "X-Client-Version")
         request.setValue(AppConfig.shared.environment.rawValue, forHTTPHeaderField: "X-Environment")
         completion(.success(request))
@@ -92,27 +92,27 @@ final class NetworkEventMonitor: EventMonitor, @unchecked Sendable {
     func requestDidResume(_ request: Request) {
         guard isEnabled else { return }
         guard let urlRequest = request.request else {
-            logger.debug("[Network] Request started with no URLRequest")
+            logger.debug("⬆️ [REQUEST] started with no URLRequest")
             return
         }
         let method = urlRequest.httpMethod ?? "UNKNOWN"
         let url = urlRequest.url?.absoluteString ?? "unknown"
         let headers = urlRequest.allHTTPHeaderFields ?? [:]
         let body = requestBodyString(from: urlRequest) ?? "<empty>"
-        logger.debug("[Network][Request] \(method) \(url) headers=\(headers) body=\(body)")
+        logger.info("⬆️ [REQUEST] \(method) \(url)")
+        logger.debug("⬆️ [REQUEST] headers=\(headers)")
+        logger.debug("⬆️ [REQUEST] body=\(body)")
     }
 
     func requestDidFinish(_ request: Request) {
-        guard isEnabled else { return }
-        let code = request.response?.statusCode ?? 0
-        let url  = request.request?.url?.absoluteString ?? "unknown"
-        logger.debug("[\(code)] \(url)")
+        // Intentionally left empty — response logging is handled in didParseResponse
     }
 
     func request<Value>(_ request: DataRequest,
                         didParseResponse response: DataResponse<Value, AFError>) {
         guard isEnabled else { return }
         let code = response.response?.statusCode ?? 0
+        let method = request.request?.httpMethod ?? "UNKNOWN"
         let url = request.request?.url?.absoluteString ?? "unknown"
         let body: String
         if let data = response.data, let string = String(data: data, encoding: .utf8) {
@@ -121,9 +121,11 @@ final class NetworkEventMonitor: EventMonitor, @unchecked Sendable {
             body = "<empty>"
         }
         if let error = response.error {
-            logger.error("❌ [Network][Response] [\(code)] \(url) error=\(error.localizedDescription) body=\(body)")
+            logger.error("⬇️ [RESPONSE] \(method) \(url) [\(code)] ❌ error=\(error.localizedDescription)")
+            logger.debug("⬇️ [RESPONSE] body=\(body)")
         } else {
-            logger.debug("[Network][Response] [\(code)] \(url) body=\(body)")
+            logger.info("⬇️ [RESPONSE] \(method) \(url) [\(code)] ✅")
+            logger.debug("⬇️ [RESPONSE] body=\(body)")
         }
     }
 

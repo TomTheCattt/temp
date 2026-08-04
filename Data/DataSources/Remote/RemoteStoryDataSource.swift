@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Alamofire
 
 // MARK: - RemoteStoryDataSource
 
@@ -18,39 +17,40 @@ final class RemoteStoryDataSource: @unchecked Sendable {
         self.networkService = networkService
     }
 
+    // MARK: - Feed
+
     func fetchStories() async throws -> [Story] {
-        let dtos: [StoryDTO] = try await networkService.request(StoryEndpoint.feed)
-        return StoryMapper.toEntityList(dtos)
+        let response: StoriesFeedDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.feed
+        )
+        return StoryMapper.toEntityList(response.items)
     }
 
-    func fetchStoryItems(userId: String) async throws -> [StoryItem] {
-        let dto: StoryDTO = try await networkService.request(StoryEndpoint.userStory(userId: userId))
-        return dto.items.map { item in
-            StoryItem(
-                id: item.id,
-                mediaURL: URL(string: item.mediaUrl)!,
-                type: item.type == "video" ? .video : .image,
-                duration: item.duration,
-                createdAt: DateMapper.toDate(item.createdAt),
-                sticker: nil
-            )
-        }
+    // MARK: - User Stories
+
+    func fetchUserStories(userId: String) async throws -> [Story] {
+        let response: UserStoriesDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.userItems(userId: userId)
+        )
+        return StoryMapper.toEntityList(response.stories)
     }
 
-    func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
-        let dto: StoryDTO = try await networkService.upload(StoryEndpoint.create) { formData in
-            let mimeType = type == .video ? "video/mp4" : "image/jpeg"
-            let fileName = type == .video ? "story.mp4" : "story.jpg"
-            formData.append(mediaData, withName: "media", fileName: fileName, mimeType: mimeType)
-            formData.append(Data("\(duration)".utf8), withName: "duration")
-            formData.append(Data(type.rawValue.utf8), withName: "type")
-        }
-        return StoryMapper.toEntity(dto)
+    // MARK: - Create
+
+    func createStory(mediaUrl: String, type: String, duration: Double, stickerType: String?, stickerData: String?) async throws -> Story {
+        let wrapper: StoryWrapperDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.create(mediaUrl: mediaUrl, type: type, duration: duration, stickerType: stickerType, stickerData: stickerData)
+        )
+        return StoryMapper.toEntity(wrapper.story)
     }
+
+    // MARK: - View
 
     func markViewed(storyId: String) async throws {
         try await networkService.requestVoid(StoryEndpoint.markViewed(storyId: storyId))
     }
+
+    // MARK: - Delete
 
     func deleteStory(id: String) async throws {
         try await networkService.requestVoid(StoryEndpoint.delete(id: id))

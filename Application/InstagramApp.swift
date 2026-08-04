@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct InstagramApp: App {
 
     init() {
+        // Configure Firebase (must be called before any Firebase service is used)
+        FirebaseApp.configure()
+
         // Initialize DI container (triggers all assembly registrations)
         _ = DIContainer.shared
 

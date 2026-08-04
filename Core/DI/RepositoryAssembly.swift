@@ -10,15 +10,19 @@ import Swinject
 
 // MARK: - RepositoryAssembly
 
-/// Registers data repositories (each repository abstracts remote + local data sources).
+/// Registers data repositories.
 final class RepositoryAssembly: Assembly {
 
     func assemble(container: Container) {
 
         // MARK: AuthRepository
 
-        container.register(AuthRepositoryProtocol.self) { _ in
-            AuthRepository()
+        container.register(AuthRepositoryProtocol.self) { resolver in
+            AuthRepository(
+                remoteDataSource: RemoteAuthDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
         }.inObjectScope(.container)
 
         // MARK: UserRepository
@@ -47,7 +51,8 @@ final class RepositoryAssembly: Assembly {
             StoryRepository(
                 remoteDataSource: RemoteStoryDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                )
+                ),
+                networkService: resolver.resolve(NetworkServiceProtocol.self)!
             )
         }.inObjectScope(.container)
 
@@ -87,7 +92,8 @@ final class RepositoryAssembly: Assembly {
             ReelRepository(
                 remoteDataSource: RemoteReelDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                )
+                ),
+                networkService: resolver.resolve(NetworkServiceProtocol.self)!
             )
         }.inObjectScope(.container)
     }

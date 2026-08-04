@@ -126,7 +126,10 @@ final class AuthViewModel {
     // MARK: - Private
 
     private func handleAuthSuccess(_ session: AuthSession) {
-        // TODO: Store tokens via KeychainManager
+        // Store tokens so AuthInterceptor can inject Bearer token into subsequent requests
+        let authManager = DIContainer.shared.resolve(AuthManagerProtocol.self)
+        authManager.storeSession(session)
+
         SessionStore.shared.setSession(user: session.user)
         router.isAuthenticated = true
     }

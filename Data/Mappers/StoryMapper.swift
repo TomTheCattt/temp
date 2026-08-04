@@ -12,11 +12,40 @@ import Foundation
 enum StoryMapper {
 
     static func toEntity(_ dto: StoryDTO) -> Story {
-        Story(
+        // Determine author: from nested object or create minimal from authorId
+        let author: User
+        if let authorDTO = dto.author {
+            author = UserMapper.toEntity(authorDTO)
+        } else {
+            author = User(
+                id: dto.authorId,
+                username: "",
+                fullName: "",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+        }
+
+        // isViewed: if views array is non-empty, current user has viewed
+        let isViewed = !(dto.views ?? []).isEmpty
+
+        return Story(
             id: dto.id,
-            author: UserMapper.toEntity(dto.author),
-            items: dto.items.map { toStoryItem($0) },
-            isViewed: dto.isViewed,
+            author: author,
+            items: dto.items.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).map { toStoryItem($0) },
+            isViewed: isViewed,
             createdAt: DateMapper.toDate(dto.createdAt),
             expiresAt: DateMapper.toDate(dto.expiresAt)
         )
@@ -29,30 +58,23 @@ enum StoryMapper {
     // MARK: - StoryItem
 
     private static func toStoryItem(_ dto: StoryItemDTO) -> StoryItem {
-        StoryItem(
+        let mediaType: StoryItem.MediaType = dto.type.uppercased() == "VIDEO" ? .video : .image
+
+        let sticker: StoryStickerInfo?
+        if let stickerType = dto.stickerType,
+           let type = StoryStickerInfo.StickerType(rawValue: stickerType) {
+            sticker = StoryStickerInfo(type: type, data: dto.stickerData)
+        } else {
+            sticker = nil
+        }
+
+        return StoryItem(
             id: dto.id,
-            mediaURL: URL(string: dto.mediaUrl)!,
-            type: dto.type == "video" ? .video : .image,
+            mediaURL: URL(string: dto.mediaUrl) ?? URL(string: "about:blank")!,
+            type: mediaType,
             duration: dto.duration,
             createdAt: DateMapper.toDate(dto.createdAt),
-            sticker: dto.sticker.map { toSticker($0) }
+            sticker: sticker
         )
-    }
-
-    // MARK: - Sticker
-
-    private static func toSticker(_ dto: StoryStickerDTO) -> StoryStickerInfo {
-        let stickerType: StoryStickerInfo.StickerType
-        switch dto.type {
-        case "mention":  stickerType = .mention
-        case "hashtag":  stickerType = .hashtag
-        case "location": stickerType = .location
-        case "poll":     stickerType = .poll
-        case "question": stickerType = .question
-        case "link":     stickerType = .link
-        case "music":    stickerType = .music
-        default:         stickerType = .mention
-        }
-        return StoryStickerInfo(type: stickerType, data: dto.data)
     }
 }
