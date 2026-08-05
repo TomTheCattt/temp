@@ -29,13 +29,18 @@ struct StoriesBarView: View {
         let userId = SessionStore.shared.currentUserId
         return stories.contains { $0.author.id == userId }
     }
+    
+    private var myStories: [Story] {
+        let userId = SessionStore.shared.currentUserId
+        return stories.filter { $0.author.id == userId }
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: DS.Spacing.formGap) {
                 // "Your Story" button
                 if showYourStory {
-                    yourStoryItem
+                    MyStoryCircleView(stories: myStories)
                         .onTapGesture {
                             if hasMyStory {
                                 AppRouter.shared.present(fullScreen: .myStory)
@@ -69,10 +74,25 @@ struct StoriesBarView: View {
         }
         isLoading = false
     }
+        
+}
 
-    private var yourStoryItem: some View {
-        VStack(spacing: DS.Spacing.xxs) {
-            ZStack(alignment: .bottomTrailing) {
+// MARK: - MyStoryCircleView
+struct MyStoryCircleView: View {
+    
+    let stories: [Story]
+    
+    private var hasMyStory: Bool {
+        !stories.isEmpty
+    }
+    
+    private var hasViewedAllStories: Bool {
+        !stories.contains { $0.isViewed == false }
+    }
+    
+    var body: some View {
+        VStack(spacing: DS.Spacing.xs) {
+            if hasMyStory {
                 LazyImage(url: SessionStore.shared.currentUser?.avatarURL) { state in
                     if let image = state.image {
                         image.resizable()
@@ -82,14 +102,40 @@ struct StoriesBarView: View {
                 }
                 .frame(width: DS.Size.avatarLarge, height: DS.Size.avatarLarge)
                 .clipShape(Circle())
-
-                // Plus badge
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(ColorTokens.accentPrimary)
-                    .background(Circle().fill(Color(.systemBackground)).frame(width: DS.Spacing.lg, height: DS.Spacing.lg))
+                .overlay(
+                    Circle()
+                        .stroke(
+                            hasViewedAllStories
+                            ? AnyShapeStyle(Color(.systemGray4))
+                            : AnyShapeStyle(LinearGradient(
+                                colors: [.red, .orange, .yellow],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )),
+                            lineWidth: hasViewedAllStories ? DS.Stroke.standard : 2.5
+                        )
+                        .frame(width: 70, height: 70)
+                )
+            } else {
+                ZStack(alignment: .bottomTrailing) {
+                    LazyImage(url: SessionStore.shared.currentUser?.avatarURL) { state in
+                        if let image = state.image {
+                            image.resizable()
+                        } else {
+                            Circle().fill(ColorTokens.buttonSecondary)
+                        }
+                    }
+                    .frame(width: DS.Size.avatarLarge, height: DS.Size.avatarLarge)
+                    .clipShape(Circle())
+                    
+                    // Plus badge
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(ColorTokens.accentPrimary)
+                        .background(Circle().fill(Color(.systemBackground)).frame(width: DS.Spacing.lg, height: DS.Spacing.lg))
+                }
             }
-
+            
             Text("Your Story")
                 .font(DS.Font.caption2)
                 .foregroundStyle(.secondary)
@@ -105,7 +151,7 @@ struct StoryCircleView: View {
     let story: Story
 
     var body: some View {
-        VStack(spacing: DS.Spacing.xxs) {
+        VStack(spacing: DS.Spacing.xs) {
             LazyImage(url: story.author.avatarURL) { state in
                 if let image = state.image {
                     image.resizable()

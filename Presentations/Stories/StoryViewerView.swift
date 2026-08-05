@@ -67,18 +67,18 @@ struct StoryViewerView: View {
                             }
                         }
                     }
-                    .padding(.top, topPadding)
+//                    .padding(.top, topPadding)
                     .padding(.horizontal, DS.Spacing.xxxs)
 
                     // MARK: Reply Bar (below content, on black background)
                     replyBar
                         .padding(.horizontal, DS.Padding.horizontal)
-                        .padding(.top, DS.Spacing.sm)
-                        .padding(.bottom, max(bottomPadding, DS.Spacing.sm))
+//                        .padding(.top, DS.Spacing.sm)
+//                        .padding(.bottom, max(bottomPadding, DS.Spacing.sm))
                 }
             }
         }
-        .ignoresSafeArea()
+//        .ignoresSafeArea()
         .statusBarHidden()
         .task {
             await viewModel.loadStories()
@@ -116,8 +116,8 @@ struct StoryViewerView: View {
     private func storyContent(_ item: StoryItem, geometry: GeometryProxy) -> some View {
         let contentWidth = geometry.size.width - DS.Spacing.xxxs * 2
         let contentHeight = geometry.size.height
-            - geometry.safeAreaInsets.top - DS.Spacing.xxs
-            - 60 // reply bar area
+            - geometry.safeAreaInsets.top
+//            - 60 // reply bar area
             - geometry.safeAreaInsets.bottom
 
         switch item.type {
