@@ -18,7 +18,7 @@ final class MessageRepository: MessageRepositoryProtocol, @unchecked Sendable {
     }
 
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
-        let currentUserId = await SessionStore.shared.currentUserId
+        let currentUserId = SessionStore.shared.currentUserId
         return try await remoteDataSource.fetchConversations(page: page, perPage: perPage, currentUserId: currentUserId)
     }
 

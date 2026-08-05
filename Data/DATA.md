@@ -103,7 +103,7 @@ Chuyển đổi DTO (API layer) → Entity (Domain layer). Mỗi mapper là mộ
 
 ## Repositories/
 
-Concrete implementations của Domain repository protocols. Mỗi repository switch giữa remote và mock data source dựa trên `AppConfig.shared.isMockAPI`.
+Concrete implementations của Domain repository protocols. Việc switch giữa remote và mock được thực hiện tại tầng DI (`RepositoryAssembly`) dựa trên `AppConfig.shared.isMockAPI`.
 
 | File | Protocol | Chức năng |
 |------|----------|-----------|
@@ -116,14 +116,33 @@ Concrete implementations của Domain repository protocols. Mỗi repository swi
 | `NotificationRepository` | `NotificationRepositoryProtocol` | Fetch notifications, mark read |
 | `ReelRepository` | `ReelRepositoryProtocol` | Fetch reels, like/unlike |
 
-**Pattern:**
+### Repositories/Mock/
+
+Mock implementations dùng cho scheme `Instagram (Mock)`. Conform trực tiếp `*RepositoryProtocol` và sử dụng `Mock*DataSource` nội bộ.
+
+| File | Protocol |
+|------|----------|
+| `MockAuthRepository` | `AuthRepositoryProtocol` |
+| `MockPostRepository` | `PostRepositoryProtocol` |
+| `MockUserRepository` | `UserRepositoryProtocol` |
+| `MockMessageRepository` | `MessageRepositoryProtocol` |
+| `MockCommentRepository` | `CommentRepositoryProtocol` |
+| `MockStoryRepository` | `StoryRepositoryProtocol` |
+| `MockNotificationRepository` | `NotificationRepositoryProtocol` |
+| `MockReelRepository` | `ReelRepositoryProtocol` |
+
+**Pattern (DI-level switching in RepositoryAssembly):**
 ```swift
-func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
-    guard !AppConfig.shared.isMockAPI else {
-        return try await mockDataSource.fetchFeed(page: page, perPage: perPage)
+container.register(PostRepositoryProtocol.self) { resolver in
+    if AppConfig.shared.isMockAPI {
+        return MockPostRepository()
     }
-    return try await remoteDataSource.fetchFeed(page: page, perPage: perPage)
-}
+    return PostRepository(
+        remoteDataSource: RemotePostDataSource(
+            networkService: resolver.resolve(NetworkServiceProtocol.self)!
+        )
+    )
+}.inObjectScope(.container)
 ```
 
 ## Luồng dữ liệu

@@ -27,7 +27,7 @@ final class AuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
 
     func refreshToken() async throws -> AuthSession {
         let idToken = try await remoteDataSource.refreshToken()
-        let currentUser = await SessionStore.shared.currentUser ?? User.empty
+        let currentUser = SessionStore.shared.currentUser ?? User.empty
         return AuthSession(
             accessToken: idToken,
             refreshToken: "",

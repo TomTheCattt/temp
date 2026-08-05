@@ -21,6 +21,16 @@ final class DIContainer: @unchecked Sendable {
     private init() {
         container = Container()
         registerAssemblies()
+        logConfiguration()
+    }
+
+    // MARK: - Configuration Log
+
+    private func logConfiguration() {
+        let config = AppConfig.shared
+        let mode = config.isMockAPI ? "MOCK" : "LIVE"
+        let backend = config.useLocalBackend ? "LOCAL (\(config.baseURL))" : "REMOTE (\(config.baseURL))"
+        AppLogger.general.info("🚀 [DIContainer] API Mode: \(mode) | Backend: \(backend) | Env: \(config.environment.rawValue)")
     }
 
     // MARK: - Registration

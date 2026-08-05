@@ -11,14 +11,25 @@ import Swinject
 // MARK: - RepositoryAssembly
 
 /// Registers data repositories.
+/// Switches between Mock and Remote implementations based on the current API mode
+/// configured via Xcode scheme environment variables.
+///
+/// - **Instagram** scheme (`API_MODE=live`): Uses remote data sources with production API.
+/// - **Instagram (Local BE)** scheme (`API_MODE=live`, `APP_USE_LOCAL_BACKEND=1`): Uses remote data sources with local backend.
+/// - **Instagram (Mock)** scheme (`API_MODE=mock`): Uses mock repositories with locally generated data.
 final class RepositoryAssembly: Assembly {
 
     func assemble(container: Container) {
 
+        let useMock = AppConfig.shared.isMockAPI
+
         // MARK: AuthRepository
 
         container.register(AuthRepositoryProtocol.self) { resolver in
-            AuthRepository(
+            if useMock {
+                return MockAuthRepository()
+            }
+            return AuthRepository(
                 remoteDataSource: RemoteAuthDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -28,7 +39,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: UserRepository
 
         container.register(UserRepositoryProtocol.self) { resolver in
-            UserRepository(
+            if useMock {
+                return MockUserRepository()
+            }
+            return UserRepository(
                 remoteDataSource: RemoteUserDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -38,7 +52,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: PostRepository
 
         container.register(PostRepositoryProtocol.self) { resolver in
-            PostRepository(
+            if useMock {
+                return MockPostRepository()
+            }
+            return PostRepository(
                 remoteDataSource: RemotePostDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -48,7 +65,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: StoryRepository
 
         container.register(StoryRepositoryProtocol.self) { resolver in
-            StoryRepository(
+            if useMock {
+                return MockStoryRepository()
+            }
+            return StoryRepository(
                 remoteDataSource: RemoteStoryDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 ),
@@ -59,7 +79,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: NotificationRepository
 
         container.register(NotificationRepositoryProtocol.self) { resolver in
-            NotificationRepository(
+            if useMock {
+                return MockNotificationRepository()
+            }
+            return NotificationRepository(
                 remoteDataSource: RemoteNotificationDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -69,7 +92,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: MessageRepository
 
         container.register(MessageRepositoryProtocol.self) { resolver in
-            MessageRepository(
+            if useMock {
+                return MockMessageRepository()
+            }
+            return MessageRepository(
                 remoteDataSource: RemoteMessageDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -79,7 +105,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: CommentRepository
 
         container.register(CommentRepositoryProtocol.self) { resolver in
-            CommentRepository(
+            if useMock {
+                return MockCommentRepository()
+            }
+            return CommentRepository(
                 remoteDataSource: RemoteCommentDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 )
@@ -89,7 +118,10 @@ final class RepositoryAssembly: Assembly {
         // MARK: ReelRepository
 
         container.register(ReelRepositoryProtocol.self) { resolver in
-            ReelRepository(
+            if useMock {
+                return MockReelRepository()
+            }
+            return ReelRepository(
                 remoteDataSource: RemoteReelDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 ),
