@@ -36,10 +36,10 @@ final class AuthManager: AuthManagerProtocol {
 
     init(
         keychainManager: KeychainManager,
-        firebaseAuth: FirebaseAuthServiceProtocol = FirebaseAuthService.shared
+        firebaseAuth: FirebaseAuthServiceProtocol? = nil
     ) {
         self.keychainManager = keychainManager
-        self.firebaseAuth = firebaseAuth
+        self.firebaseAuth = FirebaseAuthService.shared
         loadStoredTokens()
     }
 
