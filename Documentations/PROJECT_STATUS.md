@@ -1,6 +1,6 @@
 # Instagram Clone — Project Status
 
-> Last updated: 2026-07-28
+> Last updated: 2026-08-09
 
 ---
 
@@ -13,6 +13,16 @@
 **Concurrency:** Swift Concurrency (async/await) + Combine  
 **DI:** Swinject (module-based assemblies)  
 **Navigation:** NavigationStack (per-tab) + centralized AppRouter  
+
+---
+
+## Core Development Rules
+
+1. **Strictly No Magic Numbers & No Hardcoded Values**: Tất cả số đo kích thước (size, padding, spacing), thời gian (duration), độ mờ (opacity), font chữ và các hằng số BẮT BUỘC phải được định nghĩa bằng hằng số ngữ nghĩa (constants). KHÔNG hardcode số nguyên hay số thực trực tiếp trong SwiftUI Views.
+2. **Phân biệt `DS` vs `private enum Constants` tại View**:
+   - `DS` (`DesignConstants.swift`) **CHỈ dành cho các hằng số dùng chung toàn app** (Design System tokens như `DS.Spacing.md`, `DS.Size.buttonDefaultHeight`, `DS.Padding.horizontal`, `DS.Animation.standard`).
+   - Đối với các hằng số **chỉ sử dụng nội bộ tại 1 View / 1 component cụ thể** (ngưỡng cuộn `scrollThreshold`, khoảng trượt ẩn `navBarHideOffsetY`, các mốc opacity mặt nạ gradient riêng), **BẮT BUỘC phải khai báo một `private enum Constants` ngay tại View đó** để sử dụng.
+3. **Code Rõ Ràng & Đúng Mục Đích**: Code phải sạch sẽ, tường minh, có cấu trúc rõ ràng, đúng chuẩn Clean Architecture + MVVM và phục vụ mục đích thiết kế cụ thể.
 
 ---
 
@@ -89,7 +99,8 @@
 ### Presentation Layer
 
 - [x] Navigation: AppRouter, AppRoute, AppTab, AppSheet, AppFullScreen
-- [x] MainTabView (5 tabs with NavigationStack)
+- [x] Custom Navigation Bars: CustomNavBarView cho 5 tab chính (hỗ trợ auto-hide scroll trượt mượt trên Feed qua .onScrollGeometryChange, Safe Area top extension, top-to-bottom LinearGradient fading blur mask cho FeedView và ReelsView, loại bỏ blur cho Chat/Explore/Profile, Chat tab thay bằng máy bay giấy paperplane)
+- [x] MainTabView (5 tabs theo thứ tự Feeds → Reels → Chat → Explore → Profile với NavigationStack)
 - [x] Auth: LoginView + AuthViewModel (login/register toggle)
 - [x] Feed: FeedView + PostCardView + FeedViewModel (pagination, like)
 - [x] Profile: ProfileView + ProfileViewModel (stats, grid, follow)

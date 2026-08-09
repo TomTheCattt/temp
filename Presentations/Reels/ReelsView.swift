@@ -17,34 +17,128 @@ struct ReelsView: View {
         _viewModel = State(initialValue: viewModel)
     }
 
+    @State private var selectedTabMode: Int = 0 // 0: Reels, 1: Following
+
     var body: some View {
-        GeometryReader { geometry in
-            if viewModel.isLoading && viewModel.reels.isEmpty {
-                // Skeleton loading for reels
-                ReelSkeletonView()
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(viewModel.reels.enumerated()), id: \.element.id) { index, reel in
-                            ReelItemView(
-                                reel: reel,
-                                isActive: index == viewModel.currentIndex,
-                                onLike: { Task { await viewModel.toggleLike(for: reel) } },
-                                onComment: { navigateToComments(reel) },
-                                onShare: {}
-                            )
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .onAppear { viewModel.onReelAppear(at: index) }
+        ZStack(alignment: .top) {
+            GeometryReader { geometry in
+                if viewModel.isLoading && viewModel.reels.isEmpty {
+                    // Skeleton loading for reels
+                    ReelSkeletonView()
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(viewModel.reels.enumerated()), id: \.element.id) { index, reel in
+                                ReelItemView(
+                                    reel: reel,
+                                    isActive: index == viewModel.currentIndex,
+                                    onLike: { Task { await viewModel.toggleLike(for: reel) } },
+                                    onComment: { navigateToComments(reel) },
+                                    onShare: {}
+                                )
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .onAppear { viewModel.onReelAppear(at: index) }
+                            }
                         }
+                        .scrollTargetLayout()
                     }
-                    .scrollTargetLayout()
+                    .scrollTargetBehavior(.paging)
                 }
-                .scrollTargetBehavior(.paging)
             }
+
+            // Custom Navigation Bar for Reels (4 buttons)
+            reelsNavigationBar
         }
         .ignoresSafeArea()
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadReels()
+        }
+    }
+
+    // MARK: - Reels Navigation Bar (4 buttons: 1 leading, 2 center, 1 trailing)
+
+    private var reelsNavigationBar: some View {
+        VStack(spacing: 0) {
+            // Status bar top safe area extension
+            Color.clear
+                .frame(height: DS.Size.navBarStatusBarHeight)
+
+            HStack {
+                // Button 1: Leading (Camera)
+                Button {
+                    AppRouter.shared.present(fullScreen: .camera)
+                } label: {
+                    Image(systemName: "camera")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                // Buttons 2 & 3: Center (Reels / Following)
+                HStack(spacing: DS.Spacing.md) {
+                    Button {
+                        selectedTabMode = 0
+                    } label: {
+                        Text(L10n.Tab.reels)
+                            .font(DS.Font.title3)
+                            .fontWeight(selectedTabMode == 0 ? .bold : .medium)
+                            .foregroundStyle(selectedTabMode == 0 ? .white : .white.opacity(DS.Opacity.medium))
+                    }
+
+                    Button {
+                        selectedTabMode = 1
+                    } label: {
+                        Text(L10n.Common.following)
+                            .font(DS.Font.title3)
+                            .fontWeight(selectedTabMode == 1 ? .bold : .medium)
+                            .foregroundStyle(selectedTabMode == 1 ? .white : .white.opacity(DS.Opacity.medium))
+                    }
+                }
+
+                Spacer()
+
+                // Button 4: Trailing (Search)
+                Button {
+                    AppRouter.shared.switchTab(.explore)
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                }
+            }
+            .padding(.horizontal, DS.Padding.horizontal)
+            .frame(height: DS.Size.buttonDefaultHeight)
+            .padding(.bottom, DS.Spacing.xs)
+        }
+        .background {
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(Constants.blackGradientTop),
+                        Color.black.opacity(Constants.blackGradientMid),
+                        Color.black.opacity(Constants.gradientStopClear)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+            }
+            .mask(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(Constants.gradientStopFull),
+                        Color.white.opacity(Constants.gradientStopHigh),
+                        Color.white.opacity(Constants.gradientStopMid),
+                        Color.white.opacity(Constants.gradientStopClear)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
         }
     }
 
@@ -231,4 +325,15 @@ struct ReelItemView: View {
         }
         return "\(count)"
     }
+}
+
+// MARK: - Constants
+
+private enum Constants {
+    static let gradientStopFull: Double = 0.95
+    static let gradientStopHigh: Double = 0.70
+    static let gradientStopMid: Double = 0.30
+    static let gradientStopClear: Double = 0.00
+    static let blackGradientTop: Double = 0.40
+    static let blackGradientMid: Double = 0.20
 }

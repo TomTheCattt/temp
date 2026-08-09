@@ -16,6 +16,7 @@ Module hiển thị và phát Reels (video ngắn dạng TikTok) full-screen. H�
 
 ### ReelsView + ReelItemView
 - **Full-screen paging**: `.scrollTargetBehavior(.paging)` — mỗi reel chiếm 1 screen
+- **Custom Navigation Bar**: thanh overlay cố định ở vị trí trên cùng (không ẩn hiện khi cuộn) với 4 button (1 leading nút Camera, 2 center nút chọn "Reels"/"Following", 1 trailing nút Search). Phủ mặt nạ `LinearGradient` blur giảm dần từ top xuống bottom hòa quyện mượt mà vào video full-screen.
 - **Skeleton**: `ReelSkeletonView` khi loading
 - **Video thumbnail background**: hiển thị thumbnail trước khi video sẵn sàng
 - **Dim overlay + Play icon**: cho reel không active

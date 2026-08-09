@@ -15,7 +15,7 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
-            // MARK: Feed Tab
+            // MARK: 1. Feed Tab
             NavigationStack(path: $router.feedPath) {
                 FeedView()
                     .navigationDestination(for: AppRoute.self) { route in
@@ -25,17 +25,7 @@ struct MainTabView: View {
             .tag(AppTab.feed)
             .tabItem { tabLabel(for: .feed) }
 
-            // MARK: Explore Tab
-            NavigationStack(path: $router.explorePath) {
-                ExploreView()
-                    .navigationDestination(for: AppRoute.self) { route in
-                        routeDestination(route)
-                    }
-            }
-            .tag(AppTab.explore)
-            .tabItem { tabLabel(for: .explore) }
-
-            // MARK: Reels Tab
+            // MARK: 2. Reels Tab
             NavigationStack(path: $router.reelsPath) {
                 ReelsView(
                     viewModel: ReelsViewModel(
@@ -50,17 +40,27 @@ struct MainTabView: View {
             .tag(AppTab.reels)
             .tabItem { tabLabel(for: .reels) }
 
-            // MARK: Notifications Tab
-            NavigationStack(path: $router.notificationsPath) {
-                NotificationsView()
+            // MARK: 3. Chat Tab
+            NavigationStack(path: $router.chatPath) {
+                DirectMessagesView()
                     .navigationDestination(for: AppRoute.self) { route in
                         routeDestination(route)
                     }
             }
-            .tag(AppTab.notifications)
-            .tabItem { tabLabel(for: .notifications) }
+            .tag(AppTab.chat)
+            .tabItem { tabLabel(for: .chat) }
 
-            // MARK: Profile Tab
+            // MARK: 4. Explore Tab
+            NavigationStack(path: $router.explorePath) {
+                ExploreView()
+                    .navigationDestination(for: AppRoute.self) { route in
+                        routeDestination(route)
+                    }
+            }
+            .tag(AppTab.explore)
+            .tabItem { tabLabel(for: .explore) }
+
+            // MARK: 5. Profile Tab
             NavigationStack(path: $router.profilePath) {
                 ProfileView(userId: nil)
                     .navigationDestination(for: AppRoute.self) { route in

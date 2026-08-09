@@ -17,81 +17,203 @@ struct FeedView: View {
     )
 
     @State private var visiblePostIds: Set<String> = []
+    @State private var isNavBarVisible: Bool = true
+    @State private var isScrolled: Bool = false
+    @State private var lastScrollOffset: CGFloat = 0
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                // Stories bar placeholder
-                StoriesBarView()
-                    .padding(.bottom, 8)
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Top padding for custom nav bar + status bar
+                    Spacer()
+                        .frame(height: DS.Size.buttonDefaultHeight + DS.Size.navBarStatusBarHeight)
 
-                Divider()
+                    // Stories bar
+                    StoriesBarView()
+                        .padding(.bottom, DS.Spacing.xs)
 
-                if viewModel.isLoading && viewModel.posts.isEmpty {
-                    // Skeleton loading state
-                    FeedSkeletonView()
-                } else {
-                    // Posts
-                    ForEach(viewModel.posts) { post in
-                        PostCardView(
-                            post: post,
-                            isVisible: visiblePostIds.contains(post.id)
-                        ) {
-                            Task { await viewModel.toggleLike(for: post) }
-                        }
-                        .onAppear {
-                            visiblePostIds.insert(post.id)
-                            if post.id == viewModel.posts.last?.id {
-                                Task { await viewModel.loadMore() }
+                    Divider()
+
+                    if viewModel.isLoading && viewModel.posts.isEmpty {
+                        // Skeleton loading state
+                        FeedSkeletonView()
+                    } else {
+                        // Posts
+                        ForEach(viewModel.posts) { post in
+                            PostCardView(
+                                post: post,
+                                isVisible: visiblePostIds.contains(post.id)
+                            ) {
+                                Task { await viewModel.toggleLike(for: post) }
                             }
-                        }
-                        .onDisappear {
-                            visiblePostIds.remove(post.id)
+                            .onAppear {
+                                visiblePostIds.insert(post.id)
+                                if post.id == viewModel.posts.last?.id {
+                                    Task { await viewModel.loadMore() }
+                                }
+                            }
+                            .onDisappear {
+                                visiblePostIds.remove(post.id)
+                            }
+
+                            Divider()
                         }
 
-                        Divider()
-                    }
-
-                    if viewModel.isLoading && !viewModel.posts.isEmpty {
-                        ProgressView()
-                            .padding()
+                        if viewModel.isLoading && !viewModel.posts.isEmpty {
+                            ProgressView()
+                                .padding()
+                        }
                     }
                 }
             }
-        }
-        .refreshable {
-            await viewModel.refresh()
-        }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text(L10n.Feed.title)
-                    .font(.system(size: 24, weight: .bold, design: .serif))
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { oldOffset, newOffset in
+                handleScrollOffset(oldOffset: oldOffset, newOffset: newOffset)
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 16) {
-                    Button {
-                        AppRouter.shared.present(sheet: .createPost)
-                    } label: {
-                        Image(systemName: "plus.app")
-                            .font(.title3)
-                    }
+            .refreshable {
+                await viewModel.refresh()
+            }
 
-                    Button {
-                        AppRouter.shared.push(.directMessages)
-                    } label: {
-                        Image(systemName: "paperplane")
-                            .font(.title3)
-                    }
-                }
-                .tint(.primary)
-            }
+            // Custom Navigation Bar (3 evenly spaced buttons)
+            feedNavigationBar
+                .offset(y: isNavBarVisible ? 0 : Constants.navBarHideOffsetY)
+                .opacity(isNavBarVisible ? DS.Opacity.full : 0.0)
+                .animation(Constants.navBarSpring, value: isNavBarVisible)
         }
+        .ignoresSafeArea(.all, edges: .top)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             if viewModel.posts.isEmpty {
                 await viewModel.loadFeed()
             }
         }
     }
+
+    // MARK: - Custom Feed Navigation Bar (3 evenly spaced buttons)
+
+    private var feedNavigationBar: some View {
+        VStack(spacing: 0) {
+            // Status bar safe area top extension
+            Color.clear
+                .frame(height: DS.Size.navBarStatusBarHeight)
+
+            // Buttons row (44pt)
+            HStack {
+                // Button 1: Activity / Notifications
+                Button {
+                    // Notifications
+                } label: {
+                    Image(systemName: "heart")
+                        .font(.title3)
+                }
+
+                Spacer()
+
+                // Button 2: Logo / Dropdown
+                Button {
+                    // Feed filter menu
+                } label: {
+                    HStack(spacing: DS.Spacing.xxs) {
+                        Text(L10n.Feed.title)
+                            .font(.system(size: 24, weight: .bold, design: .serif))
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                    }
+                }
+
+                Spacer()
+
+                // Button 3: Direct Messages / Chat
+                Button {
+                    AppRouter.shared.push(.directMessages)
+                } label: {
+                    Image(systemName: "paperplane")
+                        .font(.title3)
+                }
+            }
+            .tint(.primary)
+            .padding(.horizontal, DS.Padding.horizontal)
+            .frame(height: DS.Size.buttonDefaultHeight)
+
+            if isScrolled {
+                Divider()
+                    .opacity(DS.Opacity.divider)
+            }
+        }
+        .background {
+            if isScrolled {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .mask(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(Constants.gradientStopFull),
+                                Color.white.opacity(Constants.gradientStopHigh),
+                                Color.white.opacity(Constants.gradientStopMid),
+                                Color.white.opacity(Constants.gradientStopClear)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            } else {
+                Color.clear
+            }
+        }
+        .animation(DS.Animation.standard, value: isScrolled)
+    }
+
+    // MARK: - Scroll Offset Handling
+
+    private func handleScrollOffset(oldOffset: CGFloat, newOffset: CGFloat) {
+        let delta = newOffset - oldOffset
+        let atTop = newOffset <= Constants.scrollThresholdTop
+
+        if atTop != !isScrolled {
+            withAnimation(DS.Animation.standard) {
+                isScrolled = !atTop
+            }
+        }
+
+        if atTop {
+            if !isNavBarVisible {
+                withAnimation(Constants.navBarSpring) {
+                    isNavBarVisible = true
+                }
+            }
+        } else {
+            // User scrolled down (contentOffset increased) -> hide navbar
+            if delta > Constants.scrollThresholdDelta {
+                if isNavBarVisible {
+                    withAnimation(Constants.navBarSpring) {
+                        isNavBarVisible = false
+                    }
+                }
+            }
+            // User scrolled up (contentOffset decreased) -> show navbar
+            else if delta < -Constants.scrollThresholdDelta {
+                if !isNavBarVisible {
+                    withAnimation(Constants.navBarSpring) {
+                        isNavBarVisible = true
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Constants
+
+private enum Constants {
+    static let navBarHideOffsetY: CGFloat = -140
+    static let scrollThresholdTop: CGFloat = 15
+    static let scrollThresholdDelta: CGFloat = 5
+    static let navBarSpring: SwiftUI.Animation = .spring(response: 0.35, dampingFraction: 0.8)
+    static let gradientStopFull: Double = 0.95
+    static let gradientStopHigh: Double = 0.70
+    static let gradientStopMid: Double = 0.30
+    static let gradientStopClear: Double = 0.00
 }

@@ -32,9 +32,12 @@ Module hiển thị trang profile của user (bản thân hoặc người khác)
 - **Posts grid**: 3 cột, aspect ratio 1:1, tap → postDetail
 - **LazyImage** (Nuke) cho hiệu suất tốt
 
-### Toolbar (current user only)
-- Nút tạo post (plus.app)
-- Nút Settings (hamburger menu)
+### Custom Navigation Bar (4 buttons)
+- **Leading**: Nút khóa/quyền riêng tư (lock icon) + username
+- **Center nghiêng Trailing**: Nút `@` (Threads badge)
+- **Gần Trailing**: Nút tạo bài viết (`plus.app`)
+- **Trailing**: Nút cài đặt menu 3 gạch (`line.3.horizontal`)
+- **Blur**: Không sử dụng blur (nền trong suốt khi ở đỉnh trang, nền phẳng `systemBackground` khi cuộn).
 
 ## Architecture
 

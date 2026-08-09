@@ -16,42 +16,88 @@ struct DirectMessagesView: View {
         messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
     )
 
+    @State private var isScrolled: Bool = false
+
     var body: some View {
-        List {
-            if viewModel.isLoading && viewModel.conversations.isEmpty {
-                ForEach(0..<6, id: \.self) { _ in
-                    conversationPlaceholder
-                }
-            } else {
-                ForEach(viewModel.conversations) { conversation in
-                    ConversationRow(conversation: conversation)
-                        .onTapGesture {
-                            AppRouter.shared.push(.conversation(conversationId: conversation.id))
+        VStack(spacing: 0) {
+            // Custom Navigation Bar for Chat (2 buttons: 1 center, 1 trailing)
+            chatNavigationBar
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    if viewModel.isLoading && viewModel.conversations.isEmpty {
+                        ForEach(0..<6, id: \.self) { _ in
+                            conversationPlaceholder
+                                .padding(.horizontal, DS.Padding.horizontal)
                         }
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: DS.Spacing.xxs, leading: DS.Spacing.md, bottom: DS.Spacing.xxs, trailing: DS.Spacing.md))
+                    } else {
+                        LazyVStack(spacing: 0) {
+                            ForEach(viewModel.conversations) { conversation in
+                                ConversationRow(conversation: conversation)
+                                    .onTapGesture {
+                                        AppRouter.shared.push(.conversation(conversationId: conversation.id))
+                                    }
+                                    .padding(.horizontal, DS.Padding.horizontal)
+                            }
+                        }
+                    }
+                }
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { _, newOffset in
+                let atTop = newOffset <= Constants.scrollThresholdTop
+                if atTop != !isScrolled {
+                    withAnimation(DS.Animation.standard) {
+                        isScrolled = !atTop
+                    }
                 }
             }
         }
-        .listStyle(.plain)
-        .navigationTitle(SessionStore.shared.currentUser?.username ?? "")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // New message
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(DS.Font.title3)
-                }
-                .tint(.primary)
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             if viewModel.conversations.isEmpty {
                 await viewModel.loadConversations()
             }
         }
+    }
+
+    // MARK: - Chat Navigation Bar (2 buttons: 1 center, 1 trailing)
+
+    private var chatNavigationBar: some View {
+        CustomNavBarView(
+            showDivider: true,
+            isScrolled: isScrolled,
+            leading: {
+                Spacer().frame(width: DS.Size.buttonDefaultHeight)
+            },
+            center: {
+                // Button 1: Center (Username dropdown)
+                Button {
+                    // Account switcher
+                } label: {
+                    HStack(spacing: DS.Spacing.xxs) {
+                        Text(SessionStore.shared.currentUser?.username ?? L10n.Tab.chat)
+                            .font(DS.Font.title3)
+                            .fontWeight(.bold)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                    }
+                    .foregroundStyle(Color.primary)
+                }
+            },
+            trailing: {
+                // Button 2: Trailing (New message / Edit)
+                Button {
+                    // New message
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(DS.Font.title3)
+                        .foregroundStyle(Color.primary)
+                }
+            }
+        )
     }
 
     private var conversationPlaceholder: some View {
@@ -190,4 +236,19 @@ private struct ConversationRow: View {
             return nil
         }
     }
+}
+
+// MARK: - ChatScrollOffsetPreferenceKey
+
+private struct ChatScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// MARK: - Constants
+
+private enum Constants {
+    static let scrollThresholdTop: CGFloat = 10
 }

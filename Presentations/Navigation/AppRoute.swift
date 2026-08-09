@@ -11,40 +11,40 @@ import Foundation
 
 enum AppTab: Int, CaseIterable, Identifiable {
     case feed
-    case explore
     case reels
-    case notifications
+    case chat
+    case explore
     case profile
 
     var id: Int { rawValue }
 
     var icon: String {
         switch self {
-        case .feed:          return "house"
-        case .explore:       return "magnifyingglass"
-        case .reels:         return "play.square"
-        case .notifications: return "heart"
-        case .profile:       return "person.circle"
+        case .feed:     return "house"
+        case .reels:    return "play.square"
+        case .chat:     return "paperplane"
+        case .explore:  return "magnifyingglass"
+        case .profile:  return "person.circle"
         }
     }
 
     var selectedIcon: String {
         switch self {
-        case .feed:          return "house.fill"
-        case .explore:       return "magnifyingglass"
-        case .reels:         return "play.square.fill"
-        case .notifications: return "heart.fill"
-        case .profile:       return "person.circle.fill"
+        case .feed:     return "house.fill"
+        case .reels:    return "play.square.fill"
+        case .chat:     return "paperplane.fill"
+        case .explore:  return "magnifyingglass"
+        case .profile:  return "person.circle.fill"
         }
     }
 
     var title: String {
         switch self {
-        case .feed:          return "Home"
-        case .explore:       return "Explore"
-        case .reels:         return "Reels"
-        case .notifications: return "Activity"
-        case .profile:       return "Profile"
+        case .feed:     return "Home"
+        case .reels:    return "Reels"
+        case .chat:     return "Chat"
+        case .explore:  return "Explore"
+        case .profile:  return "Profile"
         }
     }
 }

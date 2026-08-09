@@ -15,7 +15,8 @@ Module hiển thị trang Explore (Discover) với grid ảnh/video và chức n
 
 - **Explore Grid**: LazyVGrid 3 cột hiển thị thumbnails bài viết
 - **Multi-image indicator**: icon overlay cho posts có nhiều ảnh
-- **Search bar** (`.searchable`): luôn hiển thị ở navigation bar
+- **Custom Header Bar**: Search bar mở rộng lấp đầy chiều ngang + 1 button ở trailing (nút Map/Filter). Không sử dụng blur (nền trong suốt khi ở đỉnh trang, nền phẳng `systemBackground` khi cuộn).
+- **Search suggestion pills**: ScrollView ngang bên dưới header chứa các gợi ý tìm kiếm (Dành cho bạn, Nhiếp ảnh, Du lịch, Thời trang, v.v.) với mock data
 - **Tìm kiếm user**: khi nhập >= 2 ký tự → hiển thị danh sách kết quả
 - **Search results**: avatar + username + verified badge + full name
 - **Navigation**: tap post → postDetail, tap user → userProfile

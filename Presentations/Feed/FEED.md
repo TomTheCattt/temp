@@ -21,7 +21,7 @@ Module hiển thị bảng tin (home feed) của ứng dụng — màn hình ch�
 - **Infinite scroll**: load thêm posts khi cuộn đến cuối
 - **Pull-to-refresh**: kéo xuống để reload feed
 - **Visibility tracking**: theo dõi posts nào đang visible (cho video auto-play)
-- **Toolbar**: logo Instagram (serif font) + nút tạo post + nút DM (paperplane)
+- **Custom Navigation Bar**: loại bỏ liquid glass của iOS 26.x, sử dụng 3 inline button cách đều nhau (Logo/Dropdown, Heart notifications, Paperplane direct messages). Xử lý mở rộng Safe Area Top (Status Bar fill), tự động trượt ẩn nhẹ nhàng khi cuộn xuống và trượt hiện lại mượt mà khi cuộn lên (`.onScrollGeometryChange`). Background hoàn toàn trong suốt khi ở đỉnh trang, và phủ mặt nạ `LinearGradient` blur giảm dần từ top xuống bottom khi cuộn.
 
 ### FeedViewModel
 - **Phân trang**: page-based (20 items/page), auto load more

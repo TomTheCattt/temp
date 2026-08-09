@@ -27,13 +27,13 @@ enum FontFamily {
 /// Each style defines: font name, size (px), weight, and letter spacing (%).
 enum AppTypography {
 
-    // MARK: - Title 1 — 21px
+    // MARK: - Title 1 — 25px
 
-    /// Title 1 Bold — 21px, Bold, letterSpacing 1%
-    static let title1Bold = Font.custom(FontFamily.bold, size: 21)
+    /// Title 1 Bold — 25px, Bold, letterSpacing 1%
+    static let title1Bold = Font.custom(FontFamily.bold, size: 25)
 
-    /// Title 1 Regular — 21px, Regular, letterSpacing 1%
-    static let title1Regular = Font.custom(FontFamily.regular, size: 21)
+    /// Title 1 Regular — 25px, Regular, letterSpacing 1%
+    static let title1Regular = Font.custom(FontFamily.regular, size: 25)
 
     // MARK: - Title 2 — 15px
 

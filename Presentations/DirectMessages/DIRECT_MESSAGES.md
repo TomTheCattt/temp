@@ -13,6 +13,8 @@ Module hiển thị danh sách tất cả conversations (hội thoại) của us
 
 ## Tính năng chính
 
+- **Tab 3 trong MainTabView**: Đóng vai trò là Tab Chat với icon máy bay giấy (`paperplane` / `paperplane.fill`)
+- **Custom Navigation Bar (2 buttons)**: Nút Center hiển thị Username current user kèm dropdown chevron, nút Trailing là nút soạn tin nhắn mới (`square.and.pencil`). Không áp dụng hiệu ứng blur (nền trong suốt khi ở đỉnh trang, nền phẳng `systemBackground` khi cuộn).
 - **Danh sách hội thoại**: hiển thị avatar đối phương, username, tin nhắn cuối, thời gian
 - **Unread indicator**: chấm xanh cho conversation chưa đọc
 - **Muted indicator**: icon bell.slash cho conversation đã tắt thông báo
@@ -21,8 +23,6 @@ Module hiển thị danh sách tất cả conversations (hội thoại) của us
 - **Delivery status**: "Đã gửi" / "Đã xem" cho tin nhắn cuối do mình gửi
 - **Skeleton loading**: placeholder khi đang tải lần đầu
 - **Navigation**: tap conversation → push đến ChatView
-- **New message button**: toolbar button (placeholder)
-- **Username display**: title bar hiển thị username của current user
 
 ## Architecture
 

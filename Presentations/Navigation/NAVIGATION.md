@@ -16,13 +16,13 @@ Module quản lý toàn bộ navigation (điều hướng) trong ứng dụng: �
 
 ### AppRoute.swift
 
-**AppTab** (5 tabs):
+**AppTab** (5 tabs theo thứ tự từ trái sang phải):
 | Tab | Icon | Selected Icon |
 |-----|------|---------------|
 | Feed | house | house.fill |
-| Explore | magnifyingglass | magnifyingglass |
 | Reels | play.square | play.square.fill |
-| Notifications | heart | heart.fill |
+| Chat | paperplane | paperplane.fill |
+| Explore | magnifyingglass | magnifyingglass |
 | Profile | person.circle | person.circle.fill |
 
 **AppRoute** (push navigation - Hashable):
@@ -41,7 +41,7 @@ Module quản lý toàn bộ navigation (điều hướng) trong ứng dụng: �
 ### AppRouter.swift
 
 - **Singleton** (`AppRouter.shared`), `@MainActor @Observable`
-- **Mỗi tab có NavigationPath riêng**: `feedPath`, `explorePath`, `reelsPath`, `notificationsPath`, `profilePath`
+- **Mỗi tab có NavigationPath riêng**: `feedPath`, `reelsPath`, `chatPath`, `explorePath`, `profilePath`
 - **API chính**:
   - `push(_ route:)` → thêm route vào stack tab hiện tại
   - `push(_ route:, in tab:)` → push vào tab cụ thể

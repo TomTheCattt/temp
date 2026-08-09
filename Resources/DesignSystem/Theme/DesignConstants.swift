@@ -131,15 +131,13 @@ enum DS {
         /// 120pt — grid cell minimum height.
         static let gridCellMinHeight: CGFloat = 120
 
-        // Tab bar
-        /// 2.5pt — story progress bar height.
-        static let progressBarHeight: CGFloat = 2.5
-
         // Misc
         /// 3pt — grid spacing.
         static let gridSpacing: CGFloat = 2
         /// 30pt — audio disc (reels).
         static let audioDisc: CGFloat = 30
+        /// 44pt — top status bar / safe area extension height.
+        static let navBarStatusBarHeight: CGFloat = 44
     }
 
     // MARK: - CornerRadius

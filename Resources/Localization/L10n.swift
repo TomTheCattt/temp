@@ -213,7 +213,7 @@ enum L10n {
         static let feed = String(localized: "tab.feed")
         static let explore = String(localized: "tab.explore")
         static let reels = String(localized: "tab.reels")
-        static let notifications = String(localized: "tab.notifications")
+        static let chat = String(localized: "tab.chat")
         static let profile = String(localized: "tab.profile")
     }
 }

@@ -17,30 +17,121 @@ struct ExploreView: View {
         searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self)
     )
 
+    @State private var selectedSuggestion: String = "Dành cho bạn"
+    @State private var isScrolled: Bool = false
+
+    private let mockSuggestions = [
+        "Dành cho bạn", "Nhiếp ảnh", "Du lịch", "Thời trang",
+        "Ẩm thực", "Âm nhạc", "Thể thao", "Kiến trúc", "Công nghệ", "Nghệ thuật"
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
-            // Search results overlay
+            // Custom Navigation Bar & Search Suggestions Header
+            exploreHeaderView
+
+            // Search results overlay or Explore Grid
             if !viewModel.searchText.isEmpty {
                 searchResultsList
             } else {
                 exploreGrid
             }
         }
-        .searchable(
-            text: $viewModel.searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: L10n.Common.search
-        )
         .onChange(of: viewModel.searchText) { _, _ in
             Task { await viewModel.search() }
         }
-        .navigationTitle(L10n.Tab.explore)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             if viewModel.explorePosts.isEmpty {
                 await viewModel.loadExplore()
             }
         }
+    }
+
+    // MARK: - Explore Header View (SearchBar + Trailing Button + Suggestion Pills)
+
+    private var exploreHeaderView: some View {
+        VStack(spacing: DS.Spacing.xs) {
+            // Top row: SearchBar expanding to fill space + Trailing button
+            HStack(spacing: DS.Spacing.xs) {
+                // Expanding Search Bar
+                HStack(spacing: DS.Spacing.xs) {
+                    Image(systemName: "magnifyingglass")
+                        .font(DS.Font.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    TextField(L10n.Common.search, text: $viewModel.searchText)
+                        .textFieldStyle(.plain)
+                        .font(DS.Font.subheadline)
+
+                    if !viewModel.searchText.isEmpty {
+                        Button {
+                            viewModel.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(DS.Font.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.vertical, DS.Spacing.xs)
+                .background(ColorTokens.backgroundSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.input))
+
+                // Trailing button
+                Button {
+                    // Explore map/filter action
+                } label: {
+                    Image(systemName: "map")
+                        .font(.title3)
+                        .foregroundStyle(Color.primary)
+                }
+            }
+            .padding(.horizontal, DS.Padding.horizontal)
+
+            // Bottom row: ScrollView displaying search suggestion pills
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.Spacing.xs) {
+                    ForEach(mockSuggestions, id: \.self) { suggestion in
+                        let isSelected = selectedSuggestion == suggestion
+                        Button {
+                            selectedSuggestion = suggestion
+                            if suggestion != "Dành cho bạn" {
+                                viewModel.searchText = suggestion
+                            } else {
+                                viewModel.searchText = ""
+                            }
+                        } label: {
+                            Text(suggestion)
+                                .font(DS.Font.captionBold)
+                                .padding(.horizontal, DS.Spacing.sm)
+                                .padding(.vertical, DS.Spacing.xxs)
+                                .background(
+                                    isSelected ? Color.primary : ColorTokens.backgroundSecondary,
+                                    in: RoundedRectangle(cornerRadius: DS.Radius.medium)
+                                )
+                                .foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+            }
+            .padding(.bottom, DS.Spacing.xxs)
+
+            if isScrolled {
+                Divider()
+                    .opacity(DS.Opacity.divider)
+            }
+        }
+        .padding(.top, DS.Spacing.xxs)
+        .background {
+            if isScrolled {
+                Color(.systemBackground)
+            } else {
+                Color.clear
+            }
+        }
+        .animation(DS.Animation.standard, value: isScrolled)
     }
 
     // MARK: - Explore Grid
@@ -56,6 +147,16 @@ struct ExploreView: View {
                         .onTapGesture {
                             AppRouter.shared.push(.postDetail(postId: post.id))
                         }
+                }
+            }
+        }
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y
+        } action: { _, newOffset in
+            let atTop = newOffset <= Constants.scrollThresholdTop
+            if atTop != !isScrolled {
+                withAnimation(DS.Animation.standard) {
+                    isScrolled = !atTop
                 }
             }
         }
@@ -171,4 +272,19 @@ private struct SearchResultRow: View {
         }
         .contentShape(Rectangle())
     }
+}
+
+// MARK: - ExploreScrollOffsetPreferenceKey
+
+private struct ExploreScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// MARK: - Constants
+
+private enum Constants {
+    static let scrollThresholdTop: CGFloat = 10
 }
