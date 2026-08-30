@@ -56,6 +56,8 @@ enum DS {
         static let compact: CGFloat = 8
         /// Large padding (headers, hero areas).
         static let large: CGFloat = 24
+        /// Huge padding (headers, hero areas).
+        static let huge: CGFloat = 32
         /// Bottom safe area inset padding.
         static let bottomSafe: CGFloat = 34
         /// Input bar padding.
@@ -170,7 +172,7 @@ enum DS {
     enum Font {
         // MARK: Scale
 
-        /// 21pt bold — large titles (Settings, Profile).
+        /// 25pt bold — large titles (Settings, Profile).
         static let largeTitle = AppTypography.title1Bold
         /// 21pt regular — large title regular variant.
         static let largeTitleRegular = AppTypography.title1Regular

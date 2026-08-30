@@ -28,6 +28,9 @@ struct ProfileView: View {
     }
 
     @State private var isScrolled: Bool = false
+    private var isMyProfile: Bool {
+        userId == SessionStore.shared.currentUserId
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,57 +83,11 @@ struct ProfileView: View {
 
     private var profileNavigationBar: some View {
         VStack(spacing: 0) {
-            ZStack {
-                
-                VStack(alignment: .center) {
-                    // Center Button (Lock / Privacy)
-                    Button {
-                        // Privacy settings
-                    } label: {
-                        HStack(spacing: DS.Spacing.xxs) {
-                            Image(systemName: "lock")
-                                .font(DS.Font.title)
-                            Text(viewModel.user?.username ?? "")
-                                .font(DS.Font.largeTitle)
-                                .fontWeight(.bold)
-                        }
-                    }
-                }
-                
-                HStack(spacing: DS.Spacing.md) {
-                    // Leading Button (Create Post +)
-                    Button {
-                        AppRouter.shared.present(sheet: .createPost)
-                    } label: {
-                        Image(systemName: "plus.app")
-                            .font(.title3)
-                    }
-
-                    Spacer()
-                    
-                    //Trailing Button Group
-                    HStack(spacing: DS.Spacing.md) {
-                        // Leading Button (Threads @)
-                        Button {
-                            // Open Threads
-                        } label: {
-                            Image(systemName: "at")
-                                .font(.title3)
-                        }
-                        
-                        // Trailing Button (Menu)
-                        Button {
-                            AppRouter.shared.push(.settings)
-                        } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.title3)
-                        }
-                    }
-                }
+            if isMyProfile {
+                MyProfileNavigationBar(viewModel: $viewModel)
+            } else {
+                UserProfileNavigationBar(viewModel: $viewModel)
             }
-            .tint(.primary)
-            .padding(.horizontal, DS.Padding.horizontal)
-            .frame(height: DS.Size.buttonDefaultHeight)
 
             if isScrolled {
                 Divider()
@@ -344,6 +301,115 @@ struct ProfileView: View {
             return String(format: "%.1fK", Double(count) / 1_000)
         }
         return "\(count)"
+    }
+}
+
+// MARK: - My Profile Navigation Bar
+struct MyProfileNavigationBar: View {
+    
+    @Binding var viewModel: ProfileViewModel
+    
+    var body: some View {
+        ZStack {
+            VStack(alignment: .center) {
+                // Center Button (Lock / Privacy)
+                Button {
+                    // Privacy settings
+                } label: {
+                    HStack(spacing: DS.Spacing.xxs) {
+                        Image(systemName: "lock")
+                            .font(DS.Font.title)
+                        Text(viewModel.user?.username ?? "")
+                            .font(DS.Font.largeTitle)
+                            .fontWeight(.bold)
+                    }
+                }
+            }
+            
+            HStack(spacing: DS.Spacing.md) {
+                // Leading Button (Create Post +)
+                Button {
+                    AppRouter.shared.present(sheet: .createPost)
+                } label: {
+                    Image(systemName: "plus.app")
+                        .font(.title3)
+                }
+                
+                Spacer()
+                
+                //Trailing Button Group
+                HStack(spacing: DS.Spacing.md) {
+                    // Leading Button (Threads @)
+                    Button {
+                        // Open Threads
+                    } label: {
+                        Image(systemName: "at")
+                            .font(.title3)
+                    }
+                    
+                    // Trailing Button (Menu)
+                    Button {
+                        AppRouter.shared.push(.settings)
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title3)
+                    }
+                }
+            }
+        }
+        .tint(.primary)
+        .padding(.horizontal, DS.Padding.horizontal)
+        .frame(height: DS.Size.buttonDefaultHeight)
+    }
+}
+
+// MARK: - User Profile Navigation Bar
+struct UserProfileNavigationBar: View {
+    
+    @Binding var viewModel: ProfileViewModel
+    
+    var body: some View {
+        HStack {
+            // Leading Button Group
+            HStack(spacing: DS.Spacing.xxl) {
+                // Back button
+                Button {
+                    // TODO: Pop view
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.title3)
+                }
+                
+                // User name section
+                Button {
+                    // TODO: User Info
+                } label: {
+                    Text(viewModel.user?.username ?? "Unknown User")
+                        .font(DS.Font.largeTitle)
+                }
+            }
+            
+            Spacer()
+            
+            HStack(spacing: DS.Spacing.xxl) {
+                // Notification Button
+                Button {
+                    // TODO: Notification Menu Drop Items
+                } label: {
+                    Image(systemName: "bell")
+                        .font(.title3)
+                }
+                
+                // Button Action More
+                Button {
+                    // TODO: Pop up actions
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.title3)
+                }
+            }
+        }
+        .padding(.horizontal, DS.Padding.huge)
     }
 }
 
