@@ -22,6 +22,8 @@ Module hiển thị và phát Reels (video ngắn dạng TikTok) full-screen. H�
 - **Dim overlay + Play icon**: cho reel không active
 - **Reel info** (dưới trái): avatar + username + Follow button + caption (2 dòng) + audio track
 - **Action buttons** (bên phải): Like (heart) + Comment + Share + Save + Audio disc
+- **Comment**: mở `CommentsView` dạng sheet cao ~2/3 màn hình (`AppSheet.reelComments(reelId:)`), tái dùng UI comment của post
+- **Error/Empty state**: `ErrorStateView` (retry) / `EmptyStateView` trên nền đen khi load lỗi/rỗng
 - **Count format**: K/M format cho likes, comments, shares
 - **Tab bar padding**: tính toán safe area + tab bar height
 

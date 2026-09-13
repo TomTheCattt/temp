@@ -17,10 +17,11 @@ Module hiển thị chi tiết đầy đủ một bài post: media, thông tin t
 - **Comments section**: danh sách comments ngay dưới post
 - **Comment input bar**: TextField + nút Post ở dưới cùng
 - **Toggle like**: optimistic update (heart fill + likes count)
+- **More menu (ellipsis)**: Menu với Edit (chỉ hiện khi là post của mình → mở `AppSheet.editPost`) + Report (`AppSheet.reportPost`)
 - **Bookmark**: nút save (placeholder)
 - **Share**: nút paperplane (placeholder)
 - **Pull-to-refresh**: reload post + comments
-- **Loading overlay**: ProgressView khi post chưa load
+- **Loading / Error state**: ProgressView khi đang load; `ErrorStateView` (retry) khi load post lỗi
 
 ## Architecture
 

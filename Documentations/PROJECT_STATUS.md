@@ -1,6 +1,6 @@
 # Instagram Clone — Project Status
 
-> Last updated: 2026-08-09
+> Last updated: 2026-09-13
 
 ---
 
@@ -52,9 +52,12 @@
 - [x] PermissionService
 - [x] DI Container (6 assemblies: Network, Service, Repository, UseCase, ViewModel)
 - [x] NetworkService (request/requestEnvelope/requestVoid/upload/download + Combine)
+- [x] NetworkService detects global states (503 → maintenance, 426 → force-update) via AppState
+- [x] NetworkMonitor (NWPathMonitor, @Observable) — offline/online toast
+- [x] AppState (@Observable global: isUnderMaintenance, forceUpdateRequired)
 - [x] APIEndpoint protocol + all endpoint enums
-- [x] RequestInterceptor (auth token + retry)
-- [x] AuthManager (token storage, refresh, logout)
+- [x] RequestInterceptor (auth token + retry; forced logout on 401 → session-expired toast)
+- [x] AuthManager (token storage, refresh, logout with reason)
 - [x] WebSocket (thread-safe, auto-reconnect, exponential backoff + jitter, connection state)
 - [x] WebSocket Message Handler (chat + call signaling + presence)
 - [x] CallKit integration (CallManager + CXProvider)
@@ -72,9 +75,10 @@
 
 - [x] Entities: User, Post, Story, Comment, Reel, Message, Conversation, AppNotification
 - [x] Repository Protocols: Auth, User, Post, Story, Comment, Message, Notification, Reel
-- [x] UseCases: Login, Register, FetchFeed, ToggleLike, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications, FetchComments, AddComment, FetchPostDetail, CreatePost, FetchReels, ToggleLikeReel, FetchMessages, SendMessage, UpdateProfile, FetchFollowers, FetchFollowing
+- [x] UseCases: Login, Register, ChangePassword, FetchFeed, ToggleLike, ToggleSavePost, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications, FetchComments, AddComment, FetchPostDetail, CreatePost, UpdatePost, FetchReels, ToggleLikeReel, FetchMessages, SendMessage, UpdateProfile, FetchFollowers, FetchFollowing
 - [x] Base types: UseCase protocol, PaginationInput, NoInput, AuthSession
-- [x] Error types: APIError, AuthError, ValidationError, CallServiceError, WebSocketError, LUTError
+- [x] Error types: APIError (+ friendly `userMessage` + `Error.userMessage`), AuthError, ValidationError, CallServiceError, WebSocketError, LUTError
+- [x] `LogoutReason` (user-initiated vs session-expired) for AuthManager.logout
 
 ### Data Layer
 
@@ -128,7 +132,13 @@
 - [x] Share Post sheet (search contacts, quick share, send as DM, copy link)
 - [x] Report Post sheet (10 report reasons, submit, confirmation)
 - [x] Create Reel (camera + gallery picker, duration selector, editor, publish)
+- [x] Edit Post ("Edit info" sheet: caption + location, media immutable, discard confirm)
+- [x] Reel Comments (post comments UI reused, presented as ~2/3-height sheet)
+- [x] Change Password (validated flow via Firebase updatePassword + reauth; mock-friendly)
 - [x] Dark Mode (ThemeManager, ColorTokens, theme picker in Settings)
+- [x] Reusable ErrorStateView / EmptyStateView on data-fetch screens (Feed, Profile, Reels, PostDetail, Comments, Chat, FollowList, LikesList)
+- [x] RootContainerView + global blocking overlays: MaintenanceView, ForceUpdateView
+- [x] Global feedback wired: connectivity/session-expiry/API-error toasts; action HUD (publish/save/logout)
 
 ### Design System
 
@@ -170,7 +180,7 @@
 15. [ ] Pagination improvements (cursor-based)
 16. [ ] Deep link handling
 17. [x] Dark mode / Theming (ThemeManager + ColorTokens + system/light/dark toggle)
-18. [ ] Localization (Vietnamese + English)
+18. [x] Localization (Vietnamese + English) — L10n + Localizable.xcstrings, user-facing strings localized
 19. [ ] Accessibility (VoiceOver, Dynamic Type)
 20. [ ] Unit tests + snapshot tests
 21. [ ] Performance optimization (lazy loading, prefetch)
@@ -252,6 +262,8 @@ Instagram/
 ├── Config/
 │   └── AppEnvironment.swift            (AppEnvironment + AppConfig)
 ├── Core/
+│   ├── AppState/
+│   │   └── AppState.swift               (@Observable global: maintenance / force-update)
 │   ├── Calling/
 │   │   ├── CallManager.swift           (CXProvider + CXCallController)
 │   │   └── CallService.swift           (state machine + coordination)
@@ -272,6 +284,7 @@ Instagram/
 │   ├── Networking/
 │   │   ├── APIEndPoint.swift
 │   │   ├── NetworkService.swift
+│   │   ├── NetworkMonitor.swift        (NWPathMonitor → offline/online toast)
 │   │   ├── RequestInterceptor.swift
 │   │   └── Endpoints/
 │   │       ├── PostEndpoint.swift
@@ -363,12 +376,15 @@ Instagram/
 │       ├── UseCase.swift               (base protocol)
 │       ├── Auth/LoginUseCase.swift
 │       ├── Auth/RegisterUseCase.swift
+│       ├── Auth/ChangePasswordUseCase.swift
 │       ├── Comment/FetchCommentsUseCase.swift
 │       ├── Comment/AddCommentUseCase.swift
 │       ├── Feed/FetchFeedUseCase.swift
 │       ├── Feed/FetchPostDetailUseCase.swift
 │       ├── Feed/CreatePostUseCase.swift
+│       ├── Feed/UpdatePostUseCase.swift
 │       ├── Feed/ToggleLikePostUseCase.swift
+│       ├── Feed/ToggleSavePostUseCase.swift
 │       ├── Message/FetchMessagesUseCase.swift
 │       ├── Message/SendMessageUseCase.swift
 │       ├── Notification/FetchNotificationsUseCase.swift
@@ -399,6 +415,8 @@ Instagram/
 │   ├── Comments/
 │   │   ├── CommentsView.swift
 │   │   └── CommentsViewModel.swift
+│   ├── Common/
+│   │   └── ContentStateView.swift      (ErrorStateView + EmptyStateView)
 │   ├── CreatePost/
 │   │   ├── CreatePostView.swift
 │   │   ├── CreatePostViewModel.swift
@@ -406,6 +424,9 @@ Instagram/
 │   ├── DirectMessages/
 │   │   ├── DirectMessagesView.swift
 │   │   └── DirectMessagesViewModel.swift
+│   ├── EditPost/
+│   │   ├── EditPostView.swift
+│   │   └── EditPostViewModel.swift
 │   ├── EditProfile/
 │   │   ├── EditProfileView.swift
 │   │   └── EditProfileViewModel.swift
@@ -455,6 +476,12 @@ Instagram/
 │   │   └── LocationViewModel.swift
 │   ├── MediaViewer/
 │   │   └── MediaViewerView.swift
+│   ├── Maintenance/
+│   │   └── MaintenanceView.swift       (global blocking, HTTP 503)
+│   ├── ForceUpdate/
+│   │   └── ForceUpdateView.swift       (global blocking, HTTP 426)
+│   ├── Root/
+│   │   └── RootContainerView.swift     (hosts Splash + global overlays)
 │   └── Stories/
 │       ├── StoriesBarView.swift
 │       ├── StoryViewerView.swift
@@ -469,6 +496,10 @@ Instagram/
 │   │   └── Toast/ToastManager.swift
 │   └── Localization/
 └── Documentations/
+    ├── API_RESPONSES.md                (backend API contract reference)
+    ├── DEVELOPMENT_NOTES.md
+    ├── DEVELOPMENT_RULES.md
+    ├── PROJECT_ARCHITECTURE.md
     ├── PROJECT_STATUS.md               ← You are here
     └── SKILLS_AND_ACHIEVEMENTS.md
 ```

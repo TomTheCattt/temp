@@ -14,12 +14,15 @@ When developing a feature, read ONLY the relevant files listed below. Do NOT sca
 - #[[file:Domain/Repositories/AuthRepositoryProtocol.swift]]
 - #[[file:Domain/UseCases/Auth/LoginUseCase.swift]]
 - #[[file:Domain/UseCases/Auth/RegisterUseCase.swift]]
+- #[[file:Domain/UseCases/Auth/ChangePasswordUseCase.swift]]
 - #[[file:Data/DataSources/Mock/MockAuthDataSource.swift]]
 - #[[file:Data/Repositories/AuthRepository.swift]]
 - #[[file:Core/Security/AuthManager.swift]]
+- #[[file:Core/Security/FirebaseAuthService.swift]]
 - #[[file:Core/Security/KeychainManager.swift]]
 - #[[file:Presentations/Auth/AuthViewModel.swift]]
 - #[[file:Presentations/Auth/LoginView.swift]]
+- #[[file:Presentations/Settings/ChangePasswordView.swift]]
 
 ---
 
@@ -29,11 +32,16 @@ When developing a feature, read ONLY the relevant files listed below. Do NOT sca
 - #[[file:Domain/Repositories/PostRepositoryProtocol.swift]]
 - #[[file:Domain/UseCases/Feed/FetchFeedUseCase.swift]]
 - #[[file:Domain/UseCases/Feed/ToggleLikePostUseCase.swift]]
+- #[[file:Domain/UseCases/Feed/ToggleSavePostUseCase.swift]]
+- #[[file:Domain/UseCases/Feed/CreatePostUseCase.swift]]
+- #[[file:Domain/UseCases/Feed/UpdatePostUseCase.swift]]
 - #[[file:Data/DataSources/Mock/MockPostDataSource.swift]]
 - #[[file:Data/Repositories/PostRepository.swift]]
 - #[[file:Presentations/Feed/FeedViewModel.swift]]
 - #[[file:Presentations/Feed/FeedView.swift]]
 - #[[file:Presentations/Feed/PostCardView.swift]]
+- #[[file:Presentations/EditPost/EditPostView.swift]]
+- #[[file:Presentations/EditPost/EditPostViewModel.swift]]
 
 ---
 
@@ -95,6 +103,8 @@ When developing a feature, read ONLY the relevant files listed below. Do NOT sca
 - #[[file:Core/WebSocket/WebSocketMessageHandler.swift]]
 - #[[file:Presentations/DirectMessages/DirectMessagesViewModel.swift]]
 - #[[file:Presentations/DirectMessages/DirectMessagesView.swift]]
+- #[[file:Presentations/Chat/ChatView.swift]]
+- #[[file:Presentations/Chat/ChatViewModel.swift]]
 
 ---
 
@@ -152,8 +162,23 @@ When developing a feature, read ONLY the relevant files listed below. Do NOT sca
 
 - #[[file:Core/Networking/APIEndPoint.swift]]
 - #[[file:Core/Networking/NetworkService.swift]]
+- #[[file:Core/Networking/NetworkMonitor.swift]]
 - #[[file:Core/Networking/RequestInterceptor.swift]]
 - #[[file:Common/Errors/APIErrors.swift]]
+
+---
+
+## Global UI, Error Handling & App State (cross-cutting)
+
+- #[[file:Common/Errors/APIErrors.swift]] (APIError.userMessage + Error.userMessage)
+- #[[file:Core/AppState/AppState.swift]] (maintenance / force-update flags)
+- #[[file:Core/Networking/NetworkMonitor.swift]] (offline/online toast)
+- #[[file:Resources/DesignSystem/Toast/ToastManager.swift]]
+- #[[file:Resources/DesignSystem/HUD/HUDManager.swift]]
+- #[[file:Presentations/Common/ContentStateView.swift]] (ErrorStateView + EmptyStateView)
+- #[[file:Presentations/Root/RootContainerView.swift]]
+- #[[file:Presentations/Maintenance/MaintenanceView.swift]]
+- #[[file:Presentations/ForceUpdate/ForceUpdateView.swift]]
 
 ---
 

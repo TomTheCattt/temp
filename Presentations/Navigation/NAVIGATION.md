@@ -28,12 +28,13 @@ Module quản lý toàn bộ navigation (điều hướng) trong ứng dụng: �
 **AppRoute** (push navigation - Hashable):
 - Profile: `userProfile`, `followers`, `following`, `settings`
 - Settings sub-screens: `savedPosts`, `closeFriends`, `blockedAccounts`, `changePassword`, `twoFactorAuth`, `termsOfService`, `privacyPolicy`, `openSourceLicenses`
-- Feed/Post: `postDetail`, `comments`, `likes`
+- Feed/Post: `postDetail`, `comments`, `likes`, `notifications`
 - Messages: `directMessages`, `conversation`
 - Explore: `searchResults`, `hashtag`, `location`
 
 **AppSheet** (modal sheets - Identifiable):
-- `createPost`, `createStory`, `createReel`, `editProfile`, `sharePost`, `reportPost`, `editPost`
+- `createPost`, `createStory`, `createReel`, `editProfile`, `sharePost`, `reportPost`, `editPost`, `reelComments`
+- `editPost` → `EditPostView` ("Edit info"); `reelComments` → `CommentsView` ở detent ~2/3 màn hình
 
 **AppFullScreen** (full-screen covers - Identifiable):
 - `camera`, `mediaViewer`, `storyCamera`, `storyViewer`, `myStory`

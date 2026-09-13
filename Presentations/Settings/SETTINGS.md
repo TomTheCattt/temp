@@ -68,7 +68,8 @@ Module quản lý toàn bộ cài đặt ứng dụng: tài khoản, giao diện
 ### ChangePasswordView
 - Form: Current Password + New Password + Confirm Password
 - Validation: current not empty, new >= 6 chars, confirm matches
-- Success/Error alerts
+- Save gọi `ChangePasswordUseCase` (live: Firebase `updatePassword` + reauthenticate; mock: giả lập thành công)
+- Success/Error alerts (lỗi dùng `error.userMessage`)
 
 ### CloseFriendsView
 - Explanation text + Searchable + ContentUnavailableView (empty state)
