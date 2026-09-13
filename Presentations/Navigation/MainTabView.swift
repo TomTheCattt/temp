@@ -154,6 +154,9 @@ struct MainTabView: View {
                 )
             )
 
+        case .notifications:
+            NotificationsView()
+
         case .directMessages:
             DirectMessagesView()
 

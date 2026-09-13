@@ -23,6 +23,45 @@ struct Post: Identifiable, Hashable, Sendable {
     let isSponsored: Bool
 }
 
+// MARK: - Post + Optimistic Update Helpers
+
+extension Post {
+
+    /// Returns a copy with the like state toggled and `likesCount` adjusted accordingly.
+    func withLike(_ liked: Bool) -> Post {
+        Post(
+            id: id,
+            author: author,
+            caption: caption,
+            mediaItems: mediaItems,
+            location: location,
+            likesCount: likesCount + (liked ? 1 : -1),
+            commentsCount: commentsCount,
+            createdAt: createdAt,
+            isLiked: liked,
+            isSaved: isSaved,
+            isSponsored: isSponsored
+        )
+    }
+
+    /// Returns a copy with the saved (bookmark) state changed.
+    func withSaved(_ saved: Bool) -> Post {
+        Post(
+            id: id,
+            author: author,
+            caption: caption,
+            mediaItems: mediaItems,
+            location: location,
+            likesCount: likesCount,
+            commentsCount: commentsCount,
+            createdAt: createdAt,
+            isLiked: isLiked,
+            isSaved: saved,
+            isSponsored: isSponsored
+        )
+    }
+}
+
 // MARK: - MediaItem
 
 struct MediaItem: Identifiable, Hashable, Sendable {

@@ -31,7 +31,8 @@ final class ViewModelAssembly: Assembly {
         container.register(FeedViewModel.self) { resolver in
             FeedViewModel(
                 fetchFeedUseCase: resolver.resolve(FetchFeedUseCaseProtocol.self)!,
-                toggleLikeUseCase: resolver.resolve(ToggleLikePostUseCaseProtocol.self)!
+                toggleLikeUseCase: resolver.resolve(ToggleLikePostUseCaseProtocol.self)!,
+                toggleSaveUseCase: resolver.resolve(ToggleSavePostUseCaseProtocol.self)!
             )
         }
 

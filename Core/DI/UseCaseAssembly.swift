@@ -43,6 +43,12 @@ final class UseCaseAssembly: Assembly {
             )
         }
 
+        container.register(ToggleSavePostUseCaseProtocol.self) { resolver in
+            ToggleSavePostUseCase(
+                postRepository: resolver.resolve(PostRepositoryProtocol.self)!
+            )
+        }
+
         // MARK: Profile
 
         container.register(FetchProfileUseCaseProtocol.self) { resolver in

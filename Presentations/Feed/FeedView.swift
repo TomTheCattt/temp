@@ -13,7 +13,8 @@ struct FeedView: View {
 
     @State private var viewModel = FeedViewModel(
         fetchFeedUseCase: DIContainer.shared.resolve(FetchFeedUseCaseProtocol.self),
-        toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self)
+        toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self),
+        toggleSaveUseCase: DIContainer.shared.resolve(ToggleSavePostUseCaseProtocol.self)
     )
 
     @State private var visiblePostIds: Set<String> = []
@@ -24,7 +25,7 @@ struct FeedView: View {
     var body: some View {
         ZStack(alignment: .top) {
             ScrollView {
-                VStack(spacing: 0) {
+                LazyVStack(spacing: 0) {
                     // Top padding for custom nav bar + status bar
                     Spacer()
                         .frame(height: DS.Size.buttonDefaultHeight + DS.Size.navBarStatusBarHeight)
@@ -38,15 +39,32 @@ struct FeedView: View {
                     if viewModel.isLoading && viewModel.posts.isEmpty {
                         // Skeleton loading state
                         FeedSkeletonView()
+                    } else if let errorMessage = viewModel.errorMessage, viewModel.posts.isEmpty {
+                        // Error state (only when there is nothing to show)
+                        ErrorStateView(
+                            message: errorMessage,
+                            systemImage: "wifi.exclamationmark",
+                            retryAction: { Task { await viewModel.loadFeed() } }
+                        )
+                    } else if viewModel.posts.isEmpty {
+                        // Empty state
+                        EmptyStateView(
+                            message: L10n.Feed.emptyState,
+                            systemImage: "photo.on.rectangle.angled"
+                        )
                     } else {
                         // Posts
                         ForEach(viewModel.posts) { post in
                             PostCardView(
                                 post: post,
-                                isVisible: visiblePostIds.contains(post.id)
-                            ) {
-                                Task { await viewModel.toggleLike(for: post) }
-                            }
+                                isVisible: visiblePostIds.contains(post.id),
+                                onLikeTapped: {
+                                    Task { await viewModel.toggleLike(for: post) }
+                                },
+                                onSaveTapped: {
+                                    Task { await viewModel.toggleSave(for: post) }
+                                }
+                            )
                             .onAppear {
                                 visiblePostIds.insert(post.id)
                                 if post.id == viewModel.posts.last?.id {
@@ -60,7 +78,7 @@ struct FeedView: View {
                             Divider()
                         }
 
-                        if viewModel.isLoading && !viewModel.posts.isEmpty {
+                        if viewModel.isLoadingMore {
                             ProgressView()
                                 .padding()
                         }
@@ -103,7 +121,7 @@ struct FeedView: View {
             HStack {
                 // Button 1: Activity / Notifications
                 Button {
-                    // Notifications
+                    AppRouter.shared.push(.notifications)
                 } label: {
                     Image(systemName: "heart")
                         .font(.title3)

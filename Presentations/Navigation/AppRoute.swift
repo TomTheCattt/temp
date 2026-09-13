@@ -73,6 +73,7 @@ enum AppRoute: Hashable {
     case postDetail(postId: String)
     case comments(postId: String)
     case likes(postId: String)
+    case notifications
 
     // Messages
     case directMessages

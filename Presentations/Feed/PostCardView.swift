@@ -15,6 +15,7 @@ struct PostCardView: View {
     let post: Post
     let isVisible: Bool
     let onLikeTapped: () -> Void
+    let onSaveTapped: () -> Void
 
     @State private var showHeart = false
 
@@ -72,7 +73,7 @@ struct PostCardView: View {
             }
 
             Button {
-                // More options
+                AppRouter.shared.present(sheet: .reportPost(postId: post.id))
             } label: {
                 Image(systemName: "ellipsis")
                     .foregroundStyle(.primary)
@@ -164,7 +165,7 @@ struct PostCardView: View {
             }
 
             Button {
-                // Share
+                AppRouter.shared.present(sheet: .sharePost(postId: post.id))
             } label: {
                 Image(systemName: "paperplane")
                     .font(DS.Font.title3)
@@ -174,7 +175,7 @@ struct PostCardView: View {
             Spacer()
 
             Button {
-                // Bookmark
+                onSaveTapped()
             } label: {
                 Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
                     .font(DS.Font.title3)
@@ -217,7 +218,7 @@ struct PostCardView: View {
             Button {
                 AppRouter.shared.push(.comments(postId: post.id))
             } label: {
-                Text("View all \(post.commentsCount) comments")
+                Text(L10n.Feed.viewAllComments(post.commentsCount))
                     .font(DS.Font.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -249,14 +250,20 @@ struct PostCardView: View {
 // MARK: - Date Extension
 
 extension Date {
+
+    /// Cached formatter for dates older than a week (avoids per-call allocation).
+    private static let monthDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
     func timeAgoDisplay() -> String {
         let seconds = Int(-timeIntervalSinceNow)
         if seconds < 60 { return "Just now" }
         if seconds < 3600 { return "\(seconds / 60)m ago" }
         if seconds < 86400 { return "\(seconds / 3600)h ago" }
         if seconds < 604800 { return "\(seconds / 86400)d ago" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: self)
+        return Date.monthDayFormatter.string(from: self)
     }
 }
