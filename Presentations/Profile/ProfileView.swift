@@ -379,7 +379,7 @@ struct UserProfileNavigationBar: View {
             HStack(spacing: DS.Spacing.xxl) {
                 // Back button
                 Button {
-                    // TODO: Pop view
+                    AppRouter.shared.pop()
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.title3)
