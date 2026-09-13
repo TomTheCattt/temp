@@ -269,8 +269,29 @@ struct MainTabView: View {
         case .reportPost(let postId):
             ReportPostView(postId: postId)
 
-        case .editPost:
-            Text("Edit Post") // TODO: EditPostView
+        case .editPost(let postId):
+            EditPostView(
+                viewModel: EditPostViewModel(
+                    postId: postId,
+                    fetchPostDetailUseCase: DIContainer.shared.resolve(FetchPostDetailUseCaseProtocol.self),
+                    updatePostUseCase: DIContainer.shared.resolve(UpdatePostUseCaseProtocol.self)
+                )
+            )
+
+        case .reelComments(let reelId):
+            // Reel comments reuse the post comments UI/contract, keyed by the reel id.
+            // Presented as a sheet at ~2/3 screen height, matching Instagram.
+            NavigationStack {
+                CommentsView(
+                    viewModel: CommentsViewModel(
+                        postId: reelId,
+                        fetchCommentsUseCase: DIContainer.shared.resolve(FetchCommentsUseCaseProtocol.self),
+                        addCommentUseCase: DIContainer.shared.resolve(AddCommentUseCaseProtocol.self)
+                    )
+                )
+            }
+            .presentationDetents([.fraction(Constants.reelCommentsSheetFraction)])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -312,5 +333,12 @@ struct MainTabView: View {
                 )
             )
         }
+    }
+
+    // MARK: - Constants
+
+    private enum Constants {
+        /// Reel comments sheet height ≈ 2/3 of the screen (Instagram-style).
+        static let reelCommentsSheetFraction: CGFloat = 2.0 / 3.0
     }
 }

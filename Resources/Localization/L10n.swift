@@ -136,6 +136,19 @@ enum L10n {
         }
     }
 
+    // MARK: - Edit Post
+
+    enum EditPost {
+        static let title = String(localized: "editPost.title")
+        static let caption = String(localized: "editPost.caption")
+        static let captionPlaceholder = String(localized: "editPost.captionPlaceholder")
+        static let location = String(localized: "editPost.location")
+        static let locationPlaceholder = String(localized: "editPost.locationPlaceholder")
+        static let discardTitle = String(localized: "editPost.discardTitle")
+        static let discardConfirm = String(localized: "editPost.discardConfirm")
+        static let keepEditing = String(localized: "editPost.keepEditing")
+    }
+
     // MARK: - Comments
 
     enum Comments {

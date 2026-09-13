@@ -85,7 +85,20 @@ struct PostDetailView: View {
 
                 Spacer()
 
-                Button(action: {}) {
+                Menu {
+                    if post.author.id == SessionStore.shared.currentUserId {
+                        Button {
+                            AppRouter.shared.present(sheet: .editPost(postId: post.id))
+                        } label: {
+                            Label(L10n.EditPost.title, systemImage: "pencil")
+                        }
+                    }
+                    Button(role: .destructive) {
+                        AppRouter.shared.present(sheet: .reportPost(postId: post.id))
+                    } label: {
+                        Label(L10n.ReportPost.title, systemImage: "flag")
+                    }
+                } label: {
                     Image(systemName: "ellipsis")
                         .foregroundStyle(.primary)
                 }
