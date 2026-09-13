@@ -18,6 +18,33 @@ struct FollowListView: View {
     }
 
     var body: some View {
+        Group {
+            if let errorMessage = viewModel.errorMessage, viewModel.users.isEmpty {
+                ErrorStateView(
+                    message: errorMessage,
+                    retryAction: { Task { await viewModel.loadUsers() } }
+                )
+            } else if !viewModel.isLoading && viewModel.filteredUsers.isEmpty {
+                EmptyStateView(
+                    message: L10n.FollowList.empty,
+                    systemImage: "person.2"
+                )
+            } else {
+                listContent
+            }
+        }
+        .searchable(text: $viewModel.searchQuery, prompt: L10n.Common.search)
+        .navigationTitle(viewModel.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            await viewModel.loadUsers()
+        }
+        .task {
+            await viewModel.loadUsers()
+        }
+    }
+
+    private var listContent: some View {
         List {
             ForEach(viewModel.filteredUsers) { user in
                 userRow(user)
@@ -38,15 +65,6 @@ struct FollowListView: View {
             }
         }
         .listStyle(.plain)
-        .searchable(text: $viewModel.searchQuery, prompt: "Search")
-        .navigationTitle(viewModel.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable {
-            await viewModel.loadUsers()
-        }
-        .task {
-            await viewModel.loadUsers()
-        }
     }
 
     // MARK: - User Row

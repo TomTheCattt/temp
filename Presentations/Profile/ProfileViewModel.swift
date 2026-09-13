@@ -64,7 +64,7 @@ final class ProfileViewModel {
             )
             posts = userPosts
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -83,9 +83,10 @@ final class ProfileViewModel {
                 ToggleFollowInput(userId: currentUser.id, isCurrentlyFollowing: wasFollowing)
             )
         } catch {
-            // Revert
+            // Revert and notify.
             currentUser.isFollowing = wasFollowing
             user = currentUser
+            ToastManager.shared.error(error.userMessage)
         }
     }
 }

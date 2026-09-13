@@ -60,7 +60,7 @@ final class CommentsViewModel {
             comments = result
             hasMorePages = result.count >= 20
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -103,7 +103,7 @@ final class CommentsViewModel {
 
             replyingTo = nil
         } catch {
-            errorMessage = error.localizedDescription
+            ToastManager.shared.error(error.userMessage)
         }
 
         isSending = false

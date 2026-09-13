@@ -53,7 +53,7 @@ final class ReelsViewModel {
             reels = result
             hasMorePages = result.count >= 10
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -104,8 +104,9 @@ final class ReelsViewModel {
                 ToggleLikeReelInput(reelId: reel.id, isCurrentlyLiked: reel.isLiked)
             )
         } catch {
-            // Revert
+            // Revert and notify.
             reels[index] = reel
+            ToastManager.shared.error(error.userMessage)
         }
     }
 

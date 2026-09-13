@@ -56,7 +56,7 @@ final class PostDetailViewModel {
         do {
             post = try await fetchPostDetailUseCase.execute(FetchPostDetailInput(postId: postId))
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -102,8 +102,9 @@ final class PostDetailViewModel {
                 ToggleLikeInput(postId: currentPost.id, isCurrentlyLiked: currentPost.isLiked)
             )
         } catch {
-            // Revert on failure
+            // Revert on failure and notify.
             post = currentPost
+            ToastManager.shared.error(error.userMessage)
         }
     }
 
@@ -131,7 +132,7 @@ final class PostDetailViewModel {
                 )
             }
         } catch {
-            errorMessage = error.localizedDescription
+            ToastManager.shared.error(error.userMessage)
         }
     }
 }

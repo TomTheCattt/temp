@@ -33,6 +33,18 @@ struct ChatView: View {
                     if viewModel.isLoading && viewModel.messages.isEmpty {
                         ProgressView()
                             .padding(.top, DS.Spacing.xxxl)
+                    } else if let errorMessage = viewModel.errorMessage, viewModel.messages.isEmpty {
+                        ErrorStateView(
+                            message: errorMessage,
+                            retryAction: { Task { await viewModel.loadMessages() } }
+                        )
+                        .padding(.top, DS.Spacing.xxxl)
+                    } else if viewModel.messages.isEmpty {
+                        EmptyStateView(
+                            message: L10n.Chat.empty,
+                            systemImage: "bubble.left.and.bubble.right"
+                        )
+                        .padding(.top, DS.Spacing.xxxl)
                     } else {
                         // Load more trigger at top
                         if viewModel.messages.count >= DS.Layout.messagesPageSize {

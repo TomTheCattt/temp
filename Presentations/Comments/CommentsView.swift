@@ -26,6 +26,16 @@ struct CommentsView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if viewModel.isLoading && viewModel.comments.isEmpty {
                         loadingPlaceholder
+                    } else if let errorMessage = viewModel.errorMessage, viewModel.comments.isEmpty {
+                        ErrorStateView(
+                            message: errorMessage,
+                            retryAction: { Task { await viewModel.loadComments() } }
+                        )
+                    } else if viewModel.comments.isEmpty {
+                        EmptyStateView(
+                            message: L10n.Comments.empty,
+                            systemImage: "bubble.right"
+                        )
                     } else {
                         ForEach(viewModel.comments) { comment in
                             commentRow(comment)

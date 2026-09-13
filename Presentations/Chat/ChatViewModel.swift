@@ -66,7 +66,7 @@ final class ChatViewModel {
             // Mark as read
             try? await messageRepository.markAsRead(conversationId: conversationId)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -105,7 +105,7 @@ final class ChatViewModel {
             )
             messages.insert(message, at: 0)
         } catch {
-            errorMessage = error.localizedDescription
+            ToastManager.shared.error(error.userMessage)
         }
 
         isSending = false
@@ -120,7 +120,7 @@ final class ChatViewModel {
             )
             messages.insert(message, at: 0)
         } catch {
-            errorMessage = error.localizedDescription
+            ToastManager.shared.error(error.userMessage)
         }
 
         isSending = false

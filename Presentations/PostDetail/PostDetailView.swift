@@ -40,6 +40,16 @@ struct PostDetailView: View {
         .overlay {
             if viewModel.isLoading && viewModel.post == nil {
                 ProgressView()
+            } else if let errorMessage = viewModel.errorMessage, viewModel.post == nil {
+                ErrorStateView(
+                    message: errorMessage,
+                    retryAction: {
+                        Task {
+                            await viewModel.loadPost()
+                            await viewModel.loadComments()
+                        }
+                    }
+                )
             }
         }
         .task {

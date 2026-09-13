@@ -63,7 +63,7 @@ final class LikesListViewModel {
             // Real implementation would have a dedicated endpoint: POST /posts/{id}/likes
             users = try await userRepository.fetchSuggested(page: 1, perPage: 50)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -83,6 +83,7 @@ final class LikesListViewModel {
             )
         } catch {
             users[index] = user
+            ToastManager.shared.error(error.userMessage)
         }
     }
 }

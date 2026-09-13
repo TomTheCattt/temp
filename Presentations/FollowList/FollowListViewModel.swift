@@ -68,7 +68,7 @@ final class FollowListViewModel {
     }
 
     var title: String {
-        mode == .followers ? "Followers" : "Following"
+        mode == .followers ? L10n.Profile.followers : L10n.Profile.following
     }
 
     // MARK: - Actions
@@ -91,7 +91,7 @@ final class FollowListViewModel {
             users = result
             hasMorePages = result.count >= 30
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -140,8 +140,9 @@ final class FollowListViewModel {
                 )
             }
         } catch {
-            // Revert
+            // Revert and notify.
             users[index] = user
+            ToastManager.shared.error(error.userMessage)
         }
     }
 }

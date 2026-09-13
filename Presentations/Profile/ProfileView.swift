@@ -56,7 +56,12 @@ struct ProfileView: View {
                         postsGrid
                     } else if viewModel.isLoading {
                         ProgressView()
-                            .padding(.top, 100)
+                            .padding(.top, DS.Spacing.xxxl)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        ErrorStateView(
+                            message: errorMessage,
+                            retryAction: { Task { await viewModel.loadProfile() } }
+                        )
                     }
                 }
             }

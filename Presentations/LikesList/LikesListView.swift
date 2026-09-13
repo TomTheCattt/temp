@@ -18,6 +18,30 @@ struct LikesListView: View {
     }
 
     var body: some View {
+        Group {
+            if let errorMessage = viewModel.errorMessage, viewModel.users.isEmpty {
+                ErrorStateView(
+                    message: errorMessage,
+                    retryAction: { Task { await viewModel.loadLikes() } }
+                )
+            } else if !viewModel.isLoading && viewModel.filteredUsers.isEmpty {
+                EmptyStateView(
+                    message: L10n.LikesList.empty,
+                    systemImage: "heart"
+                )
+            } else {
+                listContent
+            }
+        }
+        .searchable(text: $viewModel.searchQuery, prompt: L10n.Common.search)
+        .navigationTitle(L10n.LikesList.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.loadLikes()
+        }
+    }
+
+    private var listContent: some View {
         List {
             ForEach(viewModel.filteredUsers) { user in
                 likeRow(user)
@@ -33,12 +57,6 @@ struct LikesListView: View {
             }
         }
         .listStyle(.plain)
-        .searchable(text: $viewModel.searchQuery, prompt: "Search")
-        .navigationTitle("Likes")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.loadLikes()
-        }
     }
 
     // MARK: - Like Row

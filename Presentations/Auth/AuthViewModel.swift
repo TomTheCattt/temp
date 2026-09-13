@@ -69,7 +69,7 @@ final class AuthViewModel {
 
     func login() async {
         guard isLoginValid else {
-            errorMessage = "Please enter a valid email and password."
+            errorMessage = L10n.Auth.invalidLogin
             return
         }
 
@@ -82,7 +82,7 @@ final class AuthViewModel {
             )
             handleAuthSuccess(session)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -90,7 +90,7 @@ final class AuthViewModel {
 
     func register() async {
         guard isRegisterValid else {
-            errorMessage = "Please fill in all fields correctly."
+            errorMessage = L10n.Auth.invalidRegister
             return
         }
 
@@ -108,7 +108,7 @@ final class AuthViewModel {
             )
             handleAuthSuccess(session)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false

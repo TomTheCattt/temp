@@ -25,6 +25,26 @@ struct ReelsView: View {
                 if viewModel.isLoading && viewModel.reels.isEmpty {
                     // Skeleton loading for reels
                     ReelSkeletonView()
+                } else if let errorMessage = viewModel.errorMessage, viewModel.reels.isEmpty {
+                    ZStack {
+                        Color.black
+                        ErrorStateView(
+                            message: errorMessage,
+                            retryAction: { Task { await viewModel.loadReels() } }
+                        )
+                        .foregroundStyle(.white)
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                } else if viewModel.reels.isEmpty {
+                    ZStack {
+                        Color.black
+                        EmptyStateView(
+                            message: L10n.Reels.empty,
+                            systemImage: "play.slash"
+                        )
+                        .foregroundStyle(.white)
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 } else {
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 0) {
