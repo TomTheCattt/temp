@@ -40,6 +40,38 @@ enum L10n {
         static let send = String(localized: "common.send")
         static let sponsored = String(localized: "common.sponsored")
         static let sharedContent = String(localized: "common.sharedContent")
+        static let yes = String(localized: "common.yes")
+        static let no = String(localized: "common.no")
+
+        /// Formatted "X likes" label (reused app-wide).
+        static func likesCount(_ count: Int) -> String {
+            String(format: String(localized: "common.likesCount"), count)
+        }
+    }
+
+    // MARK: - Error (user-facing, friendly)
+
+    enum Error {
+        /// Generic fallback for unexpected/technical errors.
+        static let generic = String(localized: "error.generic")
+        /// No internet connection.
+        static let offline = String(localized: "error.offline")
+        /// Connection restored.
+        static let backOnline = String(localized: "error.backOnline")
+        /// Request timed out.
+        static let timeout = String(localized: "error.timeout")
+        /// Cannot reach the server.
+        static let cannotReachServer = String(localized: "error.cannotReachServer")
+        /// Server-side failure.
+        static let server = String(localized: "error.server")
+        /// Session expired (forced logout).
+        static let sessionExpired = String(localized: "error.sessionExpired")
+        /// Action not allowed.
+        static let forbidden = String(localized: "error.forbidden")
+        /// Resource not found.
+        static let notFound = String(localized: "error.notFound")
+        /// Generic title for error state views.
+        static let title = String(localized: "error.title")
     }
 
     // MARK: - Auth
@@ -53,6 +85,8 @@ enum L10n {
         static let haveAccount = String(localized: "auth.haveAccount")
         static let logoutConfirmTitle = String(localized: "auth.logoutConfirmTitle")
         static let logoutConfirmMessage = String(localized: "auth.logoutConfirmMessage")
+        static let invalidLogin = String(localized: "auth.invalidLogin")
+        static let invalidRegister = String(localized: "auth.invalidRegister")
 
         enum Placeholder {
             static let usernameOrEmail = String(localized: "auth.placeholder.usernameOrEmail")
@@ -68,6 +102,12 @@ enum L10n {
 
     enum Feed {
         static let title = String(localized: "feed.title")
+        static let emptyState = String(localized: "feed.emptyState")
+
+        /// "View all N comments" link under a post.
+        static func viewAllComments(_ count: Int) -> String {
+            String(format: String(localized: "feed.viewAllComments"), count)
+        }
     }
 
     // MARK: - Profile
@@ -78,6 +118,7 @@ enum L10n {
         static let following = String(localized: "profile.following")
         static let editProfile = String(localized: "profile.editProfile")
         static let shareProfile = String(localized: "profile.shareProfile")
+        static let unknownUser = String(localized: "profile.unknownUser")
     }
 
     // MARK: - Edit Profile
@@ -102,6 +143,7 @@ enum L10n {
         static let addComment = String(localized: "comments.addComment")
         static let replyPlaceholder = String(localized: "comments.replyPlaceholder")
         static let replyingTo = String(localized: "comments.replyingTo")
+        static let empty = String(localized: "comments.empty")
 
         static func likesCount(_ count: Int) -> String {
             String(format: String(localized: "comments.likesCount"), count)
@@ -160,6 +202,7 @@ enum L10n {
     enum CreateReel {
         static let title = String(localized: "createReel.title")
         static let addAudio = String(localized: "createReel.addAudio")
+        static let videoPreview = String(localized: "createReel.videoPreview")
     }
 
     // MARK: - Settings
@@ -196,6 +239,32 @@ enum L10n {
         static let privacyPolicy = String(localized: "settings.privacyPolicy")
         static let openSourceLicenses = String(localized: "settings.openSourceLicenses")
         static let logOut = String(localized: "settings.logOut")
+
+        // Saved posts
+        static let savedEmptyTitle = String(localized: "settings.savedEmptyTitle")
+        static let savedEmptyDescription = String(localized: "settings.savedEmptyDescription")
+
+        // Blocked accounts
+        static let blockedFooter = String(localized: "settings.blockedFooter")
+        static let blockedEmptyTitle = String(localized: "settings.blockedEmptyTitle")
+        static let blockedEmptyDescription = String(localized: "settings.blockedEmptyDescription")
+
+        // Close friends
+        static let closeFriendsFooter = String(localized: "settings.closeFriendsFooter")
+        static let closeFriendsEmptyTitle = String(localized: "settings.closeFriendsEmptyTitle")
+        static let closeFriendsEmptyDescription = String(localized: "settings.closeFriendsEmptyDescription")
+    }
+
+    // MARK: - Change Password
+
+    enum ChangePassword {
+        static let title = String(localized: "changePassword.title")
+        static let currentPassword = String(localized: "changePassword.currentPassword")
+        static let newPassword = String(localized: "changePassword.newPassword")
+        static let confirmNewPassword = String(localized: "changePassword.confirmNewPassword")
+        static let requirementsFooter = String(localized: "changePassword.requirementsFooter")
+        static let successTitle = String(localized: "changePassword.successTitle")
+        static let successMessage = String(localized: "changePassword.successMessage")
     }
 
     // MARK: - Chat
@@ -205,6 +274,26 @@ enum L10n {
         static let statusSent = String(localized: "chat.statusSent")
         static let statusDelivered = String(localized: "chat.statusDelivered")
         static let statusRead = String(localized: "chat.statusRead")
+        static let empty = String(localized: "chat.empty")
+    }
+
+    // MARK: - Reels
+
+    enum Reels {
+        static let empty = String(localized: "reels.empty")
+    }
+
+    // MARK: - Likes List
+
+    enum LikesList {
+        static let title = String(localized: "likesList.title")
+        static let empty = String(localized: "likesList.empty")
+    }
+
+    // MARK: - Follow List
+
+    enum FollowList {
+        static let empty = String(localized: "followList.empty")
     }
 
     // MARK: - Tabs
@@ -215,5 +304,133 @@ enum L10n {
         static let reels = String(localized: "tab.reels")
         static let chat = String(localized: "tab.chat")
         static let profile = String(localized: "tab.profile")
+    }
+
+    // MARK: - HUD (action feedback)
+
+    /// Fallback status labels for the global action HUD (ProgressHUD).
+    enum HUD {
+        /// Generic success fallback (shown after a successful action when no custom message provided).
+        static let success = String(localized: "hud.success")
+        /// Generic error fallback (shown after a failed action when no custom message provided).
+        static let error = String(localized: "hud.error")
+        /// Loading label while publishing content.
+        static let publishing = String(localized: "hud.publishing")
+        /// Success label after publishing content.
+        static let published = String(localized: "hud.published")
+        /// Loading label while saving.
+        static let saving = String(localized: "hud.saving")
+        /// Success label after saving.
+        static let saved = String(localized: "hud.saved")
+        /// Loading label while logging out.
+        static let loggingOut = String(localized: "hud.loggingOut")
+    }
+
+    // MARK: - Maintenance (global blocking screen)
+
+    enum Maintenance {
+        /// Screen title.
+        static let title = String(localized: "maintenance.title")
+        /// Friendly explanation body.
+        static let message = String(localized: "maintenance.message")
+        /// Retry button label.
+        static let tryAgain = String(localized: "maintenance.tryAgain")
+    }
+
+    // MARK: - Force Update (global blocking screen)
+
+    enum ForceUpdate {
+        /// Screen title.
+        static let title = String(localized: "forceUpdate.title")
+        /// Friendly explanation body.
+        static let message = String(localized: "forceUpdate.message")
+        /// Update CTA button label.
+        static let updateNow = String(localized: "forceUpdate.updateNow")
+    }
+
+    // MARK: - Explore
+
+    enum Explore {
+        static let noResults = String(localized: "explore.noResults")
+    }
+
+    // MARK: - Search
+
+    enum Search {
+        static let title = String(localized: "search.title")
+        static let cityCountry = String(localized: "search.cityCountry")
+
+        static func locationName(_ index: Int) -> String {
+            String(format: String(localized: "search.locationName"), index)
+        }
+    }
+
+    // MARK: - Share Post
+
+    enum SharePost {
+        static let quickShare = String(localized: "sharePost.quickShare")
+    }
+
+    // MARK: - Media Viewer
+
+    enum MediaViewer {
+        static let videoPlayer = String(localized: "mediaViewer.videoPlayer")
+        static let failedToLoad = String(localized: "mediaViewer.failedToLoad")
+    }
+
+    // MARK: - Story
+
+    enum Story {
+        static let yourStory = String(localized: "story.yourStory")
+        static let viewers = String(localized: "story.viewers")
+        static let closeFriends = String(localized: "story.closeFriends")
+        static let deleteTitle = String(localized: "story.deleteTitle")
+        static let deleteMessage = String(localized: "story.deleteMessage")
+    }
+
+    // MARK: - Story Camera
+
+    enum StoryCamera {
+        static let cameraPreview = String(localized: "storyCamera.cameraPreview")
+        static let capturedPhoto = String(localized: "storyCamera.capturedPhoto")
+        static let capturedVideo = String(localized: "storyCamera.capturedVideo")
+        static let yourStory = String(localized: "storyCamera.yourStory")
+        static let closeFriends = String(localized: "storyCamera.closeFriends")
+        static let permissionTitle = String(localized: "storyCamera.permissionTitle")
+        static let permissionMessage = String(localized: "storyCamera.permissionMessage")
+        static let openSettings = String(localized: "storyCamera.openSettings")
+    }
+
+    // MARK: - Report Post
+
+    enum ReportPost {
+        static let title = String(localized: "reportPost.title")
+        static let question = String(localized: "reportPost.question")
+        static let submittedTitle = String(localized: "reportPost.submittedTitle")
+        static let submittedMessage = String(localized: "reportPost.submittedMessage")
+    }
+
+    // MARK: - Call
+
+    enum Call {
+        static let remoteVideo = String(localized: "call.remoteVideo")
+        static let you = String(localized: "call.you")
+        static let calling = String(localized: "call.calling")
+        static let ringing = String(localized: "call.ringing")
+        static let incoming = String(localized: "call.incoming")
+        static let connecting = String(localized: "call.connecting")
+        static let reconnecting = String(localized: "call.reconnecting")
+        static let ending = String(localized: "call.ending")
+        static let videoCall = String(localized: "call.videoCall")
+        static let audioCall = String(localized: "call.audioCall")
+        static let mute = String(localized: "call.mute")
+        static let speaker = String(localized: "call.speaker")
+        static let flip = String(localized: "call.flip")
+        static let ended = String(localized: "call.ended")
+        static let declined = String(localized: "call.declined")
+        static let busy = String(localized: "call.busy")
+        static let noAnswer = String(localized: "call.noAnswer")
+        static let failed = String(localized: "call.failed")
+        static let cancelled = String(localized: "call.cancelled")
     }
 }

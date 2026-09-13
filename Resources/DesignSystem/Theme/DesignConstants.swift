@@ -12,11 +12,13 @@ import SwiftUI
 /// Centralized design constants.
 /// Usage: `DS.Spacing.md`, `DS.Font.username`, `DS.Size.avatarMedium`, etc.
 /// NEVER hard-code numeric values in Views — always reference DS.
-enum DS {
+nonisolated enum DS {
 
     // MARK: - Spacing (padding, margins, gaps)
 
     enum Spacing {
+        /// 1pt — hairline (grid gutters, 1px underlines/dividers).
+        static let hairline: CGFloat = 1
         /// 2pt — hairline gaps.
         static let xxxs: CGFloat = 2
         /// 4pt — tight inner padding.
@@ -39,10 +41,14 @@ enum DS {
         static let xl: CGFloat = 24
         /// 32pt — screen section dividers.
         static let xxl: CGFloat = 32
+        /// 30pt — media control cluster bottom inset.
+        static let mediaControlsBottom: CGFloat = 30
         /// 40pt — extra large.
         static let xxxl: CGFloat = 40
         /// 48pt — modal top padding.
         static let modalTop: CGFloat = 48
+        /// 60pt — picture-in-picture top inset.
+        static let pipTop: CGFloat = 60
     }
 
     // MARK: - Padding (screen-level)
@@ -132,6 +138,43 @@ enum DS {
         static let filterThumbnail: CGFloat = 150
         /// 120pt — grid cell minimum height.
         static let gridCellMinHeight: CGFloat = 120
+
+        // Call
+        /// 100pt — call screen caller avatar.
+        static let avatarCall: CGFloat = 100
+        /// 70pt — incoming call action button.
+        static let callButtonLarge: CGFloat = 70
+        /// 65pt — active call hangup button.
+        static let callButtonMedium: CGFloat = 65
+        /// 120pt — picture-in-picture width.
+        static let pipWidth: CGFloat = 120
+        /// 160pt — picture-in-picture height.
+        static let pipHeight: CGFloat = 160
+
+        // Story overlays
+        /// 24pt — stacked viewer avatar.
+        static let viewerAvatar: CGFloat = 24
+        /// 36pt — stacked viewer avatar cluster width.
+        static let viewerAvatarCluster: CGFloat = 36
+        /// 80pt — story poll option button width.
+        static let pollButtonWidth: CGFloat = 80
+        /// 72pt — create-post filter thumbnail tile.
+        static let filterThumbnailTile: CGFloat = 72
+
+        /// 200pt — chat image message bubble.
+        static let chatImageBubble: CGFloat = 200
+
+        // Skeleton / placeholders
+        /// 150pt — skeleton text line width.
+        static let skeletonLineWidth: CGFloat = 150
+        /// 300pt — media picker preview min height.
+        static let mediaPreviewMinHeight: CGFloat = 300
+        /// 350pt — selected media preview max height.
+        static let mediaPreviewMaxHeight: CGFloat = 350
+        /// 400pt — editor/filter media preview height.
+        static let mediaEditorPreviewHeight: CGFloat = 400
+        /// 60pt — media viewer logo/icon size.
+        static let mediaLogo: CGFloat = 60
 
         // Misc
         /// 3pt — grid spacing.
@@ -244,10 +287,48 @@ enum DS {
         static let low: Double = 0.38
         /// Overlay background.
         static let overlay: Double = 0.5
+        /// Dimming behind the action HUD (ProgressHUD background).
+        static let hudBackground: Double = 0.3
+        /// Faint tint (error banner background wash).
+        static let faint: Double = 0.08
         /// Subtle background tint.
         static let subtle: Double = 0.1
         /// Divider / border.
         static let divider: Double = 0.12
+        /// Placeholder / skeleton fill.
+        static let placeholder: Double = 0.2
+        /// Track behind a progress fill (story progress bar).
+        static let track: Double = 0.35
+        /// Muted media element (dimmed avatar ring, secondary fill).
+        static let muted: Double = 0.4
+        /// Strong overlay content (secondary labels on media).
+        static let strong: Double = 0.7
+        /// Near-opaque overlay control (close buttons on media).
+        static let nearOpaque: Double = 0.8
+    }
+
+    // MARK: - FontSize (system-font sizing on media overlays)
+
+    /// Point sizes for `.font(.system(size:))` used on media overlays
+    /// (stories, camera, calls) where the system font is intentional.
+    /// For standard app typography prefer `DS.Font.*` (Instagram Sans).
+    enum FontSize {
+        /// 11pt — tiny overlay labels (sticker glyphs).
+        static let overlayCaption: CGFloat = 11
+        /// 12pt — small overlay labels.
+        static let overlaySmall: CGFloat = 12
+        /// 13pt — overlay body labels.
+        static let overlayBody: CGFloat = 13
+        /// 14pt — overlay emphasis labels.
+        static let overlayEmphasis: CGFloat = 14
+        /// 16pt — overlay icon/label.
+        static let overlayMedium: CGFloat = 16
+        /// 18pt — overlay control glyph.
+        static let overlayLarge: CGFloat = 18
+        /// 20pt — overlay action glyph (trash, more).
+        static let overlayXLarge: CGFloat = 20
+        /// 22pt — call control glyph.
+        static let overlayCallGlyph: CGFloat = 22
     }
 
     // MARK: - Animation
@@ -286,6 +367,8 @@ enum DS {
         static let mockDelayMin: TimeInterval = 0.3
         /// Mock delay range (upper).
         static let mockDelayMax: TimeInterval = 0.8
+        /// Delay before auto-dismissing the action HUD after success/error feedback.
+        static let hudDismiss: TimeInterval = 0.5
     }
 
     // MARK: - Layout
@@ -316,6 +399,8 @@ enum DS {
     // MARK: - Stroke
 
     enum Stroke {
+        /// Hairline border (0.5pt) — avatar rings, subtle outlines.
+        static let hairline: CGFloat = 0.5
         /// Thin border (1pt).
         static let thin: CGFloat = 1
         /// Standard border (1.5pt).
@@ -326,5 +411,16 @@ enum DS {
         static let thick: CGFloat = 3
         /// Extra thick (4pt) — capture button.
         static let extraThick: CGFloat = 4
+    }
+
+    // MARK: - Shadow
+
+    enum Shadow {
+        /// Standard blur radius for floating elements (toasts, cards).
+        static let radius: CGFloat = 8
+        /// Large blur radius (elevated media elements, call avatar).
+        static let radiusLarge: CGFloat = 10
+        /// Standard vertical offset for floating elements.
+        static let offsetY: CGFloat = 4
     }
 }
