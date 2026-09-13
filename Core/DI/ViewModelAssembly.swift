@@ -67,7 +67,9 @@ final class ViewModelAssembly: Assembly {
         container.register(ReelsViewModel.self) { resolver in
             ReelsViewModel(
                 fetchReelsUseCase: resolver.resolve(FetchReelsUseCaseProtocol.self)!,
-                toggleLikeReelUseCase: resolver.resolve(ToggleLikeReelUseCaseProtocol.self)!
+                toggleLikeReelUseCase: resolver.resolve(ToggleLikeReelUseCaseProtocol.self)!,
+                toggleFollowUseCase: resolver.resolve(ToggleFollowUseCaseProtocol.self)!,
+                reelRepository: resolver.resolve(ReelRepositoryProtocol.self)!
             )
         }
 

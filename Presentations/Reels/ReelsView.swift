@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import NukeUI
 
 // MARK: - ReelsView
 
@@ -16,8 +17,6 @@ struct ReelsView: View {
     init(viewModel: ReelsViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
-
-    @State private var selectedTabMode: Int = 0 // 0: Reels, 1: Following
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -48,21 +47,26 @@ struct ReelsView: View {
                 } else {
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(viewModel.reels.enumerated()), id: \.element.id) { index, reel in
+                            ForEach(viewModel.reels) { reel in
                                 ReelItemView(
                                     reel: reel,
-                                    isActive: index == viewModel.currentIndex,
+                                    isActive: reel.id == viewModel.currentReelId,
                                     onLike: { Task { await viewModel.toggleLike(for: reel) } },
                                     onComment: { navigateToComments(reel) },
-                                    onShare: {}
+                                    onSave: { Task { await viewModel.toggleSave(for: reel) } },
+                                    onFollow: { Task { await viewModel.followAuthor(of: reel) } }
                                 )
                                 .frame(width: geometry.size.width, height: geometry.size.height)
-                                .onAppear { viewModel.onReelAppear(at: index) }
+                                .id(reel.id)
                             }
                         }
                         .scrollTargetLayout()
                     }
                     .scrollTargetBehavior(.paging)
+                    .scrollPosition(id: $viewModel.currentReelId)
+                    .onChange(of: viewModel.currentReelId) { _, newId in
+                        viewModel.onCurrentReelChanged(to: newId)
+                    }
                 }
             }
 
@@ -99,21 +103,21 @@ struct ReelsView: View {
                 // Buttons 2 & 3: Center (Reels / Following)
                 HStack(spacing: DS.Spacing.md) {
                     Button {
-                        selectedTabMode = 0
+                        viewModel.setFeedMode(.forYou)
                     } label: {
                         Text(L10n.Tab.reels)
                             .font(DS.Font.title3)
-                            .fontWeight(selectedTabMode == 0 ? .bold : .medium)
-                            .foregroundStyle(selectedTabMode == 0 ? .white : .white.opacity(DS.Opacity.medium))
+                            .fontWeight(viewModel.feedMode == .forYou ? .bold : .medium)
+                            .foregroundStyle(viewModel.feedMode == .forYou ? .white : .white.opacity(DS.Opacity.medium))
                     }
 
                     Button {
-                        selectedTabMode = 1
+                        viewModel.setFeedMode(.following)
                     } label: {
                         Text(L10n.Common.following)
                             .font(DS.Font.title3)
-                            .fontWeight(selectedTabMode == 1 ? .bold : .medium)
-                            .foregroundStyle(selectedTabMode == 1 ? .white : .white.opacity(DS.Opacity.medium))
+                            .fontWeight(viewModel.feedMode == .following ? .bold : .medium)
+                            .foregroundStyle(viewModel.feedMode == .following ? .white : .white.opacity(DS.Opacity.medium))
                     }
                 }
 
@@ -175,7 +179,14 @@ struct ReelItemView: View {
     let isActive: Bool
     let onLike: () -> Void
     let onComment: () -> Void
-    let onShare: () -> Void
+    let onSave: () -> Void
+    let onFollow: () -> Void
+
+    /// Profile share URL for this reel's author.
+    private var authorShareURL: URL {
+        URL(string: "\(AppConstants.App.universalLinkHost)/\(reel.author.username)")
+            ?? URL(string: AppConstants.App.universalLinkHost)!
+    }
 
     /// Tab bar height (49) + home indicator (~34) = ~83pt on notch devices.
     /// Using a safe constant that looks good on all devices.
@@ -225,10 +236,12 @@ struct ReelItemView: View {
         VStack(alignment: .leading, spacing: DS.Spacing.xs) {
             // Author
             HStack(spacing: DS.Spacing.xs) {
-                AsyncImage(url: reel.author.avatarURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Circle().fill(Color.gray.opacity(DS.Opacity.overlay))
+                LazyImage(url: reel.author.avatarURL) { state in
+                    if let image = state.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(Color.gray.opacity(DS.Opacity.overlay))
+                    }
                 }
                 .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
                 .clipShape(Circle())
@@ -237,16 +250,19 @@ struct ReelItemView: View {
                     .font(DS.Font.username)
                     .foregroundStyle(.white)
 
-                Button(action: {}) {
-                    Text(L10n.Common.follow)
-                        .font(DS.Font.captionBold)
-                        .padding(.horizontal, DS.Spacing.sm)
-                        .padding(.vertical, DS.Spacing.xxs)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: DS.Radius.small)
-                                .stroke(Color.white, lineWidth: DS.Stroke.thin)
-                        )
-                        .foregroundStyle(.white)
+                // Follow button hides once the author is followed.
+                if !reel.author.isFollowing {
+                    Button(action: onFollow) {
+                        Text(L10n.Common.follow)
+                            .font(DS.Font.captionBold)
+                            .padding(.horizontal, DS.Spacing.sm)
+                            .padding(.vertical, DS.Spacing.xxs)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DS.Radius.small)
+                                    .stroke(Color.white, lineWidth: DS.Stroke.thin)
+                            )
+                            .foregroundStyle(.white)
+                    }
                 }
             }
 
@@ -304,7 +320,7 @@ struct ReelItemView: View {
 
             // Share
             VStack(spacing: DS.Spacing.xxs) {
-                Button(action: onShare) {
+                ShareLink(item: authorShareURL, subject: Text(reel.author.username)) {
                     Image(systemName: "paperplane")
                         .font(DS.Font.title)
                         .foregroundStyle(.white)
@@ -315,7 +331,7 @@ struct ReelItemView: View {
             }
 
             // Save
-            Button(action: {}) {
+            Button(action: onSave) {
                 Image(systemName: reel.isSaved ? "bookmark.fill" : "bookmark")
                     .font(DS.Font.title)
                     .foregroundStyle(.white)
@@ -323,10 +339,12 @@ struct ReelItemView: View {
 
             // Audio disc
             if let audio = reel.audioTrack {
-                AsyncImage(url: audio.coverURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Circle().fill(Color.gray)
+                LazyImage(url: audio.coverURL) { state in
+                    if let image = state.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(Color.gray)
+                    }
                 }
                 .frame(width: DS.Size.audioDisc, height: DS.Size.audioDisc)
                 .clipShape(Circle())

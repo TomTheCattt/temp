@@ -28,10 +28,7 @@ struct MainTabView: View {
             // MARK: 2. Reels Tab
             NavigationStack(path: $router.reelsPath) {
                 ReelsView(
-                    viewModel: ReelsViewModel(
-                        fetchReelsUseCase: DIContainer.shared.resolve(FetchReelsUseCaseProtocol.self),
-                        toggleLikeReelUseCase: DIContainer.shared.resolve(ToggleLikeReelUseCaseProtocol.self)
-                    )
+                    viewModel: DIContainer.shared.resolve(ReelsViewModel.self)
                 )
                 .navigationDestination(for: AppRoute.self) { route in
                     routeDestination(route)
