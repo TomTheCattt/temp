@@ -31,6 +31,25 @@ final class MockPostRepository: PostRepositoryProtocol, @unchecked Sendable {
         return MockData.posts.first!
     }
 
+    func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {
+        try await Task.sleep(nanoseconds: 500_000_000)
+        // Return the matching mock post with updated editable fields applied.
+        let base = MockData.posts.first(where: { $0.id == id }) ?? MockData.posts.first!
+        return Post(
+            id: base.id,
+            author: base.author,
+            caption: caption,
+            mediaItems: base.mediaItems,
+            location: location,
+            likesCount: base.likesCount,
+            commentsCount: base.commentsCount,
+            createdAt: base.createdAt,
+            isLiked: base.isLiked,
+            isSaved: base.isSaved,
+            isSponsored: base.isSponsored
+        )
+    }
+
     func deletePost(id: String) async throws {
         try await Task.sleep(nanoseconds: 300_000_000)
     }

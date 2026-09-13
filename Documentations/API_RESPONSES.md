@@ -549,6 +549,50 @@ Same structure as feed.
 }
 ```
 
+### PUT /v1/posts/:id
+
+Edit an existing post. Only the caption and location are editable — media is
+immutable after creation (matches Instagram). All body fields are optional;
+send only the fields being changed. Send `caption: null` / `locationName: null`
+to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
+
+**Body:**
+```json
+{
+  "caption": "Updated caption ✏️",
+  "locationName": "Da Nang Beach",
+  "locationLat": 16.0544,
+  "locationLng": 108.2022
+}
+```
+
+**Response (200):** Same shape as `GET /v1/posts/:id` (the updated post object wrapped in `{ "post": {...} }`).
+
+```json
+{
+  "success": true,
+  "data": {
+    "post": {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "authorId": "abc123",
+      "caption": "Updated caption ✏️",
+      "locationName": "Da Nang Beach",
+      "locationLat": 16.0544,
+      "locationLng": 108.2022,
+      "likesCount": 15,
+      "commentsCount": 3,
+      "isSponsored": false,
+      "createdAt": "2026-07-15T08:30:00.000Z",
+      "updatedAt": "2026-08-04T16:00:00.000Z",
+      "author": { "id": "abc123", "username": "alice", "fullName": "Alice Nguyen", "avatarUrl": "https://i.pravatar.cc/400?u=alice", "isVerified": false, "isPrivate": false },
+      "mediaItems": [ /* unchanged, same as create/detail */ ],
+      "isLiked": true,
+      "isSaved": false
+    }
+  }
+}
+```
+
 ### DELETE /v1/posts/:id
 
 **Response (204):** No content

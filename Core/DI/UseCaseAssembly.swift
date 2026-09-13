@@ -115,6 +115,12 @@ final class UseCaseAssembly: Assembly {
             )
         }
 
+        container.register(UpdatePostUseCaseProtocol.self) { resolver in
+            UpdatePostUseCase(
+                postRepository: resolver.resolve(PostRepositoryProtocol.self)!
+            )
+        }
+
         // MARK: Reel
 
         container.register(FetchReelsUseCaseProtocol.self) { resolver in

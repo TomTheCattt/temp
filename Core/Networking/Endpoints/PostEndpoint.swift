@@ -17,6 +17,7 @@ enum PostEndpoint: APIEndpoint {
     case userPosts(userId: String, page: Int, perPage: Int)
     case detail(id: String)
     case create(caption: String?, locationName: String?, locationLat: Double?, locationLng: Double?, media: [[String: Any]])
+    case update(id: String, caption: String?, locationName: String?, locationLat: Double?, locationLng: Double?)
     case delete(id: String)
     case like(id: String)
     case unlike(id: String)
@@ -31,6 +32,7 @@ enum PostEndpoint: APIEndpoint {
         case .userPosts(let userId, _, _):      return "/v1/posts/user/\(userId)"
         case .detail(let id):                   return "/v1/posts/\(id)"
         case .create:                           return "/v1/posts"
+        case .update(let id, _, _, _, _):       return "/v1/posts/\(id)"
         case .delete(let id):                   return "/v1/posts/\(id)"
         case .like(let id):                     return "/v1/posts/\(id)/like"
         case .unlike(let id):                   return "/v1/posts/\(id)/like"
@@ -45,6 +47,8 @@ enum PostEndpoint: APIEndpoint {
             return .get
         case .create, .like, .save:
             return .post
+        case .update:
+            return .put
         case .delete, .unlike, .unsave:
             return .delete
         }
@@ -59,6 +63,14 @@ enum PostEndpoint: APIEndpoint {
             return ["page": page, "perPage": perPage]
         case .create(let caption, let locationName, let locationLat, let locationLng, let media):
             var params: Parameters = ["media": media]
+            if let caption { params["caption"] = caption }
+            if let locationName { params["locationName"] = locationName }
+            if let locationLat { params["locationLat"] = locationLat }
+            if let locationLng { params["locationLng"] = locationLng }
+            return params
+        case .update(_, let caption, let locationName, let locationLat, let locationLng):
+            // All fields optional; send only what's provided (partial update / PATCH-like semantics over PUT).
+            var params: Parameters = [:]
             if let caption { params["caption"] = caption }
             if let locationName { params["locationName"] = locationName }
             if let locationLat { params["locationLat"] = locationLat }

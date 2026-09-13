@@ -97,6 +97,21 @@ final class RemotePostDataSource: @unchecked Sendable {
         return PostMapper.toEntity(wrapper.post)
     }
 
+    // MARK: - Update
+
+    func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {
+        let wrapper: PostWrapperDTO = try await networkService.requestEnvelope(
+            PostEndpoint.update(
+                id: id,
+                caption: caption,
+                locationName: location?.name,
+                locationLat: location?.latitude,
+                locationLng: location?.longitude
+            )
+        )
+        return PostMapper.toEntity(wrapper.post)
+    }
+
     // MARK: - Actions
 
     func likePost(id: String) async throws {

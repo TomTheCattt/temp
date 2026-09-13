@@ -23,6 +23,10 @@ protocol PostRepositoryProtocol: Sendable {
     /// Create a new post.
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post
 
+    /// Update an existing post's editable fields (caption / location).
+    /// Media is immutable after creation, matching Instagram behavior.
+    func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post
+
     /// Delete a post.
     func deletePost(id: String) async throws
 

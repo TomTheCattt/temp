@@ -37,6 +37,10 @@ final class PostRepository: PostRepositoryProtocol, @unchecked Sendable {
         try await remoteDataSource.createPost(caption: caption, mediaData: mediaData, location: location)
     }
 
+    func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {
+        try await remoteDataSource.updatePost(id: id, caption: caption, location: location)
+    }
+
     func deletePost(id: String) async throws {
         try await remoteDataSource.deletePost(id: id)
     }
