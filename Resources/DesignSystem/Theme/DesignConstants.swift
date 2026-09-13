@@ -163,6 +163,18 @@ nonisolated enum DS {
 
         /// 200pt — chat image message bubble.
         static let chatImageBubble: CGFloat = 200
+        /// 180pt — chat audio message bubble width.
+        static let chatAudioBubbleWidth: CGFloat = 180
+        /// 200pt — chat video message bubble width.
+        static let chatVideoBubbleWidth: CGFloat = 200
+        /// 150pt — chat video message bubble height.
+        static let chatVideoBubbleHeight: CGFloat = 150
+        /// 60pt — revealed timestamp column width (iMessage-style drag reveal).
+        static let chatTimestampWidth: CGFloat = 60
+        /// 60pt — min horizontal spacer opposite a chat bubble.
+        static let chatBubbleSpacer: CGFloat = 60
+        /// 40pt — like/heart reaction emoji glyph size.
+        static let chatLikeEmoji: CGFloat = 40
 
         // Skeleton / placeholders
         /// 150pt — skeleton text line width.
@@ -369,6 +381,8 @@ nonisolated enum DS {
         static let mockDelayMax: TimeInterval = 0.8
         /// Delay before auto-dismissing the action HUD after success/error feedback.
         static let hudDismiss: TimeInterval = 0.5
+        /// Mock delay before a sent chat message transitions to "read" (receipt simulation).
+        static let chatReadReceipt: TimeInterval = 1.5
     }
 
     // MARK: - Layout
@@ -388,6 +402,10 @@ nonisolated enum DS {
         static let defaultPageSize: Int = 20
         /// Messages page size.
         static let messagesPageSize: Int = 30
+        /// Max leftward drag distance (pt) that fully reveals chat timestamps.
+        static let chatTimestampRevealDistance: CGFloat = 80
+        /// Min horizontal drag (pt) before the timestamp starts revealing.
+        static let chatTimestampRevealThreshold: CGFloat = 5
         /// Story aspect ratio (9:16).
         static let storyAspectRatio: CGFloat = 9.0 / 16.0
         /// Post square aspect ratio.

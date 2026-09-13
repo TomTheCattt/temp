@@ -19,17 +19,31 @@ final class MockMessageDataSource: Sendable {
     func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {
         try await simulateDelay()
 
-        // Generate some mock messages for the conversation
+        // Finite history: only a few pages exist. Beyond that return empty so
+        // the ViewModel's `hasMorePages` (result.count < perPage) becomes false.
+        guard page <= Self.maxMockPages else { return [] }
+
         let otherUser = MockData.users.first ?? MockData.currentUser
-        return (0..<15).map { index in
-            Message(
-                id: "msg_\(conversationId)_\(index)",
+        let pageCount = min(perPage, Self.messagesPerMockPage)
+
+        // Higher pages are OLDER. Offset each page's timestamps further into the
+        // past so merged/sorted results stay strictly ordered without collisions.
+        let pageBaseOffset = Double(page - 1) * Double(pageCount) * Self.messageTimeSpacing
+
+        // Newest-first within the page (index 0 = newest of this page).
+        return (0..<pageCount).map { index in
+            let ageSteps = Double(index) + 1
+            return Message(
+                // Stable, page-scoped id — distinct per (conversation, page, index).
+                id: "msg_\(conversationId)_p\(page)_\(index)",
                 conversationId: conversationId,
                 sender: index % 3 == 0 ? MockData.currentUser : otherUser,
-                content: .text(mockMessages[index % mockMessages.count]),
+                content: .text(mockMessages[(page * pageCount + index) % mockMessages.count]),
                 status: .read,
                 replyToId: nil,
-                createdAt: Date(timeIntervalSinceNow: -Double(15 - index) * 300)
+                createdAt: Date(
+                    timeIntervalSinceNow: -(pageBaseOffset + ageSteps * Self.messageTimeSpacing)
+                )
             )
         }
     }
@@ -78,6 +92,13 @@ final class MockMessageDataSource: Sendable {
     }
 
     // MARK: - Private
+
+    /// Number of distinct older pages of history the mock provides.
+    private static let maxMockPages = 3
+    /// Messages generated per mock page.
+    private static let messagesPerMockPage = 15
+    /// Seconds between consecutive mock messages (used to keep timestamps ordered).
+    private static let messageTimeSpacing: Double = 300
 
     private let mockMessages = [
         "Hey! What's up? 👋",
