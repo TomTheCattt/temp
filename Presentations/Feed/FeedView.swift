@@ -20,7 +20,6 @@ struct FeedView: View {
     @State private var visiblePostIds: Set<String> = []
     @State private var isNavBarVisible: Bool = true
     @State private var isScrolled: Bool = false
-    @State private var lastScrollOffset: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -67,9 +66,7 @@ struct FeedView: View {
                             )
                             .onAppear {
                                 visiblePostIds.insert(post.id)
-                                if post.id == viewModel.posts.last?.id {
-                                    Task { await viewModel.loadMore() }
-                                }
+                                maybeLoadMore(appearingPostId: post.id)
                             }
                             .onDisappear {
                                 visiblePostIds.remove(post.id)
@@ -97,7 +94,7 @@ struct FeedView: View {
             // Custom Navigation Bar (3 evenly spaced buttons)
             feedNavigationBar
                 .offset(y: isNavBarVisible ? 0 : Constants.navBarHideOffsetY)
-                .opacity(isNavBarVisible ? DS.Opacity.full : 0.0)
+                .opacity(isNavBarVisible ? DS.Opacity.full : DS.Opacity.clear)
                 .animation(Constants.navBarSpring, value: isNavBarVisible)
         }
         .ignoresSafeArea(.all, edges: .top)
@@ -124,7 +121,7 @@ struct FeedView: View {
                     AppRouter.shared.push(.notifications)
                 } label: {
                     Image(systemName: "heart")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
 
                 Spacer()
@@ -135,9 +132,9 @@ struct FeedView: View {
                 } label: {
                     HStack(spacing: DS.Spacing.xxs) {
                         Text(L10n.Feed.title)
-                            .font(.system(size: 24, weight: .bold, design: .serif))
+                            .font(DS.Font.navBrand)
                         Image(systemName: "chevron.down")
-                            .font(.caption2)
+                            .font(DS.Font.caption2)
                             .fontWeight(.semibold)
                     }
                 }
@@ -149,7 +146,7 @@ struct FeedView: View {
                     AppRouter.shared.push(.directMessages)
                 } label: {
                     Image(systemName: "paperplane")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
             }
             .tint(.primary)
@@ -182,6 +179,18 @@ struct FeedView: View {
             }
         }
         .animation(DS.Animation.standard, value: isScrolled)
+    }
+
+    // MARK: - Pagination Trigger
+
+    /// Loads the next page when one of the last `loadMoreThreshold` posts appears,
+    /// so new content is ready before the user hits the very bottom.
+    private func maybeLoadMore(appearingPostId: String) {
+        let posts = viewModel.posts
+        guard let index = posts.firstIndex(where: { $0.id == appearingPostId }) else { return }
+        if index >= posts.count - Constants.loadMoreThreshold {
+            Task { await viewModel.loadMore() }
+        }
     }
 
     // MARK: - Scroll Offset Handling
@@ -229,6 +238,8 @@ private enum Constants {
     static let navBarHideOffsetY: CGFloat = -140
     static let scrollThresholdTop: CGFloat = 15
     static let scrollThresholdDelta: CGFloat = 5
+    /// Prefetch the next page when within this many posts of the end.
+    static let loadMoreThreshold: Int = 3
     static let navBarSpring: SwiftUI.Animation = .spring(response: 0.35, dampingFraction: 0.8)
     static let gradientStopFull: Double = 0.95
     static let gradientStopHigh: Double = 0.70

@@ -25,6 +25,11 @@ final class FeedViewModel {
     private var currentPage = 1
     private var hasMorePages = true
 
+    /// Post ids with a like/save mutation currently in flight — prevents
+    /// overlapping toggles from producing inconsistent counts.
+    private var pendingLikeIds: Set<String> = []
+    private var pendingSaveIds: Set<String> = []
+
     // MARK: - Dependencies
 
     private let fetchFeedUseCase: FetchFeedUseCaseProtocol
@@ -90,7 +95,11 @@ final class FeedViewModel {
         let nextPage = currentPage + 1
         do {
             let result = try await fetchFeedUseCase.execute(PaginationInput(page: nextPage, perPage: perPage))
-            posts.append(contentsOf: result)
+            // Merge only posts we don't already have (guards against page-boundary
+            // overlaps / duplicate ids that would break ForEach diffing).
+            let existingIds = Set(posts.map(\.id))
+            let newPosts = result.filter { !existingIds.contains($0.id) }
+            posts.append(contentsOf: newPosts)
             currentPage = nextPage
             hasMorePages = result.count >= perPage
         } catch {
@@ -101,40 +110,50 @@ final class FeedViewModel {
     }
 
     func toggleLike(for post: Post) async {
-        // Optimistic update
-        if let index = posts.firstIndex(where: { $0.id == post.id }) {
-            let current = posts[index]
-            posts[index] = current.withLike(!current.isLiked)
-        }
+        // Ignore overlapping toggles for the same post.
+        guard !pendingLikeIds.contains(post.id) else { return }
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+
+        pendingLikeIds.insert(post.id)
+        defer { pendingLikeIds.remove(post.id) }
+
+        // Read the CURRENT state (not the captured `post`, which may be stale).
+        let current = posts[index]
+        posts[index] = current.withLike(!current.isLiked)
 
         do {
             try await toggleLikeUseCase.execute(
-                ToggleLikeInput(postId: post.id, isCurrentlyLiked: post.isLiked)
+                ToggleLikeInput(postId: current.id, isCurrentlyLiked: current.isLiked)
             )
         } catch {
-            // Revert on failure and notify via a lightweight toast.
-            if let index = posts.firstIndex(where: { $0.id == post.id }) {
-                posts[index] = post
+            // Revert to the pre-toggle state and notify via a lightweight toast.
+            if let revertIndex = posts.firstIndex(where: { $0.id == current.id }) {
+                posts[revertIndex] = current
             }
             ToastManager.shared.error(error.userMessage)
         }
     }
 
     func toggleSave(for post: Post) async {
-        // Optimistic update
-        if let index = posts.firstIndex(where: { $0.id == post.id }) {
-            let current = posts[index]
-            posts[index] = current.withSaved(!current.isSaved)
-        }
+        // Ignore overlapping toggles for the same post.
+        guard !pendingSaveIds.contains(post.id) else { return }
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+
+        pendingSaveIds.insert(post.id)
+        defer { pendingSaveIds.remove(post.id) }
+
+        // Read the CURRENT state (not the captured `post`, which may be stale).
+        let current = posts[index]
+        posts[index] = current.withSaved(!current.isSaved)
 
         do {
             try await toggleSaveUseCase.execute(
-                ToggleSaveInput(postId: post.id, isCurrentlySaved: post.isSaved)
+                ToggleSaveInput(postId: current.id, isCurrentlySaved: current.isSaved)
             )
         } catch {
-            // Revert on failure and notify via a lightweight toast.
-            if let index = posts.firstIndex(where: { $0.id == post.id }) {
-                posts[index] = post
+            // Revert to the pre-toggle state and notify via a lightweight toast.
+            if let revertIndex = posts.firstIndex(where: { $0.id == current.id }) {
+                posts[revertIndex] = current
             }
             ToastManager.shared.error(error.userMessage)
         }

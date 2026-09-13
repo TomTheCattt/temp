@@ -18,15 +18,15 @@ Module hiển thị bảng tin (home feed) của ứng dụng — màn hình ch�
 ### FeedView
 - **Stories bar** hiển thị ở đầu feed (component `StoriesBarView`)
 - **Skeleton loading** (`FeedSkeletonView`) khi đang tải lần đầu
-- **Infinite scroll**: load thêm posts khi cuộn đến cuối
+- **Infinite scroll**: prefetch trang kế khi còn cách cuối `loadMoreThreshold` (3) posts (không đợi tới item cuối cùng)
 - **Pull-to-refresh**: kéo xuống để reload feed
 - **Visibility tracking**: theo dõi posts nào đang visible (cho video auto-play)
 - **Custom Navigation Bar**: loại bỏ liquid glass của iOS 26.x, sử dụng 3 inline button cách đều nhau (Logo/Dropdown, Heart notifications, Paperplane direct messages). Xử lý mở rộng Safe Area Top (Status Bar fill), tự động trượt ẩn nhẹ nhàng khi cuộn xuống và trượt hiện lại mượt mà khi cuộn lên (`.onScrollGeometryChange`). Background hoàn toàn trong suốt khi ở đỉnh trang, và phủ mặt nạ `LinearGradient` blur giảm dần từ top xuống bottom khi cuộn.
 
 ### FeedViewModel
-- **Phân trang**: page-based (20 items/page), auto load more
-- **Toggle like**: optimistic update (cập nhật UI ngay, revert nếu API fail)
-- **Refresh**: reset về page 1, reload toàn bộ
+- **Phân trang**: page-based (20 items/page), auto load more; **de-dup theo `id`** khi append (chống trùng ở ranh giới trang → tránh "Duplicate ID" trong `ForEach`). Cờ `isLoadingMore` riêng.
+- **Toggle like/save**: optimistic update đọc **trạng thái hiện tại** từ `posts[index]` (không dùng bản chụp `post` đã stale) cho cả API call lẫn revert; **guard chống spam** per-post qua `pendingLikeIds`/`pendingSaveIds` (bỏ qua toggle chồng khi request đang chạy); revert + toast khi fail.
+- **Refresh**: reset về page 1, reload toàn bộ; nếu fail mà đã có nội dung → giữ nội dung + toast, chỉ set errorMessage khi rỗng.
 
 ### FeedVideoPlayer
 - **Auto-play**: tự phát khi scroll vào viewport
@@ -61,3 +61,7 @@ Module hiển thị bảng tin (home feed) của ứng dụng — màn hình ch�
 - Video chỉ buffer khi visible (`preferredForwardBufferDuration = 3s`)
 - Skeleton shimmer thay vì spinner cho UX tốt hơn
 - `visiblePostIds` Set tracking tránh play nhiều video cùng lúc
+- Double-tap heart dùng một `Task` có hủy (không stack timer khi tap nhanh)
+- Toàn bộ số/màu/chuỗi qua `DS.*` / `ColorTokens.*` / `L10n.*` (vd `L10n.Common.likesCount`, `DS.Font.navBrand`)
+
+> Ghi chú: MockData feed có 25 posts để test được phân trang (trang 1 đầy 20 → loadMore lấy 5 còn lại → dừng).

@@ -66,9 +66,9 @@ enum MockData {
 
     // MARK: - Posts
 
-    static let posts: [Post] = (0..<10).map { index in
+    static let posts: [Post] = (0..<25).map { index in
         let author = users[index % users.count]
-        let isVideo = index % 3 == 1 // Posts at index 1, 4, 7 are videos
+        let isVideo = index % 3 == 1 // every 3rd post is a video
         return Post(
             id: "post_\(index)",
             author: author,

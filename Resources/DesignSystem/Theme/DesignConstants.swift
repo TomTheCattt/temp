@@ -289,6 +289,8 @@ nonisolated enum DS {
     // MARK: - Opacity
 
     enum Opacity {
+        /// Fully transparent.
+        static let clear: Double = 0.0
         /// Full opacity.
         static let full: Double = 1.0
         /// High emphasis.
@@ -369,6 +371,8 @@ nonisolated enum DS {
         static let storyTick: TimeInterval = 0.05
         /// Toast display duration.
         static let toast: TimeInterval = 2.5
+        /// Double-tap "like" heart overlay visibility duration.
+        static let doubleTapHeart: TimeInterval = 0.8
         /// Call ring timeout.
         static let callRingTimeout: TimeInterval = 45.0
         /// WebSocket ping interval.

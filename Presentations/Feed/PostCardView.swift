@@ -18,6 +18,7 @@ struct PostCardView: View {
     let onSaveTapped: () -> Void
 
     @State private var showHeart = false
+    @State private var heartHideTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -127,23 +128,32 @@ struct PostCardView: View {
                 Image(systemName: "heart.fill")
                     .font(.system(size: DS.Size.avatarXLarge))
                     .foregroundStyle(.white)
-                    .shadow(radius: 10)
+                    .shadow(radius: DS.Shadow.radius)
                     .transition(.scale.combined(with: .opacity))
             }
         }
         .clipped()
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            if !post.isLiked {
-                onLikeTapped()
-            }
-            withAnimation(DS.Animation.smooth) {
-                showHeart = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(DS.Animation.fast) {
-                    showHeart = false
-                }
+            handleDoubleTap()
+        }
+    }
+
+    /// Double-tap to like + show the big heart animation. Uses a single
+    /// cancellable task so rapid double-taps don't stack multiple hide timers.
+    private func handleDoubleTap() {
+        if !post.isLiked {
+            onLikeTapped()
+        }
+        withAnimation(DS.Animation.smooth) {
+            showHeart = true
+        }
+        heartHideTask?.cancel()
+        heartHideTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(DS.Duration.doubleTapHeart * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            withAnimation(DS.Animation.fast) {
+                showHeart = false
             }
         }
     }
@@ -189,7 +199,7 @@ struct PostCardView: View {
     private var likesSection: some View {
         Group {
             if post.likesCount > 0 {
-                Text("\(post.likesCount) likes")
+                Text(L10n.Common.likesCount(post.likesCount))
                     .font(DS.Font.actionCount)
                     .padding(.horizontal, DS.Padding.content)
             }
