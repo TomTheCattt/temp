@@ -74,7 +74,7 @@ struct LoginView: View {
         Image(.splashIcon)
             .resizable()
             .scaledToFit()
-            .frame(width: 60, height: 60)
+            .frame(width: DS.Size.mediaLogo, height: DS.Size.mediaLogo)
     }
 
     private var loginForm: some View {
@@ -143,7 +143,7 @@ struct LoginView: View {
             Spacer()
         }
         .padding(DS.Spacing.sm)
-        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+        .background(ColorTokens.destructive.opacity(DS.Opacity.faint), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
     }
 
     private var primaryButton: some View {
@@ -198,7 +198,7 @@ struct LoginView: View {
             // Meta logo
             HStack(spacing: DS.Spacing.xxs) {
                 Image(systemName: "infinity")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(DS.Font.title3)
                     .foregroundStyle(ColorTokens.textPrimary)
                 Text("Meta")
                     .font(DS.Font.headline)

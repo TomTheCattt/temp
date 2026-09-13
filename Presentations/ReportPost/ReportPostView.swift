@@ -64,7 +64,7 @@ struct ReportPostView: View {
     private var reasonSelectionView: some View {
         List {
             Section {
-                Text("Why are you reporting this post?")
+                Text(L10n.ReportPost.question)
                     .font(DS.Font.subheadline)
                     .foregroundStyle(.secondary)
                     .listRowSeparator(.hidden)
@@ -97,7 +97,7 @@ struct ReportPostView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Report")
+        .navigationTitle(L10n.ReportPost.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -125,10 +125,10 @@ struct ReportPostView: View {
                 .font(.system(size: DS.Size.iconJumbo))
                 .foregroundStyle(ColorTokens.success)
 
-            Text("Thanks for letting us know")
+            Text(L10n.ReportPost.submittedTitle)
                 .font(DS.Font.title3)
 
-            Text("We'll review this post and take action if it goes against our Community Guidelines.")
+            Text(L10n.ReportPost.submittedMessage)
                 .font(DS.Font.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -147,7 +147,7 @@ struct ReportPostView: View {
             .padding(.horizontal)
             .padding(.bottom, DS.Spacing.lg)
         }
-        .navigationTitle("Report")
+        .navigationTitle(L10n.ReportPost.title)
         .navigationBarTitleDisplayMode(.inline)
     }
 

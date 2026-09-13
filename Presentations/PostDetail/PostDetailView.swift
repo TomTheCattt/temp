@@ -68,7 +68,7 @@ struct PostDetailView: View {
                 AsyncImage(url: post.author.avatarURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                    Circle().fill(ColorTokens.backgroundSubtler)
                 }
                 .frame(width: DS.Size.avatarMedium, height: DS.Size.avatarMedium)
                 .clipShape(Circle())
@@ -98,7 +98,7 @@ struct PostDetailView: View {
                     image.resizable().scaledToFit()
                 } placeholder: {
                     Rectangle()
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(ColorTokens.backgroundSubtler)
                         .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fit)
                 }
                 .frame(maxWidth: .infinity)
@@ -132,7 +132,7 @@ struct PostDetailView: View {
             .padding(.horizontal, DS.Padding.horizontal)
 
             // Likes
-            Text("\(post.likesCount) likes")
+            Text(L10n.Common.likesCount(post.likesCount))
                 .font(DS.Font.actionCount)
                 .padding(.horizontal, DS.Padding.horizontal)
 
@@ -210,7 +210,7 @@ struct CommentRowView: View {
             AsyncImage(url: comment.author.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
             .clipShape(Circle())
@@ -225,7 +225,7 @@ struct CommentRowView: View {
                 HStack(spacing: DS.Spacing.sm) {
                     Text(comment.createdAt, style: .relative)
                     if comment.likesCount > 0 {
-                        Text("\(comment.likesCount) likes")
+                        Text(L10n.Common.likesCount(comment.likesCount))
                     }
                     Button(L10n.Common.reply) {}
                 }

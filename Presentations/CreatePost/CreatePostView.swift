@@ -87,7 +87,7 @@ struct CreatePostView: View {
             // Preview area
             if viewModel.isLoadingMedia {
                 ProgressView(L10n.Common.loading)
-                    .frame(maxWidth: .infinity, minHeight: 300)
+                    .frame(maxWidth: .infinity, minHeight: DS.Size.mediaPreviewMinHeight)
             } else if !viewModel.selectedImages.isEmpty {
                 if let firstData = viewModel.selectedImages.first,
                    let uiImage = UIImage(data: firstData) {
@@ -95,7 +95,7 @@ struct CreatePostView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: .infinity)
-                        .frame(maxHeight: 350)
+                        .frame(maxHeight: DS.Size.mediaPreviewMaxHeight)
                         .clipped()
                 }
 
@@ -113,7 +113,7 @@ struct CreatePostView: View {
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, minHeight: 300)
+                .frame(maxWidth: .infinity, minHeight: DS.Size.mediaPreviewMinHeight)
             }
 
             Spacer()
@@ -150,7 +150,7 @@ struct CreatePostView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: .infinity)
-                    .frame(maxHeight: 400)
+                    .frame(maxHeight: DS.Size.mediaEditorPreviewHeight)
                     .clipped()
             }
 
@@ -184,8 +184,8 @@ struct CreatePostView: View {
 
         VStack(spacing: DS.Spacing.xxs) {
             RoundedRectangle(cornerRadius: DS.Radius.small)
-                .fill(Color.gray.opacity(0.2))
-                .frame(width: 72, height: 72)
+                .fill(ColorTokens.backgroundSubtler)
+                .frame(width: DS.Size.filterThumbnailTile, height: DS.Size.filterThumbnailTile)
                 .overlay(
                     RoundedRectangle(cornerRadius: DS.Radius.small)
                         .stroke(isSelected ? ColorTokens.accentPrimary : Color.clear, lineWidth: DS.Stroke.medium)

@@ -48,7 +48,7 @@ struct TwoFactorAuthView: View {
                 }
             }
         }
-        .navigationTitle("Two-Factor Authentication")
+        .navigationTitle(L10n.Settings.twoFactor)
         .navigationBarTitleDisplayMode(.large)
     }
 }

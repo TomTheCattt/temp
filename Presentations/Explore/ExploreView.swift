@@ -182,7 +182,7 @@ struct ExploreView: View {
                 }
                 .listRowSeparator(.hidden)
             } else if viewModel.searchResults.isEmpty && viewModel.searchText.count >= 2 {
-                Text("No results found")
+                Text(L10n.Explore.noResults)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .listRowSeparator(.hidden)

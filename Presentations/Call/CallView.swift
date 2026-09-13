@@ -69,8 +69,8 @@ struct CallView: View {
             Color.black
 
             // In production: WebRTC remote video view here
-            Text("Remote Video")
-                .foregroundStyle(.white.opacity(0.3))
+            Text(L10n.Call.remoteVideo)
+                .foregroundStyle(.white.opacity(DS.Opacity.hudBackground))
                 .font(DS.Font.title3)
 
             // Local video (picture-in-picture)
@@ -79,14 +79,14 @@ struct CallView: View {
                     Spacer()
                     RoundedRectangle(cornerRadius: DS.Radius.large)
                         .fill(Color(.systemGray3))
-                        .frame(width: 120, height: 160)
+                        .frame(width: DS.Size.pipWidth, height: DS.Size.pipHeight)
                         .overlay {
-                            Text("You")
+                            Text(L10n.Call.you)
                                 .font(DS.Font.caption)
                                 .foregroundStyle(.white.opacity(DS.Opacity.overlay))
                         }
                         .padding(.trailing, DS.Spacing.md)
-                        .padding(.top, 60)
+                        .padding(.top, DS.Spacing.pipTop)
                 }
                 Spacer()
             }
@@ -105,13 +105,13 @@ struct CallView: View {
                     Circle().fill(Color(.systemGray4))
                 }
             }
-            .frame(width: 100, height: 100)
+            .frame(width: DS.Size.avatarCall, height: DS.Size.avatarCall)
             .clipShape(Circle())
             .overlay(
                 Circle()
-                    .stroke(Color.white.opacity(0.3), lineWidth: DS.Stroke.medium)
+                    .stroke(Color.white.opacity(DS.Opacity.hudBackground), lineWidth: DS.Stroke.medium)
             )
-            .shadow(radius: 10)
+            .shadow(radius: DS.Shadow.radiusLarge)
             .opacity(viewModel.hasVideo && viewModel.callState == .connected ? 0 : 1)
 
             // Name
@@ -125,7 +125,7 @@ struct CallView: View {
                 HStack(spacing: DS.Spacing.xxs) {
                     Image(systemName: viewModel.hasVideo ? "video.fill" : "phone.fill")
                         .font(DS.Font.caption)
-                    Text(viewModel.hasVideo ? "Video Call" : "Audio Call")
+                    Text(viewModel.hasVideo ? L10n.Call.videoCall : L10n.Call.audioCall)
                         .font(DS.Font.caption)
                 }
                 .foregroundStyle(.secondary)
@@ -141,15 +141,15 @@ struct CallView: View {
             case .idle:
                 EmptyView()
             case .initiating:
-                pulsingText("Calling...")
+                pulsingText(L10n.Call.calling)
             case .ringing:
-                pulsingText("Ringing...")
+                pulsingText(L10n.Call.ringing)
             case .incomingRinging:
-                Text("Incoming Call")
+                Text(L10n.Call.incoming)
                     .font(DS.Font.headline)
                     .foregroundStyle(.secondary)
             case .connecting:
-                pulsingText("Connecting...")
+                pulsingText(L10n.Call.connecting)
             case .connected:
                 Text(viewModel.callDuration)
                     .font(DS.Font.title3)
@@ -157,9 +157,9 @@ struct CallView: View {
                     .foregroundStyle(viewModel.hasVideo ? .white : .primary)
                     .monospacedDigit()
             case .reconnecting:
-                pulsingText("Reconnecting...")
+                pulsingText(L10n.Call.reconnecting)
             case .ending:
-                Text("Ending...")
+                Text(L10n.Call.ending)
                     .foregroundStyle(.secondary)
             case .ended(let reason):
                 Text(endReasonText(reason))
@@ -189,12 +189,12 @@ struct CallView: View {
     }
 
     private var incomingCallControls: some View {
-        HStack(spacing: 60) {
+        HStack(spacing: DS.Spacing.pipTop) {
             // Reject
             CallButton(
                 icon: "phone.down.fill",
-                color: .red,
-                size: 70
+                color: ColorTokens.destructive,
+                size: DS.Size.callButtonLarge
             ) {
                 Task { await viewModel.reject() }
             }
@@ -202,8 +202,8 @@ struct CallView: View {
             // Accept
             CallButton(
                 icon: "phone.fill",
-                color: .green,
-                size: 70
+                color: ColorTokens.success,
+                size: DS.Size.callButtonLarge
             ) {
                 Task { await viewModel.accept() }
             }
@@ -217,7 +217,7 @@ struct CallView: View {
                 CallToggleButton(
                     icon: viewModel.isMuted ? "mic.slash.fill" : "mic.fill",
                     isActive: viewModel.isMuted,
-                    label: "Mute"
+                    label: L10n.Call.mute
                 ) {
                     Task { await viewModel.toggleMute() }
                 }
@@ -225,7 +225,7 @@ struct CallView: View {
                 CallToggleButton(
                     icon: viewModel.isSpeakerOn ? "speaker.wave.3.fill" : "speaker.fill",
                     isActive: viewModel.isSpeakerOn,
-                    label: "Speaker"
+                    label: L10n.Call.speaker
                 ) {
                     Task { await viewModel.toggleSpeaker() }
                 }
@@ -234,7 +234,7 @@ struct CallView: View {
                     CallToggleButton(
                         icon: "arrow.triangle.2.circlepath.camera",
                         isActive: false,
-                        label: "Flip"
+                        label: L10n.Call.flip
                     ) {
                         viewModel.flipCamera()
                     }
@@ -244,8 +244,8 @@ struct CallView: View {
             // Hangup
             CallButton(
                 icon: "phone.down.fill",
-                color: .red,
-                size: 65
+                color: ColorTokens.destructive,
+                size: DS.Size.callButtonMedium
             ) {
                 Task { await viewModel.hangup() }
             }
@@ -256,12 +256,12 @@ struct CallView: View {
 
     private func endReasonText(_ reason: CallEndReason) -> String {
         switch reason {
-        case .localHangup, .remoteHangup: return "Call Ended"
-        case .rejected:   return "Call Declined"
-        case .busy:       return "User Busy"
-        case .timeout:    return "No Answer"
-        case .failed:     return "Call Failed"
-        case .cancelled:  return "Call Cancelled"
+        case .localHangup, .remoteHangup: return L10n.Call.ended
+        case .rejected:   return L10n.Call.declined
+        case .busy:       return L10n.Call.busy
+        case .timeout:    return L10n.Call.noAnswer
+        case .failed:     return L10n.Call.failed
+        case .cancelled:  return L10n.Call.cancelled
         }
     }
 }
@@ -281,7 +281,7 @@ struct CallButton: View {
                 .foregroundStyle(.white)
                 .frame(width: size, height: size)
                 .background(Circle().fill(color))
-                .shadow(color: color.opacity(0.4), radius: 8, y: 4)
+                .shadow(color: color.opacity(DS.Opacity.muted), radius: DS.Shadow.radius, y: DS.Shadow.offsetY)
         }
     }
 }
@@ -298,11 +298,11 @@ struct CallToggleButton: View {
         Button(action: action) {
             VStack(spacing: DS.Spacing.iconGap) {
                 Image(systemName: icon)
-                    .font(.system(size: 22))
+                    .font(.system(size: DS.FontSize.overlayCallGlyph))
                     .frame(width: DS.Size.buttonLargeHeight, height: DS.Size.buttonLargeHeight)
                     .foregroundStyle(isActive ? .white : .primary)
                     .background(
-                        Circle().fill(isActive ? Color.white.opacity(0.3) : ColorTokens.buttonSecondary)
+                        Circle().fill(isActive ? Color.white.opacity(DS.Opacity.hudBackground) : ColorTokens.buttonSecondary)
                     )
 
                 Text(label)

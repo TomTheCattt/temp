@@ -29,7 +29,7 @@ struct OpenSourceLicensesView: View {
                 }
             }
         }
-        .navigationTitle("Open Source Licenses")
+        .navigationTitle(L10n.Settings.openSourceLicenses)
         .navigationBarTitleDisplayMode(.large)
     }
 

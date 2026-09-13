@@ -14,7 +14,7 @@ struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
-                Text("Privacy Policy")
+                Text(L10n.Settings.privacyPolicy)
                     .font(DS.Font.titleRegular)
                     .fontWeight(.bold)
 
@@ -51,7 +51,7 @@ struct PrivacyPolicyView: View {
             }
             .padding(DS.Padding.horizontal)
         }
-        .navigationTitle("Privacy Policy")
+        .navigationTitle(L10n.Settings.privacyPolicy)
         .navigationBarTitleDisplayMode(.inline)
     }
 

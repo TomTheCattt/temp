@@ -14,7 +14,7 @@ struct TermsOfServiceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
-                Text("Terms of Service")
+                Text(L10n.Settings.termsOfService)
                     .font(DS.Font.titleRegular)
                     .fontWeight(.bold)
 
@@ -51,7 +51,7 @@ struct TermsOfServiceView: View {
             }
             .padding(DS.Padding.horizontal)
         }
-        .navigationTitle("Terms of Service")
+        .navigationTitle(L10n.Settings.termsOfService)
         .navigationBarTitleDisplayMode(.inline)
     }
 

@@ -75,7 +75,7 @@ struct FollowListView: View {
             AsyncImage(url: user.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
             .clipShape(Circle())
@@ -102,7 +102,7 @@ struct FollowListView: View {
                 Button(action: {
                     Task { await viewModel.toggleFollow(for: user) }
                 }) {
-                    Text(user.isFollowing ? "Following" : "Follow")
+                    Text(user.isFollowing ? L10n.Common.following : L10n.Common.follow)
                         .font(DS.Font.captionBold)
                         .padding(.horizontal, DS.Spacing.md)
                         .padding(.vertical, DS.Spacing.iconGap)

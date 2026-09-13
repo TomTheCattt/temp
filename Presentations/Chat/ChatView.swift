@@ -187,9 +187,9 @@ struct ChatView: View {
                 image.resizable().scaledToFill()
             } placeholder: {
                 RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(ColorTokens.backgroundSubtler)
             }
-            .frame(width: 200, height: 200)
+            .frame(width: DS.Size.chatImageBubble, height: DS.Size.chatImageBubble)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
 
         case .like:
@@ -221,7 +221,7 @@ struct ChatView: View {
                     AsyncImage(url: thumbURL) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
-                        Color.gray.opacity(0.2)
+                        ColorTokens.backgroundSubtler
                     }
                 } else {
                     Color.gray.opacity(DS.Opacity.low)

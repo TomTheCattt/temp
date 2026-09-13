@@ -26,7 +26,7 @@ struct SharePostView: View {
                 HStack(spacing: DS.Spacing.inputVertical) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
-                    TextField("Search", text: $searchQuery)
+                    TextField(L10n.Common.search, text: $searchQuery)
                         .textFieldStyle(.plain)
                         .font(DS.Font.subheadline)
                 }
@@ -73,7 +73,7 @@ struct SharePostView: View {
 
     private var quickShareSection: some View {
         VStack(alignment: .leading, spacing: DS.Spacing.xs) {
-            Text("Quick Share")
+            Text(L10n.SharePost.quickShare)
                 .font(DS.Font.captionBold)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
@@ -121,7 +121,7 @@ struct SharePostView: View {
             AsyncImage(url: user.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
             .clipShape(Circle())
@@ -161,7 +161,7 @@ struct SharePostView: View {
                         dismiss()
                     }
                 }) {
-                    Text("Send")
+                    Text(L10n.Common.send)
                         .font(DS.Font.subheadlineBold)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)

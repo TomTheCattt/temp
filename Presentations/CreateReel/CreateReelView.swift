@@ -43,7 +43,7 @@ struct CreateReelView: View {
 
             // Camera preview placeholder
             RoundedRectangle(cornerRadius: DS.Radius.large)
-                .fill(Color.gray.opacity(0.2))
+                .fill(ColorTokens.backgroundSubtler)
                 .padding(.horizontal, DS.Spacing.xxs)
                 .padding(.vertical, DS.Spacing.modalTop + DS.Spacing.xxl)
                 .overlay {
@@ -78,7 +78,7 @@ struct CreateReelView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.sm)
                         .padding(.vertical, DS.Spacing.iconGap)
-                        .background(Color.white.opacity(0.2), in: Capsule())
+                        .background(Color.white.opacity(DS.Opacity.placeholder), in: Capsule())
                     }
 
                     Spacer()
@@ -152,7 +152,7 @@ struct CreateReelView: View {
                                     .stroke(Color.white, lineWidth: DS.Stroke.extraThick)
                                     .frame(width: DS.Size.captureButton, height: DS.Size.captureButton)
                                 Circle()
-                                    .fill(viewModel.isRecording ? ColorTokens.destructive : ColorTokens.destructive.opacity(0.8))
+                                    .fill(viewModel.isRecording ? ColorTokens.destructive : ColorTokens.destructive.opacity(DS.Opacity.nearOpaque))
                                     .frame(width: viewModel.isRecording ? DS.Size.avatarCompact : DS.Size.captureButtonInner, height: viewModel.isRecording ? DS.Size.avatarCompact : DS.Size.captureButtonInner)
                                     .clipShape(viewModel.isRecording ? AnyShape(RoundedRectangle(cornerRadius: DS.Radius.medium)) : AnyShape(Circle()))
                             }
@@ -162,7 +162,7 @@ struct CreateReelView: View {
                         Color.clear.frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
                     }
                 }
-                .padding(.bottom, 30)
+                .padding(.bottom, DS.Spacing.mediaControlsBottom)
             }
         }
         .navigationBarHidden(true)
@@ -175,12 +175,12 @@ struct CreateReelView: View {
             // Video preview
             ZStack {
                 Color.black
-                    .frame(height: 400)
+                    .frame(height: DS.Size.mediaEditorPreviewHeight)
                 VStack(spacing: DS.Spacing.xs) {
                     Image(systemName: "play.rectangle.fill")
                         .font(.system(size: DS.Size.iconHero))
                         .foregroundStyle(.white.opacity(DS.Opacity.medium))
-                    Text("Video Preview")
+                    Text(L10n.CreateReel.videoPreview)
                         .font(DS.Font.caption)
                         .foregroundStyle(.white.opacity(DS.Opacity.overlay))
                 }
@@ -242,7 +242,7 @@ struct CreateReelView: View {
             .padding(.horizontal, DS.Spacing.sm)
             .padding(.vertical, DS.Spacing.xxs)
             .background(
-                isSelected ? Color.white.opacity(0.2) : Color.clear,
+                isSelected ? Color.white.opacity(DS.Opacity.placeholder) : Color.clear,
                 in: Capsule()
             )
     }

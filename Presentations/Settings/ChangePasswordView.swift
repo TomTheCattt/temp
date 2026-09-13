@@ -22,25 +22,25 @@ struct ChangePasswordView: View {
     var body: some View {
         Form {
             Section {
-                SecureField("Current Password", text: $currentPassword)
+                SecureField(L10n.ChangePassword.currentPassword, text: $currentPassword)
                     .textContentType(.password)
             }
 
             Section {
-                SecureField("New Password", text: $newPassword)
+                SecureField(L10n.ChangePassword.newPassword, text: $newPassword)
                     .textContentType(.newPassword)
-                SecureField("Confirm New Password", text: $confirmPassword)
+                SecureField(L10n.ChangePassword.confirmNewPassword, text: $confirmPassword)
                     .textContentType(.newPassword)
             } footer: {
-                Text("Your password must be at least 6 characters and should include a combination of numbers, letters, and special characters.")
+                Text(L10n.ChangePassword.requirementsFooter)
                     .font(DS.Font.caption)
             }
         }
-        .navigationTitle("Password")
+        .navigationTitle(L10n.ChangePassword.title)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button(L10n.Common.save) {
                     // TODO: Implement password change
                 }
                 .fontWeight(.semibold)
@@ -52,18 +52,18 @@ struct ChangePasswordView: View {
                 ProgressView()
             }
         }
-        .alert("Error", isPresented: .init(
+        .alert(L10n.Common.error, isPresented: .init(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button("OK") {}
+            Button(L10n.Common.ok) {}
         } message: {
             Text(errorMessage ?? "")
         }
-        .alert("Success", isPresented: $showSuccess) {
-            Button("OK") { dismiss() }
+        .alert(L10n.ChangePassword.successTitle, isPresented: $showSuccess) {
+            Button(L10n.Common.ok) { dismiss() }
         } message: {
-            Text("Your password has been changed successfully.")
+            Text(L10n.ChangePassword.successMessage)
         }
     }
 

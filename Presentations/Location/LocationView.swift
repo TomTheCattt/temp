@@ -101,7 +101,7 @@ struct LocationView: View {
                     AsyncImage(url: media.thumbnailURL ?? media.url) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
-                        Rectangle().fill(Color.gray.opacity(0.2))
+                        Rectangle().fill(ColorTokens.backgroundSubtler)
                     }
                     .frame(minHeight: DS.Size.gridCellMinHeight)
                     .clipped()

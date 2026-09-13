@@ -123,7 +123,7 @@ struct ProfileView: View {
             }
             .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
             .clipShape(Circle())
-            .overlay(Circle().stroke(Color(.systemGray4), lineWidth: 0.5))
+            .overlay(Circle().stroke(Color(.systemGray4), lineWidth: DS.Stroke.hairline))
 
             // Stats
             HStack(spacing: 0) {
@@ -261,10 +261,10 @@ struct ProfileView: View {
             GeometryReader { geo in
                 Rectangle()
                     .fill(Color.primary)
-                    .frame(width: geo.size.width / CGFloat(ProfileGrid.allCases.count), height: 1)
+                    .frame(width: geo.size.width / CGFloat(ProfileGrid.allCases.count), height: DS.Spacing.hairline)
                     .offset(x: CGFloat(selectedGrid.rawValue) * (geo.size.width / CGFloat(ProfileGrid.allCases.count)))
             }
-            .frame(height: 1)
+            .frame(height: DS.Spacing.hairline)
         }
         .padding(.top, DS.Spacing.md)
     }
@@ -272,9 +272,9 @@ struct ProfileView: View {
     // MARK: - Posts Grid
 
     private var postsGrid: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 3)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: DS.Spacing.hairline), count: DS.Layout.gridColumns)
 
-        return LazyVGrid(columns: columns, spacing: 1) {
+        return LazyVGrid(columns: columns, spacing: DS.Spacing.hairline) {
             ForEach(viewModel.posts) { post in
                 Button {
                     AppRouter.shared.push(.postDetail(postId: post.id))
@@ -389,7 +389,7 @@ struct UserProfileNavigationBar: View {
                 Button {
                     // TODO: User Info
                 } label: {
-                    Text(viewModel.user?.username ?? "Unknown User")
+                    Text(viewModel.user?.username ?? L10n.Profile.unknownUser)
                         .font(DS.Font.largeTitle)
                 }
             }

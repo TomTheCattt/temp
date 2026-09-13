@@ -24,7 +24,7 @@ struct MyStoryView: View {
     @State private var videoPlayerKey: String = UUID().uuidString
     @State private var showDeleteConfirmation = false
 
-    private let contentCornerRadius: CGFloat = 12
+    private let contentCornerRadius: CGFloat = DS.Radius.large
 
     init(viewModel: StoryViewerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -44,7 +44,7 @@ struct MyStoryView: View {
                         // Media content
                         if viewModel.isLoading && viewModel.stories.isEmpty {
                             RoundedRectangle(cornerRadius: contentCornerRadius)
-                                .fill(Color(.systemGray6).opacity(0.2))
+                                .fill(Color(.systemGray6).opacity(DS.Opacity.placeholder))
                                 .overlay { ProgressView().tint(.white) }
                         } else if let item = viewModel.currentItem {
                             storyContent(item, geometry: geometry)
@@ -113,14 +113,14 @@ struct MyStoryView: View {
                 .onChanged { _ in viewModel.pause() }
                 .onEnded { _ in viewModel.resume() }
         )
-        .confirmationDialog("Delete Story", isPresented: $showDeleteConfirmation) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(L10n.Story.deleteTitle, isPresented: $showDeleteConfirmation) {
+            Button(L10n.Common.delete, role: .destructive) {
                 // TODO: Delete story item
                 dismiss()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.Common.cancel, role: .cancel) {}
         } message: {
-            Text("Are you sure you want to delete this story?")
+            Text(L10n.Story.deleteMessage)
         }
     }
 
@@ -135,16 +135,16 @@ struct MyStoryView: View {
                     ZStack {
                         Circle()
                             .fill(Color(.systemGray4))
-                            .frame(width: 24, height: 24)
+                            .frame(width: DS.Size.viewerAvatar, height: DS.Size.viewerAvatar)
                         Circle()
                             .fill(Color(.systemGray3))
-                            .frame(width: 24, height: 24)
-                            .offset(x: 12)
+                            .frame(width: DS.Size.viewerAvatar, height: DS.Size.viewerAvatar)
+                            .offset(x: DS.Size.iconXSmall)
                     }
-                    .frame(width: 36)
+                    .frame(width: DS.Size.viewerAvatarCluster)
 
-                    Text("Viewers")
-                        .font(.system(size: 13))
+                    Text(L10n.Story.viewers)
+                        .font(.system(size: DS.FontSize.overlayBody))
                         .foregroundStyle(.white)
                 }
             }
@@ -153,10 +153,10 @@ struct MyStoryView: View {
             Button(action: {}) {
                 HStack(spacing: DS.Spacing.xxs) {
                     Image(systemName: "star.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.green)
-                    Text("Close Friends")
-                        .font(.system(size: 13))
+                        .font(.system(size: DS.FontSize.overlayMedium))
+                        .foregroundStyle(ColorTokens.success)
+                    Text(L10n.Story.closeFriends)
+                        .font(.system(size: DS.FontSize.overlayBody))
                         .foregroundStyle(.white)
                 }
             }
@@ -168,18 +168,18 @@ struct MyStoryView: View {
                 showDeleteConfirmation = true
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 20))
+                    .font(.system(size: DS.FontSize.overlayXLarge))
                     .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
 
             // Share button
             Button(action: {}) {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 20))
+                    .font(.system(size: DS.FontSize.overlayXLarge))
                     .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
         }
@@ -208,7 +208,7 @@ struct MyStoryView: View {
                     Color(.systemGray5)
                         .frame(width: contentWidth, height: contentHeight)
                 default:
-                    Color(.systemGray6).opacity(0.3)
+                    Color(.systemGray6).opacity(DS.Opacity.hudBackground)
                         .frame(width: contentWidth, height: contentHeight)
                         .overlay { ProgressView().tint(.white) }
                 }
@@ -235,23 +235,23 @@ struct MyStoryView: View {
     // MARK: - Progress Bars
 
     private var progressBars: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: DS.Spacing.xxxs) {
             ForEach(0..<viewModel.totalItemsInCurrentStory, id: \.self) { index in
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.white.opacity(0.35))
-                            .frame(height: 2)
+                            .fill(Color.white.opacity(DS.Opacity.track))
+                            .frame(height: DS.Stroke.medium)
 
                         Capsule()
                             .fill(Color.white)
                             .frame(
                                 width: progressWidth(for: index, totalWidth: geo.size.width),
-                                height: 2
+                                height: DS.Stroke.medium
                             )
                     }
                 }
-                .frame(height: 2)
+                .frame(height: DS.Stroke.medium)
             }
         }
     }
@@ -270,20 +270,20 @@ struct MyStoryView: View {
                 AsyncImage(url: story.author.avatarURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Circle().fill(Color.gray.opacity(0.4))
+                    Circle().fill(Color.gray.opacity(DS.Opacity.muted))
                 }
-                .frame(width: 32, height: 32)
+                .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1))
+                .overlay(Circle().stroke(Color.white.opacity(DS.Opacity.medium), lineWidth: DS.Stroke.thin))
 
-                Text("Your Story")
+                Text(L10n.Story.yourStory)
                     .font(DS.Font.username)
                     .foregroundStyle(.white)
 
                 if let item = viewModel.currentItem {
                     Text(item.createdAt, style: .relative)
                         .font(DS.Font.caption2)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(.white.opacity(DS.Opacity.medium))
                 }
             }
 
@@ -291,9 +291,9 @@ struct MyStoryView: View {
 
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: DS.FontSize.overlayLarge, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
@@ -326,9 +326,9 @@ struct MyStoryView: View {
         case .location:
             HStack(spacing: DS.Spacing.xxs) {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 11))
+                    .font(.system(size: DS.FontSize.overlayCaption))
                 Text(sticker.data ?? "")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: DS.FontSize.overlayBody, weight: .semibold))
             }
             .foregroundStyle(.white)
             .padding(.horizontal, DS.Spacing.sm)
@@ -337,7 +337,7 @@ struct MyStoryView: View {
 
         case .mention:
             Text(sticker.data ?? "")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: DS.FontSize.overlayEmphasis, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, DS.Spacing.sm)
                 .padding(.vertical, DS.Spacing.xs)
@@ -346,9 +346,9 @@ struct MyStoryView: View {
         case .music:
             HStack(spacing: DS.Spacing.xxs) {
                 Image(systemName: "music.note")
-                    .font(.system(size: 11))
+                    .font(.system(size: DS.FontSize.overlayCaption))
                 Text(sticker.data ?? "")
-                    .font(.system(size: 12))
+                    .font(.system(size: DS.FontSize.overlaySmall))
             }
             .foregroundStyle(.white)
             .padding(.horizontal, DS.Spacing.sm)
@@ -358,18 +358,18 @@ struct MyStoryView: View {
         case .poll:
             VStack(spacing: DS.Spacing.xs) {
                 Text(sticker.data ?? "")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: DS.FontSize.overlayEmphasis, weight: .bold))
                     .foregroundStyle(.white)
                 HStack(spacing: DS.Spacing.sm) {
-                    Text("Yes")
-                        .font(.system(size: 14, weight: .bold))
+                    Text(L10n.Common.yes)
+                        .font(.system(size: DS.FontSize.overlayEmphasis, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 80, height: 36)
+                        .frame(width: DS.Size.pollButtonWidth, height: DS.Size.buttonCompactHeight)
                         .background(ColorTokens.accentPrimary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
-                    Text("No")
-                        .font(.system(size: 14, weight: .bold))
+                    Text(L10n.Common.no)
+                        .font(.system(size: DS.FontSize.overlayEmphasis, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 80, height: 36)
+                        .frame(width: DS.Size.pollButtonWidth, height: DS.Size.buttonCompactHeight)
                         .background(ColorTokens.destructive, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
                 }
             }

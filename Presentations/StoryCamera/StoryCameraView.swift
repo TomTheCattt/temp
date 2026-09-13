@@ -67,7 +67,7 @@ struct StoryCameraView: View {
                     VStack(spacing: DS.Spacing.xs) {
                         Image(systemName: "camera.fill")
                             .font(.system(size: DS.Spacing.xxxl))
-                        Text("Camera Preview")
+                        Text(L10n.StoryCamera.cameraPreview)
                             .font(DS.Font.caption)
                     }
                     .foregroundStyle(.white.opacity(DS.Opacity.overlay))
@@ -165,7 +165,7 @@ struct StoryCameraView: View {
                         .frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
                 }
             }
-            .padding(.bottom, 30)
+            .padding(.bottom, DS.Spacing.mediaControlsBottom)
         }
     }
 
@@ -176,21 +176,21 @@ struct StoryCameraView: View {
             // Preview of captured media
             if viewModel.capturedImageData != nil {
                 RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(Color.gray.opacity(0.4))
+                    .fill(Color.gray.opacity(DS.Opacity.muted))
                     .padding(DS.Spacing.xxxs)
                     .overlay {
-                        Text("Captured Photo")
+                        Text(L10n.StoryCamera.capturedPhoto)
                             .foregroundStyle(.white.opacity(DS.Opacity.medium))
                     }
             } else if viewModel.capturedVideoURL != nil {
                 RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(Color.gray.opacity(0.4))
+                    .fill(Color.gray.opacity(DS.Opacity.muted))
                     .padding(DS.Spacing.xxxs)
                     .overlay {
                         VStack {
                             Image(systemName: "play.circle.fill")
                                 .font(.system(size: DS.Size.iconHero))
-                            Text("Captured Video")
+                            Text(L10n.StoryCamera.capturedVideo)
                         }
                         .foregroundStyle(.white.opacity(DS.Opacity.medium))
                     }
@@ -228,7 +228,7 @@ struct StoryCameraView: View {
                     }) {
                         HStack(spacing: DS.Spacing.xs) {
                             Image(systemName: "person.circle")
-                            Text("Your Story")
+                            Text(L10n.StoryCamera.yourStory)
                                 .fontWeight(.semibold)
                         }
                         .font(DS.Font.subheadline)
@@ -245,7 +245,7 @@ struct StoryCameraView: View {
                         HStack(spacing: DS.Spacing.xs) {
                             Image(systemName: "star.circle.fill")
                                 .foregroundStyle(ColorTokens.success)
-                            Text("Close Friends")
+                            Text(L10n.StoryCamera.closeFriends)
                                 .fontWeight(.semibold)
                         }
                         .font(DS.Font.subheadline)
@@ -256,7 +256,7 @@ struct StoryCameraView: View {
                     }
                 }
                 .padding(.horizontal, DS.Spacing.md)
-                .padding(.bottom, 30)
+                .padding(.bottom, DS.Spacing.mediaControlsBottom)
             }
 
             // Loading overlay
@@ -292,13 +292,13 @@ struct StoryCameraView: View {
             Image(systemName: "camera.fill")
                 .font(.system(size: DS.Size.iconHero))
                 .foregroundStyle(.white.opacity(DS.Opacity.overlay))
-            Text("Camera Access Required")
+            Text(L10n.StoryCamera.permissionTitle)
                 .font(DS.Font.headline)
                 .foregroundStyle(.white)
-            Text("Go to Settings to enable camera access")
+            Text(L10n.StoryCamera.permissionMessage)
                 .font(DS.Font.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
-            Button("Open Settings") {
+                .foregroundStyle(.white.opacity(DS.Opacity.strong))
+            Button(L10n.StoryCamera.openSettings) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }

@@ -29,14 +29,14 @@ struct SavedPostsView: View {
                 }
             }
         }
-        .navigationTitle("Saved")
+        .navigationTitle(L10n.Settings.saved)
         .navigationBarTitleDisplayMode(.large)
         .overlay {
             if true { // TODO: Replace with actual empty state check
                 ContentUnavailableView(
-                    "No Saved Posts",
+                    L10n.Settings.savedEmptyTitle,
                     systemImage: "bookmark",
-                    description: Text("Save photos and videos that you want to see again.")
+                    description: Text(L10n.Settings.savedEmptyDescription)
                 )
             }
         }

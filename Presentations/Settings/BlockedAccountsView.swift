@@ -14,7 +14,7 @@ struct BlockedAccountsView: View {
     var body: some View {
         List {
             Section {
-                Text("Blocked people can't find your profile, posts, or stories. They won't be notified that you blocked them.")
+                Text(L10n.Settings.blockedFooter)
                     .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
                     .listRowBackground(Color.clear)
@@ -23,13 +23,13 @@ struct BlockedAccountsView: View {
             Section {
                 // TODO: Populate with actual blocked accounts
                 ContentUnavailableView(
-                    "No Blocked Accounts",
+                    L10n.Settings.blockedEmptyTitle,
                     systemImage: "nosign",
-                    description: Text("You haven't blocked anyone yet.")
+                    description: Text(L10n.Settings.blockedEmptyDescription)
                 )
             }
         }
-        .navigationTitle("Blocked Accounts")
+        .navigationTitle(L10n.Settings.blockedAccounts)
         .navigationBarTitleDisplayMode(.large)
     }
 }

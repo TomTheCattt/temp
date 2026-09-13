@@ -16,23 +16,23 @@ struct CloseFriendsView: View {
     var body: some View {
         List {
             Section {
-                Text("People you add to your close friends list will be able to see your close friends stories.")
+                Text(L10n.Settings.closeFriendsFooter)
                     .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
                     .listRowBackground(Color.clear)
             }
 
-            Section("Close Friends") {
+            Section(L10n.Settings.closeFriends) {
                 // TODO: Populate with actual close friends data
                 ContentUnavailableView(
-                    "No Close Friends",
+                    L10n.Settings.closeFriendsEmptyTitle,
                     systemImage: "star.circle",
-                    description: Text("Add people to your close friends list to share stories exclusively with them.")
+                    description: Text(L10n.Settings.closeFriendsEmptyDescription)
                 )
             }
         }
-        .navigationTitle("Close Friends")
+        .navigationTitle(L10n.Settings.closeFriends)
         .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $searchText, prompt: "Search")
+        .searchable(text: $searchText, prompt: L10n.Common.search)
     }
 }

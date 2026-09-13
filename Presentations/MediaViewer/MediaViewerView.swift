@@ -67,7 +67,7 @@ struct MediaViewerView: View {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(DS.Opacity.nearOpaque))
                             .padding()
                     }
                 }
@@ -89,8 +89,8 @@ struct MediaViewerView: View {
                 VStack(spacing: DS.Spacing.sm) {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: DS.Size.iconJumbo))
-                        .foregroundStyle(.white.opacity(0.7))
-                    Text("Video Player")
+                        .foregroundStyle(.white.opacity(DS.Opacity.strong))
+                    Text(L10n.MediaViewer.videoPlayer)
                         .font(DS.Font.caption)
                         .foregroundStyle(.white.opacity(DS.Opacity.overlay))
                 }
@@ -107,7 +107,7 @@ struct MediaViewerView: View {
                     VStack(spacing: DS.Spacing.xs) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.title)
-                        Text("Failed to load")
+                        Text(L10n.MediaViewer.failedToLoad)
                             .font(DS.Font.caption)
                     }
                     .foregroundStyle(.white.opacity(DS.Opacity.medium))

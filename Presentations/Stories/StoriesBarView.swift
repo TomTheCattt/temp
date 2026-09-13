@@ -14,8 +14,6 @@ import NukeUI
 struct StoriesBarView: View {
 
     @State private var stories: [Story] = []
-    @State private var showYourStory = true
-    @State private var isLoading = true
 
     private let fetchStoriesUseCase: FetchStoriesUseCaseProtocol
 
@@ -39,16 +37,14 @@ struct StoriesBarView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: DS.Spacing.formGap) {
                 // "Your Story" button
-                if showYourStory {
-                    MyStoryCircleView(stories: myStories)
-                        .onTapGesture {
-                            if hasMyStory {
-                                AppRouter.shared.present(fullScreen: .myStory)
-                            } else {
-                                AppRouter.shared.present(fullScreen: .storyCamera)
-                            }
+                MyStoryCircleView(stories: myStories)
+                    .onTapGesture {
+                        if hasMyStory {
+                            AppRouter.shared.present(fullScreen: .myStory)
+                        } else {
+                            AppRouter.shared.present(fullScreen: .storyCamera)
                         }
-                }
+                    }
 
                 // Other users' stories (exclude current user — shown as "Your Story")
                 ForEach(stories.filter { $0.author.id != SessionStore.shared.currentUserId }) { story in
@@ -72,9 +68,8 @@ struct StoriesBarView: View {
         } catch {
             stories = []
         }
-        isLoading = false
     }
-        
+
 }
 
 // MARK: - MyStoryCircleView
@@ -130,13 +125,13 @@ struct MyStoryCircleView: View {
                     
                     // Plus badge
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: DS.Size.iconSmall))
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .background(Circle().fill(Color(.systemBackground)).frame(width: DS.Spacing.lg, height: DS.Spacing.lg))
                 }
             }
             
-            Text("Your Story")
+            Text(L10n.Story.yourStory)
                 .font(DS.Font.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

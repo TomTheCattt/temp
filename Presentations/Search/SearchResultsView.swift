@@ -53,7 +53,7 @@ struct SearchResultsView: View {
                 }
             }
         }
-        .navigationTitle("Search")
+        .navigationTitle(L10n.Search.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadResults()
@@ -152,9 +152,9 @@ struct SearchResultsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
-                        Text("Location \(i + 1)")
+                        Text(L10n.Search.locationName(i + 1))
                             .font(DS.Font.username)
-                        Text("City, Country")
+                        Text(L10n.Search.cityCountry)
                             .font(DS.Font.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -179,7 +179,7 @@ struct SearchResultsView: View {
             AsyncImage(url: user.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
             .clipShape(Circle())
@@ -222,7 +222,7 @@ struct SearchResultsView: View {
                     AsyncImage(url: media.thumbnailURL ?? media.url) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
-                        Rectangle().fill(Color.gray.opacity(0.2))
+                        Rectangle().fill(ColorTokens.backgroundSubtler)
                     }
                     .frame(minHeight: DS.Size.gridCellMinHeight)
                     .clipped()

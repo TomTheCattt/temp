@@ -75,7 +75,7 @@ struct CommentsView: View {
             AsyncImage(url: comment.author.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarMedium, height: DS.Size.avatarMedium)
             .clipShape(Circle())
@@ -139,7 +139,7 @@ struct CommentsView: View {
             AsyncImage(url: reply.author.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                Circle().fill(ColorTokens.backgroundSubtler)
             }
             .frame(width: DS.Size.avatarXSmall, height: DS.Size.avatarXSmall)
             .clipShape(Circle())
@@ -154,7 +154,7 @@ struct CommentsView: View {
                 HStack(spacing: DS.Spacing.xs) {
                     Text(reply.createdAt, style: .relative)
                     if reply.likesCount > 0 {
-                        Text("\(reply.likesCount) likes")
+                        Text(L10n.Common.likesCount(reply.likesCount))
                     }
                 }
                 .font(DS.Font.caption2)
@@ -193,7 +193,7 @@ struct CommentsView: View {
         HStack(spacing: DS.Spacing.sm) {
             // Current user avatar placeholder
             Circle()
-                .fill(Color.gray.opacity(DS.Opacity.low))
+                .fill(ColorTokens.backgroundSubtler)
                 .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
 
             TextField(
@@ -227,16 +227,16 @@ struct CommentsView: View {
             ForEach(0..<5, id: \.self) { _ in
                 HStack(alignment: .top, spacing: DS.Spacing.sm) {
                     Circle()
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(ColorTokens.backgroundSubtler)
                         .frame(width: DS.Size.avatarMedium, height: DS.Size.avatarMedium)
                     VStack(alignment: .leading, spacing: DS.Spacing.iconGap) {
                         RoundedRectangle(cornerRadius: DS.Radius.small)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(ColorTokens.backgroundSubtler)
                             .frame(height: DS.Spacing.sm)
                             .frame(maxWidth: .infinity)
                         RoundedRectangle(cornerRadius: DS.Radius.small)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 150, height: DS.Spacing.sm)
+                            .fill(ColorTokens.backgroundSubtler)
+                            .frame(width: DS.Size.skeletonLineWidth, height: DS.Spacing.sm)
                     }
                     Spacer()
                 }
