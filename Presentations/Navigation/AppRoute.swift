@@ -96,6 +96,7 @@ enum AppSheet: Identifiable {
     case sharePost(postId: String)
     case reportPost(postId: String)
     case editPost(postId: String)
+    case reelComments(reelId: String)
 
     var id: String {
         switch self {
@@ -106,6 +107,7 @@ enum AppSheet: Identifiable {
         case .sharePost(let id):      return "sharePost_\(id)"
         case .reportPost(let id):     return "reportPost_\(id)"
         case .editPost(let id):       return "editPost_\(id)"
+        case .reelComments(let id):   return "reelComments_\(id)"
         }
     }
 }

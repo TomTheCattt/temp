@@ -943,6 +943,20 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
 
 **Response (204):** No content
 
+### GET /v1/reels/:reelId/comments?page=1&perPage=20
+
+Reel comments reuse the exact same contract, request params, and response shape
+as post comments (`GET /v1/posts/:postId/comments`). The client renders reel
+comments with the same UI as post comments (presented as a ~2/3-height sheet).
+
+### POST /v1/reels/:reelId/comments
+
+Same body and response shape as `POST /v1/posts/:postId/comments`.
+
+> Note: If the backend prefers a single polymorphic comments resource, an
+> alternative is `GET/POST /v1/comments?targetType=REEL&targetId=:reelId`.
+> The client only needs the paginated `items` + single-`comment` shapes to match.
+
 ---
 
 ## Conversations & Messages

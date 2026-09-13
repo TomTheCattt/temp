@@ -163,7 +163,7 @@ struct ReelsView: View {
     }
 
     private func navigateToComments(_ reel: Reel) {
-        // TODO: navigate to comments for reel
+        AppRouter.shared.present(sheet: .reelComments(reelId: reel.id))
     }
 }
 
