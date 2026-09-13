@@ -20,6 +20,10 @@ protocol FirebaseAuthServiceProtocol: Sendable {
     /// Get the current user's fresh ID token (auto-refreshes if expired).
     func getIDToken() async throws -> String
 
+    /// Change the current user's password. Reauthenticates with the current
+    /// password first (Firebase requires a recent login for sensitive operations).
+    func updatePassword(currentPassword: String, newPassword: String) async throws
+
     /// Sign out from Firebase Auth.
     func signOut() throws
 
@@ -80,6 +84,18 @@ final class FirebaseAuthService: FirebaseAuthServiceProtocol, @unchecked Sendabl
             throw FirebaseAuthError.notSignedIn
         }
         return try await user.getIDToken()
+    }
+
+    // MARK: - Change Password
+
+    func updatePassword(currentPassword: String, newPassword: String) async throws {
+        guard let user = Auth.auth().currentUser, let email = user.email else {
+            throw FirebaseAuthError.notSignedIn
+        }
+        // Reauthenticate first — Firebase requires a recent credential for password changes.
+        let credential = EmailAuthProvider.credential(withEmail: email, password: currentPassword)
+        try await user.reauthenticate(with: credential)
+        try await user.updatePassword(to: newPassword)
     }
 
     // MARK: - Sign Out

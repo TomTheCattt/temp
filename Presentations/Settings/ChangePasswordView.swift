@@ -41,7 +41,7 @@ struct ChangePasswordView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(L10n.Common.save) {
-                    // TODO: Implement password change
+                    Task { await changePassword() }
                 }
                 .fontWeight(.semibold)
                 .disabled(!isFormValid || isSaving)
@@ -71,5 +71,29 @@ struct ChangePasswordView: View {
         !currentPassword.isEmpty
         && newPassword.count >= 6
         && newPassword == confirmPassword
+    }
+
+    // MARK: - Actions
+
+    private func changePassword() async {
+        guard !isSaving else { return }
+        isSaving = true
+        errorMessage = nil
+
+        let useCase = DIContainer.shared.resolve(ChangePasswordUseCaseProtocol.self)
+        do {
+            try await useCase.execute(
+                ChangePasswordInput(
+                    currentPassword: currentPassword,
+                    newPassword: newPassword,
+                    confirmPassword: confirmPassword
+                )
+            )
+            showSuccess = true
+        } catch {
+            errorMessage = error.userMessage
+        }
+
+        isSaving = false
     }
 }

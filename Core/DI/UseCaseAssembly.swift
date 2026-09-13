@@ -29,6 +29,10 @@ final class UseCaseAssembly: Assembly {
             )
         }
 
+        container.register(ChangePasswordUseCaseProtocol.self) { _ in
+            ChangePasswordUseCase(firebaseAuth: FirebaseAuthService.shared)
+        }
+
         // MARK: Feed
 
         container.register(FetchFeedUseCaseProtocol.self) { resolver in
