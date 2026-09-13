@@ -119,6 +119,14 @@ enum L10n {
         static let editProfile = String(localized: "profile.editProfile")
         static let shareProfile = String(localized: "profile.shareProfile")
         static let unknownUser = String(localized: "profile.unknownUser")
+
+        // Empty states
+        static let noPostsTitle = String(localized: "profile.noPostsTitle")
+        static let noPostsDescription = String(localized: "profile.noPostsDescription")
+        static let noReelsTitle = String(localized: "profile.noReelsTitle")
+        static let noReelsDescription = String(localized: "profile.noReelsDescription")
+        static let noTaggedTitle = String(localized: "profile.noTaggedTitle")
+        static let noTaggedDescription = String(localized: "profile.noTaggedDescription")
     }
 
     // MARK: - Edit Profile
@@ -262,10 +270,20 @@ enum L10n {
         static let blockedEmptyTitle = String(localized: "settings.blockedEmptyTitle")
         static let blockedEmptyDescription = String(localized: "settings.blockedEmptyDescription")
 
+        static let unblock = String(localized: "settings.unblock")
+        static let cacheCleared = String(localized: "settings.cacheCleared")
+        static let biometricUnavailable = String(localized: "settings.biometricUnavailable")
+        static let biometricReason = String(localized: "settings.biometricReason")
+
         // Close friends
         static let closeFriendsFooter = String(localized: "settings.closeFriendsFooter")
         static let closeFriendsEmptyTitle = String(localized: "settings.closeFriendsEmptyTitle")
         static let closeFriendsEmptyDescription = String(localized: "settings.closeFriendsEmptyDescription")
+        static let closeFriendsListTitle = String(localized: "settings.closeFriendsListTitle")
+        static let closeFriendsSuggestions = String(localized: "settings.closeFriendsSuggestions")
+        static let closeFriendsSaved = String(localized: "settings.closeFriendsSaved")
+        static let add = String(localized: "settings.add")
+        static let added = String(localized: "settings.added")
     }
 
     // MARK: - Change Password

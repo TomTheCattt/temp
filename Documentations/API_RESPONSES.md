@@ -335,6 +335,127 @@ Same structure as followers.
 
 **Response (204):** No content
 
+### GET /v1/users/me/blocked?page=1&perPage=20
+
+Returns the list of accounts the current user has blocked. Same item shape as
+`/followers` (public user summary). `isBlocked` is implicitly `true` for every
+item in this list.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "blk123",
+        "username": "spammer",
+        "fullName": "Spam Account",
+        "avatarUrl": "https://i.pravatar.cc/400?u=spammer",
+        "bio": null,
+        "website": null,
+        "isVerified": false,
+        "isPrivate": false,
+        "postsCount": 0,
+        "followersCount": 0,
+        "followingCount": 0
+      }
+    ],
+    "page": 1,
+    "perPage": 20,
+    "total": 1,
+    "hasMore": false
+  }
+}
+```
+
+### GET /v1/users/me/settings
+
+Per-account preferences (notifications + data usage). Values are persisted
+server-side so they follow the user across devices.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "pushEnabled": true,
+      "likeNotifications": true,
+      "commentNotifications": true,
+      "followNotifications": true,
+      "directMessageNotifications": true,
+      "activityStatusVisible": true,
+      "highQualityUploads": true,
+      "cellularDataEnabled": true
+    }
+  }
+}
+```
+
+### PUT /v1/users/me/settings
+
+All fields are optional; send only the ones being changed. Returns the full,
+updated settings object.
+
+**Body:**
+```json
+{
+  "pushEnabled": false,
+  "highQualityUploads": false
+}
+```
+
+**Response (200):** Same shape as `GET /v1/users/me/settings`.
+
+### GET /v1/users/me/close-friends?page=1&perPage=50
+
+Returns the accounts on the current user's Close Friends list. Same item shape
+as `/followers`.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "cf123",
+        "username": "bestie",
+        "fullName": "Best Friend",
+        "avatarUrl": "https://i.pravatar.cc/400?u=bestie",
+        "bio": null,
+        "website": null,
+        "isVerified": false,
+        "isPrivate": false,
+        "postsCount": 12,
+        "followersCount": 30,
+        "followingCount": 25
+      }
+    ],
+    "page": 1,
+    "perPage": 50,
+    "total": 1,
+    "hasMore": false
+  }
+}
+```
+
+### PUT /v1/users/me/close-friends
+
+Replaces the entire Close Friends list with the provided set of user IDs
+(idempotent full-set update, matching Instagram's editor which submits the
+final selection).
+
+**Body:**
+```json
+{
+  "userIds": ["cf123", "cf456"]
+}
+```
+
+**Response (200):** Same shape as `GET /v1/users/me/close-friends` (the updated list).
+
 ### POST /v1/users/me/device-token
 
 **Body:**
@@ -845,6 +966,13 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
 ---
 
 ## Reels
+
+### GET /v1/reels/user/:userId?page=1&perPage=30
+
+Returns reels authored by a specific user (used by the profile Reels grid).
+Same item + pagination shape as `/v1/reels/feed`.
+
+**Response (200):** Same structure as the reels feed below (filtered to `authorId == :userId`).
 
 ### GET /v1/reels/feed?page=1&perPage=10
 

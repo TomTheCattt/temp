@@ -30,6 +30,10 @@ final class MockUserRepository: UserRepositoryProtocol, @unchecked Sendable {
         try await dataSource.updateProfile(name: name, bio: bio, website: website)
     }
 
+    func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
+        try await dataSource.setPrivateAccount(isPrivate)
+    }
+
     func updateAvatar(imageData: Data) async throws -> User {
         try await dataSource.updateAvatar(imageData: imageData)
     }
@@ -48,6 +52,26 @@ final class MockUserRepository: UserRepositoryProtocol, @unchecked Sendable {
 
     func unblock(userId: String) async throws {
         try await dataSource.unblock(userId: userId)
+    }
+
+    func fetchBlockedUsers(page: Int, perPage: Int) async throws -> [User] {
+        try await dataSource.fetchBlockedUsers(page: page, perPage: perPage)
+    }
+
+    func fetchSettings() async throws -> UserSettings {
+        try await dataSource.fetchSettings()
+    }
+
+    func updateSettings(_ patch: UserSettingsPatch) async throws -> UserSettings {
+        try await dataSource.updateSettings(patch)
+    }
+
+    func fetchCloseFriends(page: Int, perPage: Int) async throws -> [User] {
+        try await dataSource.fetchCloseFriends(page: page, perPage: perPage)
+    }
+
+    func setCloseFriends(userIds: [String]) async throws -> [User] {
+        try await dataSource.setCloseFriends(userIds: userIds)
     }
 
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User] {

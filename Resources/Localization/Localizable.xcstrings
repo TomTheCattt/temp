@@ -4935,6 +4935,48 @@
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Người dùng không xác định" } }
       }
     },
+    "profile.noPostsTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No Posts Yet" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chưa có bài viết" } }
+      }
+    },
+    "profile.noPostsDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When posts are shared, they will appear here." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi có bài viết được chia sẻ, chúng sẽ hiển thị ở đây." } }
+      }
+    },
+    "profile.noReelsTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No Reels Yet" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chưa có thước phim" } }
+      }
+    },
+    "profile.noReelsDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reels shared by this account will appear here." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thước phim của tài khoản này sẽ hiển thị ở đây." } }
+      }
+    },
+    "profile.noTaggedTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No Tagged Posts" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chưa có bài viết gắn thẻ" } }
+      }
+    },
+    "profile.noTaggedDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photos and videos this account is tagged in will appear here." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Ảnh và video mà tài khoản này được gắn thẻ sẽ hiển thị ở đây." } }
+      }
+    },
     "settings.savedEmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4989,6 +5031,69 @@
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Add people to your close friends list to share stories exclusively with them." } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thêm người vào danh sách bạn thân để chia sẻ tin riêng với họ." } }
+      }
+    },
+    "settings.unblock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unblock" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bỏ chặn" } }
+      }
+    },
+    "settings.cacheCleared" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cache cleared" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đã xoá bộ nhớ đệm" } }
+      }
+    },
+    "settings.biometricUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Biometric authentication is not available on this device." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thiết bị này không hỗ trợ xác thực sinh trắc học." } }
+      }
+    },
+    "settings.biometricReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirm it's you to enable biometric login." } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Xác nhận danh tính để bật đăng nhập sinh trắc học." } }
+      }
+    },
+    "settings.closeFriendsListTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your Close Friends" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bạn thân của bạn" } }
+      }
+    },
+    "settings.closeFriendsSuggestions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Suggestions" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Gợi ý" } }
+      }
+    },
+    "settings.closeFriendsSaved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Close friends updated" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đã cập nhật bạn thân" } }
+      }
+    },
+    "settings.add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thêm" } }
+      }
+    },
+    "settings.added" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Added" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đã thêm" } }
       }
     },
     "changePassword.title" : {

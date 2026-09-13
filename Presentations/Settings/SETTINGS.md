@@ -62,8 +62,9 @@ Module quản lý toàn bộ cài đặt ứng dụng: tài khoản, giao diện
 ## Sub-screens Chi tiết
 
 ### BlockedAccountsView
-- Explanation text + ContentUnavailableView (empty state)
-- TODO: populate với actual blocked accounts
+- `BlockedAccountsViewModel` load `userRepository.fetchBlockedUsers()` (`GET /v1/users/me/blocked`)
+- Danh sách rows với avatar/username + nút Unblock (optimistic removal, revert nếu lỗi)
+- Loading / error (retry) / empty states
 
 ### ChangePasswordView
 - Form: Current Password + New Password + Confirm Password
@@ -72,12 +73,14 @@ Module quản lý toàn bộ cài đặt ứng dụng: tài khoản, giao diện
 - Success/Error alerts (lỗi dùng `error.userMessage`)
 
 ### CloseFriendsView
-- Explanation text + Searchable + ContentUnavailableView (empty state)
-- TODO: populate với actual close friends data
+- `CloseFriendsViewModel`: load song song following (candidate pool) + close friends hiện tại (`GET /v1/users/me/close-friends`)
+- Tap để toggle chọn/bỏ; nút Done lưu full-set qua `PUT /v1/users/me/close-friends` (chỉ enable khi có thay đổi)
+- Searchable + loading/error/empty states
 
 ### SavedPostsView
-- 3-column grid (placeholder rectangles)
-- ContentUnavailableView overlay (empty state)
+- `SavedPostsViewModel` load `postRepository.fetchSavedPosts()` (`GET /v1/posts/saved`)
+- 3-column grid ảnh thật, tap → `postDetail`
+- Loading / error (retry) / empty states
 
 ### TwoFactorAuthView
 - Master toggle on/off
@@ -90,6 +93,12 @@ Module quản lý toàn bộ cài đặt ứng dụng: tài khoản, giao diện
 ## Architecture
 
 - Pattern: MVVM với `@Observable`
-- Dependencies: `AuthRepositoryProtocol`, `UserRepositoryProtocol`
-- Settings state: local `@State` variables (chưa persist, trừ private account)
+- Dependencies: `AuthRepositoryProtocol`, `UserRepositoryProtocol`, `BiometricAuthenticating`, `KeychainManagerProtocol`
+- **Settings persistence**:
+  - Notification + data-usage toggles: load từ `GET /v1/users/me/settings`, mỗi thay đổi persist qua `PUT /v1/users/me/settings` (`persistSettings()`), reconcile theo response, revert nếu lỗi.
+  - Private Account: `PUT /v1/users/me` (isPrivate), revert on failure.
+  - Face ID/Touch ID: yêu cầu `BiometricAuthenticator` xác thực khi bật, lưu cờ vào Keychain (`KeychainKeys.biometricEnabled`).
+  - Theme: `ThemeManager` (UserDefaults) — local, không qua API.
+  - Clear Cache: `ImagePipelineManager.clear()`.
+  - Guard `isApplyingRemoteChange` để tránh vòng lặp `.onChange` khi cập nhật toggle theo chương trình.
 - Logout flow: API call → clear `SessionStore` → reset `AppRouter` → set auth = false

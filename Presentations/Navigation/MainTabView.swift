@@ -119,10 +119,7 @@ struct MainTabView: View {
 
         case .settings:
             SettingsView(
-                viewModel: SettingsViewModel(
-                    authRepository: DIContainer.shared.resolve(AuthRepositoryProtocol.self),
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
-                )
+                viewModel: DIContainer.shared.resolve(SettingsViewModel.self)
             )
 
         case .postDetail(let postId):
@@ -198,13 +195,25 @@ struct MainTabView: View {
 
         // Settings Sub-screens
         case .savedPosts:
-            SavedPostsView()
+            SavedPostsView(
+                viewModel: SavedPostsViewModel(
+                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+                )
+            )
 
         case .closeFriends:
-            CloseFriendsView()
+            CloseFriendsView(
+                viewModel: CloseFriendsViewModel(
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
+                )
+            )
 
         case .blockedAccounts:
-            BlockedAccountsView()
+            BlockedAccountsView(
+                viewModel: BlockedAccountsViewModel(
+                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
+                )
+            )
 
         case .changePassword:
             ChangePasswordView()

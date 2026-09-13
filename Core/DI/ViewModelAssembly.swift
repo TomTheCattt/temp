@@ -93,6 +93,32 @@ final class ViewModelAssembly: Assembly {
         container.register(SettingsViewModel.self) { resolver in
             SettingsViewModel(
                 authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
+                userRepository: resolver.resolve(UserRepositoryProtocol.self)!,
+                biometricAuthenticator: resolver.resolve(BiometricAuthenticator.self)!,
+                keychainManager: resolver.resolve(KeychainManager.self)!
+            )
+        }
+
+        // MARK: SavedPostsViewModel
+
+        container.register(SavedPostsViewModel.self) { resolver in
+            SavedPostsViewModel(
+                postRepository: resolver.resolve(PostRepositoryProtocol.self)!
+            )
+        }
+
+        // MARK: BlockedAccountsViewModel
+
+        container.register(BlockedAccountsViewModel.self) { resolver in
+            BlockedAccountsViewModel(
+                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+            )
+        }
+
+        // MARK: CloseFriendsViewModel
+
+        container.register(CloseFriendsViewModel.self) { resolver in
+            CloseFriendsViewModel(
                 userRepository: resolver.resolve(UserRepositoryProtocol.self)!
             )
         }

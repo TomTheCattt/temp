@@ -33,6 +33,10 @@ final class UserRepository: UserRepositoryProtocol, @unchecked Sendable {
         try await remoteDataSource.updateProfile(name: name, bio: bio, website: website)
     }
 
+    func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
+        try await remoteDataSource.setPrivateAccount(isPrivate)
+    }
+
     func updateAvatar(imageData: Data) async throws -> User {
         try await remoteDataSource.updateAvatar(imageData: imageData)
     }
@@ -51,6 +55,26 @@ final class UserRepository: UserRepositoryProtocol, @unchecked Sendable {
 
     func unblock(userId: String) async throws {
         try await remoteDataSource.unblock(userId: userId)
+    }
+
+    func fetchBlockedUsers(page: Int, perPage: Int) async throws -> [User] {
+        try await remoteDataSource.fetchBlockedUsers(page: page, perPage: perPage)
+    }
+
+    func fetchSettings() async throws -> UserSettings {
+        try await remoteDataSource.fetchSettings()
+    }
+
+    func updateSettings(_ patch: UserSettingsPatch) async throws -> UserSettings {
+        try await remoteDataSource.updateSettings(patch)
+    }
+
+    func fetchCloseFriends(page: Int, perPage: Int) async throws -> [User] {
+        try await remoteDataSource.fetchCloseFriends(page: page, perPage: perPage)
+    }
+
+    func setCloseFriends(userIds: [String]) async throws -> [User] {
+        try await remoteDataSource.setCloseFriends(userIds: userIds)
     }
 
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User] {

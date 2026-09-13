@@ -23,6 +23,9 @@ protocol UserRepositoryProtocol: Sendable {
     /// Update the current user's profile.
     func updateProfile(name: String?, bio: String?, website: String?) async throws -> User
 
+    /// Update the current user's private-account setting.
+    func setPrivateAccount(_ isPrivate: Bool) async throws -> User
+
     /// Update the current user's avatar.
     func updateAvatar(imageData: Data) async throws -> User
 
@@ -37,6 +40,21 @@ protocol UserRepositoryProtocol: Sendable {
 
     /// Unblock a user.
     func unblock(userId: String) async throws
+
+    /// Fetch the list of accounts the current user has blocked.
+    func fetchBlockedUsers(page: Int, perPage: Int) async throws -> [User]
+
+    /// Fetch the current user's per-account settings (notifications + data usage).
+    func fetchSettings() async throws -> UserSettings
+
+    /// Update the current user's settings. Returns the full, updated settings.
+    func updateSettings(_ patch: UserSettingsPatch) async throws -> UserSettings
+
+    /// Fetch the current user's Close Friends list.
+    func fetchCloseFriends(page: Int, perPage: Int) async throws -> [User]
+
+    /// Replace the entire Close Friends list. Returns the updated list.
+    func setCloseFriends(userIds: [String]) async throws -> [User]
 
     /// Fetch followers list.
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User]

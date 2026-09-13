@@ -108,12 +108,27 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.isPushEnabled) {
                 Label(L10n.Settings.pushNotifications, systemImage: "bell")
             }
+            .onChange(of: viewModel.isPushEnabled) { _, _ in
+                Task { await viewModel.persistSettings() }
+            }
 
             if viewModel.isPushEnabled {
                 Toggle(L10n.Settings.likes, isOn: $viewModel.isLikeNotificationEnabled)
+                    .onChange(of: viewModel.isLikeNotificationEnabled) { _, _ in
+                        Task { await viewModel.persistSettings() }
+                    }
                 Toggle(L10n.Settings.comments, isOn: $viewModel.isCommentNotificationEnabled)
+                    .onChange(of: viewModel.isCommentNotificationEnabled) { _, _ in
+                        Task { await viewModel.persistSettings() }
+                    }
                 Toggle(L10n.Settings.newFollowers, isOn: $viewModel.isFollowNotificationEnabled)
+                    .onChange(of: viewModel.isFollowNotificationEnabled) { _, _ in
+                        Task { await viewModel.persistSettings() }
+                    }
                 Toggle(L10n.Settings.directMessages, isOn: $viewModel.isDirectMessageNotificationEnabled)
+                    .onChange(of: viewModel.isDirectMessageNotificationEnabled) { _, _ in
+                        Task { await viewModel.persistSettings() }
+                    }
             }
         }
     }
@@ -132,6 +147,9 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.isActivityStatusVisible) {
                 Label(L10n.Settings.activityStatus, systemImage: "circle.fill")
             }
+            .onChange(of: viewModel.isActivityStatusVisible) { _, _ in
+                Task { await viewModel.persistSettings() }
+            }
         }
     }
 
@@ -141,6 +159,9 @@ struct SettingsView: View {
         Section(L10n.Settings.security) {
             Toggle(isOn: $viewModel.isBiometricEnabled) {
                 Label(L10n.Settings.faceIdTouchId, systemImage: "faceid")
+            }
+            .onChange(of: viewModel.isBiometricEnabled) { _, newValue in
+                Task { await viewModel.setBiometricEnabled(newValue) }
             }
 
             NavigationLink(value: AppRoute.changePassword) {
@@ -160,12 +181,20 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.isHighQualityUploads) {
                 Label(L10n.Settings.highQualityUploads, systemImage: "arrow.up.circle")
             }
+            .onChange(of: viewModel.isHighQualityUploads) { _, _ in
+                Task { await viewModel.persistSettings() }
+            }
 
             Toggle(isOn: $viewModel.isCellularDataEnabled) {
                 Label(L10n.Settings.useCellularData, systemImage: "antenna.radiowaves.left.and.right")
             }
+            .onChange(of: viewModel.isCellularDataEnabled) { _, _ in
+                Task { await viewModel.persistSettings() }
+            }
 
-            Button(action: {}) {
+            Button {
+                viewModel.clearCache()
+            } label: {
                 Label(L10n.Settings.clearCache, systemImage: "trash")
                     .foregroundStyle(.primary)
             }

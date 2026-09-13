@@ -28,9 +28,12 @@ Module hiển thị trang profile của user (bản thân hoặc người khác)
 - **Other user**: "Follow/Following" (toggle, màu thay đổi) + "Message"
 
 ### Grid
-- **3 tabs**: Posts / Reels / Tagged (với animated underline indicator)
+- **3 tabs**: Posts / Reels / Tagged (với animated underline indicator), nội dung đổi theo `selectedGrid`
 - **Posts grid**: 3 cột, aspect ratio 1:1, tap → postDetail
-- **LazyImage** (Nuke) cho hiệu suất tốt
+- **Reels grid**: load lazy qua `reelRepository.fetchUserReels()` (`GET /v1/reels/user/:userId`) khi chọn tab, overlay play icon
+- **Tagged grid**: empty state (BE chưa có endpoint tagged)
+- Mỗi tab có empty state riêng; **LazyImage** (Nuke) cho hiệu suất tốt
+- **Share Profile**: `ShareLink` chia sẻ link profile (`universalLinkHost/username`)
 
 ### Custom Navigation Bar (4 buttons)
 - **Leading**: Nút khóa/quyền riêng tư (lock icon) + username
@@ -42,9 +45,9 @@ Module hiển thị trang profile của user (bản thân hoặc người khác)
 ## Architecture
 
 - Pattern: MVVM với `@Observable`
-- Dependencies: `FetchProfileUseCaseProtocol`, `ToggleFollowUseCaseProtocol`, `PostRepositoryProtocol`
+- Dependencies: `FetchProfileUseCaseProtocol`, `ToggleFollowUseCaseProtocol`, `PostRepositoryProtocol`, `ReelRepositoryProtocol`
 - `isCurrentUser`: xác định bởi `userId == nil`
-- Load sequence: `loadProfile()` → fetch user + fetch user posts
+- Load sequence: `loadProfile()` → fetch user + fetch user posts; `loadReelsIfNeeded()` → fetch user reels (lazy, lần đầu mở tab Reels)
 - Toggle follow: optimistic update + revert on failure
 
 ## ProfileGrid Enum

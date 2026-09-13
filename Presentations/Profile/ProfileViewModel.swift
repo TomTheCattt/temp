@@ -17,17 +17,21 @@ final class ProfileViewModel {
 
     private(set) var user: User?
     private(set) var posts: [Post] = []
+    private(set) var reels: [Reel] = []
     private(set) var isLoading = false
+    private(set) var isLoadingReels = false
     private(set) var errorMessage: String?
 
     let isCurrentUser: Bool
     private let userId: String?
+    private var didLoadReels = false
 
     // MARK: - Dependencies
 
     private let fetchProfileUseCase: FetchProfileUseCaseProtocol
     private let toggleFollowUseCase: ToggleFollowUseCaseProtocol
     private let postRepository: PostRepositoryProtocol
+    private let reelRepository: ReelRepositoryProtocol
 
     // MARK: - Init
 
@@ -35,13 +39,15 @@ final class ProfileViewModel {
         userId: String?,
         fetchProfileUseCase: FetchProfileUseCaseProtocol,
         toggleFollowUseCase: ToggleFollowUseCaseProtocol,
-        postRepository: PostRepositoryProtocol
+        postRepository: PostRepositoryProtocol,
+        reelRepository: ReelRepositoryProtocol
     ) {
         self.userId = userId
         self.isCurrentUser = (userId == nil)
         self.fetchProfileUseCase = fetchProfileUseCase
         self.toggleFollowUseCase = toggleFollowUseCase
         self.postRepository = postRepository
+        self.reelRepository = reelRepository
     }
 
     // MARK: - Actions
@@ -68,6 +74,26 @@ final class ProfileViewModel {
         }
 
         isLoading = false
+    }
+
+    /// Loads the user's reels lazily, the first time the Reels tab is opened.
+    func loadReelsIfNeeded() async {
+        guard !didLoadReels, !isLoadingReels else { return }
+        guard let resolvedId = user?.id ?? userId else { return }
+
+        isLoadingReels = true
+        do {
+            reels = try await reelRepository.fetchUserReels(
+                userId: resolvedId,
+                page: 1,
+                perPage: 30
+            )
+            didLoadReels = true
+        } catch {
+            // Grid stays empty; a transient failure shouldn't block the whole profile.
+            ToastManager.shared.error(error.userMessage)
+        }
+        isLoadingReels = false
     }
 
     func toggleFollow() async {

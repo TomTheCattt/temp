@@ -41,6 +41,13 @@ final class RemoteUserDataSource: @unchecked Sendable {
         return UserMapper.toEntity(wrapper.user)
     }
 
+    func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
+        let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.updateProfile(fullName: nil, bio: nil, website: nil, isPrivate: isPrivate)
+        )
+        return UserMapper.toEntity(wrapper.user)
+    }
+
     func updateAvatar(imageData: Data) async throws -> User {
         let _: UploadAvatarResponseDTO = try await networkService.upload(
             UploadEndpoint.avatar
@@ -79,6 +86,45 @@ final class RemoteUserDataSource: @unchecked Sendable {
 
     func unblock(userId: String) async throws {
         try await networkService.requestVoid(UserProfileEndpoint.unblock(userId: userId))
+    }
+
+    func fetchBlockedUsers(page: Int, perPage: Int) async throws -> [User] {
+        let response: PaginatedUsersDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.blocked(page: page, perPage: perPage)
+        )
+        return UserMapper.toEntityList(response.items)
+    }
+
+    // MARK: - Settings
+
+    func fetchSettings() async throws -> UserSettings {
+        let wrapper: UserSettingsWrapperDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.settings
+        )
+        return UserSettingsMapper.toEntity(wrapper.settings)
+    }
+
+    func updateSettings(_ patch: UserSettingsPatch) async throws -> UserSettings {
+        let wrapper: UserSettingsWrapperDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.updateSettings(patch)
+        )
+        return UserSettingsMapper.toEntity(wrapper.settings)
+    }
+
+    // MARK: - Close Friends
+
+    func fetchCloseFriends(page: Int, perPage: Int) async throws -> [User] {
+        let response: PaginatedUsersDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.closeFriends(page: page, perPage: perPage)
+        )
+        return UserMapper.toEntityList(response.items)
+    }
+
+    func setCloseFriends(userIds: [String]) async throws -> [User] {
+        let response: PaginatedUsersDTO = try await networkService.requestEnvelope(
+            UserProfileEndpoint.updateCloseFriends(userIds: userIds)
+        )
+        return UserMapper.toEntityList(response.items)
     }
 
     // MARK: - Lists

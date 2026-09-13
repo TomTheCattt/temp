@@ -23,7 +23,8 @@ struct ProfileView: View {
             userId: userId,
             fetchProfileUseCase: DIContainer.shared.resolve(FetchProfileUseCaseProtocol.self),
             toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self),
-            postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+            postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self),
+            reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
         ))
     }
 
@@ -52,8 +53,8 @@ struct ProfileView: View {
                         // MARK: Grid Picker
                         gridPicker
 
-                        // MARK: Posts Grid
-                        postsGrid
+                        // MARK: Content Grid (switches by selected tab)
+                        gridContent
                     } else if viewModel.isLoading {
                         ProgressView()
                             .padding(.top, DS.Spacing.xxxl)
@@ -196,9 +197,7 @@ struct ProfileView: View {
                 profileButton(title: L10n.Profile.editProfile) {
                     AppRouter.shared.present(sheet: .editProfile)
                 }
-                profileButton(title: L10n.Profile.shareProfile) {
-                    // Share
-                }
+                shareProfileButton(user)
             } else {
                 Button {
                     Task { await viewModel.toggleFollow() }
@@ -222,6 +221,26 @@ struct ProfileView: View {
         }
         .padding(.horizontal, DS.Padding.horizontal)
         .padding(.top, DS.Spacing.sm)
+    }
+
+    private func shareProfileButton(_ user: User) -> some View {
+        let profileURL = URL(string: "\(AppConstants.App.universalLinkHost)/\(user.username)")
+        return ShareLink(
+            item: profileURL ?? URL(string: AppConstants.App.universalLinkHost)!,
+            subject: Text(user.username),
+            message: Text(user.fullName)
+        ) {
+            Text(L10n.Profile.shareProfile)
+                .font(DS.Font.subheadline)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .frame(height: DS.Size.avatarCompact)
+                .background(
+                    RoundedRectangle(cornerRadius: DS.Radius.medium, style: .continuous)
+                        .fill(ColorTokens.backgroundSubtler)
+                )
+        }
+        .tint(.primary)
     }
 
     private func profileButton(title: String, action: @escaping () -> Void) -> some View {
@@ -248,6 +267,9 @@ struct ProfileView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         selectedGrid = grid
                     }
+                    if grid == .reels {
+                        Task { await viewModel.loadReelsIfNeeded() }
+                    }
                 } label: {
                     Image(systemName: grid.icon)
                         .font(DS.Font.title3)
@@ -269,18 +291,77 @@ struct ProfileView: View {
         .padding(.top, DS.Spacing.md)
     }
 
+    // MARK: - Grid Content (per selected tab)
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: DS.Spacing.hairline), count: DS.Layout.gridColumns)
+    }
+
+    @ViewBuilder
+    private var gridContent: some View {
+        switch selectedGrid {
+        case .posts:
+            postsGrid
+        case .reels:
+            reelsGrid
+        case .tagged:
+            taggedGrid
+        }
+    }
+
     // MARK: - Posts Grid
 
     private var postsGrid: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: DS.Spacing.hairline), count: DS.Layout.gridColumns)
+        Group {
+            if viewModel.posts.isEmpty {
+                EmptyStateView(
+                    message: L10n.Profile.noPostsDescription,
+                    systemImage: "camera",
+                    title: L10n.Profile.noPostsTitle
+                )
+            } else {
+                LazyVGrid(columns: gridColumns, spacing: DS.Spacing.hairline) {
+                    ForEach(viewModel.posts) { post in
+                        Button {
+                            AppRouter.shared.push(.postDetail(postId: post.id))
+                        } label: {
+                            if let media = post.mediaItems.first {
+                                LazyImage(url: media.thumbnailURL ?? media.url) { state in
+                                    if let image = state.image {
+                                        image
+                                            .resizable()
+                                            .aspectRatio(1, contentMode: .fill)
+                                    } else {
+                                        ColorTokens.backgroundSecondary
+                                    }
+                                }
+                                .aspectRatio(1, contentMode: .fill)
+                                .clipped()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-        return LazyVGrid(columns: columns, spacing: DS.Spacing.hairline) {
-            ForEach(viewModel.posts) { post in
-                Button {
-                    AppRouter.shared.push(.postDetail(postId: post.id))
-                } label: {
-                    if let media = post.mediaItems.first {
-                        LazyImage(url: media.thumbnailURL ?? media.url) { state in
+    // MARK: - Reels Grid
+
+    private var reelsGrid: some View {
+        Group {
+            if viewModel.isLoadingReels && viewModel.reels.isEmpty {
+                ProgressView()
+                    .padding(.top, DS.Spacing.xxxl)
+            } else if viewModel.reels.isEmpty {
+                EmptyStateView(
+                    message: L10n.Profile.noReelsDescription,
+                    systemImage: "play.square",
+                    title: L10n.Profile.noReelsTitle
+                )
+            } else {
+                LazyVGrid(columns: gridColumns, spacing: DS.Spacing.hairline) {
+                    ForEach(viewModel.reels) { reel in
+                        LazyImage(url: reel.thumbnailURL) { state in
                             if let image = state.image {
                                 image
                                     .resizable()
@@ -291,10 +372,26 @@ struct ProfileView: View {
                         }
                         .aspectRatio(1, contentMode: .fill)
                         .clipped()
+                        .overlay(alignment: .bottomLeading) {
+                            Image(systemName: "play.fill")
+                                .font(DS.Font.caption)
+                                .foregroundStyle(.white)
+                                .padding(DS.Spacing.xxs)
+                        }
                     }
                 }
             }
         }
+    }
+
+    // MARK: - Tagged Grid
+
+    private var taggedGrid: some View {
+        EmptyStateView(
+            message: L10n.Profile.noTaggedDescription,
+            systemImage: "person.crop.square",
+            title: L10n.Profile.noTaggedTitle
+        )
     }
 
     // MARK: - Helpers
