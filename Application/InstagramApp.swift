@@ -35,9 +35,12 @@ struct InstagramApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SplashView()
+            // RootContainerView hosts SplashView and overlays global blocking
+            // screens (maintenance / force-update) driven by AppState.
+            RootContainerView()
                 .withBaseFeatures()
                 .withAppTheme()
+                .withToast() // Single global toast host for the whole app.
         }
     }
 

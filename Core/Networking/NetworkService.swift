@@ -177,9 +177,34 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     // MARK: - Error Mapping
 
     private func mapError(_ afError: AFError, response: HTTPURLResponse?) -> APIError {
+        // Detect global, cross-cutting HTTP states and route them to AppState.
+        // This is intentionally non-invasive: we still return the normal mapped
+        // APIError so existing error handling/return flow is unaffected.
+        detectGlobalState(from: response)
+
         let apiError = APIError.from(afError, response: response)
         logger.error("API Error: \(apiError.localizedDescription)")
         return apiError
+    }
+
+    /// Inspects the HTTP status for app-wide states that must block the whole UI.
+    /// - 503 Service Unavailable → maintenance mode
+    /// - 426 Upgrade Required     → force update
+    /// Flags are published on `AppState.shared` (main actor). No APIError cases are added.
+    private func detectGlobalState(from response: HTTPURLResponse?) {
+        guard let statusCode = response?.statusCode else { return }
+        switch statusCode {
+        case 503:
+            Task { @MainActor in
+                AppState.shared.isUnderMaintenance = true
+            }
+        case 426:
+            Task { @MainActor in
+                AppState.shared.forceUpdateRequired = true
+            }
+        default:
+            break
+        }
     }
 }
 

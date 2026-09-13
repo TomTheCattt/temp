@@ -121,6 +121,20 @@ struct AppConfig {
     var isMockAPI: Bool { apiMode == .mock }
 
     var timeoutInterval: TimeInterval { 30 }
+
+    /// App Store product URL used by the force-update screen ("Update now").
+    /// TODO: Replace the placeholder ID (id000000000) with the real App Store app ID.
+    var appStoreURL: URL? {
+        // Priority 1: Info.plist override (APP_STORE_URL) so it can be set per build.
+        if let raw = Bundle.main.infoDictionary?["APP_STORE_URL"] as? String,
+           let normalized = normalizedBaseURL(raw),
+           let url = URL(string: normalized) {
+            return url
+        }
+        // Priority 2: sensible placeholder.
+        return URL(string: "https://apps.apple.com/app/id000000000")
+    }
+
     var clientVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }

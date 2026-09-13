@@ -15,7 +15,6 @@ struct ContentView: View {
         Group {
             if router.isAuthenticated {
                 MainTabView()
-                    .withToast()
             } else {
                 LoginView(
                     viewModel: AuthViewModel(
@@ -23,10 +22,9 @@ struct ContentView: View {
                         registerUseCase: DIContainer.shared.resolve(RegisterUseCaseProtocol.self)
                     )
                 )
-                .withToast()
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: router.isAuthenticated)
+        .animation(DS.Animation.smooth, value: router.isAuthenticated)
     }
 }
 
