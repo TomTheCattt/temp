@@ -1001,9 +1001,11 @@ Same item + pagination shape as `/v1/reels/feed`.
         "author": {
           "id": "abc123",
           "username": "alice",
-          "avatarUrl": "https://i.pravatar.cc/400?u=alice"
+          "avatarUrl": "https://i.pravatar.cc/400?u=alice",
+          "isFollowing": false
         },
-        "isLiked": false
+        "isLiked": false,
+        "isSaved": false
       }
     ],
     "page": 1,
@@ -1013,6 +1015,11 @@ Same item + pagination shape as `/v1/reels/feed`.
   }
 }
 ```
+
+> `author.isFollowing` reflects whether the current user follows the reel's
+> author (drives the inline Follow button + the "Following" tab filter).
+> `isSaved` reflects whether the current user has saved the reel (drives the
+> bookmark toggle). Both default to `false` when absent.
 
 ### POST /v1/reels
 
@@ -1064,6 +1071,24 @@ Same item + pagination shape as `/v1/reels/feed`.
 **Response (204):** No content
 
 ### DELETE /v1/reels/:id/like
+
+**Response (204):** No content
+
+### POST /v1/reels/:id/save
+
+Save a reel to the current user's collection.
+
+**Response (204):** No content
+
+### DELETE /v1/reels/:id/save
+
+Remove a reel from the current user's saved collection.
+
+**Response (204):** No content
+
+### DELETE /v1/reels/:id
+
+Delete a reel. Only the reel's author may delete it (otherwise `403 FORBIDDEN`).
 
 **Response (204):** No content
 
@@ -1326,6 +1351,7 @@ Or for media:
         "actorId": "actor-uuid",
         "type": "LIKE",
         "postId": "10000000-0000-4000-8000-000000000001",
+        "postThumbnailUrl": "https://picsum.photos/seed/post-1-0/200/200",
         "commentText": null,
         "isRead": false,
         "createdAt": "2026-08-04T12:00:00.000Z",
@@ -1342,6 +1368,7 @@ Or for media:
         "actorId": "actor-uuid-2",
         "type": "COMMENT",
         "postId": "10000000-0000-4000-8000-000000000002",
+        "postThumbnailUrl": "https://picsum.photos/seed/post-2-0/200/200",
         "commentText": "Great photo!",
         "isRead": true,
         "createdAt": "2026-08-03T18:00:00.000Z",
@@ -1358,6 +1385,7 @@ Or for media:
         "actorId": "actor-uuid-3",
         "type": "FOLLOW",
         "postId": null,
+        "postThumbnailUrl": null,
         "commentText": null,
         "isRead": false,
         "createdAt": "2026-08-03T10:00:00.000Z",
@@ -1378,6 +1406,10 @@ Or for media:
 ```
 
 **NotificationType enum:** `LIKE`, `COMMENT`, `FOLLOW`, `FOLLOW_REQUEST`, `MENTION`, `TAGGED_IN_POST`, `STORY_MENTION`, `LIVE_VIDEO`
+
+`postThumbnailUrl` is a small thumbnail of the related post (present for
+post-related types like `LIKE`, `COMMENT`, `TAGGED_IN_POST`; `null` for
+`FOLLOW`). Lets the client render the post preview without an extra fetch.
 
 ### GET /v1/notifications/unread-count
 

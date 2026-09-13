@@ -38,7 +38,7 @@ enum ReelMapper {
             viewsCount: dto.viewsCount,
             duration: dto.duration,
             isLiked: dto.isLiked ?? false,
-            isSaved: false, // BE doesn't return isSaved for reels currently
+            isSaved: dto.isSaved ?? false,
             createdAt: DateMapper.toDate(dto.createdAt)
         )
     }

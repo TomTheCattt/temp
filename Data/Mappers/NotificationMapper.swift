@@ -17,7 +17,7 @@ enum NotificationMapper {
             type: toNotificationType(dto.type),
             actor: UserMapper.toEntity(dto.actor),
             postId: dto.postId,
-            postThumbnailURL: nil, // BE doesn't include post thumbnail in notification
+            postThumbnailURL: dto.postThumbnailUrl.flatMap { URL(string: $0) },
             commentText: dto.commentText,
             isRead: dto.isRead,
             createdAt: DateMapper.toDate(dto.createdAt)

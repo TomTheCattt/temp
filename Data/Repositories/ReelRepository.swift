@@ -28,8 +28,7 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
     }
 
     func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
-        // BE doesn't have a dedicated user reels endpoint yet; return empty
-        return []
+        try await remoteDataSource.fetchUserReels(userId: userId, page: page, perPage: perPage)
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
@@ -58,14 +57,14 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
     }
 
     func saveReel(id: String) async throws {
-        // BE doesn't have save reel endpoint yet
+        try await remoteDataSource.saveReel(id: id)
     }
 
     func unsaveReel(id: String) async throws {
-        // BE doesn't have unsave reel endpoint yet
+        try await remoteDataSource.unsaveReel(id: id)
     }
 
     func deleteReel(id: String) async throws {
-        // BE doesn't have delete reel endpoint yet
+        try await remoteDataSource.deleteReel(id: id)
     }
 }

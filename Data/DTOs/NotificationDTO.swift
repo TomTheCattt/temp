@@ -16,6 +16,7 @@ nonisolated struct NotificationDTO: Decodable, Sendable {
     let actorId: String
     let type: String        // "LIKE" | "COMMENT" | "FOLLOW" | "FOLLOW_REQUEST" | "MENTION" | "TAGGED_IN_POST" | "STORY_MENTION" | "LIVE_VIDEO" (uppercase)
     let postId: String?
+    let postThumbnailUrl: String?
     let commentText: String?
     let isRead: Bool
     let createdAt: String

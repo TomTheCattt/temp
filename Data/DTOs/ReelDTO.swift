@@ -29,6 +29,7 @@ nonisolated struct ReelDTO: Decodable, Sendable {
     let createdAt: String
     let author: UserDTO
     let isLiked: Bool?
+    let isSaved: Bool?
 }
 
 // MARK: - ReelWrapperDTO
