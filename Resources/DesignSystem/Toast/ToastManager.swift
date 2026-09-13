@@ -27,20 +27,15 @@ enum ToastStyle {
 
     var tintColor: Color {
         switch self {
-        case .success: return .green
-        case .error:   return .red
-        case .warning: return .orange
-        case .info:    return .blue
+        case .success: return ColorTokens.success
+        case .error:   return ColorTokens.destructive
+        case .warning: return ColorTokens.warning
+        case .info:    return ColorTokens.accentPrimary
         }
     }
 
     var backgroundColor: Color {
-        switch self {
-        case .success: return Color.green.opacity(0.12)
-        case .error:   return Color.red.opacity(0.12)
-        case .warning: return Color.orange.opacity(0.12)
-        case .info:    return Color.blue.opacity(0.12)
-        }
+        tintColor.opacity(DS.Opacity.subtle)
     }
 }
 
@@ -52,7 +47,7 @@ struct ToastItem: Identifiable, Equatable {
     let style: ToastStyle
     let duration: TimeInterval
 
-    init(message: String, style: ToastStyle, duration: TimeInterval = 3.0) {
+    init(message: String, style: ToastStyle, duration: TimeInterval = DS.Duration.toast) {
         self.message = message
         self.style = style
         self.duration = duration
@@ -77,23 +72,23 @@ final class ToastManager {
 
     // MARK: - Public API
 
-    func show(_ message: String, style: ToastStyle = .info, duration: TimeInterval = 3.0) {
+    func show(_ message: String, style: ToastStyle = .info, duration: TimeInterval = DS.Duration.toast) {
         currentToast = ToastItem(message: message, style: style, duration: duration)
     }
 
-    func success(_ message: String, duration: TimeInterval = 3.0) {
+    func success(_ message: String, duration: TimeInterval = DS.Duration.toast) {
         show(message, style: .success, duration: duration)
     }
 
-    func error(_ message: String, duration: TimeInterval = 3.0) {
+    func error(_ message: String, duration: TimeInterval = DS.Duration.toast) {
         show(message, style: .error, duration: duration)
     }
 
-    func warning(_ message: String, duration: TimeInterval = 3.0) {
+    func warning(_ message: String, duration: TimeInterval = DS.Duration.toast) {
         show(message, style: .warning, duration: duration)
     }
 
-    func info(_ message: String, duration: TimeInterval = 3.0) {
+    func info(_ message: String, duration: TimeInterval = DS.Duration.toast) {
         show(message, style: .info, duration: duration)
     }
 
@@ -108,32 +103,35 @@ private struct ToastContentView: View {
     let item: ToastItem
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Spacing.sm) {
             Image(systemName: item.style.icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: DS.Size.iconMedium, weight: .semibold))
                 .foregroundStyle(item.style.tintColor)
 
             Text(item.message)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
+                .font(DS.Font.subheadline)
+                .foregroundStyle(ColorTokens.textPrimary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, DS.Spacing.md)
+        .padding(.vertical, DS.Spacing.formGap)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(item.style.backgroundColor)
+            RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
+                .fill(ColorTokens.backgroundElevated)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(item.style.tintColor.opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
+                        .fill(item.style.backgroundColor)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.Radius.large, style: .continuous)
+                        .stroke(item.style.tintColor.opacity(DS.Opacity.divider), lineWidth: DS.Stroke.thin)
                 )
         )
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
-        .padding(.horizontal, 20)
+        .shadow(color: ColorTokens.shadowMedium, radius: DS.Shadow.radius, x: 0, y: DS.Shadow.offsetY)
+        .padding(.horizontal, DS.Spacing.lg)
     }
 }
 
@@ -151,8 +149,8 @@ struct ToastModifier: ViewModifier {
                 $0
                     .type(.floater())
                     .position(.top)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8))
-                    .autohideIn(toastManager.currentToast?.duration ?? 3.0)
+                    .animation(DS.Animation.gentleSpring)
+                    .autohideIn(toastManager.currentToast?.duration ?? DS.Duration.toast)
                     .dismissCallback {
                         toastManager.dismiss()
                     }

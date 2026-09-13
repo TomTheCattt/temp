@@ -16,7 +16,24 @@ protocol AuthManagerProtocol: AnyObject, Sendable {
 
     func storeSession(_ session: AuthSession)
     func refreshToken() async throws
-    func logout()
+    func logout(reason: LogoutReason)
+}
+
+extension AuthManagerProtocol {
+    /// Convenience: default logout is user-initiated (no toast).
+    func logout() {
+        logout(reason: .userInitiated)
+    }
+}
+
+// MARK: - LogoutReason
+
+/// Why a logout happened — controls whether the user is notified.
+enum LogoutReason: Sendable {
+    /// User tapped "Log out" — no notification needed.
+    case userInitiated
+    /// Session expired / token refresh failed (forced) — notify the user.
+    case sessionExpired
 }
 
 // MARK: - AuthManager
@@ -72,7 +89,7 @@ final class AuthManager: AuthManagerProtocol {
 
     // MARK: - Logout
 
-    func logout() {
+    func logout(reason: LogoutReason) {
         accessToken = nil
         keychainManager.delete(key: KeychainKeys.accessToken)
 
@@ -85,6 +102,11 @@ final class AuthManager: AuthManagerProtocol {
         // Reset navigation
         AppRouter.shared.isAuthenticated = false
         AppRouter.shared.reset()
+
+        // Notify the user only on a forced (unexpected) logout.
+        if reason == .sessionExpired {
+            ToastManager.shared.warning(L10n.Error.sessionExpired)
+        }
     }
 
     // MARK: - Private
