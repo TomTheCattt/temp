@@ -21,7 +21,30 @@ enum HUDStyle {
 // MARK: - HUDManager
 
 /// Unified loading / feedback indicator wrapping ProgressHUD.
-/// Call from any `@MainActor` context (ViewModels, Views, etc.)
+///
+/// Use this for **blocking, one-shot ACTIONS** — never for background data fetches
+/// (those show skeletons/shimmers instead). The HUD dims the screen, shows a spinner
+/// while the action runs, then flashes success/error feedback and auto-dismisses.
+///
+/// Intended action call-sites (invoke `performWithLoading` from these `@MainActor` view-models):
+/// - Create post (publish)
+/// - Create reel (publish)
+/// - Edit profile — save
+/// - Change password
+/// - Send message
+/// - Follow / unfollow
+/// - Any other user-initiated, blocking mutation
+///
+/// Example:
+/// ```swift
+/// await HUDManager.shared.performWithLoading {
+///     try await createPostUseCase.execute(input)
+/// } onSuccess: { _ in
+///     AppRouter.shared.dismiss()
+/// }
+/// ```
+///
+/// Call from any `@MainActor` context (ViewModels, Views, etc.).
 @MainActor
 final class HUDManager {
 
@@ -35,11 +58,11 @@ final class HUDManager {
 
     private func configureAppearance() {
         ProgressHUD.animationType = .circleStrokeSpin
-        ProgressHUD.colorHUD = .gray
-        ProgressHUD.colorBackground = .black.opacity(0.3)
-        ProgressHUD.colorAnimation = .blue
-        ProgressHUD.colorStatus = .accentColor
-        ProgressHUD.fontStatus = .body.bold()
+        ProgressHUD.colorHUD = ColorTokens.textSecondary
+        ProgressHUD.colorBackground = ColorTokens.overlayDark.opacity(DS.Opacity.hudBackground)
+        ProgressHUD.colorAnimation = ColorTokens.accentPrimary
+        ProgressHUD.colorStatus = ColorTokens.textPrimary
+        ProgressHUD.fontStatus = DS.Font.bodyBold
     }
 
     // MARK: - Show
@@ -54,10 +77,10 @@ final class HUDManager {
             }
 
         case .success(let message):
-            ProgressHUD.succeed(message ?? "Success")
+            ProgressHUD.succeed(message ?? L10n.HUD.success)
 
         case .error(let message):
-            ProgressHUD.failed(message ?? "Error")
+            ProgressHUD.failed(message ?? L10n.HUD.error)
 
         case .progress(let value):
             ProgressHUD.progress(value)
@@ -96,8 +119,13 @@ final class HUDManager {
         ProgressHUD.dismiss()
     }
 
-    /// Remove HUD after a short delay.
-    func dismissAfter(_ delay: TimeInterval = 0.5) {
+    /// Remove HUD after the standard dismiss delay.
+    func dismissAfter() {
+        dismissAfter(DS.Duration.hudDismiss)
+    }
+
+    /// Remove HUD after a specific delay.
+    func dismissAfter(_ delay: TimeInterval) {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             ProgressHUD.dismiss()
@@ -119,7 +147,8 @@ final class HUDManager {
             showSuccess()
             onSuccess?(result)
         } catch {
-            showError(error.localizedDescription)
+            // Always surface a friendly, curated message — never raw localizedDescription.
+            showError(error.userMessage)
             onError?(error)
         }
     }

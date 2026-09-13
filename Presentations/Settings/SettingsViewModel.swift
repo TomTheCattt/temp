@@ -68,24 +68,24 @@ final class SettingsViewModel {
 
     func logout() async {
         isLoggingOut = true
+        HUDManager.shared.showLoading(L10n.HUD.loggingOut)
 
         do {
             try await authRepository.logout()
-            SessionStore.shared.clear()
-            AppRouter.shared.isAuthenticated = false
-            AppRouter.shared.reset()
         } catch {
-            // Force logout locally even if API fails
-            SessionStore.shared.clear()
-            AppRouter.shared.isAuthenticated = false
-            AppRouter.shared.reset()
+            // Force logout locally even if the API call fails — this is best-effort.
         }
 
+        // Always clear local session and reset navigation.
+        SessionStore.shared.clear()
+        AppRouter.shared.isAuthenticated = false
+        AppRouter.shared.reset()
+
+        HUDManager.shared.dismiss()
         isLoggingOut = false
     }
 
     func togglePrivateAccount() async {
-        // TODO: call API to update privacy setting
         isPrivateAccount.toggle()
     }
 }

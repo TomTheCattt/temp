@@ -44,7 +44,6 @@ final class CreatePostViewModel {
     /// Publishing state.
     private(set) var isPublishing = false
     private(set) var isLoadingMedia = false
-    var publishError: String?
     private(set) var isPublished = false
 
     // MARK: - Dependencies
@@ -109,7 +108,7 @@ final class CreatePostViewModel {
     func publish() async {
         guard !isPublishing, !selectedImages.isEmpty else { return }
         isPublishing = true
-        publishError = nil
+        HUDManager.shared.showLoading(L10n.HUD.publishing)
 
         do {
             let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -121,8 +120,10 @@ final class CreatePostViewModel {
                 )
             )
             isPublished = true
+            HUDManager.shared.showSuccess(L10n.HUD.published)
         } catch {
-            publishError = error.localizedDescription
+            // Surfaced via the global HUD only — avoid a duplicate alert.
+            HUDManager.shared.showError(error.userMessage)
         }
 
         isPublishing = false
@@ -137,7 +138,6 @@ final class CreatePostViewModel {
         caption = ""
         location = nil
         isPublished = false
-        publishError = nil
     }
 
     // MARK: - Computed

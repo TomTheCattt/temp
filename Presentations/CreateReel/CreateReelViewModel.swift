@@ -36,7 +36,6 @@ final class CreateReelViewModel {
     /// Publishing.
     private(set) var isPublishing = false
     private(set) var isPublished = false
-    private(set) var publishError: String?
 
     // MARK: - Dependencies
 
@@ -77,7 +76,7 @@ final class CreateReelViewModel {
     func publish() async {
         guard let videoData = selectedVideoData, !isPublishing else { return }
         isPublishing = true
-        publishError = nil
+        HUDManager.shared.showLoading(L10n.HUD.publishing)
 
         do {
             let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -87,8 +86,10 @@ final class CreateReelViewModel {
                 audioTrackId: nil
             )
             isPublished = true
+            HUDManager.shared.showSuccess(L10n.HUD.published)
         } catch {
-            publishError = error.localizedDescription
+            // Surfaced via the global HUD only.
+            HUDManager.shared.showError(error.userMessage)
         }
 
         isPublishing = false
@@ -102,6 +103,5 @@ final class CreateReelViewModel {
         caption = ""
         selectedAudioName = nil
         isPublished = false
-        publishError = nil
     }
 }

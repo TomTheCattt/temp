@@ -67,14 +67,6 @@ struct CreatePostView: View {
                     }
                 }
             }
-            .alert(L10n.Common.error, isPresented: .init(
-                get: { viewModel.publishError != nil },
-                set: { if !$0 { viewModel.publishError = nil } }
-            )) {
-                Button(L10n.Common.ok) {}
-            } message: {
-                Text(viewModel.publishError ?? "")
-            }
         }
     }
 

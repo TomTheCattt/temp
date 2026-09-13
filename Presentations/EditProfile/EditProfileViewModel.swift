@@ -64,7 +64,7 @@ final class EditProfileViewModel {
             website = user.website ?? ""
             currentAvatarURL = user.avatarURL
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isLoading = false
@@ -82,6 +82,7 @@ final class EditProfileViewModel {
         guard !isSaving else { return }
         isSaving = true
         errorMessage = nil
+        HUDManager.shared.showLoading(L10n.HUD.saving)
 
         do {
             // Update profile info
@@ -99,8 +100,10 @@ final class EditProfileViewModel {
             }
 
             isSaved = true
+            HUDManager.shared.showSuccess(L10n.HUD.saved)
         } catch {
-            errorMessage = error.localizedDescription
+            // Surfaced via the global HUD only — avoid a duplicate alert.
+            HUDManager.shared.showError(error.userMessage)
         }
 
         isSaving = false
