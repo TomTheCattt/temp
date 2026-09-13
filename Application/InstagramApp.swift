@@ -21,6 +21,11 @@ struct InstagramApp: App {
         // Configure image pipeline
         ImagePipelineManager.configure()
 
+        // Start app-wide internet connectivity monitoring (drives offline/online toasts).
+        Task { @MainActor in
+            NetworkMonitor.shared.start()
+        }
+
         // Auto-login in mock API mode for development/testing.
         // Uses the same flow as production: authenticate → populate SessionStore → set router state.
         if AppConfig.shared.isMockAPI {
