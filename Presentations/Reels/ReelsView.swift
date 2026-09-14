@@ -197,8 +197,8 @@ struct ReelItemView: View {
             ZStack {
                 Color.black
 
-                // Thumbnail always visible as background (until video renders)
-                VideoThumbnailView(videoURL: reel.videoURL, thumbnailURL: reel.thumbnailURL)
+                // Native placeholder visible until the video layer renders.
+                ReelMediaSkeletonView()
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
 

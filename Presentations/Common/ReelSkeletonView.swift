@@ -14,12 +14,7 @@ struct ReelSkeletonView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            Color.black
-
-            // Shimmer overlay
-            ShimmerView()
-                .opacity(DS.Opacity.low)
+            ReelMediaSkeletonView()
 
             // Content overlay mimicking reel layout
             VStack {
@@ -59,5 +54,43 @@ struct ReelSkeletonView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - ReelMediaSkeletonView
+
+/// Native Reels media placeholder that does not fetch remote thumbnails.
+struct ReelMediaSkeletonView: View {
+
+    var body: some View {
+        ZStack {
+            Color.black
+
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.10),
+                    Color.white.opacity(0.04),
+                    Color.white.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(spacing: DS.Spacing.md) {
+                Spacer()
+                RoundedRectangle(cornerRadius: DS.Radius.medium)
+                    .fill(Color.white.opacity(DS.Opacity.faint))
+                    .frame(width: 92, height: 92)
+                    .overlay {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundStyle(.white.opacity(DS.Opacity.low))
+                    }
+                Spacer()
+            }
+
+            ShimmerView()
+                .opacity(DS.Opacity.placeholder)
+        }
     }
 }
