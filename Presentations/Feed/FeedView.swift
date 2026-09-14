@@ -17,78 +17,85 @@ struct FeedView: View {
         toggleSaveUseCase: DIContainer.shared.resolve(ToggleSavePostUseCaseProtocol.self)
     )
 
-    @State private var visiblePostIds: Set<String> = []
+    @State private var visibleVideoPostIds: Set<String> = []
     @State private var isNavBarVisible: Bool = true
     @State private var isScrolled: Bool = false
 
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // Top padding for custom nav bar + status bar
-                    Spacer()
-                        .frame(height: DS.Size.buttonDefaultHeight + DS.Size.navBarStatusBarHeight)
+            GeometryReader { geometry in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        // Top padding for custom nav bar + status bar
+                        Spacer()
+                            .frame(height: DS.Size.buttonDefaultHeight + DS.Size.navBarStatusBarHeight)
 
-                    // Stories bar
-                    StoriesBarView()
-                        .padding(.bottom, DS.Spacing.xs)
+                        // Stories bar
+                        StoriesBarView()
+                            .padding(.bottom, DS.Spacing.xs)
 
-                    Divider()
+                        Divider()
 
-                    if viewModel.isLoading && viewModel.posts.isEmpty {
-                        // Skeleton loading state
-                        FeedSkeletonView()
-                    } else if let errorMessage = viewModel.errorMessage, viewModel.posts.isEmpty {
-                        // Error state (only when there is nothing to show)
-                        ErrorStateView(
-                            message: errorMessage,
-                            systemImage: "wifi.exclamationmark",
-                            retryAction: { Task { await viewModel.loadFeed() } }
-                        )
-                    } else if viewModel.posts.isEmpty {
-                        // Empty state
-                        EmptyStateView(
-                            message: L10n.Feed.emptyState,
-                            systemImage: "photo.on.rectangle.angled"
-                        )
-                    } else {
-                        // Posts
-                        ForEach(viewModel.posts) { post in
-                            PostCardView(
-                                post: post,
-                                isVisible: visiblePostIds.contains(post.id),
-                                onLikeTapped: {
-                                    Task { await viewModel.toggleLike(for: post) }
-                                },
-                                onSaveTapped: {
-                                    Task { await viewModel.toggleSave(for: post) }
-                                }
+                        if viewModel.isLoading && viewModel.posts.isEmpty {
+                            // Skeleton loading state
+                            FeedSkeletonView()
+                        } else if let errorMessage = viewModel.errorMessage, viewModel.posts.isEmpty {
+                            // Error state (only when there is nothing to show)
+                            ErrorStateView(
+                                message: errorMessage,
+                                systemImage: "wifi.exclamationmark",
+                                retryAction: { Task { await viewModel.loadFeed() } }
                             )
-                            .onAppear {
-                                visiblePostIds.insert(post.id)
-                                maybeLoadMore(appearingPostId: post.id)
-                            }
-                            .onDisappear {
-                                visiblePostIds.remove(post.id)
+                        } else if viewModel.posts.isEmpty {
+                            // Empty state
+                            EmptyStateView(
+                                message: L10n.Feed.emptyState,
+                                systemImage: "photo.on.rectangle.angled"
+                            )
+                        } else {
+                            // Posts
+                            ForEach(viewModel.posts) { post in
+                                PostCardView(
+                                    post: post,
+                                    isVisible: visibleVideoPostIds.contains(post.id),
+                                    scrollCoordinateSpaceName: Constants.scrollCoordinateSpaceName,
+                                    viewportHeight: geometry.size.height,
+                                    onLikeTapped: {
+                                        Task { await viewModel.toggleLike(for: post) }
+                                    },
+                                    onSaveTapped: {
+                                        Task { await viewModel.toggleSave(for: post) }
+                                    },
+                                    onVideoVisibilityChanged: { isVisible in
+                                        setVideoVisibility(isVisible, for: post.id)
+                                    }
+                                )
+                                .onAppear {
+                                    maybeLoadMore(appearingPostId: post.id)
+                                }
+                                .onDisappear {
+                                    visibleVideoPostIds.remove(post.id)
+                                }
+
+                                Divider()
                             }
 
-                            Divider()
-                        }
-
-                        if viewModel.isLoadingMore {
-                            ProgressView()
-                                .padding()
+                            if viewModel.isLoadingMore {
+                                ProgressView()
+                                    .padding()
+                            }
                         }
                     }
                 }
-            }
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y
-            } action: { oldOffset, newOffset in
-                handleScrollOffset(oldOffset: oldOffset, newOffset: newOffset)
-            }
-            .refreshable {
-                await viewModel.refresh()
+                .coordinateSpace(name: Constants.scrollCoordinateSpaceName)
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.contentOffset.y
+                } action: { oldOffset, newOffset in
+                    handleScrollOffset(oldOffset: oldOffset, newOffset: newOffset)
+                }
+                .refreshable {
+                    await viewModel.refresh()
+                }
             }
 
             // Custom Navigation Bar (3 evenly spaced buttons)
@@ -193,6 +200,14 @@ struct FeedView: View {
         }
     }
 
+    private func setVideoVisibility(_ isVisible: Bool, for postId: String) {
+        if isVisible {
+            visibleVideoPostIds.insert(postId)
+        } else {
+            visibleVideoPostIds.remove(postId)
+        }
+    }
+
     // MARK: - Scroll Offset Handling
 
     private func handleScrollOffset(oldOffset: CGFloat, newOffset: CGFloat) {
@@ -235,6 +250,7 @@ struct FeedView: View {
 // MARK: - Constants
 
 private enum Constants {
+    static let scrollCoordinateSpaceName = "feedScroll"
     static let navBarHideOffsetY: CGFloat = -140
     static let scrollThresholdTop: CGFloat = 15
     static let scrollThresholdDelta: CGFloat = 5

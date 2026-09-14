@@ -62,7 +62,7 @@ struct FeedVideoPlayer: View {
         }
         .onChange(of: manager.isPlaybackAllowed) { _, allowed in
             if allowed && isVisible {
-                playerHolder.player.play()
+                playerHolder.activate(url: url, id: id, muted: isMuted)
             } else if !allowed {
                 playerHolder.player.pause()
             }
@@ -82,15 +82,27 @@ final class FeedPlayerHolder: ObservableObject {
 
     let player = AVPlayer()
     private var loopObserver: Any?
+    private var statusObserver: NSKeyValueObservation?
     private var isActivated = false
+    private var activeId: String?
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
     }
 
     func activate(url: URL, id: String, muted: Bool) {
-        guard !isActivated else { return }
+        if isActivated, activeId == id, player.currentItem != nil {
+            player.isMuted = muted
+            player.play()
+            return
+        }
+
+        if isActivated {
+            deactivate(id: activeId ?? id)
+        }
+
         isActivated = true
+        activeId = id
 
         let item = AVPlayerItem(url: url)
         item.preferredForwardBufferDuration = 3.0 // Feed videos are smaller, less buffer needed
@@ -98,14 +110,16 @@ final class FeedPlayerHolder: ObservableObject {
         player.isMuted = muted
         setupLooping()
         VideoPlayerManager.shared.register(player: player, for: id)
-        player.play()
+        playWhenReady(item)
     }
 
     func deactivate(id: String) {
         guard isActivated else { return }
         isActivated = false
+        activeId = nil
 
         player.pause()
+        removeStatusObserver()
         removeLoopObserver()
         VideoPlayerManager.shared.unregister(key: id)
         player.replaceCurrentItem(with: nil)
@@ -123,6 +137,26 @@ final class FeedPlayerHolder: ObservableObject {
         }
     }
 
+    private func playWhenReady(_ item: AVPlayerItem) {
+        removeStatusObserver()
+
+        if item.status == .readyToPlay {
+            player.play()
+            return
+        }
+
+        statusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+            guard item.status == .readyToPlay else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.isActivated, self.player.currentItem === item else { return }
+                self.player.play()
+                self.removeStatusObserver()
+            }
+        }
+
+        player.play()
+    }
+
     private func removeLoopObserver() {
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -130,7 +164,13 @@ final class FeedPlayerHolder: ObservableObject {
         }
     }
 
+    private func removeStatusObserver() {
+        statusObserver?.invalidate()
+        statusObserver = nil
+    }
+
     deinit {
+        removeStatusObserver()
         removeLoopObserver()
         player.pause()
         player.replaceCurrentItem(with: nil)

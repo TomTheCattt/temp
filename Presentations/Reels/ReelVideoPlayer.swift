@@ -43,7 +43,7 @@ struct ReelVideoPlayer: View {
             }
             .onChange(of: manager.isPlaybackAllowed) { _, allowed in
                 if allowed && isActive {
-                    playerHolder.player.play()
+                    playerHolder.activate(url: url, id: id)
                 } else if !allowed {
                     playerHolder.player.pause()
                 }
@@ -71,7 +71,9 @@ final class ReelPlayerHolder: ObservableObject {
 
     let player = AVPlayer()
     private var loopObserver: Any?
+    private var statusObserver: NSKeyValueObservation?
     private var isActivated = false
+    private var activeId: String?
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
@@ -79,12 +81,18 @@ final class ReelPlayerHolder: ObservableObject {
 
     /// Start playback for the given URL. Uses preloaded item if available.
     func activate(url: URL, id: String) {
-        // If already active with the same content, just resume
-        if isActivated {
+        // If already active with the same content, just resume.
+        if isActivated, activeId == id, player.currentItem != nil {
             player.play()
             return
         }
+
+        if isActivated {
+            deactivate(id: activeId ?? id)
+        }
+
         isActivated = true
+        activeId = id
 
         // Use preloaded item or create new one
         let item: AVPlayerItem
@@ -98,16 +106,18 @@ final class ReelPlayerHolder: ObservableObject {
         player.replaceCurrentItem(with: item)
         setupLooping()
         VideoPlayerManager.shared.register(player: player, for: id)
-        player.play()
+        playWhenReady(item)
     }
 
     /// Stop playback and release the item to free memory.
     func deactivate(id: String) {
         guard isActivated else { return }
         isActivated = false
+        activeId = nil
 
         player.pause()
         player.seek(to: .zero)
+        removeStatusObserver()
         removeLoopObserver()
         VideoPlayerManager.shared.unregister(key: id)
         // Release the item to free network buffers
@@ -126,6 +136,26 @@ final class ReelPlayerHolder: ObservableObject {
         }
     }
 
+    private func playWhenReady(_ item: AVPlayerItem) {
+        removeStatusObserver()
+
+        if item.status == .readyToPlay {
+            player.play()
+            return
+        }
+
+        statusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+            guard item.status == .readyToPlay else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.isActivated, self.player.currentItem === item else { return }
+                self.player.play()
+                self.removeStatusObserver()
+            }
+        }
+
+        player.play()
+    }
+
     private func removeLoopObserver() {
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -133,7 +163,13 @@ final class ReelPlayerHolder: ObservableObject {
         }
     }
 
+    private func removeStatusObserver() {
+        statusObserver?.invalidate()
+        statusObserver = nil
+    }
+
     deinit {
+        removeStatusObserver()
         removeLoopObserver()
         player.pause()
         player.replaceCurrentItem(with: nil)

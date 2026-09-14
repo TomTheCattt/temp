@@ -14,8 +14,11 @@ struct PostCardView: View {
 
     let post: Post
     let isVisible: Bool
+    let scrollCoordinateSpaceName: String
+    let viewportHeight: CGFloat
     let onLikeTapped: () -> Void
     let onSaveTapped: () -> Void
+    let onVideoVisibilityChanged: (Bool) -> Void
 
     @State private var showHeart = false
     @State private var heartHideTask: Task<Void, Never>?
@@ -101,6 +104,11 @@ struct PostCardView: View {
                             isVisible: isVisible
                         )
                         .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
+                    }
+                    .onGeometryChange(for: Bool.self) { geometry in
+                        isVideoVisibleEnough(geometry)
+                    } action: { _, isVisibleEnough in
+                        onVideoVisibilityChanged(isVisibleEnough)
                     }
 
                 case .image:
@@ -255,6 +263,16 @@ struct PostCardView: View {
                 ShimmerView()
             }
     }
+
+    private func isVideoVisibleEnough(_ geometry: GeometryProxy) -> Bool {
+        let frame = geometry.frame(in: .named(scrollCoordinateSpaceName))
+        let visibleTop = max(frame.minY, 0)
+        let visibleBottom = min(frame.maxY, viewportHeight)
+        let visibleHeight = max(0, visibleBottom - visibleTop)
+
+        guard frame.height > 0 else { return false }
+        return visibleHeight / frame.height > Constants.videoAutoplayVisibilityThreshold
+    }
 }
 
 // MARK: - Date Extension
@@ -276,4 +294,10 @@ extension Date {
         if seconds < 604800 { return "\(seconds / 86400)d ago" }
         return Date.monthDayFormatter.string(from: self)
     }
+}
+
+// MARK: - Constants
+
+private enum Constants {
+    static let videoAutoplayVisibilityThreshold: CGFloat = 0.5
 }
