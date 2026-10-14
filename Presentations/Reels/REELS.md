@@ -18,8 +18,7 @@ Module hiển thị và phát Reels (video ngắn dạng TikTok) full-screen. H�
 - **Full-screen paging**: `.scrollTargetBehavior(.paging)` — mỗi reel chiếm 1 screen
 - **Active reel tracking**: `.scrollPosition(id: $viewModel.currentReelId)` — reel active xác định theo vị trí cuộn thật (không dùng `onAppear`, tránh nhảy sớm / 2 video cùng active)
 - **Custom Navigation Bar**: thanh overlay cố định ở vị trí trên cùng với 4 button (Camera / "Reels" / "Following" / Search). Tab Reels↔Following gọi `viewModel.setFeedMode(_:)`, lọc reels theo `author.isFollowing`. Phủ mặt nạ `LinearGradient` blur giảm dần.
-- **Skeleton**: `ReelSkeletonView` khi loading
-- **Video thumbnail background**: hiển thị thumbnail trước khi video sẵn sàng
+- **Skeleton**: `ReelSkeletonView` khi loading ban đầu; `ReelVideoSkeletonView` hiển thị skeleton tối màu mượt mà trong khi video đang tải/buffer (thay thế thumbnail hình ảnh)
 - **Dim overlay + Play icon**: cho reel không active
 - **Reel info** (dưới trái): avatar (Nuke `LazyImage`) + username + Follow button (ẩn khi đã follow) + caption (2 dòng) + audio track
 - **Action buttons** (bên phải): Like + Comment + Share (`ShareLink`) + Save (bookmark) + Audio disc

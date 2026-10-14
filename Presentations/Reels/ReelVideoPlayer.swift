@@ -15,6 +15,7 @@ import Combine
 /// Optimizations:
 /// - Player only starts buffering/playing when `isActive` is true
 /// - Uses preloaded AVPlayerItem from VideoPlayerManager if available
+/// - Displays dark skeleton placeholder until video item is ready to play
 /// - Releases player resources when deactivated
 struct ReelVideoPlayer: View {
 
@@ -165,7 +166,9 @@ final class PlayerUIView: UIView {
     init(player: AVPlayer) {
         playerLayer = AVPlayerLayer(player: player)
         playerLayer.videoGravity = .resizeAspectFill
+        playerLayer.backgroundColor = UIColor.clear.cgColor
         super.init(frame: .zero)
+        backgroundColor = .clear
         layer.addSublayer(playerLayer)
     }
 
