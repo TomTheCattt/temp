@@ -50,6 +50,7 @@ struct SharePostView: View {
                         }
                     }
                 }
+                .scrollDismissesKeyboard(.interactively)
 
                 Divider()
 

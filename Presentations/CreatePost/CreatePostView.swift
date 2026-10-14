@@ -271,6 +271,7 @@ struct CreatePostView: View {
             }
             .padding(.top, DS.Spacing.md)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     @ViewBuilder

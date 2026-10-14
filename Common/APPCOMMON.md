@@ -74,12 +74,13 @@ Các ViewModifier áp dụng toàn cục cho app.
 | Component | Chức năng |
 |-----------|-----------|
 | `EdgeSwipePopModifier` | Giữ interactive pop gesture (vuốt từ trái) hoạt động ngay cả khi dùng custom back button |
-| `BaseViewModifier` | Tổ hợp tất cả base modifier (hiện tại chỉ có edge swipe) |
+| `GlobalKeyboardDismissModifier` | Tự động dismiss keyboard khi tap ra ngoài text field (lắng nghe trạng thái keyboard, passthrough khi chuyển field, không chặn button/cell) |
+| `BaseViewModifier` | Tổ hợp tất cả base modifier: edge swipe pop + global tap to dismiss keyboard |
 | `KeyboardHelper` | Static helper dismiss keyboard từ bất kỳ đâu |
 
 **View Extensions:**
-- `.withBaseFeatures()` — áp dụng ở root level (`InstagramApp`)
-- `.dismissKeyboardOnTap()` — áp dụng cho screen có text input (Login, Search, Chat)
+- `.withBaseFeatures()` — áp dụng ở root level (`InstagramApp`), kích hoạt edge swipe pop và global tap-outside to dismiss keyboard cho toàn app
+- `.dismissKeyboardOnTap()` — gắn vào background của view cụ thể để dismiss keyboard khi tap vùng trống
 - `.disableInteractivePop()` — tắt swipe back cho flow quan trọng (payment, onboarding)
 
 ### CombineExtHelpers.swift

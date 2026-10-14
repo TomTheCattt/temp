@@ -51,6 +51,7 @@ struct CommentsView: View {
             .refreshable {
                 await viewModel.loadComments()
             }
+            .scrollDismissesKeyboard(.interactively)
 
             // Reply indicator
             if let replyingTo = viewModel.replyingTo {

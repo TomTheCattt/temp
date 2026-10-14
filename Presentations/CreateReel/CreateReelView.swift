@@ -196,6 +196,7 @@ struct CreateReelView: View {
 
             Spacer()
         }
+        .dismissKeyboardOnTap()
         .navigationTitle(L10n.CreateReel.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

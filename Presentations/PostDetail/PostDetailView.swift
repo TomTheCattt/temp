@@ -32,6 +32,7 @@ struct PostDetailView: View {
                 await viewModel.loadPost()
                 await viewModel.loadComments()
             }
+            .scrollDismissesKeyboard(.interactively)
 
             commentInputBar
         }
@@ -167,9 +168,6 @@ struct PostDetailView: View {
                 .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DS.Padding.horizontal)
-
-            Divider()
-                .padding(.top, DS.Spacing.xs)
         }
     }
 

@@ -160,6 +160,7 @@ struct ExploreView: View {
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var exploreColumns: [GridItem] {
@@ -196,6 +197,7 @@ struct ExploreView: View {
             }
         }
         .listStyle(.plain)
+        .scrollDismissesKeyboard(.interactively)
     }
 }
 

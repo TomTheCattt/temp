@@ -63,8 +63,8 @@ struct LoginView: View {
             }
             .padding(.horizontal, DS.Padding.horizontal)
             .disabled(viewModel.isLoading)
-            .dismissKeyboardOnTap()
             .background(.backgroundSecondary)
+            .dismissKeyboardOnTap()
         }
     }
 

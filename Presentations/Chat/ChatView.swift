@@ -64,6 +64,7 @@ struct ChatView: View {
             }
             .defaultScrollAnchor(.bottom)
             .simultaneousGesture(timestampDragGesture)
+            .scrollDismissesKeyboard(.interactively)
 
             // Input bar
             messageInputBar

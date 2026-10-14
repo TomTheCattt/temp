@@ -26,6 +26,7 @@ struct EditProfileView: View {
                 profileFieldsSection
                 bioSection
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle(L10n.EditProfile.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
