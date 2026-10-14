@@ -22,7 +22,17 @@ final class ProfileViewModel {
     private(set) var isLoadingReels = false
     private(set) var errorMessage: String?
 
-    let isCurrentUser: Bool
+    var isCurrentUser: Bool {
+        let currentUserId = SessionStore.shared.currentUserId
+        if userId == nil { return true }
+        if let userId, !userId.isEmpty {
+            if userId == currentUserId || userId == "user_current" { return true }
+        }
+        if let user, !user.id.isEmpty {
+            if user.id == currentUserId || user.id == "user_current" { return true }
+        }
+        return false
+    }
     private let userId: String?
     private var didLoadReels = false
 
@@ -43,11 +53,17 @@ final class ProfileViewModel {
         reelRepository: ReelRepositoryProtocol
     ) {
         self.userId = userId
-        self.isCurrentUser = (userId == nil)
         self.fetchProfileUseCase = fetchProfileUseCase
         self.toggleFollowUseCase = toggleFollowUseCase
         self.postRepository = postRepository
         self.reelRepository = reelRepository
+
+        // Pre-populate user cache synchronously if viewing current user
+        let currentUserId = SessionStore.shared.currentUserId
+        let isMe = (userId == nil || userId == currentUserId || userId == "user_current")
+        if isMe {
+            self.user = SessionStore.shared.currentUser ?? MockUserStore.shared.currentUser
+        }
     }
 
     // MARK: - Actions
@@ -70,7 +86,11 @@ final class ProfileViewModel {
             )
             posts = userPosts
         } catch {
-            errorMessage = error.userMessage
+            if user == nil {
+                errorMessage = error.userMessage
+            } else {
+                ToastManager.shared.error(error.userMessage)
+            }
         }
 
         isLoading = false

@@ -13,12 +13,15 @@ final class MockUserDataSource: Sendable {
 
     func fetchCurrentUser() async throws -> User {
         try await simulateDelay()
-        return MockUserStore.shared.currentUser
+        return SessionStore.shared.currentUser ?? MockUserStore.shared.currentUser
     }
 
     func fetchUser(id: String) async throws -> User {
         try await simulateDelay()
-        if id == MockUserStore.shared.currentUser.id { return MockUserStore.shared.currentUser }
+        let current = SessionStore.shared.currentUser ?? MockUserStore.shared.currentUser
+        if id == current.id || id == "user_current" {
+            return current
+        }
         guard let user = MockData.users.first(where: { $0.id == id }) else {
             throw APIError.notFound
         }

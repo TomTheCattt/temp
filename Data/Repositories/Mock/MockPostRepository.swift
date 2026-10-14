@@ -32,25 +32,30 @@ final class MockPostRepository: PostRepositoryProtocol, @unchecked Sendable {
 
     func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {
         try await Task.sleep(nanoseconds: 500_000_000)
-        // Return the matching mock post with updated editable fields applied.
+        if let updated = MockPostStore.shared.update(id: id, mutate: { post in
+            post = Post(
+                id: post.id,
+                author: post.author,
+                caption: caption,
+                mediaItems: post.mediaItems,
+                location: location,
+                likesCount: post.likesCount,
+                commentsCount: post.commentsCount,
+                createdAt: post.createdAt,
+                isLiked: post.isLiked,
+                isSaved: post.isSaved,
+                isSponsored: post.isSponsored
+            )
+        }) {
+            return updated
+        }
         let base = MockData.posts.first(where: { $0.id == id }) ?? MockData.posts.first!
-        return Post(
-            id: base.id,
-            author: base.author,
-            caption: caption,
-            mediaItems: base.mediaItems,
-            location: location,
-            likesCount: base.likesCount,
-            commentsCount: base.commentsCount,
-            createdAt: base.createdAt,
-            isLiked: base.isLiked,
-            isSaved: base.isSaved,
-            isSponsored: base.isSponsored
-        )
+        return base
     }
 
     func deletePost(id: String) async throws {
         try await Task.sleep(nanoseconds: 300_000_000)
+        MockPostStore.shared.delete(id: id)
     }
 
     func likePost(id: String) async throws {

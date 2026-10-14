@@ -46,8 +46,8 @@ Module hiển thị trang profile của user (bản thân hoặc người khác)
 
 - Pattern: MVVM với `@Observable`
 - Dependencies: `FetchProfileUseCaseProtocol`, `ToggleFollowUseCaseProtocol`, `PostRepositoryProtocol`, `ReelRepositoryProtocol`
-- `isCurrentUser`: xác định bởi `userId == nil`
-- Load sequence: `loadProfile()` → fetch user + fetch user posts; `loadReelsIfNeeded()` → fetch user reels (lazy, lần đầu mở tab Reels)
+- `isCurrentUser`: đồng bộ giữa ViewModel và View (`userId == nil || userId == SessionStore.shared.currentUserId || userId == "user_current"`), pre-populate tức thì từ `SessionStore`/`MockUserStore`
+- Load sequence: `loadProfile()` → fetch user + fetch user posts (stale-while-revalidate); `loadReelsIfNeeded()` → fetch user reels (lazy, lần đầu mở tab Reels)
 - Toggle follow: optimistic update + revert on failure
 
 ## ProfileGrid Enum

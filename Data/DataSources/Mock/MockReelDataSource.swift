@@ -21,6 +21,11 @@ final class MockReelDataSource: Sendable {
 
     func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
         try await simulateDelay()
+        let currentUserId = SessionStore.shared.currentUserId
+        let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
+        if isCurrent {
+            return MockData.reels.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
+        }
         return MockData.reels.filter { $0.author.id == userId }
     }
 

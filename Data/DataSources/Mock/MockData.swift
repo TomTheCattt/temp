@@ -34,7 +34,7 @@ enum MockData {
         isPrivate: false,
         followersCount: 1234,
         followingCount: 567,
-        postsCount: 42,
+        postsCount: 9,
         createdAt: Date(timeIntervalSinceNow: -365 * 24 * 3600),
         isFollowing: false,
         isFollowedBy: false,
@@ -67,7 +67,8 @@ enum MockData {
     // MARK: - Posts
 
     static let posts: [Post] = (0..<25).map { index in
-        let author = users[index % users.count]
+        // Distribute posts so currentUser owns indices divisible by 3 (9 posts total for 3x3 profile grid)
+        let author = (index % 3 == 0) ? currentUser : users[index % users.count]
         let isVideo = index % 3 == 1 // every 3rd post is a video
         return Post(
             id: "post_\(index)",
@@ -210,7 +211,8 @@ enum MockData {
     ]
 
     static let reels: [Reel] = (0..<8).map { index in
-        let author = users[index % users.count]
+        // Distribute reels so currentUser owns indices 0, 3, 6 (3 reels total)
+        let author = (index % 3 == 0) ? currentUser : users[index % users.count]
         return Reel(
             id: "reel_\(index)",
             author: author,

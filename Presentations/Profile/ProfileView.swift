@@ -30,7 +30,7 @@ struct ProfileView: View {
 
     @State private var isScrolled: Bool = false
     private var isMyProfile: Bool {
-        userId == SessionStore.shared.currentUserId
+        viewModel.isCurrentUser
     }
 
     var body: some View {
@@ -82,7 +82,7 @@ struct ProfileView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .task {
-            if viewModel.user == nil {
+            if viewModel.user == nil || viewModel.posts.isEmpty {
                 await viewModel.loadProfile()
             }
         }
@@ -98,7 +98,7 @@ struct ProfileView: View {
     private var profileNavigationBar: some View {
         VStack(spacing: 0) {
             if isMyProfile {
-                MyProfileNavigationBar(viewModel: $viewModel)
+                MyProfileNavigationBar(viewModel: $viewModel, isRootTab: userId == nil)
             } else {
                 UserProfileNavigationBar(viewModel: $viewModel)
             }
@@ -127,7 +127,13 @@ struct ProfileView: View {
                 if let image = state.image {
                     image.resizable()
                 } else {
-                    Circle().fill(ColorTokens.buttonSecondary)
+                    Circle()
+                        .fill(ColorTokens.buttonSecondary)
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .font(DS.Font.title)
+                                .foregroundStyle(ColorTokens.textSecondary)
+                        }
                 }
             }
             .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
@@ -423,51 +429,63 @@ struct ProfileView: View {
 struct MyProfileNavigationBar: View {
     
     @Binding var viewModel: ProfileViewModel
+    var isRootTab: Bool = true
     
     var body: some View {
         ZStack {
+            // Center: Username + Lock (only if private)
             VStack(alignment: .center) {
-                // Center Button (Lock / Privacy)
                 Button {
-                    // Privacy settings
+                    // Privacy settings or profile info
                 } label: {
                     HStack(spacing: DS.Spacing.xxs) {
-                        Image(systemName: "lock")
-                            .font(DS.Font.title)
-                        Text(viewModel.user?.username ?? "")
-                            .font(DS.Font.largeTitle)
+                        let isPrivate = viewModel.user?.isPrivate ?? SessionStore.shared.currentUser?.isPrivate ?? false
+                        if isPrivate {
+                            Image(systemName: "lock.fill")
+                                .font(DS.Font.subheadline)
+                        }
+                        let username = viewModel.user?.username ?? SessionStore.shared.currentUser?.username ?? ""
+                        Text(username)
+                            .font(DS.Font.headline)
                             .fontWeight(.bold)
                     }
                 }
             }
             
             HStack(spacing: DS.Spacing.md) {
-                // Leading Button (Create Post +)
-                Button {
-                    AppRouter.shared.present(sheet: .createPost)
-                } label: {
-                    Image(systemName: "plus.app")
-                        .font(.title3)
+                // Leading Button: '+' if root tab, '<' back button if pushed onto stack
+                if isRootTab {
+                    Button {
+                        AppRouter.shared.present(sheet: .createPost)
+                    } label: {
+                        Image(systemName: "plus.app")
+                            .font(DS.Font.title3)
+                    }
+                } else {
+                    Button {
+                        AppRouter.shared.pop()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(DS.Font.title3)
+                    }
                 }
                 
                 Spacer()
                 
-                //Trailing Button Group
+                // Trailing Button Group: Threads & Hamburger Menu
                 HStack(spacing: DS.Spacing.md) {
-                    // Leading Button (Threads @)
                     Button {
                         // Open Threads
                     } label: {
                         Image(systemName: "at")
-                            .font(.title3)
+                            .font(DS.Font.title3)
                     }
                     
-                    // Trailing Button (Menu)
                     Button {
                         AppRouter.shared.push(.settings)
                     } label: {
                         Image(systemName: "line.3.horizontal")
-                            .font(.title3)
+                            .font(DS.Font.title3)
                     }
                 }
             }
@@ -484,47 +502,44 @@ struct UserProfileNavigationBar: View {
     @Binding var viewModel: ProfileViewModel
     
     var body: some View {
-        HStack {
-            // Leading Button Group
-            HStack(spacing: DS.Spacing.xxl) {
-                // Back button
+        HStack(spacing: DS.Spacing.md) {
+            // Leading Button Group: Back + Username
+            HStack(spacing: DS.Spacing.sm) {
                 Button {
                     AppRouter.shared.pop()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
                 
-                // User name section
-                Button {
-                    // TODO: User Info
-                } label: {
-                    Text(viewModel.user?.username ?? L10n.Profile.unknownUser)
-                        .font(DS.Font.largeTitle)
-                }
+                Text(viewModel.user?.username ?? L10n.Profile.unknownUser)
+                    .font(DS.Font.headline)
+                    .fontWeight(.bold)
             }
             
             Spacer()
             
-            HStack(spacing: DS.Spacing.xxl) {
+            HStack(spacing: DS.Spacing.lg) {
                 // Notification Button
                 Button {
-                    // TODO: Notification Menu Drop Items
+                    // Notification options
                 } label: {
                     Image(systemName: "bell")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
                 
-                // Button Action More
+                // More (...) Button
                 Button {
-                    // TODO: Pop up actions
+                    // Profile options
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.title3)
+                        .font(DS.Font.title3)
                 }
             }
         }
-        .padding(.horizontal, DS.Padding.huge)
+        .tint(.primary)
+        .padding(.horizontal, DS.Padding.horizontal)
+        .frame(height: DS.Size.buttonDefaultHeight)
     }
 }
 
