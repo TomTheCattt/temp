@@ -12,7 +12,7 @@ import SwiftUI
 /// Centralized design constants.
 /// Usage: `DS.Spacing.md`, `DS.Font.username`, `DS.Size.avatarMedium`, etc.
 /// NEVER hard-code numeric values in Views — always reference DS.
-nonisolated enum DS {
+enum DS {
 
     // MARK: - Spacing (padding, margins, gaps)
 
@@ -364,7 +364,7 @@ nonisolated enum DS {
 
     // MARK: - Duration (non-animation timings)
 
-    enum Duration {
+    nonisolated enum Duration {
         /// Story item display (seconds).
         static let storyItem: TimeInterval = 5.0
         /// Story progress tick interval.

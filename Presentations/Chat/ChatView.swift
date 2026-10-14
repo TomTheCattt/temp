@@ -208,7 +208,7 @@ struct ChatView: View {
         case .text(let text):
             Text(text)
                 .font(DS.Font.messageText)
-                .foregroundStyle(isMe ? .white : .primary)
+                .foregroundStyle(isMe ? .white : .black)
                 .padding(.horizontal, DS.Spacing.formGap)
                 .padding(.vertical, DS.Spacing.xs)
                 .background(

@@ -32,8 +32,6 @@ struct MyStoryView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let topPadding = geometry.safeAreaInsets.top + DS.Spacing.xxs
-            let bottomPadding = geometry.safeAreaInsets.bottom
 
             ZStack {
                 Color.black.ignoresSafeArea()

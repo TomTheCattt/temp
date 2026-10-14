@@ -26,8 +26,6 @@ struct StoryViewerView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let topPadding = geometry.safeAreaInsets.top + DS.Spacing.xxs
-            let bottomPadding = geometry.safeAreaInsets.bottom
 
             ZStack {
                 // Full-screen black background
@@ -41,6 +39,7 @@ struct StoryViewerView: View {
                             RoundedRectangle(cornerRadius: contentCornerRadius)
                                 .fill(Color(.systemGray6).opacity(0.2))
                                 .overlay { ProgressView().tint(.white) }
+                                .frame(height: geometry.size.height - geometry.safeAreaInsets.top)
                         } else if let item = viewModel.currentItem {
                             storyContent(item, geometry: geometry)
                                 .clipShape(RoundedRectangle(cornerRadius: contentCornerRadius))
@@ -118,7 +117,7 @@ struct StoryViewerView: View {
         let contentHeight = geometry.size.height
             - geometry.safeAreaInsets.top
 //            - 60 // reply bar area
-            - geometry.safeAreaInsets.bottom
+//            - geometry.safeAreaInsets.bottom
 
         switch item.type {
         case .image:
@@ -205,6 +204,11 @@ struct StoryViewerView: View {
                 .frame(width: 32, height: 32)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1))
+                .onTapGesture {
+                    viewModel.pause()
+                    dismiss()
+                    AppRouter.shared.push(.userProfile(userId: story.author.id))
+                }
 
                 Text(story.author.username)
                     .font(DS.Font.username)
@@ -258,7 +262,7 @@ struct StoryViewerView: View {
             TextField("Send message", text: .constant(""))
                 .textFieldStyle(.plain)
                 .font(DS.Font.subheadline)
-                .foregroundStyle(.white)
+                .foregroundStyle(ColorTokens.textTertiary)
                 .padding(.horizontal, DS.Spacing.md)
                 .padding(.vertical, DS.Spacing.sm)
                 .background(

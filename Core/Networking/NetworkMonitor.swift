@@ -48,7 +48,7 @@ final class NetworkMonitor {
 
         monitor.pathUpdateHandler = { path in
             let connected = path.status == .satisfied
-            Task { @MainActor [weak self] in
+            Task { @MainActor [weak self = self] in
                 self?.handlePathUpdate(isConnected: connected)
             }
         }
