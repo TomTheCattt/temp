@@ -483,6 +483,12 @@
         }
       }
     },
+    "Add Location" : {
+
+    },
+    "Add to Story" : {
+
+    },
     "Also share to" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2739,6 +2745,91 @@
         }
       }
     },
+    "editProfile.chooseFromLibrary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose from Library"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chọn từ thư viện"
+          }
+        }
+      }
+    },
+    "editProfile.discardConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard Changes"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huỷ thay đổi"
+          }
+        }
+      }
+    },
+    "editProfile.discardTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard changes?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huỷ thay đổi?"
+          }
+        }
+      }
+    },
+    "editProfile.keepEditing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Editing"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiếp tục chỉnh sửa"
+          }
+        }
+      }
+    },
+    "editProfile.removeCurrentPhoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Current Photo"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xoá ảnh hiện tại"
+          }
+        }
+      }
+    },
     "editProfile.name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4526,6 +4617,9 @@
         }
       }
     },
+    "Search location..." : {
+
+    },
     "search.cityCountry" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5545,6 +5639,9 @@
         }
       }
     },
+    "Simulator Camera Mode" : {
+
+    },
     "Sponsored" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5783,6 +5880,9 @@
         }
       }
     },
+    "Suggestions" : {
+
+    },
     "tab.chat" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5990,6 +6090,9 @@
         }
       }
     },
+    "Use custom location" : {
+
+    },
     "Use fullScreenCover for story viewer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6091,6 +6194,9 @@
           }
         }
       }
+    },
+    "View Story" : {
+
     },
     "We'll review this post and take action if it goes against our Community Guidelines." : {
       "extractionState" : "stale",

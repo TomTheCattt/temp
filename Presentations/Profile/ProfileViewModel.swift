@@ -115,4 +115,10 @@ final class ProfileViewModel {
             ToastManager.shared.error(error.userMessage)
         }
     }
+
+    /// Updates the displayed profile immediately when updated externally (e.g. from EditProfile).
+    func applyUpdatedUser(_ updatedUser: User) {
+        guard isCurrentUser || updatedUser.id == user?.id else { return }
+        user = updatedUser
+    }
 }

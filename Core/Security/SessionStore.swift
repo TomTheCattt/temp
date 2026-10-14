@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Observation
 
 // MARK: - SessionStoreProtocol
 
@@ -22,6 +23,7 @@ protocol SessionStoreProtocol: AnyObject {
 /// Stores the current authenticated user's session.
 /// Set after login/app launch; read anywhere that needs to identify "me" or access current user data.
 @MainActor
+@Observable
 final class SessionStore: SessionStoreProtocol {
 
     static let shared = SessionStore()

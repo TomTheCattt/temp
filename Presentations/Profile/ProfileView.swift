@@ -66,6 +66,9 @@ struct ProfileView: View {
                     }
                 }
             }
+            .refreshable {
+                await viewModel.loadProfile()
+            }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 geometry.contentOffset.y
             } action: { _, newOffset in
@@ -81,6 +84,11 @@ struct ProfileView: View {
         .task {
             if viewModel.user == nil {
                 await viewModel.loadProfile()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didUpdateProfile)) { notification in
+            if let updatedUser = notification.object as? User {
+                viewModel.applyUpdatedUser(updatedUser)
             }
         }
     }
@@ -178,10 +186,15 @@ struct ProfileView: View {
             }
 
             if let website = user.website, !website.isEmpty {
-                Link(website.replacingOccurrences(of: "https://", with: ""),
-                     destination: URL(string: website) ?? URL(string: "https://example.com")!)
-                    .font(DS.Font.subheadline)
-                    .fontWeight(.medium)
+                let displayURL = website
+                    .replacingOccurrences(of: "https://", with: "")
+                    .replacingOccurrences(of: "http://", with: "")
+                let destinationURL = URL(string: website.contains("://") ? website : "https://\(website)")
+                if let destinationURL {
+                    Link(displayURL, destination: destinationURL)
+                        .font(DS.Font.subheadline)
+                        .fontWeight(.medium)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

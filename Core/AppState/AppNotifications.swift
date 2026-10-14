@@ -15,4 +15,8 @@ extension Notification.Name {
     /// Dispatched when a new story is successfully created and published.
     /// `object` contains the newly created `Story`.
     static let didCreateStory = Notification.Name("com.instagram.didCreateStory")
+
+    /// Dispatched when current user profile is updated.
+    /// `object` contains the updated `User`.
+    static let didUpdateProfile = Notification.Name("com.instagram.didUpdateProfile")
 }

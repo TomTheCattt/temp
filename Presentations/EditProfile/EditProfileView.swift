@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PhotosUI
+import NukeUI
 
 // MARK: - EditProfileView
 
@@ -27,11 +28,20 @@ struct EditProfileView: View {
                 bioSection
             }
             .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                hideKeyboard()
+            }
             .navigationTitle(L10n.EditProfile.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.Common.cancel) { dismiss() }
+                    Button(L10n.Common.cancel) {
+                        if viewModel.hasChanges {
+                            viewModel.showDiscardAlert = true
+                        } else {
+                            dismiss()
+                        }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.Common.done) {
@@ -43,7 +53,7 @@ struct EditProfileView: View {
                         }
                     }
                     .fontWeight(.semibold)
-                    .disabled(viewModel.isSaving || !viewModel.isBioValid)
+                    .disabled(viewModel.isSaving || !viewModel.hasChanges || !viewModel.isBioValid)
                 }
             }
             .overlay {
@@ -59,6 +69,36 @@ struct EditProfileView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
+            .confirmationDialog(
+                L10n.EditProfile.discardTitle,
+                isPresented: $viewModel.showDiscardAlert,
+                titleVisibility: .visible
+            ) {
+                Button(L10n.EditProfile.discardConfirm, role: .destructive) {
+                    dismiss()
+                }
+                Button(L10n.EditProfile.keepEditing, role: .cancel) {}
+            }
+            .confirmationDialog(
+                L10n.EditProfile.changePhoto,
+                isPresented: $viewModel.showPhotoActionSheet,
+                titleVisibility: .visible
+            ) {
+                Button(L10n.EditProfile.chooseFromLibrary) {
+                    viewModel.isShowingPhotoPicker = true
+                }
+                if viewModel.newAvatarData != nil || (!viewModel.hasRemovedAvatar && viewModel.currentAvatarURL != nil) {
+                    Button(L10n.EditProfile.removeCurrentPhoto, role: .destructive) {
+                        viewModel.removeAvatar()
+                    }
+                }
+                Button(L10n.Common.cancel, role: .cancel) {}
+            }
+            .photosPicker(
+                isPresented: $viewModel.isShowingPhotoPicker,
+                selection: $viewModel.avatarPickerItem,
+                matching: .images
+            )
             .task {
                 await viewModel.loadProfile()
             }
@@ -74,37 +114,55 @@ struct EditProfileView: View {
         Section {
             HStack {
                 Spacer()
-                    PhotosPicker(
-                        selection: $viewModel.avatarPickerItem,
-                        matching: .images
-                    ) {
-                        VStack(spacing: DS.Spacing.xs) {
-                            if let data = viewModel.newAvatarData,
-                               let uiImage = UIImage(data: data) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
-                                    .clipShape(Circle())
-                            } else {
-                                AsyncImage(url: viewModel.currentAvatarURL) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
-                                }
-                                .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
-                                .clipShape(Circle())
-                            }
+                Button {
+                    viewModel.showPhotoActionSheet = true
+                } label: {
+                    VStack(spacing: DS.Spacing.xs) {
+                        avatarPreview
+                            .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
+                            .clipShape(Circle())
 
-                            Text(L10n.EditProfile.changePhoto)
-                                .font(DS.Font.subheadlineBold)
-                                .foregroundStyle(ColorTokens.accentPrimary)
-                        }
+                        Text(L10n.EditProfile.changePhoto)
+                            .font(DS.Font.subheadlineBold)
+                            .foregroundStyle(ColorTokens.accentPrimary)
                     }
-                    .buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
                 Spacer()
             }
             .listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private var avatarPreview: some View {
+        if let data = viewModel.newAvatarData,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if !viewModel.hasRemovedAvatar, let url = viewModel.currentAvatarURL {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFill()
+                } else if state.error != nil {
+                    avatarPlaceholder
+                } else {
+                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                }
+            }
+        } else {
+            avatarPlaceholder
+        }
+    }
+
+    private var avatarPlaceholder: some View {
+        ZStack {
+            Circle().fill(Color(.systemGray5))
+            Image(systemName: "person.crop.circle.fill")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.gray.opacity(0.6))
         }
     }
 
@@ -115,6 +173,7 @@ struct EditProfileView: View {
             LabeledContent(L10n.EditProfile.name) {
                 TextField(L10n.EditProfile.name, text: $viewModel.name)
                     .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.words)
             }
 
             LabeledContent(L10n.EditProfile.username) {
@@ -129,6 +188,7 @@ struct EditProfileView: View {
                 TextField(L10n.EditProfile.website, text: $viewModel.website)
                     .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
                     .keyboardType(.URL)
             }
         }

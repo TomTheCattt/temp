@@ -134,6 +134,11 @@ enum L10n {
     enum EditProfile {
         static let title = String(localized: "editProfile.title")
         static let changePhoto = String(localized: "editProfile.changePhoto")
+        static let chooseFromLibrary = String(localized: "editProfile.chooseFromLibrary", defaultValue: "Choose from Library")
+        static let removeCurrentPhoto = String(localized: "editProfile.removeCurrentPhoto", defaultValue: "Remove Current Photo")
+        static let discardTitle = String(localized: "editProfile.discardTitle", defaultValue: "Discard changes?")
+        static let discardConfirm = String(localized: "editProfile.discardConfirm", defaultValue: "Discard Changes")
+        static let keepEditing = String(localized: "editProfile.keepEditing", defaultValue: "Keep Editing")
         static let name = String(localized: "editProfile.name")
         static let username = String(localized: "editProfile.username")
         static let website = String(localized: "editProfile.website")

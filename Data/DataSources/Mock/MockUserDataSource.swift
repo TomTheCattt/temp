@@ -13,12 +13,12 @@ final class MockUserDataSource: Sendable {
 
     func fetchCurrentUser() async throws -> User {
         try await simulateDelay()
-        return MockData.currentUser
+        return MockUserStore.shared.currentUser
     }
 
     func fetchUser(id: String) async throws -> User {
         try await simulateDelay()
-        if id == MockData.currentUser.id { return MockData.currentUser }
+        if id == MockUserStore.shared.currentUser.id { return MockUserStore.shared.currentUser }
         guard let user = MockData.users.first(where: { $0.id == id }) else {
             throw APIError.notFound
         }
@@ -79,17 +79,17 @@ final class MockUserDataSource: Sendable {
 
     func updateProfile(name: String?, bio: String?, website: String?) async throws -> User {
         try await simulateDelay(seconds: 0.5)
-        return MockData.currentUser
+        return MockUserStore.shared.updateProfile(name: name, bio: bio, website: website)
     }
 
     func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
         try await simulateDelay(seconds: 0.3)
-        return MockData.currentUser
+        return MockUserStore.shared.setPrivateAccount(isPrivate)
     }
 
     func updateAvatar(imageData: Data) async throws -> User {
         try await simulateDelay(seconds: 0.8)
-        return MockData.currentUser
+        return MockUserStore.shared.updateAvatar(imageData: imageData)
     }
 
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User] {
@@ -111,6 +111,103 @@ final class MockUserDataSource: Sendable {
 
     private func simulateDelay(seconds: Double = 0.5) async throws {
         try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+    }
+}
+
+// MARK: - MockUserStore
+
+/// In-memory store so mock user profile updates persist for the lifetime
+/// of the app session (mirrors backend persistence).
+final class MockUserStore: @unchecked Sendable {
+
+    static let shared = MockUserStore()
+
+    private let lock = NSLock()
+    private var _currentUser: User = MockData.currentUser
+
+    private init() {}
+
+    var currentUser: User {
+        get { lock.lock(); defer { lock.unlock() }; return _currentUser }
+        set { lock.lock(); _currentUser = newValue; lock.unlock() }
+    }
+
+    func updateProfile(name: String?, bio: String?, website: String?) -> User {
+        lock.lock(); defer { lock.unlock() }
+        _currentUser = User(
+            id: _currentUser.id,
+            username: _currentUser.username,
+            fullName: name ?? _currentUser.fullName,
+            email: _currentUser.email,
+            phone: _currentUser.phone,
+            avatarURL: _currentUser.avatarURL,
+            bio: bio,
+            website: website,
+            isVerified: _currentUser.isVerified,
+            isPrivate: _currentUser.isPrivate,
+            followersCount: _currentUser.followersCount,
+            followingCount: _currentUser.followingCount,
+            postsCount: _currentUser.postsCount,
+            createdAt: _currentUser.createdAt,
+            isFollowing: _currentUser.isFollowing,
+            isFollowedBy: _currentUser.isFollowedBy,
+            isBlocked: _currentUser.isBlocked
+        )
+        return _currentUser
+    }
+
+    func updateAvatar(imageData: Data) -> User {
+        lock.lock(); defer { lock.unlock() }
+        let newURL: URL?
+        if imageData.isEmpty {
+            newURL = nil
+        } else {
+            newURL = URL(string: "https://i.pravatar.cc/300?u=\(_currentUser.username)&t=\(Int(Date().timeIntervalSince1970))")
+        }
+        _currentUser = User(
+            id: _currentUser.id,
+            username: _currentUser.username,
+            fullName: _currentUser.fullName,
+            email: _currentUser.email,
+            phone: _currentUser.phone,
+            avatarURL: newURL,
+            bio: _currentUser.bio,
+            website: _currentUser.website,
+            isVerified: _currentUser.isVerified,
+            isPrivate: _currentUser.isPrivate,
+            followersCount: _currentUser.followersCount,
+            followingCount: _currentUser.followingCount,
+            postsCount: _currentUser.postsCount,
+            createdAt: _currentUser.createdAt,
+            isFollowing: _currentUser.isFollowing,
+            isFollowedBy: _currentUser.isFollowedBy,
+            isBlocked: _currentUser.isBlocked
+        )
+        return _currentUser
+    }
+
+    func setPrivateAccount(_ isPrivate: Bool) -> User {
+        lock.lock(); defer { lock.unlock() }
+        _currentUser = User(
+            id: _currentUser.id,
+            username: _currentUser.username,
+            fullName: _currentUser.fullName,
+            email: _currentUser.email,
+            phone: _currentUser.phone,
+            avatarURL: _currentUser.avatarURL,
+            bio: _currentUser.bio,
+            website: _currentUser.website,
+            isVerified: _currentUser.isVerified,
+            isPrivate: isPrivate,
+            followersCount: _currentUser.followersCount,
+            followingCount: _currentUser.followingCount,
+            postsCount: _currentUser.postsCount,
+            createdAt: _currentUser.createdAt,
+            isFollowing: _currentUser.isFollowing,
+            isFollowedBy: _currentUser.isFollowedBy,
+            isBlocked: _currentUser.isBlocked
+        )
+        return _currentUser
     }
 }
 

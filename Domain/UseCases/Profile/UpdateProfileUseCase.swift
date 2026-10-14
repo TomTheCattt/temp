@@ -41,17 +41,25 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
             throw UpdateProfileError.bioTooLong
         }
 
-        // Validate website URL if provided
-        if let website = input.website, !website.isEmpty {
-            guard URL(string: website) != nil else {
+        // Validate and normalize website URL if provided
+        let cleanedWebsite: String?
+        if let website = input.website?.trimmingCharacters(in: .whitespacesAndNewlines), !website.isEmpty {
+            let formatted = (website.lowercased().hasPrefix("http://") || website.lowercased().hasPrefix("https://"))
+                ? website
+                : "https://" + website
+
+            guard let url = URL(string: formatted), url.host != nil else {
                 throw UpdateProfileError.invalidWebsite
             }
+            cleanedWebsite = formatted
+        } else {
+            cleanedWebsite = nil
         }
 
         return try await userRepository.updateProfile(
-            name: input.name,
+            name: input.name?.trimmingCharacters(in: .whitespacesAndNewlines),
             bio: input.bio,
-            website: input.website
+            website: cleanedWebsite
         )
     }
 }
