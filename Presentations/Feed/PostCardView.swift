@@ -45,6 +45,9 @@ struct PostCardView: View {
             }
             .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
             .clipShape(Circle())
+            .onTapGesture {
+                AppRouter.shared.push(.userProfile(userId: post.author.id))
+            }
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 HStack(spacing: DS.Spacing.xxs) {

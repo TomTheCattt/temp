@@ -72,6 +72,9 @@ struct PostDetailView: View {
                 }
                 .frame(width: DS.Size.avatarMedium, height: DS.Size.avatarMedium)
                 .clipShape(Circle())
+                .onTapGesture {
+                    AppRouter.shared.push(.userProfile(userId: post.author.id))
+                }
 
                 VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                     Text(post.author.username)
@@ -227,6 +230,9 @@ struct CommentRowView: View {
             }
             .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
             .clipShape(Circle())
+            .onTapGesture {
+                AppRouter.shared.push(.userProfile(userId: comment.author.id))
+            }
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {

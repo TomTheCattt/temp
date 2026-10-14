@@ -73,33 +73,34 @@ struct EditProfileView: View {
         Section {
             HStack {
                 Spacer()
-                VStack(spacing: DS.Spacing.xs) {
-                    if let data = viewModel.newAvatarData,
-                       let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
-                            .clipShape(Circle())
-                    } else {
-                        AsyncImage(url: viewModel.currentAvatarURL) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Circle().fill(Color.gray.opacity(DS.Opacity.low))
-                        }
-                        .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
-                        .clipShape(Circle())
-                    }
-
                     PhotosPicker(
                         selection: $viewModel.avatarPickerItem,
                         matching: .images
                     ) {
-                        Text(L10n.EditProfile.changePhoto)
-                            .font(DS.Font.subheadlineBold)
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        VStack(spacing: DS.Spacing.xs) {
+                            if let data = viewModel.newAvatarData,
+                               let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
+                                    .clipShape(Circle())
+                            } else {
+                                AsyncImage(url: viewModel.currentAvatarURL) { image in
+                                    image.resizable().scaledToFill()
+                                } placeholder: {
+                                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                                }
+                                .frame(width: DS.Size.avatarXLarge, height: DS.Size.avatarXLarge)
+                                .clipShape(Circle())
+                            }
+
+                            Text(L10n.EditProfile.changePhoto)
+                                .font(DS.Font.subheadlineBold)
+                                .foregroundStyle(ColorTokens.accentPrimary)
+                        }
                     }
-                }
+                    .buttonStyle(.plain)
                 Spacer()
             }
             .listRowBackground(Color.clear)

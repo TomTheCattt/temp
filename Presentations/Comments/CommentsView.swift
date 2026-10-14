@@ -79,6 +79,12 @@ struct CommentsView: View {
             }
             .frame(width: DS.Size.avatarMedium, height: DS.Size.avatarMedium)
             .clipShape(Circle())
+            .onTapGesture {
+                if AppRouter.shared.presentedSheet != nil {
+                    AppRouter.shared.dismiss()
+                }
+                AppRouter.shared.push(.userProfile(userId: comment.author.id))
+            }
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
                 // Username + text
@@ -143,6 +149,12 @@ struct CommentsView: View {
             }
             .frame(width: DS.Size.avatarXSmall, height: DS.Size.avatarXSmall)
             .clipShape(Circle())
+            .onTapGesture {
+                if AppRouter.shared.presentedSheet != nil {
+                    AppRouter.shared.dismiss()
+                }
+                AppRouter.shared.push(.userProfile(userId: reply.author.id))
+            }
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {

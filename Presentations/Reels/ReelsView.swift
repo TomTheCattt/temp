@@ -195,10 +195,8 @@ struct ReelItemView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.black
-
-                // Thumbnail always visible as background (until video renders)
-                VideoThumbnailView(videoURL: reel.videoURL, thumbnailURL: reel.thumbnailURL)
+                // Dark skeleton background: visible while video is loading/buffering
+                ReelVideoSkeletonView(isActive: isActive)
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
 
@@ -245,6 +243,9 @@ struct ReelItemView: View {
                 }
                 .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
                 .clipShape(Circle())
+                .onTapGesture {
+                    AppRouter.shared.push(.userProfile(userId: reel.author.id))
+                }
 
                 Text(reel.author.username)
                     .font(DS.Font.username)
