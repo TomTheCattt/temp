@@ -18,6 +18,24 @@ enum CreatePostStep: Int, CaseIterable {
 
 // MARK: - CreatePostViewModel
 
+// MARK: - PostAspectRatio
+
+enum PostAspectRatio: String, CaseIterable, Identifiable {
+    case square = "1:1"
+    case portrait = "4:5"
+
+    var id: String { rawValue }
+
+    var ratioValue: CGFloat {
+        switch self {
+        case .square: return 1.0
+        case .portrait: return 4.0 / 5.0
+        }
+    }
+}
+
+// MARK: - CreatePostViewModel
+
 @MainActor
 @Observable
 final class CreatePostViewModel {
@@ -29,8 +47,11 @@ final class CreatePostViewModel {
     /// Selected photo items from PhotosPicker.
     var selectedItems: [PhotosPickerItem] = []
 
-    /// Loaded images (UIImage data) from selection.
+    /// Loaded images (UIImage data) from selection or camera/canvas.
     private(set) var selectedImages: [Data] = []
+
+    /// Aspect ratio for the post preview.
+    var aspectRatio: PostAspectRatio = .square
 
     /// Currently selected filter id for preview and baking (defaults to "original").
     var selectedFilterId: String = "original"
@@ -46,6 +67,11 @@ final class CreatePostViewModel {
 
     /// Location (optional).
     var location: PostLocation?
+
+    /// Audience and Privacy settings.
+    var isCloseFriendsOnly: Bool = false
+    var hideLikes: Bool = false
+    var disableComments: Bool = false
 
     /// Publishing state.
     private(set) var isPublishing = false
@@ -64,24 +90,50 @@ final class CreatePostViewModel {
 
     // MARK: - Actions
 
-    /// Load image data from PhotosPickerItems.
+    /// Set media captured from Camera, Canvas, or Layout.
+    func setCapturedMedia(data: Data, isVideo: Bool = false) {
+        let optimized = ImageDownsampler.shared.downsampleToData(data: data) ?? data
+        selectedImages = [optimized]
+        activeImageIndex = 0
+    }
+
+    /// Append additional image data.
+    func appendMedia(data: Data) {
+        guard selectedImages.count < DS.Layout.maxPostMedia else { return }
+        let optimized = ImageDownsampler.shared.downsampleToData(data: data) ?? data
+        selectedImages.append(optimized)
+    }
+
+    /// Remove an image from the carousel.
+    func removeImage(at index: Int) {
+        guard index >= 0 && index < selectedImages.count else { return }
+        selectedImages.remove(at: index)
+        if activeImageIndex >= selectedImages.count {
+            activeImageIndex = max(0, selectedImages.count - 1)
+        }
+    }
+
+    /// Toggle aspect ratio between 1:1 and 4:5.
+    func toggleAspectRatio() {
+        aspectRatio = (aspectRatio == .square) ? .portrait : .square
+    }
+
+    /// Load image data from PhotosPickerItems with memory-efficient downsampling.
     func loadSelectedMedia() async {
+        guard !selectedItems.isEmpty else { return }
         isLoadingMedia = true
         var images: [Data] = []
 
         for item in selectedItems {
             if let data = try? await item.loadTransferable(type: Data.self) {
-                images.append(data)
+                let downsampled = ImageDownsampler.shared.downsampleToData(data: data, maxDimension: 1080) ?? data
+                images.append(downsampled)
             }
         }
 
         selectedImages = images
+        activeImageIndex = 0
         isLoadingMedia = false
-
-        // Auto-advance to filter step if we have images
-        if !images.isEmpty {
-            currentStep = .applyFilter
-        }
     }
 
     /// Move to next step.
