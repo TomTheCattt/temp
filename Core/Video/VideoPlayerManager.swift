@@ -151,6 +151,7 @@ final class VideoPlayerManager: ObservableObject {
             .sink { [weak self] _ in
                 self?.isPlaybackAllowed = false
                 self?.pauseAll()
+                self?.deactivateAudioSession()
             }
             .store(in: &cancellables)
 
@@ -171,12 +172,29 @@ final class VideoPlayerManager: ObservableObject {
 
     // MARK: - Audio Session
 
-    private func configureAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            // Non-fatal
+    /// Configures audio session asynchronously on a background queue to prevent main-thread hangs.
+    /// Uses `.mixWithOthers` so muted feed videos do not interrupt background audio (e.g. Spotify).
+    private nonisolated func configureAudioSession() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .moviePlayback, options: [.mixWithOthers])
+                AppLogger.general.info("Audio session configured successfully on background thread")
+            } catch {
+                AppLogger.general.error("Failed to configure audio session: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Deactivates audio session asynchronously when app resigns active to release audio resources.
+    private nonisolated func deactivateAudioSession() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                AppLogger.general.info("Audio session deactivated successfully")
+            } catch {
+                AppLogger.general.debug("Audio session deactivation non-fatal error: \(error.localizedDescription)")
+            }
         }
     }
 }
