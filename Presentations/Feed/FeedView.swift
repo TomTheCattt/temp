@@ -121,11 +121,11 @@ struct FeedView: View {
 
             // Buttons row (44pt)
             HStack {
-                // Button 1: Activity / Notifications
+                // Button 1: Create (+)
                 Button {
-                    AppRouter.shared.push(.notifications)
+                    AppRouter.shared.present(sheet: .createMenu)
                 } label: {
-                    Image(systemName: "heart")
+                    Image(systemName: "plus.app")
                         .font(DS.Font.title3)
                 }
 
@@ -146,12 +146,21 @@ struct FeedView: View {
 
                 Spacer()
 
-                // Button 3: Direct Messages / Chat
-                Button {
-                    AppRouter.shared.push(.directMessages)
-                } label: {
-                    Image(systemName: "paperplane")
-                        .font(DS.Font.title3)
+                // Button Group 3: Activity / Notifications & Direct Messages / Chat
+                HStack(spacing: DS.Spacing.md) {
+                    Button {
+                        AppRouter.shared.push(.notifications)
+                    } label: {
+                        Image(systemName: "heart")
+                            .font(DS.Font.title3)
+                    }
+
+                    Button {
+                        AppRouter.shared.push(.directMessages)
+                    } label: {
+                        Image(systemName: "paperplane")
+                            .font(DS.Font.title3)
+                    }
                 }
             }
             .tint(.primary)

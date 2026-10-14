@@ -206,6 +206,17 @@ enum L10n {
         static let you = String(localized: "directMessages.you")
     }
 
+    // MARK: - Create Menu
+
+    enum CreateMenu {
+        static let title = String(localized: "createMenu.title", defaultValue: "Tạo")
+        static let post = String(localized: "createMenu.post", defaultValue: "Bài viết")
+        static let reel = String(localized: "createMenu.reel", defaultValue: "Thước phim")
+        static let story = String(localized: "createMenu.story", defaultValue: "Tin")
+        static let live = String(localized: "createMenu.live", defaultValue: "Phát trực tiếp")
+        static let liveNotAvailable = String(localized: "createMenu.liveNotAvailable", defaultValue: "Tính năng Phát trực tiếp sẽ sớm ra mắt.")
+    }
+
     // MARK: - Create Post
 
     enum CreatePost {
@@ -217,6 +228,23 @@ enum L10n {
         static let addLocation = String(localized: "createPost.addLocation")
         static let tagPeople = String(localized: "createPost.tagPeople")
         static let alsoShareTo = String(localized: "createPost.alsoShareTo")
+        static let camera = String(localized: "createPost.camera", defaultValue: "Máy ảnh")
+        static let retake = String(localized: "createPost.retake", defaultValue: "Chụp lại")
+        static let useMedia = String(localized: "createPost.useMedia", defaultValue: "Sử dụng")
+        static let addSticker = String(localized: "createPost.addSticker", defaultValue: "Thêm ảnh / Sticker")
+        static let createMode = String(localized: "createPost.createMode", defaultValue: "Tạo (Aa)")
+        static let layoutMode = String(localized: "createPost.layoutMode", defaultValue: "Bố cục (Lưới)")
+        static let audience = String(localized: "createPost.audience", defaultValue: "Đối tượng người xem")
+        static let everyone = String(localized: "createPost.everyone", defaultValue: "Mọi người")
+        static let closeFriends = String(localized: "createPost.closeFriends", defaultValue: "Bạn thân")
+        static let advancedSettings = String(localized: "createPost.advancedSettings", defaultValue: "Cài đặt nâng cao")
+        static let hideLikes = String(localized: "createPost.hideLikes", defaultValue: "Ẩn số lượt thích trên bài viết này")
+        static let turnOffComments = String(localized: "createPost.turnOffComments", defaultValue: "Tắt tính năng bình luận")
+        static let removeLocation = String(localized: "createPost.removeLocation", defaultValue: "Gỡ vị trí")
+        static let editStudio = String(localized: "createPost.editStudio", defaultValue: "Chỉnh sửa")
+        static let text = String(localized: "createPost.text", defaultValue: "Chữ")
+        static let sticker = String(localized: "createPost.sticker", defaultValue: "Nhãn dán")
+        static let draw = String(localized: "createPost.draw", defaultValue: "Vẽ")
 
         static func itemsSelected(_ count: Int) -> String {
             String(format: String(localized: "createPost.itemsSelected"), count)

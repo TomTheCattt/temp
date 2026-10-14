@@ -234,6 +234,9 @@ struct MainTabView: View {
     @ViewBuilder
     private func sheetContent(_ sheet: AppSheet) -> some View {
         switch sheet {
+        case .createMenu:
+            CreateActionSheetView()
+
         case .createPost:
             CreatePostView(
                 viewModel: CreatePostViewModel(

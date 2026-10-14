@@ -89,6 +89,7 @@ enum AppRoute: Hashable {
 
 /// Sheets presented modally.
 enum AppSheet: Identifiable {
+    case createMenu
     case createPost
     case createStory
     case createReel
@@ -100,6 +101,7 @@ enum AppSheet: Identifiable {
 
     var id: String {
         switch self {
+        case .createMenu:             return "createMenu"
         case .createPost:             return "createPost"
         case .createStory:            return "createStory"
         case .createReel:             return "createReel"

@@ -456,7 +456,7 @@ struct MyProfileNavigationBar: View {
                 // Leading Button: '+' if root tab, '<' back button if pushed onto stack
                 if isRootTab {
                     Button {
-                        AppRouter.shared.present(sheet: .createPost)
+                        AppRouter.shared.present(sheet: .createMenu)
                     } label: {
                         Image(systemName: "plus.app")
                             .font(DS.Font.title3)
