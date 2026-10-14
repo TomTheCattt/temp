@@ -23,8 +23,24 @@ struct MyStoryView: View {
     @State private var timer: Timer?
     @State private var videoPlayerKey: String = UUID().uuidString
     @State private var showDeleteConfirmation = false
+    @State private var dragOffset: CGSize = .zero
+    @State private var isDragging: Bool = false
 
     private let contentCornerRadius: CGFloat = DS.Radius.large
+
+    // MARK: - Drag to Dismiss Computations
+
+    private var cardScale: CGFloat {
+        max(0.85, 1.0 - (max(0, dragOffset.height) / 1000.0))
+    }
+
+    private var backgroundOpacity: Double {
+        max(0.0, 1.0 - Double(max(0, dragOffset.height) / 300.0))
+    }
+
+    private var dynamicCornerRadius: CGFloat {
+        min(32, contentCornerRadius + max(0, dragOffset.height) * 0.05)
+    }
 
     init(viewModel: StoryViewerViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -35,23 +51,24 @@ struct MyStoryView: View {
 
             ZStack {
                 Color.black.ignoresSafeArea()
+                    .opacity(backgroundOpacity)
 
                 VStack(spacing: 0) {
                     // MARK: Story Content Card (rounded)
                     ZStack(alignment: .top) {
                         // Media content
                         if viewModel.isLoading && viewModel.stories.isEmpty {
-                            RoundedRectangle(cornerRadius: contentCornerRadius)
+                            RoundedRectangle(cornerRadius: dynamicCornerRadius)
                                 .fill(Color(.systemGray6).opacity(DS.Opacity.placeholder))
                                 .overlay { ProgressView().tint(.white) }
                         } else if let item = viewModel.currentItem {
                             storyContent(item, geometry: geometry)
-                                .clipShape(RoundedRectangle(cornerRadius: contentCornerRadius))
+                                .clipShape(RoundedRectangle(cornerRadius: dynamicCornerRadius))
                         }
 
                         // Tap overlay
                         tapOverlay(size: geometry.size)
-                            .clipShape(RoundedRectangle(cornerRadius: contentCornerRadius))
+                            .clipShape(RoundedRectangle(cornerRadius: dynamicCornerRadius))
 
                         // Top controls: progress + header
                         VStack(spacing: DS.Spacing.xs) {
@@ -70,19 +87,34 @@ struct MyStoryView: View {
                             }
                         }
                     }
-//                    .padding(.top, topPadding)
                     .padding(.horizontal, DS.Spacing.xxxs)
 
                     // MARK: Bottom Bar (My Story actions)
                     myStoryBottomBar
                         .padding(.horizontal, DS.Padding.horizontal)
                         .padding(.top, DS.Spacing.sm)
-//                        .padding(.bottom, max(bottomPadding, DS.Spacing.sm))
                 }
+                .offset(y: max(0, dragOffset.height))
+                .scaleEffect(cardScale)
+                .shadow(color: .black.opacity(isDragging ? 0.35 : 0), radius: 16, y: 8)
             }
+            .gesture(
+                LongPressGesture(minimumDuration: 0.2)
+                    .onChanged { _ in
+                        if !isDragging {
+                            viewModel.pause()
+                        }
+                    }
+                    .onEnded { _ in
+                        if !isDragging {
+                            viewModel.resume()
+                        }
+                    }
+            )
+            .simultaneousGesture(dragToDismissGesture(screenHeight: geometry.size.height))
         }
-//        .ignoresSafeArea()
         .statusBarHidden()
+        .presentationBackground(.clear)
         .task {
             await viewModel.loadStories()
             handleItemChange()
@@ -106,11 +138,6 @@ struct MyStoryView: View {
             @unknown default: break
             }
         }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.2)
-                .onChanged { _ in viewModel.pause() }
-                .onEnded { _ in viewModel.resume() }
-        )
         .confirmationDialog(L10n.Story.deleteTitle, isPresented: $showDeleteConfirmation) {
             Button(L10n.Common.delete, role: .destructive) {
                 // TODO: Delete story item
@@ -307,12 +334,13 @@ struct MyStoryView: View {
                 .fill(Color.clear)
                 .contentShape(Rectangle())
                 .onTapGesture { viewModel.goToPrevious() }
-                .frame(width: size.width * 0.3)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Rectangle()
                 .fill(Color.clear)
                 .contentShape(Rectangle())
                 .onTapGesture { advanceOrDismiss() }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -415,5 +443,43 @@ struct MyStoryView: View {
         } else {
             viewModel.goToNext()
         }
+    }
+
+    // MARK: - Drag to Dismiss Gesture
+
+    private func dragToDismissGesture(screenHeight: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 15)
+            .onChanged { value in
+                // Only handle downward drag (downward dominant)
+                guard value.translation.height > 0,
+                      value.translation.height > abs(value.translation.width) * 0.5 else {
+                    return
+                }
+
+                if !isDragging {
+                    isDragging = true
+                    viewModel.pause()
+                }
+                dragOffset = value.translation
+            }
+            .onEnded { value in
+                guard isDragging else { return }
+
+                let shouldDismiss = value.translation.height > 100
+                    || value.predictedEndTranslation.height > 200
+
+                if shouldDismiss {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dragOffset = CGSize(width: 0, height: screenHeight)
+                    }
+                    dismiss()
+                } else {
+                    withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.8)) {
+                        dragOffset = .zero
+                        isDragging = false
+                    }
+                    viewModel.resume()
+                }
+            }
     }
 }

@@ -28,7 +28,8 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
 ### StoryViewerView (xem stories người khác)
 - **Progress bars**: HStack capsules ở trên cùng, fill theo progress
 - **Header**: avatar + username + relative time + close button
-- **Tap navigation**: tap trái (30%) = previous, tap phải (70%) = next
+- **Tap navigation**: tap trái (50%) = previous, tap phải (50%) = next (cân bằng 50/50 mỗi bên)
+- **Swipe down to dismiss**: vuốt xuống tương tác thời gian thực để đóng (co nhỏ card, tăng bo góc, nền đen mờ dần để lộ màn hình phía dưới; tự động pause khi kéo và resume khi thả nảy về)
 - **Long press**: pause/resume playback
 - **Image stories**: timer-based progress (default 5s/item, tick 0.05s)
 - **Video stories**: progress từ `StoryVideoPlayer` callback
@@ -36,7 +37,7 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
 - **Stickers**: location, mention, music, poll (overlay trên content)
 - **Multi-story navigation**: tự chuyển sang story của user tiếp theo
 - **Scene phase handling**: pause khi app vào background
-- **Content card**: rounded corners (12pt)
+- **Content card**: rounded corners động (12pt → 32pt khi kéo)
 - **Auto-dismiss**: khi hết story cuối cùng
 
 ### MyStoryView (xem stories của mình)

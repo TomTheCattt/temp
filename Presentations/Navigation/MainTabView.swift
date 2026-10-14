@@ -330,6 +330,7 @@ struct MainTabView: View {
                     fetchStoriesUseCase: DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
                 )
             )
+            .presentationBackground(.clear)
 
         case .myStory:
             MyStoryView(
@@ -338,6 +339,7 @@ struct MainTabView: View {
                     fetchStoriesUseCase: DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
                 )
             )
+            .presentationBackground(.clear)
         }
     }
 
