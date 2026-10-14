@@ -17,7 +17,7 @@ struct ExploreView: View {
         searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self)
     )
 
-    @State private var selectedSuggestion: String = "Dành cho bạn"
+    @FocusState private var isSearchFocused: Bool
     @State private var isScrolled: Bool = false
 
     private let mockSuggestions = [
@@ -25,20 +25,21 @@ struct ExploreView: View {
         "Ẩm thực", "Âm nhạc", "Thể thao", "Kiến trúc", "Công nghệ", "Nghệ thuật"
     ]
 
+    private var isSearchActive: Bool {
+        isSearchFocused || !viewModel.searchText.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Custom Navigation Bar & Search Suggestions Header
             exploreHeaderView
 
             // Search results overlay or Explore Grid
-            if !viewModel.searchText.isEmpty {
+            if isSearchActive {
                 searchResultsList
             } else {
                 exploreGrid
             }
-        }
-        .onChange(of: viewModel.searchText) { _, _ in
-            Task { await viewModel.search() }
         }
         .toolbar(.hidden, for: .navigationBar)
         .task {
@@ -52,7 +53,7 @@ struct ExploreView: View {
 
     private var exploreHeaderView: some View {
         VStack(spacing: DS.Spacing.xs) {
-            // Top row: SearchBar expanding to fill space + Trailing button
+            // Top row: SearchBar expanding to fill space + Trailing button (Cancel or Map)
             HStack(spacing: DS.Spacing.xs) {
                 // Expanding Search Bar
                 HStack(spacing: DS.Spacing.xs) {
@@ -63,6 +64,11 @@ struct ExploreView: View {
                     TextField(L10n.Common.search, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
                         .font(DS.Font.subheadline)
+                        .focused($isSearchFocused)
+                        .submitLabel(.search)
+                        .onSubmit {
+                            submitSearch()
+                        }
 
                     if !viewModel.searchText.isEmpty {
                         Button {
@@ -78,45 +84,59 @@ struct ExploreView: View {
                 .padding(.vertical, DS.Spacing.xs)
                 .background(ColorTokens.backgroundSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.input))
 
-                // Trailing button
-                Button {
-                    // Explore map/filter action
-                } label: {
-                    Image(systemName: "map")
-                        .font(.title3)
-                        .foregroundStyle(Color.primary)
+                // Trailing button (Cancel when search is active, Map icon when browsing)
+                if isSearchActive {
+                    Button(L10n.Common.cancel) {
+                        withAnimation(DS.Animation.fast) {
+                            isSearchFocused = false
+                            viewModel.clearSearch()
+                            hideKeyboard()
+                        }
+                    }
+                    .font(DS.Font.subheadline)
+                    .foregroundStyle(Color.primary)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                } else {
+                    Button {
+                        // Explore map/filter action
+                    } label: {
+                        Image(systemName: "map")
+                            .font(.title3)
+                            .foregroundStyle(Color.primary)
+                    }
+                    .transition(.opacity)
                 }
             }
             .padding(.horizontal, DS.Padding.horizontal)
 
-            // Bottom row: ScrollView displaying search suggestion pills
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.Spacing.xs) {
-                    ForEach(mockSuggestions, id: \.self) { suggestion in
-                        let isSelected = selectedSuggestion == suggestion
-                        Button {
-                            selectedSuggestion = suggestion
-                            if suggestion != "Dành cho bạn" {
-                                viewModel.searchText = suggestion
-                            } else {
-                                viewModel.searchText = ""
+            // Bottom row: Category suggestion pills (hidden when actively searching to maximize space)
+            if !isSearchActive {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DS.Spacing.xs) {
+                        ForEach(mockSuggestions, id: \.self) { suggestion in
+                            let isSelected = viewModel.selectedCategory == suggestion
+                            Button {
+                                withAnimation(DS.Animation.fast) {
+                                    viewModel.selectCategory(suggestion)
+                                }
+                            } label: {
+                                Text(suggestion)
+                                    .font(DS.Font.captionBold)
+                                    .padding(.horizontal, DS.Spacing.sm)
+                                    .padding(.vertical, DS.Spacing.xxs)
+                                    .background(
+                                        isSelected ? Color.primary : ColorTokens.backgroundSecondary,
+                                        in: RoundedRectangle(cornerRadius: DS.Radius.medium)
+                                    )
+                                    .foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
                             }
-                        } label: {
-                            Text(suggestion)
-                                .font(DS.Font.captionBold)
-                                .padding(.horizontal, DS.Spacing.sm)
-                                .padding(.vertical, DS.Spacing.xxs)
-                                .background(
-                                    isSelected ? Color.primary : ColorTokens.backgroundSecondary,
-                                    in: RoundedRectangle(cornerRadius: DS.Radius.medium)
-                                )
-                                .foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
                         }
                     }
+                    .padding(.horizontal, DS.Padding.horizontal)
                 }
-                .padding(.horizontal, DS.Padding.horizontal)
+                .padding(.bottom, DS.Spacing.xxs)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding(.bottom, DS.Spacing.xxs)
 
             if isScrolled {
                 Divider()
@@ -132,23 +152,50 @@ struct ExploreView: View {
             }
         }
         .animation(DS.Animation.standard, value: isScrolled)
+        .animation(DS.Animation.fast, value: isSearchActive)
+    }
+
+    // MARK: - Actions
+
+    private func submitSearch() {
+        let query = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        hideKeyboard()
+        AppRouter.shared.push(.searchResults(query: query))
     }
 
     // MARK: - Explore Grid
 
     private var exploreGrid: some View {
         ScrollView {
-            LazyVGrid(
-                columns: exploreColumns,
-                spacing: DS.Size.gridSpacing
-            ) {
-                ForEach(Array(viewModel.explorePosts.enumerated()), id: \.element.id) { index, post in
-                    ExploreGridItem(post: post, index: index)
-                        .onTapGesture {
-                            AppRouter.shared.push(.postDetail(postId: post.id))
-                        }
+            if viewModel.isLoading && viewModel.explorePosts.isEmpty {
+                ProgressView()
+                    .padding(.top, DS.Spacing.xxxl)
+            } else {
+                LazyVGrid(
+                    columns: exploreColumns,
+                    spacing: DS.Size.gridSpacing
+                ) {
+                    ForEach(Array(viewModel.filteredExplorePosts.enumerated()), id: \.element.id) { index, post in
+                        ExploreGridItem(post: post, index: index)
+                            .onTapGesture {
+                                AppRouter.shared.push(.postDetail(postId: post.id))
+                            }
+                            .onAppear {
+                                if index == viewModel.filteredExplorePosts.count - 1 {
+                                    Task { await viewModel.loadMoreExplore() }
+                                }
+                            }
+                    }
+                }
+                if viewModel.isLoadingMore {
+                    ProgressView()
+                        .padding(.vertical, DS.Spacing.md)
                 }
             }
+        }
+        .refreshable {
+            await viewModel.loadExplore()
         }
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.y
@@ -182,15 +229,51 @@ struct ExploreView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
-            } else if viewModel.searchResults.isEmpty && viewModel.searchText.count >= 2 {
-                Text(L10n.Explore.noResults)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowSeparator(.hidden)
+                .padding(.top, DS.Spacing.xl)
+            } else if viewModel.searchText.isEmpty {
+                // Search hint when user just focused search bar
+                VStack(spacing: DS.Spacing.sm) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.largeTitle)
+                        .foregroundStyle(.tertiary)
+                    Text("Tìm kiếm tài khoản, bài viết, thẻ hashtag...")
+                        .font(DS.Font.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, DS.Spacing.xxxl)
+                .listRowSeparator(.hidden)
+            } else if viewModel.searchText.count < 2 {
+                // Hint for short query
+                HStack(spacing: DS.Spacing.xs) {
+                    Spacer()
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                    Text("Nhập ít nhất 2 ký tự để tìm kiếm")
+                        .font(DS.Font.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+                .padding(.top, DS.Spacing.xl)
+            } else if viewModel.searchResults.isEmpty {
+                // No results
+                VStack(spacing: DS.Spacing.xs) {
+                    Text(L10n.Explore.noResults)
+                        .font(DS.Font.headline)
+                        .foregroundStyle(.secondary)
+                    Text("Không tìm thấy kết quả nào cho \"\(viewModel.searchText)\"")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .listRowSeparator(.hidden)
+                .padding(.top, DS.Spacing.xl)
             } else {
                 ForEach(viewModel.searchResults) { user in
                     SearchResultRow(user: user)
                         .onTapGesture {
+                            hideKeyboard()
                             AppRouter.shared.push(.userProfile(userId: user.id))
                         }
                 }
@@ -207,8 +290,6 @@ private struct ExploreGridItem: View {
     let post: Post
     let index: Int
 
-    /// Instagram uses a pattern: every 3rd item in a group is larger (spanning 2 rows).
-    /// Simplified here as uniform squares.
     var body: some View {
         if let media = post.mediaItems.first {
             LazyImage(url: media.thumbnailURL ?? media.url) { state in
@@ -244,7 +325,7 @@ private struct SearchResultRow: View {
         HStack(spacing: DS.Spacing.sm) {
             LazyImage(url: user.avatarURL) { state in
                 if let image = state.image {
-                    image.resizable()
+                    image.resizable().scaledToFill()
                 } else {
                     Circle().fill(ColorTokens.buttonSecondary)
                 }
@@ -273,15 +354,6 @@ private struct SearchResultRow: View {
             Spacer()
         }
         .contentShape(Rectangle())
-    }
-}
-
-// MARK: - ExploreScrollOffsetPreferenceKey
-
-private struct ExploreScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 

@@ -28,7 +28,12 @@ final class MockUserDataSource: Sendable {
     func searchUsers(query: String, page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay(seconds: 0.4)
         let lowered = query.lowercased()
-        return MockData.users.filter {
+        var allCandidates = MockData.users
+        let currentUser = MockUserStore.shared.currentUser
+        if !allCandidates.contains(where: { $0.id == currentUser.id }) {
+            allCandidates.insert(currentUser, at: 0)
+        }
+        return allCandidates.filter {
             $0.username.lowercased().contains(lowered) ||
             $0.fullName.lowercased().contains(lowered)
         }

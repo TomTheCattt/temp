@@ -395,6 +395,11 @@ enum L10n {
     enum Search {
         static let title = String(localized: "search.title")
         static let cityCountry = String(localized: "search.cityCountry")
+        static let tabTop = String(localized: "search.tab.top", defaultValue: "Top")
+        static let tabAccounts = String(localized: "search.tab.accounts", defaultValue: "Accounts")
+        static let tabTags = String(localized: "search.tab.tags", defaultValue: "Tags")
+        static let tabPlaces = String(localized: "search.tab.places", defaultValue: "Places")
+        static let noResults = String(localized: "search.noResults", defaultValue: "No results found")
 
         static func locationName(_ index: Int) -> String {
             String(format: String(localized: "search.locationName"), index)
