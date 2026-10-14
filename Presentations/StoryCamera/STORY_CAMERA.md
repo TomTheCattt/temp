@@ -9,36 +9,39 @@ Module xử lý flow tạo story mới: camera capture (chụp ảnh/quay video)
 | File | Vai trò |
 |------|---------|
 | `StoryCameraView.swift` | Giao diện 2 màn hình: camera capture + preview/edit/publish |
-| `StoryCameraViewModel.swift` | ViewModel quản lý permissions, capture, publish story |
+| `StoryCameraViewModel.swift` | ViewModel quản lý permissions, capture, switch camera, gallery load, publish story |
+| `CameraPreviewView.swift` | Component UIViewRepresentable bọc AVCaptureVideoPreviewLayer |
+| `Core/Camera/CameraService.swift` | Service AVFoundation quản lý capture session, inputs, outputs, photo capture và movie recording |
 
 ## Tính năng chính
 
 ### Camera Screen
-- **Camera preview** (placeholder) full-screen rounded
-- **Top bar**: Close (X) + Flash toggle + Settings
+- **Camera preview**: Full-screen rounded bọc `AVCaptureVideoPreviewLayer` theo thời gian thực (tự động fallback sang Simulator mode khi chạy trên máy ảo)
+- **Top bar**: Close (X) + Flash / Torch toggle + Settings
 - **Mode selector** (horizontal scroll): Normal, Boomerang, Layout, Multi-Capture, Hands-Free
 - **Capture button**: trắng cho photo, đỏ cho recording (shape thay đổi)
-- **Gallery button** (trái): chọn media từ thư viện
-- **Flip camera** (phải): chuyển front/back camera
+- **Gallery button** (trái): Tích hợp `PhotosPicker` chọn ảnh/video trực tiếp từ thư viện máy
+- **Flip camera** (phải): chuyển front/back camera phần cứng qua `CameraService`
 - **Permission handling**: kiểm tra camera + microphone permission
 - **Permission denied view**: thông báo + nút "Open Settings"
 
 ### Preview/Edit Screen
-- **Preview content**: hiển thị ảnh/video đã capture (placeholder)
+- **Preview content**: hiển thị ảnh thật (`Image(uiImage:)`) hoặc video phát lại (`VideoPlayer(player:)`)
 - **Top bar**: Back (retake) + Edit tools (Text, Sticker, Draw, Music)
 - **Bottom buttons**:
   - "Your Story" (xanh): publish lên story
   - "Close Friends" (xám): publish cho close friends
 - **Loading overlay**: ProgressView khi đang publishing
-- **Auto-dismiss**: khi publish thành công
+- **Auto-dismiss**: khi publish thành công kèm phát thông báo `Notification.Name.didCreateStory` để Stories bar cập nhật ngay lập tức
 
 ## Architecture
 
 - Pattern: MVVM với `@Observable`
-- Dependencies: `StoryRepositoryProtocol`
+- Dependencies: `StoryRepositoryProtocol`, `CameraService.shared`
 - Permissions: `AVCaptureDevice.requestAccess(for:)` cho camera + microphone
-- Capture: placeholder (thực tế sẽ dùng `AVCapturePhotoOutput` / `AVCaptureMovieFileOutput`)
-- Publish: gọi `storyRepository.createStory(mediaData:, type:, duration:)`
+- Capture: `AVCapturePhotoOutput` / `AVCaptureMovieFileOutput` qua `CameraService`
+- Gallery: `PhotosPicker` (iOS 16+ native PhotosUI)
+- Publish: gọi `storyRepository.createStory(mediaData:, type:, duration:)` và dispatch `.didCreateStory`
 
 ## StoryCameraMode Enum
 

@@ -6,12 +6,15 @@
 //
 
 import SwiftUI
+import PhotosUI
+import AVKit
 
 // MARK: - StoryCameraView
 
 struct StoryCameraView: View {
 
     @State private var viewModel: StoryCameraViewModel
+    @State private var selectedGalleryItem: PhotosPickerItem?
     @Environment(\.dismiss) private var dismiss
 
     init(viewModel: StoryCameraViewModel) {
@@ -31,6 +34,9 @@ struct StoryCameraView: View {
         .statusBarHidden()
         .task {
             await viewModel.checkPermissions()
+        }
+        .onDisappear {
+            viewModel.cameraService.stop()
         }
         .onChange(of: viewModel.isPublished) { _, published in
             if published { dismiss() }
@@ -55,23 +61,42 @@ struct StoryCameraView: View {
         }
     }
 
-    // MARK: - Camera Preview (Placeholder)
-
+    // MARK: - Camera Preview
+ 
     private var cameraPreview: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: DS.Radius.large)
-                .fill(Color.gray.opacity(DS.Opacity.low))
+            if viewModel.isHardwareAvailable {
+                CameraPreviewView(
+                    session: viewModel.cameraService.session,
+                    isHardwareAvailable: true
+                )
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
                 .padding(.horizontal, DS.Spacing.xxxs)
                 .padding(.vertical, DS.Spacing.modalTop + DS.Spacing.sm)
-                .overlay {
-                    VStack(spacing: DS.Spacing.xs) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: DS.Spacing.xxxl))
-                        Text(L10n.StoryCamera.cameraPreview)
-                            .font(DS.Font.caption)
+            } else {
+                RoundedRectangle(cornerRadius: DS.Radius.large)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.black, Color(.systemGray6)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .padding(.horizontal, DS.Spacing.xxxs)
+                    .padding(.vertical, DS.Spacing.modalTop + DS.Spacing.sm)
+                    .overlay {
+                        VStack(spacing: DS.Spacing.xs) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: DS.Spacing.xxxl))
+                            Text(L10n.StoryCamera.cameraPreview)
+                                .font(DS.Font.headline)
+                            Text("Simulator Camera Mode")
+                                .font(DS.Font.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .foregroundStyle(.white.opacity(DS.Opacity.overlay))
                     }
-                    .foregroundStyle(.white.opacity(DS.Opacity.overlay))
-                }
+            }
         }
     }
 
@@ -124,8 +149,11 @@ struct StoryCameraView: View {
 
             // Capture button + controls
             HStack(spacing: DS.Spacing.xxxl) {
-                // Gallery button
-                Button(action: {}) {
+                // Gallery button with PhotosPicker
+                PhotosPicker(
+                    selection: $selectedGalleryItem,
+                    matching: .any(of: [.images, .videos])
+                ) {
                     RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
                         .fill(Color.gray.opacity(DS.Opacity.overlay))
                         .frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
@@ -134,6 +162,15 @@ struct StoryCameraView: View {
                                 .font(DS.Font.caption)
                                 .foregroundStyle(.white)
                         }
+                }
+                .onChange(of: selectedGalleryItem) { _, newItem in
+                    guard let newItem else { return }
+                    Task {
+                        if let data = try? await newItem.loadTransferable(type: Data.self) {
+                            let isVideo = isVideoData(data)
+                            viewModel.loadFromGallery(data: data, isVideo: isVideo)
+                        }
+                    }
                 }
 
                 // Capture button
@@ -174,26 +211,19 @@ struct StoryCameraView: View {
     private var previewScreen: some View {
         ZStack {
             // Preview of captured media
-            if viewModel.capturedImageData != nil {
-                RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(Color.gray.opacity(DS.Opacity.muted))
+            if let data = viewModel.capturedImageData,
+               let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
                     .padding(DS.Spacing.xxxs)
-                    .overlay {
-                        Text(L10n.StoryCamera.capturedPhoto)
-                            .foregroundStyle(.white.opacity(DS.Opacity.medium))
-                    }
-            } else if viewModel.capturedVideoURL != nil {
-                RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(Color.gray.opacity(DS.Opacity.muted))
+            } else if let videoURL = viewModel.capturedVideoURL {
+                VideoPlayer(player: AVPlayer(url: videoURL))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
                     .padding(DS.Spacing.xxxs)
-                    .overlay {
-                        VStack {
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: DS.Size.iconHero))
-                            Text(L10n.StoryCamera.capturedVideo)
-                        }
-                        .foregroundStyle(.white.opacity(DS.Opacity.medium))
-                    }
             }
 
             // Top: editing tools
@@ -306,5 +336,16 @@ struct StoryCameraView: View {
             .font(DS.Font.subheadlineBold)
             .foregroundStyle(ColorTokens.accentPrimary)
         }
+    }
+
+    // MARK: - Private Helpers
+
+    private func isVideoData(_ data: Data) -> Bool {
+        guard data.count >= 12 else { return false }
+        let boxTypeBytes = [UInt8](data[4..<8])
+        if let boxType = String(bytes: boxTypeBytes, encoding: .ascii) {
+            return boxType == "ftyp" || boxType == "moov" || boxType == "wide"
+        }
+        return false
     }
 }

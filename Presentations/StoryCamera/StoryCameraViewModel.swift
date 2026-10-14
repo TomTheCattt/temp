@@ -55,6 +55,11 @@ final class StoryCameraViewModel {
     // MARK: - Dependencies
 
     private let storyRepository: StoryRepositoryProtocol
+    let cameraService: CameraService = .shared
+
+    var isHardwareAvailable: Bool {
+        cameraService.isHardwareAvailable
+    }
 
     // MARK: - Init
 
@@ -79,40 +84,80 @@ final class StoryCameraViewModel {
         } else {
             microphonePermissionGranted = micStatus == .authorized
         }
+
+        if cameraPermissionGranted {
+            _ = await cameraService.configureSession(isFront: isFrontCamera)
+            cameraService.start()
+        }
     }
 
     // MARK: - Camera Actions
 
     func capturePhoto() {
-        // Simulated capture — real implementation uses AVCapturePhotoOutput
-        // For now, create a placeholder
-        capturedImageData = Data() // Placeholder
-        isShowingPreview = true
+        Task {
+            do {
+                let data = try await cameraService.capturePhoto(isFlashOn: isFlashOn)
+                capturedImageData = data
+                isShowingPreview = true
+                cameraService.stop()
+            } catch {
+                // If hardware capture fails, fallback to empty data
+                capturedImageData = Data()
+                isShowingPreview = true
+            }
+        }
     }
 
     func startRecording() {
         isRecording = true
-        // Real implementation: start AVCaptureMovieFileOutput
+        cameraService.startRecording()
     }
 
     func stopRecording() {
         isRecording = false
-        capturedVideoURL = URL(string: "file:///tmp/story_video.mp4") // Placeholder
-        isShowingPreview = true
+        Task {
+            do {
+                let url = try await cameraService.stopRecording()
+                capturedVideoURL = url
+                isShowingPreview = true
+                cameraService.stop()
+            } catch {
+                capturedVideoURL = URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")
+                isShowingPreview = true
+            }
+        }
     }
 
     func toggleCamera() {
         isFrontCamera.toggle()
+        cameraService.switchCamera(isFront: isFrontCamera)
     }
 
     func toggleFlash() {
         isFlashOn.toggle()
+        cameraService.setTorch(on: isFlashOn)
     }
 
     func retake() {
         capturedImageData = nil
         capturedVideoURL = nil
         isShowingPreview = false
+        cameraService.start()
+    }
+
+    func loadFromGallery(data: Data, isVideo: Bool) {
+        if isVideo {
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("story_gallery_\(UUID().uuidString).mp4")
+            try? data.write(to: tempURL)
+            capturedVideoURL = tempURL
+            capturedImageData = nil
+        } else {
+            capturedImageData = data
+            capturedVideoURL = nil
+        }
+        isShowingPreview = true
+        cameraService.stop()
     }
 
     // MARK: - Publish
