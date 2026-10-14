@@ -104,6 +104,11 @@ struct FeedView: View {
                 await viewModel.loadFeed()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .didCreatePost)) { notification in
+            if let post = notification.object as? Post {
+                viewModel.handleNewPost(post)
+            }
+        }
     }
 
     // MARK: - Custom Feed Navigation Bar (3 evenly spaced buttons)

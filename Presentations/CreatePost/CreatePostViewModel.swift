@@ -32,8 +32,14 @@ final class CreatePostViewModel {
     /// Loaded images (UIImage data) from selection.
     private(set) var selectedImages: [Data] = []
 
-    /// Currently selected filter for preview.
-    var selectedFilterId: String?
+    /// Currently selected filter id for preview and baking (defaults to "original").
+    var selectedFilterId: String = "original"
+
+    /// Filter intensity (0.0 to 1.0).
+    var filterIntensity: Float = 1.0
+
+    /// Currently active image index when multiple images are selected.
+    var activeImageIndex: Int = 0
 
     /// Caption text.
     var caption: String = ""
@@ -112,13 +118,15 @@ final class CreatePostViewModel {
 
         do {
             let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = try await createPostUseCase.execute(
+            let bakedImages = bakeFilteredImages()
+            let post = try await createPostUseCase.execute(
                 CreatePostInput(
                     caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
-                    mediaData: selectedImages,
+                    mediaData: bakedImages,
                     location: location
                 )
             )
+            NotificationCenter.default.post(name: .didCreatePost, object: post)
             isPublished = true
             HUDManager.shared.showSuccess(L10n.HUD.published)
         } catch {
@@ -129,12 +137,35 @@ final class CreatePostViewModel {
         isPublishing = false
     }
 
+    /// Renders the chosen filter into the selected images before upload.
+    private func bakeFilteredImages() -> [Data] {
+        guard selectedFilterId != "original",
+              let filter = FilterRegistry.filter(byId: selectedFilterId) else {
+            return selectedImages
+        }
+        let engine = FilterEngine.shared
+        return selectedImages.map { data in
+            guard let uiImage = UIImage(data: data),
+                  let ciImage = CIImage(image: uiImage) else {
+                return data
+            }
+            let filtered = engine.apply(filter: filter, to: ciImage, intensity: filterIntensity)
+            if let result = engine.renderToUIImage(filtered),
+               let jpeg = result.jpegData(compressionQuality: 0.85) {
+                return jpeg
+            }
+            return data
+        }
+    }
+
     /// Reset all state for a new post.
     func reset() {
         currentStep = .selectMedia
         selectedItems = []
         selectedImages = []
-        selectedFilterId = nil
+        selectedFilterId = "original"
+        filterIntensity = 1.0
+        activeImageIndex = 0
         caption = ""
         location = nil
         isPublished = false

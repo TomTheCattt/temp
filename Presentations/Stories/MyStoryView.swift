@@ -314,6 +314,19 @@ struct MyStoryView: View {
 
             Spacer()
 
+            // Add story button
+            Button {
+                dismiss()
+                AppRouter.shared.present(fullScreen: .storyCamera)
+            } label: {
+                Image(systemName: "camera")
+                    .font(.system(size: DS.FontSize.overlayMedium, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: DS.FontSize.overlayLarge, weight: .semibold))

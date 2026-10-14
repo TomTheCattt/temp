@@ -45,6 +45,20 @@ struct StoriesBarView: View {
                             AppRouter.shared.present(fullScreen: .storyCamera)
                         }
                     }
+                    .contextMenu {
+                        if hasMyStory {
+                            Button {
+                                AppRouter.shared.present(fullScreen: .storyCamera)
+                            } label: {
+                                Label("Add to Story", systemImage: "plus.circle")
+                            }
+                            Button {
+                                AppRouter.shared.present(fullScreen: .myStory)
+                            } label: {
+                                Label("View Story", systemImage: "eye")
+                            }
+                        }
+                    }
 
                 // Other users' stories (exclude current user — shown as "Your Story")
                 ForEach(stories.filter { $0.author.id != SessionStore.shared.currentUserId }) { story in
@@ -59,6 +73,11 @@ struct StoriesBarView: View {
         }
         .task {
             await loadStories()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didCreateStory)) { _ in
+            Task {
+                await loadStories()
+            }
         }
     }
 

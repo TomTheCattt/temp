@@ -158,4 +158,11 @@ final class FeedViewModel {
             ToastManager.shared.error(error.userMessage)
         }
     }
+
+    // MARK: - Post Creation Sync
+
+    func handleNewPost(_ post: Post) {
+        guard !posts.contains(where: { $0.id == post.id }) else { return }
+        posts.insert(post, at: 0)
+    }
 }

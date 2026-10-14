@@ -27,8 +27,7 @@ final class MockPostRepository: PostRepositoryProtocol, @unchecked Sendable {
     }
 
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post {
-        try await Task.sleep(nanoseconds: 800_000_000)
-        return MockData.posts.first!
+        try await dataSource.createPost(caption: caption, mediaData: mediaData, location: location)
     }
 
     func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {

@@ -9,8 +9,9 @@ Module xử lý flow tạo bài post mới với 3 bước: chọn media → áp
 | File | Vai trò |
 |------|---------|
 | `CreatePostView.swift` | Giao diện 3 bước tạo post (media → filter → caption) |
-| `CreatePostViewModel.swift` | ViewModel quản lý state qua các bước, load media, publish |
+| `CreatePostViewModel.swift` | ViewModel quản lý state qua các bước, load media, bake filter, publish |
 | `FilterSelectionView.swift` | Component chọn filter ảnh (Instagram-style strip + preview + intensity slider) |
+| `LocationPickerSheet.swift` | Sheet tìm kiếm và chọn địa điểm gắn vào bài viết |
 
 ## Tính năng chính
 
@@ -19,20 +20,22 @@ Module xử lý flow tạo bài post mới với 3 bước: chọn media → áp
 - Hiển thị preview ảnh đầu tiên + badge số lượng đã chọn
 - Auto-advance sang bước Filter khi có media
 
-### Bước 2: Apply Filter
-- Preview ảnh lớn ở trên
-- Horizontal scroll strip các filter thumbnails phía dưới
-- 12 filter: Normal, Clarendon, Gingham, Moon, Lark, Reyes, Juno, Slumber, Crema, Ludwig, Aden, Perpetua
+### Bước 2: Apply Filter & Carousel
+- Preview ảnh lớn ở trên được render theo thời gian thực qua `FilterEngine`
+- Strip cuộn thumbnail các bộ lọc Instagram-style
+- Hỗ trợ đổi ảnh xem trước khi chọn nhiều ảnh (carousel strip)
+- 12 filter màu phong phú từ `FilterRegistry`
 - **Intensity slider**: điều chỉnh cường độ filter (0-100%)
 - Double-tap filter: toggle slider hiện/ẩn
-- Real-time preview qua `FilterEngine` + `CIImage`
+- Tự động bake filter vào ảnh gốc thành JPEG Data khi publish
 
 ### Bước 3: Caption & Share
 - Preview thumbnail nhỏ + text field viết caption (multi-line)
-- Add Location (placeholder)
+- **Add Location**: Tích hợp `LocationPickerSheet` cho phép tìm kiếm hoặc chọn địa điểm gợi ý, có nút gỡ địa điểm
 - Tag People (placeholder)
 - Share to Facebook/Twitter toggles
 - Nút Share ở toolbar
+- Phát sự kiện `Notification.Name.didCreatePost` khi đăng thành công để Feed cập nhật ngay lập tức
 
 ## Architecture
 
@@ -40,13 +43,16 @@ Module xử lý flow tạo bài post mới với 3 bước: chọn media → áp
 - Dependencies: `CreatePostUseCaseProtocol`
 - Step navigation: enum `CreatePostStep` (.selectMedia → .applyFilter → .captionAndShare)
 - Filter engine: `FilterEngine.shared`, `FilterThumbnailGenerator.shared`, `FilterRegistry`
+- Event sync: `NotificationCenter.default.post(name: .didCreatePost, object: post)`
 
 ## Flow
 
 ```
 PhotosPicker → loadSelectedMedia() → auto advance to Filter
-→ goToNextStep() → Caption
-→ publish() → dismiss on success
+→ FilterSelectionView (intensity & filter selection)
+→ goToNextStep() → Caption & LocationPickerSheet
+→ publish() → bakeFilteredImages() → createPostUseCase.execute()
+→ NotificationCenter.post(.didCreatePost) → dismiss on success
 ```
 
 ## Validation

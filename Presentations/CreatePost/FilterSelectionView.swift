@@ -52,6 +52,12 @@ struct FilterSelectionView: View {
         .onChange(of: filterIntensity) { _, _ in
             updatePreview()
         }
+        .onChange(of: sourceImage) { _, _ in
+            Task {
+                await loadThumbnails()
+                updatePreview()
+            }
+        }
     }
 
     // MARK: - Image Preview

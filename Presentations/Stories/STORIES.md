@@ -19,11 +19,12 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
 ### StoriesBarView
 - **Horizontal scroll**: LazyHStack các story circles
 - **"Your Story" button**: avatar current user + plus badge
-  - Có story → mở `MyStoryView`
-  - Chưa có → mở `StoryCameraView`
+  - Có story → tap mở `MyStoryView`, long press context menu mở "Add to Story" hoặc "View Story"
+  - Chưa có story → mở `StoryCameraView`
 - **Story circles** (StoryCircleView): avatar với gradient ring (red→orange→yellow) cho unviewed, gray ring cho viewed
 - **Username** dưới mỗi circle
 - **Filter**: ẩn current user khỏi danh sách (hiển thị riêng ở "Your Story")
+- **Event sync**: Tự động reload danh sách story khi nhận sự kiện `Notification.Name.didCreateStory`
 
 ### StoryViewerView (xem stories người khác)
 - **Progress bars**: HStack capsules ở trên cùng, fill theo progress
@@ -45,7 +46,7 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
   - **Không có reply bar** (thay bằng bottom bar)
   - **Bottom bar**: Viewers (stacked avatars) + Close Friends + Delete + More
   - **Delete confirmation**: ConfirmationDialog trước khi xóa
-  - **Header**: "Your Story" thay vì username
+  - **Header**: "Your Story" thay vì username + Nút Camera chụp/thêm story mới ngay lập tức
 
 ### StoryViewerViewModel
 - **Navigation**: `goToNext()`, `goToPrevious()`, `jumpToStory(at:)`

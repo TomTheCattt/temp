@@ -68,20 +68,38 @@ final class RemotePostDataSource: @unchecked Sendable {
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post {
         // Step 1: Upload media files
         var mediaItems: [[String: Any]] = []
-        for data in mediaData {
-            let uploadResponse: UploadImageResponseDTO = try await networkService.upload(
-                UploadEndpoint.image
-            ) { formData in
-                formData.append(data, withName: "file", fileName: "image.jpg", mimeType: "image/jpeg")
+        for (index, data) in mediaData.enumerated() {
+            if isVideoData(data) {
+                let uploadResponse: UploadVideoResponseDTO = try await networkService.upload(
+                    UploadEndpoint.video
+                ) { formData in
+                    formData.append(data, withName: "file", fileName: "video_\(index).mp4", mimeType: "video/mp4")
+                }
+                var item: [String: Any] = [
+                    "url": uploadResponse.url,
+                    "type": "VIDEO"
+                ]
+                if let width = uploadResponse.width { item["width"] = width }
+                if let height = uploadResponse.height { item["height"] = height }
+                if let duration = uploadResponse.duration { item["duration"] = duration }
+                if let thumb = uploadResponse.thumbnailUrl { item["thumbnailUrl"] = thumb }
+                if let pendingId = uploadResponse.pendingUploadId { item["pendingUploadId"] = pendingId }
+                mediaItems.append(item)
+            } else {
+                let uploadResponse: UploadImageResponseDTO = try await networkService.upload(
+                    UploadEndpoint.image
+                ) { formData in
+                    formData.append(data, withName: "file", fileName: "image_\(index).jpg", mimeType: "image/jpeg")
+                }
+                var item: [String: Any] = [
+                    "url": uploadResponse.url,
+                    "type": "IMAGE"
+                ]
+                if let width = uploadResponse.width { item["width"] = width }
+                if let height = uploadResponse.height { item["height"] = height }
+                if let pendingId = uploadResponse.pendingUploadId { item["pendingUploadId"] = pendingId }
+                mediaItems.append(item)
             }
-            var item: [String: Any] = [
-                "url": uploadResponse.url,
-                "type": "IMAGE"
-            ]
-            if let width = uploadResponse.width { item["width"] = width }
-            if let height = uploadResponse.height { item["height"] = height }
-            if let pendingId = uploadResponse.pendingUploadId { item["pendingUploadId"] = pendingId }
-            mediaItems.append(item)
         }
 
         // Step 2: Create post with uploaded media URLs
@@ -132,5 +150,16 @@ final class RemotePostDataSource: @unchecked Sendable {
 
     func deletePost(id: String) async throws {
         try await networkService.requestVoid(PostEndpoint.delete(id: id))
+    }
+
+    // MARK: - Private Helpers
+
+    private func isVideoData(_ data: Data) -> Bool {
+        guard data.count >= 12 else { return false }
+        let boxTypeBytes = [UInt8](data[4..<8])
+        if let boxType = String(bytes: boxTypeBytes, encoding: .ascii) {
+            return boxType == "ftyp" || boxType == "moov" || boxType == "wide"
+        }
+        return false
     }
 }

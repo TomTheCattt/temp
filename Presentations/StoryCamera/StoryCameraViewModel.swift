@@ -126,11 +126,12 @@ final class StoryCameraViewModel {
             let mediaType: StoryItem.MediaType = capturedVideoURL != nil ? .video : .image
             let duration: TimeInterval = capturedVideoURL != nil ? 15 : 5
 
-            _ = try await storyRepository.createStory(
+            let story = try await storyRepository.createStory(
                 mediaData: mediaData,
                 type: mediaType,
                 duration: duration
             )
+            NotificationCenter.default.post(name: .didCreateStory, object: story)
             isPublished = true
         } catch {
             // Handle error

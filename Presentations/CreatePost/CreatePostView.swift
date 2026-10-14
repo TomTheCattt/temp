@@ -13,6 +13,7 @@ import PhotosUI
 struct CreatePostView: View {
 
     @State private var viewModel: CreatePostViewModel
+    @State private var isShowingLocationPicker = false
     @Environment(\.dismiss) private var dismiss
 
     init(viewModel: CreatePostViewModel) {
@@ -65,6 +66,11 @@ struct CreatePostView: View {
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .disabled(!viewModel.canProceedFromMedia)
                     }
+                }
+            }
+            .sheet(isPresented: $isShowingLocationPicker) {
+                LocationPickerSheet { loc in
+                    viewModel.location = loc
                 }
             }
         }
@@ -144,59 +150,46 @@ struct CreatePostView: View {
 
     private var filterStep: some View {
         VStack(spacing: 0) {
-            if let firstData = viewModel.selectedImages.first,
-               let uiImage = UIImage(data: firstData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .frame(maxHeight: DS.Size.mediaEditorPreviewHeight)
-                    .clipped()
-            }
-
-            Divider()
-
-            // Filter strip
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.Spacing.sm) {
-                    filterThumbnail(name: "Normal", id: nil)
-                    filterThumbnail(name: "Clarendon", id: "clarendon")
-                    filterThumbnail(name: "Gingham", id: "gingham")
-                    filterThumbnail(name: "Moon", id: "moon")
-                    filterThumbnail(name: "Lark", id: "lark")
-                    filterThumbnail(name: "Reyes", id: "reyes")
-                    filterThumbnail(name: "Juno", id: "juno")
-                    filterThumbnail(name: "Slumber", id: "slumber")
-                    filterThumbnail(name: "Crema", id: "crema")
-                    filterThumbnail(name: "Ludwig", id: "ludwig")
-                    filterThumbnail(name: "Aden", id: "aden")
-                    filterThumbnail(name: "Perpetua", id: "perpetua")
+            if !viewModel.selectedImages.isEmpty {
+                let safeIndex = min(viewModel.activeImageIndex, viewModel.selectedImages.count - 1)
+                let activeData = viewModel.selectedImages[safeIndex]
+                if let activeUIImage = UIImage(data: activeData) {
+                    FilterSelectionView(
+                        selectedFilterId: $viewModel.selectedFilterId,
+                        filterIntensity: $viewModel.filterIntensity,
+                        sourceImage: activeUIImage
+                    )
+                    .id(safeIndex)
                 }
-                .padding(.horizontal, DS.Padding.horizontal)
-                .padding(.vertical, DS.Spacing.sm)
             }
-        }
-    }
 
-    @ViewBuilder
-    private func filterThumbnail(name: String, id: String?) -> some View {
-        let isSelected = viewModel.selectedFilterId == id
-
-        VStack(spacing: DS.Spacing.xxs) {
-            RoundedRectangle(cornerRadius: DS.Radius.small)
-                .fill(ColorTokens.backgroundSubtler)
-                .frame(width: DS.Size.filterThumbnailTile, height: DS.Size.filterThumbnailTile)
-                .overlay(
-                    RoundedRectangle(cornerRadius: DS.Radius.small)
-                        .stroke(isSelected ? ColorTokens.accentPrimary : Color.clear, lineWidth: DS.Stroke.medium)
-                )
-
-            Text(name)
-                .font(DS.Font.caption2)
-                .foregroundStyle(isSelected ? ColorTokens.accentPrimary : .primary)
-        }
-        .onTapGesture {
-            viewModel.selectedFilterId = id
+            // Multi-image thumbnail strip to switch active preview image
+            if viewModel.selectedImages.count > 1 {
+                Divider()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DS.Spacing.xs) {
+                        ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
+                            if let img = UIImage(data: viewModel.selectedImages[idx]) {
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 48, height: 48)
+                                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: DS.Radius.small)
+                                            .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2.5)
+                                    )
+                                    .onTapGesture {
+                                        viewModel.activeImageIndex = idx
+                                    }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, DS.Padding.horizontal)
+                    .padding(.vertical, DS.Spacing.xs)
+                }
+                .background(Color(.systemBackground))
+            }
         }
     }
 
@@ -225,18 +218,41 @@ struct CreatePostView: View {
                 Divider()
 
                 // Location
-                Button(action: {}) {
+                if let loc = viewModel.location {
                     HStack {
-                        Text(L10n.CreatePost.addLocation)
+                        Image(systemName: "mappin.circle.fill")
+                            .foregroundStyle(ColorTokens.accentPrimary)
+                        Text(loc.name)
+                            .font(DS.Font.subheadline)
                             .foregroundStyle(.primary)
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(.secondary)
+                        Button {
+                            viewModel.location = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .font(DS.Font.subheadline)
                     .padding(.horizontal, DS.Padding.horizontal)
-                    .padding(.vertical, DS.Spacing.sm)
+                    .padding(.vertical, DS.Spacing.xs)
+                } else {
+                    Button {
+                        isShowingLocationPicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "mappin.and.ellipse")
+                                .foregroundStyle(.secondary)
+                            Text(L10n.CreatePost.addLocation)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(DS.Font.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(DS.Font.subheadline)
+                        .padding(.horizontal, DS.Padding.horizontal)
+                        .padding(.vertical, DS.Spacing.sm)
+                    }
                 }
 
                 Divider()
