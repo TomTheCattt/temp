@@ -238,25 +238,13 @@ struct MainTabView: View {
             CreateActionSheetView()
 
         case .createPost:
-            CreatePostView(
-                viewModel: CreatePostViewModel(
-                    createPostUseCase: DIContainer.shared.resolve(CreatePostUseCaseProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .post)
 
         case .createStory:
-            StoryCameraView(
-                viewModel: StoryCameraViewModel(
-                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .story)
 
         case .createReel:
-            CreateReelView(
-                viewModel: CreateReelViewModel(
-                    reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .reel)
 
         case .editProfile:
             EditProfileView(
@@ -345,25 +333,16 @@ struct MainTabView: View {
             .presentationBackground(.clear)
 
         case .createPost:
-            CreatePostView(
-                viewModel: CreatePostViewModel(
-                    createPostUseCase: DIContainer.shared.resolve(CreatePostUseCaseProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .post)
 
         case .createStory:
-            StoryCameraView(
-                viewModel: StoryCameraViewModel(
-                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .story)
 
         case .createReel:
-            CreateReelView(
-                viewModel: CreateReelViewModel(
-                    reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
-                )
-            )
+            UnifiedCreationHubView(initialMode: .reel)
+
+        case .creationHub(let mode):
+            UnifiedCreationHubView(initialMode: mode)
         }
     }
 

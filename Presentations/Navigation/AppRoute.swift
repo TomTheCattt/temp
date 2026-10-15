@@ -114,6 +114,16 @@ enum AppSheet: Identifiable {
     }
 }
 
+// MARK: - CreationHubMode
+
+public enum CreationHubMode: String, CaseIterable, Identifiable {
+    case post = "BÀI VIẾT"
+    case story = "TIN"
+    case reel = "REEL"
+
+    public var id: String { rawValue }
+}
+
 // MARK: - AppFullScreen
 
 /// Full-screen covers.
@@ -126,17 +136,20 @@ enum AppFullScreen: Identifiable {
     case createPost
     case createStory
     case createReel
+    case creationHub(initialMode: CreationHubMode = .post)
 
     var id: String {
         switch self {
-        case .camera:               return "camera"
-        case .mediaViewer(let url): return "media_\(url.absoluteString)"
-        case .storyCamera:          return "storyCamera"
-        case .storyViewer(let id):  return "storyViewer_\(id)"
-        case .myStory:              return "myStory"
-        case .createPost:           return "createPost"
-        case .createStory:          return "createStory"
-        case .createReel:           return "createReel"
+        case .camera:                          return "camera"
+        case .mediaViewer(let url):            return "media_\(url.absoluteString)"
+        case .storyCamera:                     return "storyCamera"
+        case .storyViewer(let id):             return "storyViewer_\(id)"
+        case .myStory:                         return "myStory"
+        case .createPost:                      return "createPost"
+        case .createStory:                     return "createStory"
+        case .createReel:                      return "createReel"
+        case .creationHub(let mode):           return "creationHub_\(mode.rawValue)"
         }
     }
 }
+

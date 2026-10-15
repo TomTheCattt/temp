@@ -52,5 +52,11 @@ final class ServiceAssembly: Assembly {
         container.register(LocalStorageProtocol.self) { _ in
             InMemoryStorage()
         }.inObjectScope(.container)
+
+        // MARK: PhotoLibraryService
+
+        container.register(PhotoLibraryServiceProtocol.self) { _ in
+            PhotoLibraryService.shared
+        }.inObjectScope(.container)
     }
 }
