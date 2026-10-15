@@ -20,14 +20,16 @@ import Combine
 struct ReelVideoPlayer: View {
 
     let url: URL
+    let fallbackURL: URL?
     let id: String
     let isActive: Bool
 
     @StateObject private var playerHolder: ReelPlayerHolder
     @ObservedObject private var manager = VideoPlayerManager.shared
 
-    init(url: URL, id: String, isActive: Bool) {
+    init(url: URL, fallbackURL: URL? = nil, id: String, isActive: Bool) {
         self.url = url
+        self.fallbackURL = fallbackURL
         self.id = id
         self.isActive = isActive
         _playerHolder = StateObject(wrappedValue: ReelPlayerHolder())
@@ -37,7 +39,7 @@ struct ReelVideoPlayer: View {
         VideoContentView(player: playerHolder.player)
             .onChange(of: isActive) { _, active in
                 if active && manager.isPlaybackAllowed {
-                    playerHolder.activate(url: url, id: id)
+                    playerHolder.activate(url: url, fallbackURL: fallbackURL, id: id)
                 } else {
                     playerHolder.deactivate(id: id)
                 }
@@ -51,7 +53,7 @@ struct ReelVideoPlayer: View {
             }
             .onAppear {
                 if isActive && manager.isPlaybackAllowed {
-                    playerHolder.activate(url: url, id: id)
+                    playerHolder.activate(url: url, fallbackURL: fallbackURL, id: id)
                 }
             }
             .onDisappear {
@@ -66,26 +68,33 @@ struct ReelVideoPlayer: View {
 /// - Lazy: does not load video until `activate()` is called
 /// - Reusable: swaps AVPlayerItem instead of creating new AVPlayer
 /// - Looping: automatically seeks to start on completion
+/// - Fallback Safe: falls back to stable video URL if stream fails
 final class ReelPlayerHolder: ObservableObject {
 
     let objectWillChange = ObservableObjectPublisher()
 
     let player = AVPlayer()
     private var loopObserver: Any?
+    private var failedObserver: Any?
     private var isActivated = false
+    private var fallbackAttempted = false
+    private var currentFallbackURL: URL?
+    private var statusCancellable: AnyCancellable?
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
     }
 
     /// Start playback for the given URL. Uses preloaded item if available.
-    func activate(url: URL, id: String) {
+    func activate(url: URL, fallbackURL: URL? = nil, id: String) {
         // If already active with the same content, just resume
         if isActivated {
             player.play()
             return
         }
         isActivated = true
+        fallbackAttempted = false
+        currentFallbackURL = fallbackURL
 
         // Use preloaded item or create new one
         let item: AVPlayerItem
@@ -98,7 +107,18 @@ final class ReelPlayerHolder: ObservableObject {
 
         player.replaceCurrentItem(with: item)
         setupLooping()
+        setupFailureObserver()
         VideoPlayerManager.shared.register(player: player, for: id)
+        player.play()
+    }
+
+    private func triggerFallback() {
+        guard !fallbackAttempted, let fallback = currentFallbackURL else { return }
+        fallbackAttempted = true
+        let fallbackItem = AVPlayerItem(url: fallback)
+        fallbackItem.preferredForwardBufferDuration = 5.0
+        player.replaceCurrentItem(with: fallbackItem)
+        setupLooping()
         player.play()
     }
 
@@ -106,10 +126,13 @@ final class ReelPlayerHolder: ObservableObject {
     func deactivate(id: String) {
         guard isActivated else { return }
         isActivated = false
+        fallbackAttempted = false
+        currentFallbackURL = nil
 
         player.pause()
         player.seek(to: .zero)
         removeLoopObserver()
+        removeFailureObserver()
         VideoPlayerManager.shared.unregister(key: id)
         // Release the item to free network buffers
         player.replaceCurrentItem(with: nil)
@@ -127,6 +150,27 @@ final class ReelPlayerHolder: ObservableObject {
         }
     }
 
+    private func setupFailureObserver() {
+        removeFailureObserver()
+        guard let currentItem = player.currentItem else { return }
+
+        failedObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime,
+            object: currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.triggerFallback()
+        }
+
+        statusCancellable = currentItem.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                if status == .failed {
+                    self?.triggerFallback()
+                }
+            }
+    }
+
     private func removeLoopObserver() {
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -134,8 +178,18 @@ final class ReelPlayerHolder: ObservableObject {
         }
     }
 
+    private func removeFailureObserver() {
+        if let observer = failedObserver {
+            NotificationCenter.default.removeObserver(observer)
+            failedObserver = nil
+        }
+        statusCancellable?.cancel()
+        statusCancellable = nil
+    }
+
     deinit {
         removeLoopObserver()
+        removeFailureObserver()
         player.pause()
         player.replaceCurrentItem(with: nil)
     }

@@ -13,6 +13,7 @@ struct Reel: Identifiable, Hashable, Sendable {
     let id: String
     let author: User
     let videoURL: URL
+    let fallbackVideoURL: URL?
     let thumbnailURL: URL?
     let caption: String?
     let audioTrack: AudioTrack?
@@ -24,6 +25,40 @@ struct Reel: Identifiable, Hashable, Sendable {
     let isLiked: Bool
     let isSaved: Bool
     let createdAt: Date
+
+    init(
+        id: String,
+        author: User,
+        videoURL: URL,
+        fallbackVideoURL: URL? = nil,
+        thumbnailURL: URL?,
+        caption: String?,
+        audioTrack: AudioTrack?,
+        likesCount: Int,
+        commentsCount: Int,
+        sharesCount: Int,
+        viewsCount: Int,
+        duration: TimeInterval,
+        isLiked: Bool,
+        isSaved: Bool,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.author = author
+        self.videoURL = videoURL
+        self.fallbackVideoURL = fallbackVideoURL
+        self.thumbnailURL = thumbnailURL
+        self.caption = caption
+        self.audioTrack = audioTrack
+        self.likesCount = likesCount
+        self.commentsCount = commentsCount
+        self.sharesCount = sharesCount
+        self.viewsCount = viewsCount
+        self.duration = duration
+        self.isLiked = isLiked
+        self.isSaved = isSaved
+        self.createdAt = createdAt
+    }
 }
 
 // MARK: - Optimistic Update Helpers
@@ -49,6 +84,7 @@ extension Reel {
             id: id,
             author: newAuthor,
             videoURL: videoURL,
+            fallbackVideoURL: fallbackVideoURL,
             thumbnailURL: thumbnailURL,
             caption: caption,
             audioTrack: audioTrack,
@@ -73,6 +109,7 @@ extension Reel {
             id: id,
             author: author,
             videoURL: videoURL,
+            fallbackVideoURL: fallbackVideoURL,
             thumbnailURL: thumbnailURL,
             caption: caption,
             audioTrack: audioTrack,

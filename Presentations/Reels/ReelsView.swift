@@ -207,7 +207,7 @@ struct ReelItemView: View {
                     .clipped()
 
                 // Video player always in hierarchy — controls playback via isActive
-                ReelVideoPlayer(url: reel.videoURL, id: reel.id, isActive: isActive)
+                ReelVideoPlayer(url: reel.videoURL, fallbackURL: reel.fallbackVideoURL, id: reel.id, isActive: isActive)
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
 
