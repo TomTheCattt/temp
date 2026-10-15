@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - MockPostStore
 
-/// In-memory store so newly created, edited, and deleted mock posts persist
+/// In-memory store so newly created, edited, liked, and deleted mock posts persist
 /// across screens for the lifetime of the app session (mirrors backend persistence).
 final class MockPostStore: @unchecked Sendable {
 
@@ -40,6 +40,40 @@ final class MockPostStore: @unchecked Sendable {
     func delete(id: String) {
         lock.lock(); defer { lock.unlock() }
         _posts.removeAll { $0.id == id }
+    }
+
+    @discardableResult
+    func toggleLike(id: String, isLiked: Bool) -> Post? {
+        update(id: id) { post in
+            guard post.isLiked != isLiked else { return }
+            post = post.withLike(isLiked)
+        }
+    }
+
+    @discardableResult
+    func toggleSave(id: String, isSaved: Bool) -> Post? {
+        update(id: id) { post in
+            post = post.withSaved(isSaved)
+        }
+    }
+
+    @discardableResult
+    func adjustCommentsCount(id: String, delta: Int) -> Post? {
+        update(id: id) { post in
+            post = Post(
+                id: post.id,
+                author: post.author,
+                caption: post.caption,
+                mediaItems: post.mediaItems,
+                location: post.location,
+                likesCount: post.likesCount,
+                commentsCount: max(0, post.commentsCount + delta),
+                createdAt: post.createdAt,
+                isLiked: post.isLiked,
+                isSaved: post.isSaved,
+                isSponsored: post.isSponsored
+            )
+        }
     }
 }
 
@@ -120,28 +154,37 @@ final class MockPostDataSource: @unchecked Sendable {
         )
 
         store.insert(newPost, at: 0)
+        MockUserStore.shared.incrementPostsCount()
         return newPost
     }
 
     func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
         try await simulateDelay()
-        return store.posts.shuffled()
+        let posts = store.posts
+        let start = (page - 1) * perPage
+        let end = min(start + perPage, posts.count)
+        guard start < end else { return [] }
+        return Array(posts[start..<end])
     }
 
     func likePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
+        _ = store.toggleLike(id: id, isLiked: true)
     }
 
     func unlikePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
+        _ = store.toggleLike(id: id, isLiked: false)
     }
 
     func savePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
+        _ = store.toggleSave(id: id, isSaved: true)
     }
 
     func unsavePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
+        _ = store.toggleSave(id: id, isSaved: false)
     }
 
     // MARK: - Private
