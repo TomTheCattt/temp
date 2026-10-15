@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - DirectMessagesViewModel
 
@@ -16,16 +17,62 @@ final class DirectMessagesViewModel {
     // MARK: - State
 
     private(set) var conversations: [Conversation] = []
+    private(set) var notes: [InstagramNote] = []
     private(set) var isLoading = false
+
+    var searchQuery = ""
+
+    // MARK: - Filtered Conversations
+
+    var filteredConversations: [Conversation] {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return conversations }
+
+        let clock = ContinuousClock()
+        let startTime = clock.now
+
+        let lower = trimmed.lowercased()
+        let currentUserId = SessionStore.shared.currentUserId
+        let result = conversations.filter { conv in
+            let otherUser = conv.participants.first { $0.id != currentUserId }
+            let usernameMatch = otherUser?.username.lowercased().contains(lower) ?? false
+            let fullNameMatch = otherUser?.fullName.lowercased().contains(lower) ?? false
+            let groupMatch = conv.groupName?.lowercased().contains(lower) ?? false
+            return usernameMatch || fullNameMatch || groupMatch
+        }
+
+        let elapsed = clock.now - startTime
+        print("[Benchmark] DirectMessagesViewModel.filteredConversations: \(elapsed) for \(result.count) items")
+        return result
+    }
 
     // MARK: - Dependencies
 
     private let messageRepository: MessageRepositoryProtocol
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
     init(messageRepository: MessageRepositoryProtocol) {
         self.messageRepository = messageRepository
+        subscribeToSyncUpdates()
+    }
+
+    private func subscribeToSyncUpdates() {
+        NotificationCenter.default.publisher(for: .didUpdateConversations)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refreshFromLocal()
+            }
+            .store(in: &cancellables)
+    }
+
+    func refreshFromLocal() {
+        Task {
+            if let convs = try? await messageRepository.fetchConversations(page: 1, perPage: 30) {
+                self.conversations = convs
+            }
+        }
     }
 
     // MARK: - Actions
@@ -34,10 +81,24 @@ final class DirectMessagesViewModel {
         guard !isLoading else { return }
         isLoading = true
 
+        let clock = ContinuousClock()
+        let startTime = clock.now
+
+        async let convsTask = messageRepository.fetchConversations(page: 1, perPage: 30)
+        async let notesTask = messageRepository.fetchNotes()
+
         do {
-            conversations = try await messageRepository.fetchConversations(page: 1, perPage: 30)
+            let (fetchedConvs, fetchedNotes) = try await (convsTask, notesTask)
+            conversations = fetchedConvs
+            notes = fetchedNotes
+
+            let duration = clock.now - startTime
+            print("[Benchmark] DirectMessagesViewModel.loadData executed in \(duration) (\(conversations.count) conversations, \(notes.count) notes)")
         } catch {
-            // Silent fail
+            // Fallback load
+            if let convs = try? await messageRepository.fetchConversations(page: 1, perPage: 30) {
+                conversations = convs
+            }
         }
 
         isLoading = false
@@ -62,6 +123,69 @@ final class DirectMessagesViewModel {
             }
         } catch {
             // Silent fail
+        }
+    }
+
+    func deleteConversation(id: String) {
+        conversations.removeAll { $0.id == id }
+        Task {
+            try? await messageRepository.deleteConversation(id: id)
+        }
+    }
+
+    func toggleMute(id: String) {
+        guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        let current = conversations[index]
+        let newMuted = !current.isMuted
+        conversations[index] = Conversation(
+            id: current.id,
+            participants: current.participants,
+            lastMessage: current.lastMessage,
+            unreadCount: current.unreadCount,
+            isGroup: current.isGroup,
+            groupName: current.groupName,
+            groupAvatarURL: current.groupAvatarURL,
+            updatedAt: current.updatedAt,
+            isMuted: newMuted
+        )
+        Task {
+            try? await messageRepository.muteConversation(id: id, mute: newMuted)
+        }
+    }
+
+    func toggleUnread(id: String) {
+        guard let index = conversations.firstIndex(where: { $0.id == id }) else { return }
+        let current = conversations[index]
+        let newCount = current.unreadCount > 0 ? 0 : 1
+        conversations[index] = Conversation(
+            id: current.id,
+            participants: current.participants,
+            lastMessage: current.lastMessage,
+            unreadCount: newCount,
+            isGroup: current.isGroup,
+            groupName: current.groupName,
+            groupAvatarURL: current.groupAvatarURL,
+            updatedAt: current.updatedAt,
+            isMuted: current.isMuted
+        )
+    }
+
+    func addOrUpdateNote(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let currentUser = MockData.currentUser
+        let newNote = InstagramNote(
+            id: "note_current_\(UUID().uuidString.prefix(6))",
+            user: currentUser,
+            text: trimmed,
+            createdAt: .now,
+            isCurrentUser: true
+        )
+        // Replace existing current user note if present
+        if let index = notes.firstIndex(where: { $0.isCurrentUser }) {
+            notes[index] = newNote
+        } else {
+            notes.insert(newNote, at: 0)
         }
     }
 }

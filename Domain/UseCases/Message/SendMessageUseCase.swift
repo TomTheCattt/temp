@@ -12,6 +12,20 @@ import Foundation
 struct SendMessageInput: Sendable {
     let conversationId: String
     let content: MessageContent
+    let replyToId: String?
+    let replyToSnippet: String?
+
+    init(
+        conversationId: String,
+        content: MessageContent,
+        replyToId: String? = nil,
+        replyToSnippet: String? = nil
+    ) {
+        self.conversationId = conversationId
+        self.content = content
+        self.replyToId = replyToId
+        self.replyToSnippet = replyToSnippet
+    }
 }
 
 // MARK: - SendMessageUseCase

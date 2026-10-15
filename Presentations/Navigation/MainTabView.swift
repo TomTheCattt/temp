@@ -12,6 +12,7 @@ import SwiftUI
 struct MainTabView: View {
 
     @State private var router = AppRouter.shared
+    @State private var appState = AppState.shared
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
@@ -46,6 +47,7 @@ struct MainTabView: View {
             }
             .tag(AppTab.chat)
             .tabItem { tabLabel(for: .chat) }
+            .badge(appState.unreadChatCount)
 
             // MARK: 4. Explore Tab
             NavigationStack(path: $router.explorePath) {
@@ -154,16 +156,20 @@ struct MainTabView: View {
         case .directMessages:
             DirectMessagesView()
 
-        case .conversation(let conversationId):
+        case .conversation(let conversationId, let recipient):
             ChatView(
                 viewModel: ChatViewModel(
                     conversationId: conversationId,
                     currentUserId: SessionStore.shared.currentUserId,
+                    recipient: recipient,
                     fetchMessagesUseCase: DIContainer.shared.resolve(FetchMessagesUseCaseProtocol.self),
                     sendMessageUseCase: DIContainer.shared.resolve(SendMessageUseCaseProtocol.self),
                     messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
                 )
             )
+
+        case .conversationDetails(let conversationId, let recipient):
+            ConversationDetailsView(conversationId: conversationId, recipient: recipient)
 
         case .searchResults(let query):
             SearchResultsView(
@@ -289,6 +295,9 @@ struct MainTabView: View {
             }
             .presentationDetents([.fraction(Constants.reelCommentsSheetFraction)])
             .presentationDragIndicator(.visible)
+
+        case .newMessage:
+            NewMessageSheet()
         }
     }
 
@@ -343,6 +352,15 @@ struct MainTabView: View {
 
         case .creationHub(let mode):
             UnifiedCreationHubView(initialMode: mode)
+
+        case .call(let userId, let userName, let hasVideo):
+            CallView(
+                viewModel: CallViewModel(
+                    remoteUserId: userId,
+                    remoteName: userName,
+                    hasVideo: hasVideo
+                )
+            )
         }
     }
 

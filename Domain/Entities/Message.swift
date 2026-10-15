@@ -30,7 +30,31 @@ struct Message: Identifiable, Hashable, Sendable {
     let content: MessageContent
     let status: MessageStatus
     let replyToId: String?
+    let replyToSnippet: String?
+    let reactions: [String: String] // [userId: emoji] e.g. ["user_1": "❤️"]
     let createdAt: Date
+
+    init(
+        id: String,
+        conversationId: String,
+        sender: User,
+        content: MessageContent,
+        status: MessageStatus,
+        replyToId: String? = nil,
+        replyToSnippet: String? = nil,
+        reactions: [String: String] = [:],
+        createdAt: Date
+    ) {
+        self.id = id
+        self.conversationId = conversationId
+        self.sender = sender
+        self.content = content
+        self.status = status
+        self.replyToId = replyToId
+        self.replyToSnippet = replyToSnippet
+        self.reactions = reactions
+        self.createdAt = createdAt
+    }
 }
 
 // MARK: - MessageContent
@@ -55,3 +79,14 @@ enum MessageStatus: String, Sendable, Hashable {
     case read
     case failed
 }
+
+// MARK: - InstagramNote
+
+struct InstagramNote: Identifiable, Hashable, Sendable {
+    let id: String
+    let user: User
+    let text: String
+    let createdAt: Date
+    let isCurrentUser: Bool
+}
+

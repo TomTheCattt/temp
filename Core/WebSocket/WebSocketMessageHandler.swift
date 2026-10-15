@@ -246,32 +246,56 @@ final class WebSocketMessageHandler: @unchecked Sendable {
 
         switch type {
         // MARK: Chat
-        case "new_message":
-            // TODO: Full Message parsing when backend contract is finalized
-            incomingSubject.send(.unknown(text))
+        case "new_message", "message":
+            if let message = parseMessage(from: json) {
+                incomingSubject.send(.newMessage(message))
+                NotificationCenter.default.post(name: .didUpdateMessage, object: message)
+            } else {
+                incomingSubject.send(.unknown(text))
+            }
 
         case "typing", "typing_start":
             if let convId = json["conversation_id"] as? String,
                let userId = json["user_id"] as? String {
                 incomingSubject.send(.typing(conversationId: convId, userId: userId))
+                NotificationCenter.default.post(
+                    name: .didUpdateTypingStatus,
+                    object: nil,
+                    userInfo: ["conversationId": convId, "userId": userId, "isTyping": true]
+                )
             }
 
         case "typing_stop":
             if let convId = json["conversation_id"] as? String,
                let userId = json["user_id"] as? String {
                 incomingSubject.send(.stopTyping(conversationId: convId, userId: userId))
+                NotificationCenter.default.post(
+                    name: .didUpdateTypingStatus,
+                    object: nil,
+                    userInfo: ["conversationId": convId, "userId": userId, "isTyping": false]
+                )
             }
 
         case "message_read":
             if let convId = json["conversation_id"] as? String,
                let userId = json["user_id"] as? String {
                 incomingSubject.send(.messageRead(conversationId: convId, userId: userId))
+                NotificationCenter.default.post(
+                    name: .didUpdateConversations,
+                    object: nil,
+                    userInfo: ["conversationId": convId, "userId": userId, "action": "read"]
+                )
             }
 
         case "message_deleted":
             if let convId = json["conversation_id"] as? String,
                let msgId = json["message_id"] as? String {
                 incomingSubject.send(.messageDeleted(conversationId: convId, messageId: msgId))
+                NotificationCenter.default.post(
+                    name: .didUpdateConversations,
+                    object: nil,
+                    userInfo: ["conversationId": convId, "messageId": msgId, "action": "deleted"]
+                )
             }
 
         // MARK: Presence
@@ -357,6 +381,120 @@ final class WebSocketMessageHandler: @unchecked Sendable {
             iceSdpMid: json["sdp_mid"] as? String,
             iceSdpMLineIndex: json["sdp_mline_index"] as? Int,
             timestamp: Date()
+        )
+    }
+
+    // MARK: - Message Parsing
+
+    private func parseMessage(from json: [String: Any]) -> Message? {
+        let msgDict = (json["message"] as? [String: Any]) ?? json
+        guard let id = (msgDict["id"] as? String) ?? (msgDict["message_id"] as? String),
+              let conversationId = (msgDict["conversation_id"] as? String) ?? (json["conversation_id"] as? String) else {
+            return nil
+        }
+
+        // Sender
+        let sender: User
+        if let senderDict = msgDict["sender"] as? [String: Any],
+           let senderId = senderDict["id"] as? String {
+            sender = User(
+                id: senderId,
+                username: (senderDict["username"] as? String) ?? "user",
+                fullName: (senderDict["full_name"] as? String) ?? (senderDict["name"] as? String) ?? "",
+                email: senderDict["email"] as? String,
+                phone: senderDict["phone"] as? String,
+                avatarURL: (senderDict["avatar_url"] as? String).flatMap { URL(string: $0) },
+                bio: senderDict["bio"] as? String,
+                website: senderDict["website"] as? String,
+                isVerified: (senderDict["is_verified"] as? Bool) ?? false,
+                isPrivate: (senderDict["is_private"] as? Bool) ?? false,
+                followersCount: (senderDict["followers_count"] as? Int) ?? 0,
+                followingCount: (senderDict["following_count"] as? Int) ?? 0,
+                postsCount: (senderDict["posts_count"] as? Int) ?? 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+        } else if let senderId = msgDict["sender_id"] as? String ?? msgDict["user_id"] as? String {
+            sender = User(
+                id: senderId,
+                username: (msgDict["sender_username"] as? String) ?? "user",
+                fullName: (msgDict["sender_name"] as? String) ?? "",
+                email: nil,
+                phone: nil,
+                avatarURL: (msgDict["sender_avatar"] as? String).flatMap { URL(string: $0) },
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+        } else {
+            return nil
+        }
+
+        // Content
+        let contentType = (msgDict["content_type"] as? String) ?? (msgDict["type"] as? String) ?? "text"
+        let rawContent = (msgDict["content"] as? String) ?? ""
+        let content: MessageContent
+        switch contentType {
+        case "text":
+            content = .text(rawContent)
+        case "image":
+            if let url = URL(string: rawContent) {
+                content = .image(url)
+            } else {
+                content = .text(rawContent)
+            }
+        case "video":
+            let videoURL = URL(string: rawContent) ?? URL(string: "https://example.com/video.mp4")!
+            let thumbURL = (msgDict["thumbnail_url"] as? String).flatMap { URL(string: $0) }
+            content = .video(videoURL, thumbnailURL: thumbURL)
+        case "audio":
+            let audioURL = URL(string: rawContent) ?? URL(string: "https://example.com/audio.m4a")!
+            let duration = (msgDict["duration"] as? Double) ?? 0
+            content = .audio(audioURL, duration: duration)
+        case "like":
+            content = .like
+        default:
+            content = .text(rawContent)
+        }
+
+        // Status
+        let statusRaw = (msgDict["status"] as? String) ?? "delivered"
+        let status = MessageStatus(rawValue: statusRaw) ?? .delivered
+
+        let replyToId = msgDict["reply_to_id"] as? String
+        let replyToSnippet = msgDict["reply_to_snippet"] as? String
+        let reactions = (msgDict["reactions"] as? [String: String]) ?? [:]
+
+        let createdAt: Date
+        if let timestamp = msgDict["created_at"] as? Double {
+            createdAt = Date(timeIntervalSince1970: timestamp)
+        } else if let timeStr = msgDict["created_at"] as? String,
+                  let date = ISO8601DateFormatter().date(from: timeStr) {
+            createdAt = date
+        } else {
+            createdAt = Date()
+        }
+
+        return Message(
+            id: id,
+            conversationId: conversationId,
+            sender: sender,
+            content: content,
+            status: status,
+            replyToId: replyToId,
+            replyToSnippet: replyToSnippet,
+            reactions: reactions,
+            createdAt: createdAt
         )
     }
 }

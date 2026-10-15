@@ -74,9 +74,32 @@ final class AppRouter {
         }
     }
 
+    /// Pop multiple routes from the current tab.
+    func pop(count: Int) {
+        let safeCount = max(1, count)
+        switch selectedTab {
+        case .feed:     feedPath.removeLast(min(safeCount, feedPath.count))
+        case .reels:    reelsPath.removeLast(min(safeCount, reelsPath.count))
+        case .chat:     chatPath.removeLast(min(safeCount, chatPath.count))
+        case .explore:  explorePath.removeLast(min(safeCount, explorePath.count))
+        case .profile:  profilePath.removeLast(min(safeCount, profilePath.count))
+        }
+    }
+
     /// Pop to root of the current tab.
     func popToRoot() {
         switch selectedTab {
+        case .feed:     feedPath = NavigationPath()
+        case .reels:    reelsPath = NavigationPath()
+        case .chat:     chatPath = NavigationPath()
+        case .explore:  explorePath = NavigationPath()
+        case .profile:  profilePath = NavigationPath()
+        }
+    }
+
+    /// Pop to root of a specific tab.
+    func popToRoot(in tab: AppTab) {
+        switch tab {
         case .feed:     feedPath = NavigationPath()
         case .reels:    reelsPath = NavigationPath()
         case .chat:     chatPath = NavigationPath()

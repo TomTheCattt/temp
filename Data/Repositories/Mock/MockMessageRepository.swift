@@ -41,4 +41,17 @@ final class MockMessageRepository: MessageRepositoryProtocol, @unchecked Sendabl
     func muteConversation(id: String, mute: Bool) async throws {
         try await dataSource.muteConversation(id: id, mute: mute)
     }
+
+    func deleteConversation(id: String) async throws {
+        try await dataSource.deleteConversation(id: id)
+    }
+
+    func addReaction(messageId: String, emoji: String) async throws {
+        try await dataSource.addReaction(messageId: messageId, emoji: emoji)
+    }
+
+    func fetchNotes() async throws -> [InstagramNote] {
+        try await dataSource.fetchNotes()
+    }
 }
+

@@ -31,4 +31,27 @@ protocol MessageRepositoryProtocol: Sendable {
 
     /// Mute/unmute a conversation.
     func muteConversation(id: String, mute: Bool) async throws
+
+    /// Delete a conversation.
+    func deleteConversation(id: String) async throws
+
+    /// Add or remove emoji reaction to a message.
+    func addReaction(messageId: String, emoji: String) async throws
+
+    /// Fetch active notes for the current user and following friends.
+    func fetchNotes() async throws -> [InstagramNote]
 }
+
+// MARK: - MessageRepositoryProtocol Extension Defaults
+
+extension MessageRepositoryProtocol {
+
+    func deleteConversation(id: String) async throws {}
+
+    func addReaction(messageId: String, emoji: String) async throws {}
+
+    func fetchNotes() async throws -> [InstagramNote] {
+        return []
+    }
+}
+

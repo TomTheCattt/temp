@@ -77,7 +77,8 @@ enum AppRoute: Hashable {
 
     // Messages
     case directMessages
-    case conversation(conversationId: String)
+    case conversation(conversationId: String, recipient: User? = nil)
+    case conversationDetails(conversationId: String, recipient: User? = nil)
 
     // Explore
     case searchResults(query: String)
@@ -98,6 +99,7 @@ enum AppSheet: Identifiable {
     case reportPost(postId: String)
     case editPost(postId: String)
     case reelComments(reelId: String)
+    case newMessage
 
     var id: String {
         switch self {
@@ -110,6 +112,7 @@ enum AppSheet: Identifiable {
         case .reportPost(let id):     return "reportPost_\(id)"
         case .editPost(let id):       return "editPost_\(id)"
         case .reelComments(let id):   return "reelComments_\(id)"
+        case .newMessage:             return "newMessage"
         }
     }
 }
@@ -137,6 +140,7 @@ enum AppFullScreen: Identifiable {
     case createStory
     case createReel
     case creationHub(initialMode: CreationHubMode = .post)
+    case call(userId: String, userName: String, hasVideo: Bool)
 
     var id: String {
         switch self {
@@ -149,6 +153,7 @@ enum AppFullScreen: Identifiable {
         case .createStory:                     return "createStory"
         case .createReel:                      return "createReel"
         case .creationHub(let mode):           return "creationHub_\(mode.rawValue)"
+        case .call(let id, _, _):              return "call_\(id)"
         }
     }
 }

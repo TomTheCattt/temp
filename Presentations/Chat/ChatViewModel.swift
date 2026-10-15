@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - ChatViewModel
 
@@ -23,6 +24,11 @@ final class ChatViewModel {
 
     private(set) var currentPage = 1
     private(set) var hasMorePages = true
+
+    var recipient: User?
+    var replyingToMessage: Message?
+    var isPartnerTyping: Bool = false
+    var isPartnerBlocked: Bool = false
 
     let conversationId: String
 
@@ -42,21 +48,89 @@ final class ChatViewModel {
     private let fetchMessagesUseCase: FetchMessagesUseCaseProtocol
     private let sendMessageUseCase: SendMessageUseCaseProtocol
     private let messageRepository: MessageRepositoryProtocol
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
     init(
         conversationId: String,
         currentUserId: String,
+        recipient: User? = nil,
         fetchMessagesUseCase: FetchMessagesUseCaseProtocol,
         sendMessageUseCase: SendMessageUseCaseProtocol,
         messageRepository: MessageRepositoryProtocol
     ) {
         self.conversationId = conversationId
         self.injectedCurrentUserId = currentUserId
+        self.recipient = recipient
         self.fetchMessagesUseCase = fetchMessagesUseCase
         self.sendMessageUseCase = sendMessageUseCase
         self.messageRepository = messageRepository
+
+        subscribeToSyncEvents()
+    }
+
+    private func subscribeToSyncEvents() {
+        // Real-time incoming messages with chronological sorting
+        NotificationCenter.default.publisher(for: .didUpdateMessage)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let message = notification.object as? Message,
+                      message.conversationId == self.conversationId else { return }
+
+                if !self.messages.contains(where: { $0.id == message.id }) {
+                    self.messages.append(message)
+                    self.messages.sort { $0.createdAt > $1.createdAt }
+                    self.markAsRead()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Real-time typing status
+        NotificationCenter.default.publisher(for: .didUpdateTypingStatus)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let userInfo = notification.userInfo,
+                      let convId = userInfo["conversationId"] as? String,
+                      convId == self.conversationId,
+                      let isTyping = userInfo["isTyping"] as? Bool else { return }
+
+                self.isPartnerTyping = isTyping
+            }
+            .store(in: &cancellables)
+
+        // Real-time block status
+        NotificationCenter.default.publisher(for: .didUpdateBlockStatus)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let userInfo = notification.userInfo,
+                      let userId = userInfo["userId"] as? String,
+                      userId == self.recipient?.id,
+                      let isBlocked = userInfo["isBlocked"] as? Bool else { return }
+
+                self.isPartnerBlocked = isBlocked
+            }
+            .store(in: &cancellables)
+    }
+
+    func unblockPartner() {
+        guard let user = recipient else { return }
+        isPartnerBlocked = false
+        NotificationCenter.default.post(
+            name: .didUpdateBlockStatus,
+            object: nil,
+            userInfo: ["userId": user.id, "isBlocked": false]
+        )
+        ToastManager.shared.info("Đã bỏ chặn @\(user.username)")
+    }
+
+    func markAsRead() {
+        Task {
+            try? await messageRepository.markAsRead(conversationId: conversationId)
+        }
     }
 
     // MARK: - Actions
@@ -67,12 +141,28 @@ final class ChatViewModel {
         errorMessage = nil
         currentPage = 1
 
+        let clock = ContinuousClock()
+        let startTime = clock.now
+
         do {
             let result = try await fetchMessagesUseCase.execute(
                 FetchMessagesInput(conversationId: conversationId, page: 1, perPage: perPage)
             )
             messages = result.sorted { $0.createdAt > $1.createdAt }
             hasMorePages = result.count >= perPage
+
+            // Resolve recipient if not provided
+            if recipient == nil {
+                if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
+                    recipient = otherUser
+                } else if let firstOther = MockData.users.first(where: { $0.id != currentUserId }) {
+                    recipient = firstOther
+                }
+            }
+
+            // Benchmark execution time
+            let duration = clock.now - startTime
+            print("[Benchmark] ChatViewModel.loadMessages executed in \(duration) for \(messages.count) messages")
 
             // Mark as read
             try? await messageRepository.markAsRead(conversationId: conversationId)
@@ -89,6 +179,9 @@ final class ChatViewModel {
         isLoadingMore = true
 
         let nextPage = currentPage + 1
+        let clock = ContinuousClock()
+        let startTime = clock.now
+
         do {
             let result = try await fetchMessagesUseCase.execute(
                 FetchMessagesInput(conversationId: conversationId, page: nextPage, perPage: perPage)
@@ -97,6 +190,9 @@ final class ChatViewModel {
             // Fewer than a full page means there's no more history.
             hasMorePages = result.count >= perPage
             mergeOlderMessages(result)
+
+            let duration = clock.now - startTime
+            print("[Benchmark] ChatViewModel.loadMoreMessages (page \(nextPage)) executed in \(duration)")
         } catch {
             // Don't retry silently in a loop: stop further auto-triggers and
             // surface the error since we already have messages on screen.
@@ -108,25 +204,188 @@ final class ChatViewModel {
     }
 
     func sendTextMessage(_ text: String) async {
-        guard !isSending else { return }
+        guard !isSending, !isPartnerBlocked else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         isSending = true
 
+        let replyId = replyingToMessage?.id
+        let replySnippet: String? = {
+            guard let reply = replyingToMessage else { return nil }
+            switch reply.content {
+            case .text(let t): return t
+            case .image: return "Hình ảnh"
+            case .video: return "Video"
+            case .audio: return "Tin nhắn thoại"
+            case .post: return "Bài viết"
+            case .reel: return "Reel"
+            case .story: return "Tin"
+            case .like: return "❤️"
+            }
+        }()
+
+        // Clear reply bar immediately on send
+        replyingToMessage = nil
+
+        // Optimistic UI: insert pending message with .sending status
+        let tempId = "temp_\(UUID().uuidString.prefix(8))"
+        let currentUser = MockData.currentUser
+        let pendingMessage = Message(
+            id: tempId,
+            conversationId: conversationId,
+            sender: currentUser,
+            content: .text(trimmed),
+            status: .sending,
+            replyToId: replyId,
+            replyToSnippet: replySnippet,
+            reactions: [:],
+            createdAt: .now
+        )
+        messages.insert(pendingMessage, at: 0)
+
         do {
             let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .text(trimmed))
+                SendMessageInput(
+                    conversationId: conversationId,
+                    content: .text(trimmed),
+                    replyToId: replyId,
+                    replyToSnippet: replySnippet
+                )
             )
-            messages.insert(message, at: 0)
-            simulateReadReceipt(for: message.id)
+            // Replace optimistic pending message with confirmed message
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                let finalMessage = Message(
+                    id: message.id,
+                    conversationId: message.conversationId,
+                    sender: message.sender,
+                    content: message.content,
+                    status: message.status,
+                    replyToId: replyId,
+                    replyToSnippet: replySnippet,
+                    reactions: [:],
+                    createdAt: message.createdAt
+                )
+                messages[index] = finalMessage
+                simulateReadReceipt(for: message.id)
+                simulatePartnerTyping()
+            }
         } catch {
-            ToastManager.shared.error(error.userMessage)
-            // Restore the typed text so the user doesn't lose it on failure.
-            restoreDraft?(text)
+            // Update the pending message to .failed state so user can retry
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                let current = messages[index]
+                messages[index] = Message(
+                    id: current.id,
+                    conversationId: current.conversationId,
+                    sender: current.sender,
+                    content: current.content,
+                    status: .failed,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet,
+                    reactions: current.reactions,
+                    createdAt: current.createdAt
+                )
+            }
+            ToastManager.shared.error("Không thể gửi tin nhắn. Chạm để thử lại.")
         }
 
         isSending = false
+    }
+
+    /// Retry sending a failed message
+    func retryMessage(id: String) async {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        let current = messages[index]
+        guard current.status == .failed else { return }
+
+        // Set status to sending
+        messages[index] = Message(
+            id: current.id,
+            conversationId: current.conversationId,
+            sender: current.sender,
+            content: current.content,
+            status: .sending,
+            replyToId: current.replyToId,
+            replyToSnippet: current.replyToSnippet,
+            reactions: current.reactions,
+            createdAt: current.createdAt
+        )
+
+        do {
+            let message = try await sendMessageUseCase.execute(
+                SendMessageInput(
+                    conversationId: conversationId,
+                    content: current.content,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet
+                )
+            )
+            if let newIndex = messages.firstIndex(where: { $0.id == id }) {
+                messages[newIndex] = Message(
+                    id: message.id,
+                    conversationId: message.conversationId,
+                    sender: message.sender,
+                    content: message.content,
+                    status: message.status,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet,
+                    reactions: [:],
+                    createdAt: message.createdAt
+                )
+                simulateReadReceipt(for: message.id)
+            }
+        } catch {
+            if let newIndex = messages.firstIndex(where: { $0.id == id }) {
+                let failed = messages[newIndex]
+                messages[newIndex] = Message(
+                    id: failed.id,
+                    conversationId: failed.conversationId,
+                    sender: failed.sender,
+                    content: failed.content,
+                    status: .failed,
+                    replyToId: failed.replyToId,
+                    replyToSnippet: failed.replyToSnippet,
+                    reactions: failed.reactions,
+                    createdAt: failed.createdAt
+                )
+            }
+            ToastManager.shared.error("Gửi lại thất bại. Vui lòng kiểm tra kết nối mạng.")
+        }
+    }
+
+    func addReaction(to messageId: String, emoji: String) {
+        guard let index = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        let current = messages[index]
+        var updatedReactions = current.reactions
+        if updatedReactions[currentUserId] == emoji {
+            updatedReactions.removeValue(forKey: currentUserId)
+        } else {
+            updatedReactions[currentUserId] = emoji
+        }
+
+        messages[index] = Message(
+            id: current.id,
+            conversationId: current.conversationId,
+            sender: current.sender,
+            content: current.content,
+            status: current.status,
+            replyToId: current.replyToId,
+            replyToSnippet: current.replyToSnippet,
+            reactions: updatedReactions,
+            createdAt: current.createdAt
+        )
+
+        Task {
+            try? await messageRepository.addReaction(messageId: messageId, emoji: emoji)
+        }
+    }
+
+    func deleteMessage(id: String) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages.remove(at: index)
+        Task {
+            try? await messageRepository.deleteMessage(id: id)
+        }
     }
 
     func sendImageMessage(url: URL) async {
@@ -203,8 +462,22 @@ final class ChatViewModel {
                 content: current.content,
                 status: .read,
                 replyToId: current.replyToId,
+                replyToSnippet: current.replyToSnippet,
+                reactions: current.reactions,
                 createdAt: current.createdAt
             )
         }
     }
+
+    /// Mock-friendly partner typing simulator.
+    private func simulatePartnerTyping() {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard let self else { return }
+            self.isPartnerTyping = true
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            self.isPartnerTyping = false
+        }
+    }
 }
+

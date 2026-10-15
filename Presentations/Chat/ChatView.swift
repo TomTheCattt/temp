@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PhotosUI
+import NukeUI
 
 // MARK: - ChatView
 
@@ -21,6 +22,9 @@ struct ChatView: View {
     /// Negative value means the user dragged left (revealing timestamps on the right).
     @State private var dragOffset: CGFloat = 0
 
+    /// Double-tapped message ID for bursting heart animation
+    @State private var doubleTappedMessageId: String?
+
     /// Max leftward reveal distance (negative). Reveal + opacity share this constant.
     private let maxReveal = DS.Layout.chatTimestampRevealDistance
 
@@ -30,6 +34,9 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Instagram-accurate Custom Navigation Bar
+            chatCustomHeader
+
             // Messages list
             ScrollView {
                 LazyVStack(spacing: DS.Spacing.xxs) {
@@ -49,15 +56,23 @@ struct ChatView: View {
                         )
                         .padding(.top, DS.Spacing.xxxl)
                     } else {
-                        // Load more trigger at top — gated on hasMorePages so it
-                        // stops once history is exhausted (no infinite loop).
+                        // Load more trigger at top — gated on hasMorePages
                         if viewModel.hasMorePages {
                             ProgressView()
                                 .padding(.vertical, DS.Spacing.xs)
                                 .task { await viewModel.loadMoreMessages() }
                         }
 
+                        // Conversation Starter Header (Avatar lớn, bio, nút xem profile)
+                        conversationStarterBanner
+
+                        // Main message bubbles list
                         messageList
+
+                        // Typing indicator when partner is typing
+                        if viewModel.isPartnerTyping {
+                            typingIndicatorBubble
+                        }
                     }
                 }
                 .padding(.vertical, DS.Spacing.xs)
@@ -66,10 +81,19 @@ struct ChatView: View {
             .simultaneousGesture(timestampDragGesture)
             .scrollDismissesKeyboard(.interactively)
 
-            // Input bar
-            messageInputBar
+            if viewModel.isPartnerBlocked {
+                blockedPartnerBanner
+            } else {
+                // Reply Preview Bar (when replying to a message)
+                if let replyMessage = viewModel.replyingToMessage {
+                    replyPreviewBar(replyMessage)
+                }
+
+                // Input bar
+                messageInputBar
+            }
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadMessages()
         }
@@ -82,6 +106,155 @@ struct ChatView: View {
         .onChange(of: photoPickerItem) { _, newItem in
             guard let newItem else { return }
             Task { await handlePickedPhoto(newItem) }
+        }
+    }
+
+    // MARK: - Custom Header (1:1 Instagram)
+
+    private var chatCustomHeader: some View {
+        HStack(spacing: DS.Spacing.xs) {
+            // Back Button (24pt, 44x44pt hitbox)
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                AppRouter.shared.pop()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 24, weight: .regular))
+                    .frame(width: 44, height: 44, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+
+            // Recipient Info (Tappable -> opens Conversation Details)
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                AppRouter.shared.push(.conversationDetails(conversationId: viewModel.conversationId, recipient: viewModel.recipient))
+            } label: {
+                HStack(spacing: DS.Spacing.xs) {
+                    // Avatar (36x36) with Active Online Indicator
+                    ZStack(alignment: .bottomTrailing) {
+                        LazyImage(url: viewModel.recipient?.avatarURL) { state in
+                            if let image = state.image {
+                                image.resizable().scaledToFill()
+                            } else {
+                                Circle().fill(ColorTokens.buttonSecondary)
+                            }
+                        }
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+
+                        // Active Online Dot
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Color(UIColor.systemBackground), lineWidth: 2))
+                    }
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 4) {
+                            Text(viewModel.recipient?.username ?? "User")
+                                .font(DS.Font.headline)
+                                .fontWeight(.bold)
+                                .lineLimit(1)
+
+                            if viewModel.recipient?.isVerified == true {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(DS.Font.caption2)
+                                    .foregroundStyle(ColorTokens.accentPrimary)
+                            }
+                        }
+
+                        Text("Đang hoạt động")
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .tint(.primary)
+
+            Spacer()
+
+            // Trailing Actions: Voice & Video Call
+            HStack(spacing: DS.Spacing.xxs) {
+                // Audio Call (24pt, 44x44pt)
+                Button {
+                    HapticFeedbackSafe.impact(.medium)
+                    let recipientUser = viewModel.recipient ?? MockData.currentUser
+                    AppRouter.shared.present(fullScreen: .call(userId: recipientUser.id, userName: recipientUser.username, hasVideo: false))
+                } label: {
+                    Image(systemName: "phone")
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+
+                // Video Call (24pt, 44x44pt)
+                Button {
+                    HapticFeedbackSafe.impact(.medium)
+                    let recipientUser = viewModel.recipient ?? MockData.currentUser
+                    AppRouter.shared.present(fullScreen: .call(userId: recipientUser.id, userName: recipientUser.username, hasVideo: true))
+                } label: {
+                    Image(systemName: "video")
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+            }
+            .tint(.primary)
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .frame(height: DS.Size.buttonDefaultHeight)
+        .background(Color(UIColor.systemBackground))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    // MARK: - Conversation Starter Banner
+
+    private var conversationStarterBanner: some View {
+        VStack(spacing: DS.Spacing.xs) {
+            LazyImage(url: viewModel.recipient?.avatarURL) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    Circle().fill(ColorTokens.buttonSecondary)
+                }
+            }
+            .frame(width: 72, height: 72)
+            .clipShape(Circle())
+            .padding(.top, DS.Spacing.md)
+
+            Text(viewModel.recipient?.fullName.isEmpty == false ? (viewModel.recipient?.fullName ?? "") : (viewModel.recipient?.username ?? ""))
+                .font(DS.Font.headline)
+                .fontWeight(.bold)
+
+            Text("@\(viewModel.recipient?.username ?? "user") · Instagram")
+                .font(DS.Font.subheadline)
+                .foregroundStyle(.secondary)
+
+            if let bio = viewModel.recipient?.bio, !bio.isEmpty {
+                Text(bio)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, DS.Padding.content)
+            }
+
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                if let user = viewModel.recipient {
+                    AppRouter.shared.push(.userProfile(userId: user.id))
+                }
+            } label: {
+                Text("Xem trang cá nhân")
+                    .font(DS.Font.caption)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.vertical, DS.Spacing.xs)
+                    .background(ColorTokens.buttonSecondary, in: Capsule())
+            }
+            .tint(.primary)
+            .padding(.top, DS.Spacing.xxs)
+            .padding(.bottom, DS.Spacing.md)
         }
     }
 
@@ -144,17 +317,34 @@ struct ChatView: View {
         HStack(spacing: 0) {
             // Message content area (shifts left with drag)
             HStack(alignment: .bottom, spacing: DS.Spacing.xs) {
-                if isMe { Spacer(minLength: DS.Size.chatBubbleSpacer) }
+                if isMe {
+                    if message.status == .failed {
+                        Button {
+                            HapticFeedbackSafe.impact(.medium)
+                            Task { await viewModel.retryMessage(id: message.id) }
+                        } label: {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.red)
+                        }
+                    } else if message.status == .sending {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .frame(width: 16, height: 16)
+                    }
+                    Spacer(minLength: DS.Size.chatBubbleSpacer)
+                }
 
                 if !isMe {
-                    // Reserve avatar width for consecutive-run alignment; only the
-                    // last message of the run actually renders the image.
+                    // Reserve avatar width for consecutive-run alignment
                     Group {
                         if showAvatar {
-                            AsyncImage(url: message.sender.avatarURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                            LazyImage(url: message.sender.avatarURL) { state in
+                                if let image = state.image {
+                                    image.resizable().scaledToFill()
+                                } else {
+                                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                                }
                             }
                             .clipShape(Circle())
                         } else {
@@ -165,7 +355,106 @@ struct ChatView: View {
                 }
 
                 VStack(alignment: isMe ? .trailing : .leading, spacing: DS.Spacing.xxxs) {
-                    bubbleContent(message.content, isMe: isMe)
+                    // Quoted reply snippet if this message is a reply
+                    if let snippet = message.replyToSnippet {
+                        HStack(spacing: DS.Spacing.xxs) {
+                            Rectangle()
+                                .fill(isMe ? Color.white.opacity(0.8) : ColorTokens.accentPrimary)
+                                .frame(width: 2)
+                            Text(snippet)
+                                .font(DS.Font.caption2)
+                                .foregroundStyle(isMe ? .white.opacity(0.8) : .secondary)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, DS.Spacing.xs)
+                        .padding(.vertical, 2)
+                    }
+
+                    ZStack(alignment: .center) {
+                        bubbleContent(message.content, isMe: isMe)
+
+                        // Popping Heart on Double Tap
+                        if doubleTappedMessageId == message.id {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.red)
+                                .shadow(radius: 4)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    // Tap gestures: Double-tap to Like, Long-press context menu
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        HapticFeedbackSafe.impact(.medium)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            doubleTappedMessageId = message.id
+                        }
+                        viewModel.addReaction(to: message.id, emoji: "❤️")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                if doubleTappedMessageId == message.id {
+                                    doubleTappedMessageId = nil
+                                }
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        // Quick Emoji Reactions
+                        ControlGroup {
+                            Button("❤️") { viewModel.addReaction(to: message.id, emoji: "❤️") }
+                            Button("😂") { viewModel.addReaction(to: message.id, emoji: "😂") }
+                            Button("😮") { viewModel.addReaction(to: message.id, emoji: "😮") }
+                            Button("😢") { viewModel.addReaction(to: message.id, emoji: "😢") }
+                            Button("👏") { viewModel.addReaction(to: message.id, emoji: "👏") }
+                            Button("🔥") { viewModel.addReaction(to: message.id, emoji: "🔥") }
+                        }
+
+                        Button {
+                            HapticFeedbackSafe.impact(.light)
+                            viewModel.replyingToMessage = message
+                        } label: {
+                            Label("Trả lời", systemImage: "arrowshape.turn.up.left")
+                        }
+
+                        if case .text(let t) = message.content {
+                            Button {
+                                HapticFeedbackSafe.impact(.light)
+                                UIPasteboard.general.string = t
+                                ToastManager.shared.info("Đã sao chép vào bộ nhớ tạm")
+                            } label: {
+                                Label("Sao chép", systemImage: "doc.on.doc")
+                            }
+                        }
+
+                        if isMe {
+                            Button(role: .destructive) {
+                                HapticFeedbackSafe.impact(.medium)
+                                viewModel.deleteMessage(id: message.id)
+                            } label: {
+                                Label("Thu hồi tin nhắn", systemImage: "trash")
+                            }
+                        }
+                    }
+
+                    // Reactions Pill Badge (nếu có biểu cảm)
+                    if !message.reactions.isEmpty {
+                        HStack(spacing: 2) {
+                            ForEach(Array(Set(message.reactions.values)), id: \.self) { emoji in
+                                Text(emoji)
+                                    .font(.system(size: 11))
+                            }
+                            if message.reactions.count > 1 {
+                                Text("\(message.reactions.count)")
+                                    .font(DS.Font.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(UIColor.secondarySystemBackground), in: Capsule())
+                        .overlay(Capsule().stroke(Color(UIColor.separator), lineWidth: 0.5))
+                        .offset(y: -4)
+                    }
 
                     // "Đã xem" only for the last own message when status is .read
                     if showReadReceipt && isMe && message.status == .read {
@@ -195,7 +484,6 @@ struct ChatView: View {
     }
 
     /// Opacity for the timestamp based on drag progress.
-    /// Uses the same `maxReveal` constant as the reveal offset for a consistent feel.
     private var timestampOpacity: Double {
         let progress = min(abs(dragOffset) / maxReveal, 1.0)
         return Double(progress)
@@ -209,7 +497,7 @@ struct ChatView: View {
         case .text(let text):
             Text(text)
                 .font(DS.Font.messageText)
-                .foregroundStyle(isMe ? .white : .black)
+                .foregroundStyle(isMe ? .white : .primary)
                 .padding(.horizontal, DS.Spacing.formGap)
                 .padding(.vertical, DS.Spacing.xs)
                 .background(
@@ -218,11 +506,13 @@ struct ChatView: View {
                 )
 
         case .image(let url):
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                RoundedRectangle(cornerRadius: DS.Radius.large)
-                    .fill(ColorTokens.backgroundSubtler)
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    RoundedRectangle(cornerRadius: DS.Radius.large)
+                        .fill(ColorTokens.backgroundSubtler)
+                }
             }
             .frame(width: DS.Size.chatImageBubble, height: DS.Size.chatImageBubble)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
@@ -253,10 +543,12 @@ struct ChatView: View {
         case .video(_, thumbnailURL: let thumb):
             ZStack {
                 if let thumbURL = thumb {
-                    AsyncImage(url: thumbURL) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        ColorTokens.backgroundSubtler
+                    LazyImage(url: thumbURL) { state in
+                        if let image = state.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            ColorTokens.backgroundSubtler
+                        }
                     }
                 } else {
                     Color.gray.opacity(DS.Opacity.low)
@@ -268,20 +560,134 @@ struct ChatView: View {
             .frame(width: DS.Size.chatVideoBubbleWidth, height: DS.Size.chatVideoBubbleHeight)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
 
-        case .post, .story, .reel:
-            HStack(spacing: DS.Spacing.xs) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(DS.Font.caption)
-                Text(L10n.Common.sharedContent)
-                    .font(DS.Font.messageText)
+        case .post(let postId):
+            sharedContentCard(title: "Bài viết của Instagram", icon: "square.and.arrow.up", detailId: postId, isMe: isMe)
+
+        case .story(let storyId):
+            sharedContentCard(title: "Tin của bạn bè", icon: "circle.dashed", detailId: storyId, isMe: isMe)
+
+        case .reel(let reelId):
+            sharedContentCard(title: "Instagram Reel", icon: "play.square", detailId: reelId, isMe: isMe)
+        }
+    }
+
+    // MARK: - Rich Shared Content Card
+
+    private func sharedContentCard(title: String, icon: String, detailId: String, isMe: Bool) -> some View {
+        Button {
+            HapticFeedbackSafe.impact(.light)
+            AppRouter.shared.push(.postDetail(postId: detailId))
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: DS.Spacing.xs) {
+                    Image(systemName: icon)
+                        .font(DS.Font.caption)
+                    Text(title)
+                        .font(DS.Font.caption)
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(isMe ? .white : .primary)
+                .padding(DS.Spacing.xs)
+
+                ZStack {
+                    ColorTokens.backgroundSecondary
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 200, height: 140)
+                .clipped()
+
+                Text("Nhấn để xem nội dung chia sẻ")
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(isMe ? .white.opacity(0.8) : .secondary)
+                    .padding(DS.Spacing.xs)
             }
-            .foregroundStyle(isMe ? .white : .primary)
-            .padding(.horizontal, DS.Spacing.formGap)
-            .padding(.vertical, DS.Spacing.xs)
             .background(
                 isMe ? ColorTokens.brandBlue : ColorTokens.buttonSecondary,
-                in: RoundedRectangle(cornerRadius: DS.Radius.bubble)
+                in: RoundedRectangle(cornerRadius: DS.Radius.large)
             )
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
+        }
+        .tint(.primary)
+    }
+
+    // MARK: - Typing Indicator Bubble
+
+    private var typingIndicatorBubble: some View {
+        HStack(alignment: .bottom, spacing: DS.Spacing.xs) {
+            LazyImage(url: viewModel.recipient?.avatarURL) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    Circle().fill(Color.gray.opacity(DS.Opacity.low))
+                }
+            }
+            .frame(width: DS.Size.avatarSmall, height: DS.Size.avatarSmall)
+            .clipShape(Circle())
+
+            HStack(spacing: 4) {
+                TypingDot(delay: 0)
+                TypingDot(delay: 0.2)
+                TypingDot(delay: 0.4)
+            }
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.vertical, DS.Spacing.sm)
+            .background(ColorTokens.buttonSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.bubble))
+
+            Spacer()
+        }
+        .padding(.horizontal, DS.Padding.content)
+        .padding(.vertical, DS.Spacing.xxxs)
+    }
+
+    // MARK: - Reply Preview Bar
+
+    private func replyPreviewBar(_ replyMessage: Message) -> some View {
+        HStack(spacing: DS.Spacing.xs) {
+            Image(systemName: "arrowshape.turn.up.left.fill")
+                .font(DS.Font.caption)
+                .foregroundStyle(ColorTokens.accentPrimary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Đang trả lời @\(replyMessage.sender.username)")
+                    .font(DS.Font.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(ColorTokens.accentPrimary)
+
+                Text(snippetForMessage(replyMessage))
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                viewModel.replyingToMessage = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(DS.Font.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, DS.Padding.content)
+        .padding(.vertical, DS.Spacing.xs)
+        .background(ColorTokens.backgroundSecondary)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func snippetForMessage(_ msg: Message) -> String {
+        switch msg.content {
+        case .text(let t): return t
+        case .image: return "Hình ảnh"
+        case .video: return "Video"
+        case .audio: return "Tin nhắn thoại"
+        case .post: return "Bài viết chia sẻ"
+        case .story: return "Tin chia sẻ"
+        case .reel: return "Reel chia sẻ"
+        case .like: return "❤️"
         }
     }
 
@@ -289,18 +695,20 @@ struct ChatView: View {
 
     private var messageInputBar: some View {
         HStack(spacing: DS.Spacing.sm) {
-            // Camera
-            // TODO: No capture flow is available on the Chat screen yet, and
-            // sendMessage has no camera entry point. Left as a no-op until a
-            // capture flow exists — prefer the photo picker (wired below).
-            Button(action: {}) {
+            // Camera Button (Mở nhanh CreationHub)
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                AppRouter.shared.present(fullScreen: .creationHub(initialMode: .story))
+            } label: {
                 Image(systemName: "camera.fill")
-                    .font(DS.Font.title3)
+                    .font(.system(size: 20))
                     .foregroundStyle(ColorTokens.accentPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(ColorTokens.backgroundSecondary, in: Circle())
             }
             .disabled(viewModel.isSending)
 
-            // Text field
+            // Text field in Capsule
             HStack(spacing: DS.Spacing.xs) {
                 TextField(L10n.Chat.messagePlaceholder, text: $messageText)
                     .textFieldStyle(.plain)
@@ -308,17 +716,18 @@ struct ChatView: View {
                     .focused($isInputFocused)
 
                 if messageText.isEmpty {
-                    // Mic
-                    // TODO: No audio-capture flow exists yet; leaving as a no-op
-                    // rather than fabricating a recording pipeline.
-                    Button(action: {}) {
+                    // Mic button
+                    Button {
+                        HapticFeedbackSafe.impact(.light)
+                        ToastManager.shared.info("Nhấn giữ để ghi âm tin nhắn thoại")
+                    } label: {
                         Image(systemName: "mic.fill")
                             .font(DS.Font.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .disabled(viewModel.isSending)
 
-                    // Photo picker — sends the picked image via the view model.
+                    // Photo picker
                     PhotosPicker(selection: $photoPickerItem, matching: .images) {
                         Image(systemName: "photo")
                             .font(DS.Font.subheadline)
@@ -333,20 +742,22 @@ struct ChatView: View {
 
             // Send or Like
             if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button(action: {
+                Button {
+                    HapticFeedbackSafe.impact(.light)
                     Task { await viewModel.sendLikeReaction() }
-                }) {
+                } label: {
                     Image(systemName: "heart")
                         .font(DS.Font.title3)
                         .foregroundStyle(.primary)
                 }
                 .disabled(viewModel.isSending)
             } else {
-                Button(action: {
+                Button {
+                    HapticFeedbackSafe.impact(.medium)
                     let text = messageText
                     messageText = ""
                     Task { await viewModel.sendTextMessage(text) }
-                }) {
+                } label: {
                     Image(systemName: "paperplane.fill")
                         .font(DS.Font.title3)
                         .foregroundStyle(ColorTokens.accentPrimary)
@@ -359,9 +770,43 @@ struct ChatView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
+    // MARK: - Blocked Partner Banner
+
+    private var blockedPartnerBanner: some View {
+        VStack(spacing: DS.Spacing.xs) {
+            Text("Bạn đã chặn tài khoản này")
+                .font(DS.Font.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+
+            Text("Bạn không thể gửi hoặc nhận tin nhắn từ @\(viewModel.recipient?.username ?? "người này") trừ khi bạn bỏ chặn họ.")
+                .font(DS.Font.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, DS.Padding.content)
+
+            Button {
+                HapticFeedbackSafe.impact(.medium)
+                viewModel.unblockPartner()
+            } label: {
+                Text("Bỏ chặn")
+                    .font(DS.Font.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, DS.Spacing.lg)
+                    .padding(.vertical, DS.Spacing.xs)
+                    .background(ColorTokens.brandBlue, in: Capsule())
+            }
+            .padding(.top, DS.Spacing.xxs)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, DS.Spacing.md)
+        .background(Color(UIColor.secondarySystemBackground))
+        .overlay(alignment: .top) { Divider() }
+    }
+
     // MARK: - Photo Picker Handling
 
-    /// Load the picked photo to a temporary file URL and send it as an image message.
     private func handlePickedPhoto(_ item: PhotosPickerItem) async {
         defer { photoPickerItem = nil }
         guard let data = try? await item.loadTransferable(type: Data.self) else { return }
@@ -378,5 +823,29 @@ struct ChatView: View {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - TypingDot Component
+
+private struct TypingDot: View {
+    let delay: Double
+    @State private var isAnimating = false
+
+    var body: some View {
+        Circle()
+            .fill(Color.secondary.opacity(0.8))
+            .frame(width: 7, height: 7)
+            .scaleEffect(isAnimating ? 1.0 : 0.5)
+            .opacity(isAnimating ? 1.0 : 0.3)
+            .animation(
+                Animation.easeInOut(duration: 0.6)
+                    .repeatForever(autoreverses: true)
+                    .delay(delay),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
     }
 }

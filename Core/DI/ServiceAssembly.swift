@@ -47,6 +47,14 @@ final class ServiceAssembly: Assembly {
             WebSocketService()
         }.inObjectScope(.container)
 
+        // MARK: WebSocketMessageHandler
+
+        container.register(WebSocketMessageHandler.self) { resolver in
+            WebSocketMessageHandler(
+                webSocketService: resolver.resolve(WebSocketServiceProtocol.self)!
+            )
+        }.inObjectScope(.container)
+
         // MARK: LocalStorage
 
         container.register(LocalStorageProtocol.self) { _ in

@@ -31,5 +31,13 @@ final class AppState {
     /// A mandatory app update is required (HTTP 426). Presents the force-update screen.
     var forceUpdateRequired = false
 
+    /// Total unread direct messages across all conversations.
+    var unreadChatCount = 0
+
     private init() {}
+
+    /// Updates the unread chat count safely.
+    func setUnreadChatCount(_ count: Int) {
+        unreadChatCount = max(0, count)
+    }
 }
