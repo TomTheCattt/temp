@@ -14,11 +14,13 @@ struct CameraPreviewView: UIViewRepresentable {
 
     let session: AVCaptureSession
     let isHardwareAvailable: Bool
+    var isFrontFacing: Bool = CameraService.shared.isFrontFacing
 
     func makeUIView(context: Context) -> CameraPreviewUIView {
         let view = CameraPreviewUIView()
         view.videoPreviewLayer.session = session
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        view.updateOrientation(isFrontFacing: isFrontFacing)
         return view
     }
 
@@ -26,7 +28,7 @@ struct CameraPreviewView: UIViewRepresentable {
         if uiView.videoPreviewLayer.session != session {
             uiView.videoPreviewLayer.session = session
         }
-        uiView.updateOrientation()
+        uiView.updateOrientation(isFrontFacing: isFrontFacing)
     }
 }
 
@@ -42,58 +44,26 @@ final class CameraPreviewUIView: UIView {
         layer as! AVCaptureVideoPreviewLayer
     }
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupObservers()
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupObservers()
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    private func setupObservers() {
-        if #available(iOS 18.0, *) {
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(handleSessionChange),
-                name: AVCaptureSession.didStartRunningNotification,
-                object: nil
-            )
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(handleSessionChange),
-                name: AVCaptureInput.Port.formatDescriptionDidChangeNotification,
-                object: nil
-            )
-        }
-    }
-
-    @objc private func handleSessionChange() {
-        DispatchQueue.main.async { [weak self] in
-            self?.updateOrientation()
-        }
-    }
+    private var currentFrontFacing: Bool = false
 
     override func layoutSubviews() {
         super.layoutSubviews()
         videoPreviewLayer.frame = bounds
-        updateOrientation()
+        updateOrientation(isFrontFacing: currentFrontFacing)
     }
 
-    func updateOrientation() {
+    func updateOrientation(isFrontFacing: Bool) {
+        self.currentFrontFacing = isFrontFacing
         guard let connection = videoPreviewLayer.connection else { return }
 
-        if let device = (videoPreviewLayer.session?.inputs.first(where: { ($0 as? AVCaptureDeviceInput)?.device.hasMediaType(.video) == true }) as? AVCaptureDeviceInput)?.device {
-            let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: videoPreviewLayer)
-            let angle = coordinator.videoRotationAngleForHorizonLevelPreview
-            if connection.isVideoRotationAngleSupported(angle) {
-                connection.videoRotationAngle = angle
+        // Upright portrait angle: Front camera sensor is mounted at 270°, Back camera at 90°
+        let targetAngle: CGFloat = isFrontFacing ? 270 : 90
+
+        if connection.isVideoRotationAngleSupported(targetAngle) {
+            if connection.videoRotationAngle != targetAngle {
+                connection.videoRotationAngle = targetAngle
             }
         }
     }
 }
+

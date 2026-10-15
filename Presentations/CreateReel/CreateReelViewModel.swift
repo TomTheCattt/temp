@@ -165,8 +165,25 @@ final class CreateReelViewModel {
     // MARK: - Setup
 
     func setupCamera() async {
+        let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        let isAuthorized: Bool
+        switch cameraStatus {
+        case .authorized:
+            isAuthorized = true
+        case .notDetermined:
+            isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
+        default:
+            isAuthorized = false
+        }
+        guard isAuthorized || !cameraService.isHardwareAvailable else { return }
+
         if cameraService.isSessionConfigured {
             isFrontCamera = cameraService.isFrontFacing
+            if cameraService.isRunning {
+                // Camera session is already active & running; skip redundant configuration
+                await loadLatestGalleryThumbnail()
+                return
+            }
         }
         _ = await cameraService.configureSession(isFront: isFrontCamera)
         cameraService.start()

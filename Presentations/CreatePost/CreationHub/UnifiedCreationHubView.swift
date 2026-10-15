@@ -50,15 +50,49 @@ struct UnifiedCreationHubView: View {
             Color.black.ignoresSafeArea()
 
             // Active Creation Screen
-            Group {
-                switch selectedMode {
-                case .post:
-                    CreatePostView(viewModel: postViewModel)
-                case .story:
-                    StoryCameraView(viewModel: storyViewModel, stopCameraOnDisappear: false)
-                case .reel:
-                    CreateReelView(viewModel: reelViewModel, stopCameraOnDisappear: false)
+            ZStack {
+                if selectedMode != .post, CameraService.shared.isHardwareAvailable {
+                    // A capture session has exactly one live preview layer. Story and Reel
+                    // supply their own controls above this shared stage.
+                    CameraPreviewView(
+                        session: CameraService.shared.session,
+                        isHardwareAvailable: true,
+                        isFrontFacing: selectedMode == .story
+                            ? storyViewModel.isFrontCamera
+                            : reelViewModel.isFrontCamera
+                    )
+                    .ignoresSafeArea()
                 }
+
+                if selectedMode == .post {
+                    CreatePostView(viewModel: postViewModel)
+                        .zIndex(2)
+                        .transition(.opacity)
+                }
+
+                // Persistent Story & Reel viewports to achieve 60/120 FPS zero-lag switching
+                ZStack {
+                    StoryCameraView(
+                        viewModel: storyViewModel,
+                        stopCameraOnDisappear: false,
+                        usesSharedCameraPreview: true,
+                        isCameraModeActive: selectedMode == .story
+                    )
+                        .opacity(selectedMode == .story ? 1 : 0)
+                        .allowsHitTesting(selectedMode == .story)
+                        .accessibilityHidden(selectedMode != .story)
+
+                    CreateReelView(
+                        viewModel: reelViewModel,
+                        stopCameraOnDisappear: false,
+                        usesSharedCameraPreview: true,
+                        isCameraModeActive: selectedMode == .reel
+                    )
+                        .opacity(selectedMode == .reel ? 1 : 0)
+                        .allowsHitTesting(selectedMode == .reel)
+                        .accessibilityHidden(selectedMode != .reel)
+                }
+                .zIndex(1)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -73,11 +107,22 @@ struct UnifiedCreationHubView: View {
         .onDisappear {
             CameraService.shared.stop()
         }
-        .onChange(of: selectedMode) { oldMode, newMode in
+        .onChange(of: selectedMode) { _, newMode in
             if newMode == .post {
                 CameraService.shared.stop()
-            } else if oldMode == .post {
-                CameraService.shared.start()
+            }
+
+            // Sync camera facing and gallery thumbnails between Story and Reel ViewModels
+            if newMode == .reel {
+                reelViewModel.isFrontCamera = CameraService.shared.isFrontFacing
+                if reelViewModel.latestGalleryThumbnail == nil {
+                    reelViewModel.latestGalleryThumbnail = storyViewModel.latestGalleryThumbnail
+                }
+            } else if newMode == .story {
+                storyViewModel.isFrontCamera = CameraService.shared.isFrontFacing
+                if storyViewModel.latestGalleryThumbnail == nil {
+                    storyViewModel.latestGalleryThumbnail = reelViewModel.latestGalleryThumbnail
+                }
             }
         }
     }

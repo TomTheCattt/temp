@@ -54,15 +54,25 @@ struct StoryCameraView: View {
     ]
 
     var stopCameraOnDisappear: Bool = true
+    /// The creation hub owns the only AVCaptureVideoPreviewLayer while tabs are persistent.
+    var usesSharedCameraPreview: Bool = false
+    var isCameraModeActive: Bool = true
 
-    init(viewModel: StoryCameraViewModel, stopCameraOnDisappear: Bool = true) {
+    init(
+        viewModel: StoryCameraViewModel,
+        stopCameraOnDisappear: Bool = true,
+        usesSharedCameraPreview: Bool = false,
+        isCameraModeActive: Bool = true
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.stopCameraOnDisappear = stopCameraOnDisappear
+        self.usesSharedCameraPreview = usesSharedCameraPreview
+        self.isCameraModeActive = isCameraModeActive
     }
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            (usesSharedCameraPreview ? Color.clear : Color.black).ignoresSafeArea()
 
             if viewModel.isShowingPreview {
                 storyEditorScreen
@@ -71,7 +81,8 @@ struct StoryCameraView: View {
             }
         }
         .statusBarHidden()
-        .task {
+        .task(id: isCameraModeActive) {
+            guard isCameraModeActive else { return }
             await viewModel.checkPermissions()
         }
         .onDisappear {
@@ -103,10 +114,13 @@ struct StoryCameraView: View {
         ZStack {
             // Camera Stream / Simulator Fallback
             if viewModel.cameraPermissionGranted {
-                if viewModel.isHardwareAvailable {
+                if usesSharedCameraPreview {
+                    Color.clear
+                } else if viewModel.isHardwareAvailable {
                     CameraPreviewView(
                         session: viewModel.cameraService.session,
-                        isHardwareAvailable: true
+                        isHardwareAvailable: true,
+                        isFrontFacing: viewModel.isFrontCamera
                     )
                     .ignoresSafeArea()
                 } else {
@@ -134,7 +148,7 @@ struct StoryCameraView: View {
             VStack {
                 Spacer()
                 centralShutterButton
-                    .padding(.bottom, 78)
+                    .padding(.bottom, CaptureLayoutMetrics.modeSwitcherClearance)
             }
 
             // Bottom Flanking Controls (Gallery Shortcut on Left, Camera Flip on Right)

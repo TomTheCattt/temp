@@ -140,7 +140,8 @@ struct PostCameraView: View {
             if viewModel.isHardwareAvailable {
                 CameraPreviewView(
                     session: viewModel.cameraService.session,
-                    isHardwareAvailable: true
+                    isHardwareAvailable: true,
+                    isFrontFacing: viewModel.isFrontCamera
                 )
                 .ignoresSafeArea()
             } else {

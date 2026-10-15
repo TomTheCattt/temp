@@ -14,28 +14,37 @@ struct CreateReelView: View {
 
     @State private var viewModel: CreateReelViewModel
     var stopCameraOnDisappear: Bool = true
+    /// The creation hub owns the only AVCaptureVideoPreviewLayer while tabs are persistent.
+    var usesSharedCameraPreview: Bool = false
+    var isCameraModeActive: Bool = true
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: CreateReelViewModel, stopCameraOnDisappear: Bool = true) {
+    init(
+        viewModel: CreateReelViewModel,
+        stopCameraOnDisappear: Bool = true,
+        usesSharedCameraPreview: Bool = false,
+        isCameraModeActive: Bool = true
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.stopCameraOnDisappear = stopCameraOnDisappear
+        self.usesSharedCameraPreview = usesSharedCameraPreview
+        self.isCameraModeActive = isCameraModeActive
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            (usesSharedCameraPreview ? Color.clear : Color.black).ignoresSafeArea()
 
-                if viewModel.isShowingShareDetails {
-                    shareDetailsScreen
-                } else if viewModel.isShowingEditor {
-                    editorScreen
-                } else {
-                    captureScreen
-                }
+            if viewModel.isShowingShareDetails {
+                shareDetailsScreen
+            } else if viewModel.isShowingEditor {
+                editorScreen
+            } else {
+                captureScreen
             }
         }
-        .task {
+        .task(id: isCameraModeActive) {
+            guard isCameraModeActive else { return }
             await viewModel.setupCamera()
         }
         .onDisappear {
@@ -62,13 +71,16 @@ struct CreateReelView: View {
 
     private var captureScreen: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            (usesSharedCameraPreview ? Color.clear : Color.black).ignoresSafeArea()
 
             // Viewfinder
-            if viewModel.cameraService.isHardwareAvailable {
+            if usesSharedCameraPreview {
+                Color.clear
+            } else if viewModel.cameraService.isHardwareAvailable {
                 CameraPreviewView(
                     session: viewModel.cameraService.session,
-                    isHardwareAvailable: true
+                    isHardwareAvailable: true,
+                    isFrontFacing: viewModel.isFrontCamera
                 )
                 .ignoresSafeArea()
             } else {
@@ -124,7 +136,7 @@ struct CreateReelView: View {
                 // Bottom Record & Gallery Controls
                 bottomCaptureControls
                     .padding(.horizontal, DS.Spacing.xl)
-                    .padding(.bottom, DS.Spacing.xxl + 30) // Offset for bottom mode switcher in creation hub
+                    .padding(.bottom, CaptureLayoutMetrics.modeSwitcherClearance)
             }
         }
         .navigationBarHidden(true)

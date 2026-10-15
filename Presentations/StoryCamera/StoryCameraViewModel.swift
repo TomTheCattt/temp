@@ -130,6 +130,11 @@ final class StoryCameraViewModel {
         if cameraPermissionGranted {
             if cameraService.isSessionConfigured {
                 isFrontCamera = cameraService.isFrontFacing
+                if cameraService.isRunning {
+                    // Session already active & running; skip redundant configuration
+                    await loadLatestGalleryThumbnail()
+                    return
+                }
             }
             _ = await cameraService.configureSession(isFront: isFrontCamera)
             cameraService.start()

@@ -45,8 +45,42 @@ final class CameraService: NSObject, @unchecked Sendable {
     private var photoContinuation: CheckedContinuation<Data, Error>?
     private var recordContinuation: CheckedContinuation<URL, Error>?
 
-    private(set) var isSessionConfigured = false
-    private(set) var isFrontFacing = false
+    // Configuration work happens on sessionQueue, while SwiftUI reads these
+    // values on the main actor. Keep the observable state separate from the
+    // capture graph and protect it from cross-thread stale reads.
+    private let stateLock = NSLock()
+    private var sessionConfigured = false
+    private var frontFacing = false
+    private var wantsRunning = false
+    private var interrupted = false
+
+    var isSessionConfigured: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return sessionConfigured
+    }
+
+    var isFrontFacing: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return frontFacing
+    }
+
+    var isRunning: Bool {
+        session.isRunning
+    }
+
+    private func setSessionConfigured(_ value: Bool) {
+        stateLock.lock()
+        sessionConfigured = value
+        stateLock.unlock()
+    }
+
+    private func setFrontFacing(_ value: Bool) {
+        stateLock.lock()
+        frontFacing = value
+        stateLock.unlock()
+    }
 
     /// Whether real hardware camera is available (returns false on iOS Simulator).
     var isHardwareAvailable: Bool {
@@ -56,6 +90,77 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     private override init() {
         super.init()
+        observeSessionLifecycle()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func observeSessionLifecycle() {
+        let center = NotificationCenter.default
+        center.addObserver(
+            self,
+            selector: #selector(sessionWasInterrupted(_:)),
+            name: AVCaptureSession.wasInterruptedNotification,
+            object: session
+        )
+        center.addObserver(
+            self,
+            selector: #selector(sessionInterruptionEnded(_:)),
+            name: AVCaptureSession.interruptionEndedNotification,
+            object: session
+        )
+        center.addObserver(
+            self,
+            selector: #selector(sessionRuntimeError(_:)),
+            name: AVCaptureSession.runtimeErrorNotification,
+            object: session
+        )
+        center.addObserver(
+            self,
+            selector: #selector(applicationDidEnterBackground(_:)),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(applicationWillEnterForeground(_:)),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+    }
+
+    @objc private func sessionWasInterrupted(_ notification: Notification) {
+        stateLock.lock()
+        interrupted = true
+        stateLock.unlock()
+    }
+
+    @objc private func sessionInterruptionEnded(_ notification: Notification) {
+        stateLock.lock()
+        interrupted = false
+        let shouldResume = wantsRunning
+        stateLock.unlock()
+        if shouldResume { startSessionIfNeeded() }
+    }
+
+    @objc private func sessionRuntimeError(_ notification: Notification) {
+        guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError else { return }
+        // Media services can be reset by the OS. The capture graph remains valid
+        // in common cases; resume it only when the current UI still wants camera.
+        if error.code == .mediaServicesWereReset { startSessionIfNeeded() }
+    }
+
+    @objc private func applicationDidEnterBackground(_ notification: Notification) {
+        sessionQueue.async { [weak self] in
+            guard let self, self.session.isRunning else { return }
+            self.session.stopRunning()
+        }
+    }
+
+    @objc private func applicationWillEnterForeground(_ notification: Notification) {
+        startSessionIfNeeded()
     }
 
     // MARK: - Configuration
@@ -88,7 +193,7 @@ final class CameraService: NSObject, @unchecked Sendable {
                            self.session.canAddInput(newInput) {
                             self.session.addInput(newInput)
                             self.videoDeviceInput = newInput
-                            self.isFrontFacing = isFront
+                            self.setFrontFacing(isFront)
                         } else {
                             self.session.addInput(currentInput)
                         }
@@ -122,7 +227,7 @@ final class CameraService: NSObject, @unchecked Sendable {
                 if self.session.canAddInput(videoInput) {
                     self.session.addInput(videoInput)
                     self.videoDeviceInput = videoInput
-                    self.isFrontFacing = isFront
+                    self.setFrontFacing(isFront)
                 }
 
                 // Audio input
@@ -149,7 +254,7 @@ final class CameraService: NSObject, @unchecked Sendable {
                 }
 
                 self.session.commitConfiguration()
-                self.isSessionConfigured = true
+                self.setSessionConfigured(true)
                 continuation.resume(returning: true)
             }
         }
@@ -159,6 +264,16 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func start() {
         guard isHardwareAvailable else { return }
+        stateLock.lock()
+        wantsRunning = true
+        let isInterrupted = interrupted
+        stateLock.unlock()
+        guard !isInterrupted else { return }
+        startSessionIfNeeded()
+    }
+
+    private func startSessionIfNeeded() {
+        guard isHardwareAvailable else { return }
         sessionQueue.async { [weak self] in
             guard let self, !self.session.isRunning else { return }
             self.session.startRunning()
@@ -167,6 +282,9 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func stop() {
         guard isHardwareAvailable else { return }
+        stateLock.lock()
+        wantsRunning = false
+        stateLock.unlock()
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
@@ -177,7 +295,7 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func switchCamera(isFront: Bool) {
         guard isHardwareAvailable else {
-            isFrontFacing = isFront
+            setFrontFacing(isFront)
             return
         }
 
@@ -195,7 +313,7 @@ final class CameraService: NSObject, @unchecked Sendable {
                self.session.canAddInput(newInput) {
                 self.session.addInput(newInput)
                 self.videoDeviceInput = newInput
-                self.isFrontFacing = isFront
+                self.setFrontFacing(isFront)
             }
 
             self.session.commitConfiguration()
@@ -238,12 +356,12 @@ final class CameraService: NSObject, @unchecked Sendable {
                 }
 
                 // Setup photo orientation
-                if let connection = self.photoOutput.connection(with: .video),
-                   let device = self.videoDeviceInput?.device {
-                    let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
-                    let angle = coordinator.videoRotationAngleForHorizonLevelCapture
-                    if connection.isVideoRotationAngleSupported(angle) {
-                        connection.videoRotationAngle = angle
+                if let connection = self.photoOutput.connection(with: .video) {
+                    let targetAngle: CGFloat = self.isFrontFacing ? 270 : 90
+                    if connection.isVideoRotationAngleSupported(targetAngle) {
+                        connection.videoRotationAngle = targetAngle
+                    } else if connection.isVideoOrientationSupported {
+                        connection.videoOrientation = .portrait
                     }
                 }
 
@@ -266,12 +384,12 @@ final class CameraService: NSObject, @unchecked Sendable {
             try? FileManager.default.removeItem(at: outputURL)
 
             // Setup movie orientation
-            if let connection = self.movieOutput.connection(with: .video),
-               let device = self.videoDeviceInput?.device {
-                let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
-                let angle = coordinator.videoRotationAngleForHorizonLevelCapture
-                if connection.isVideoRotationAngleSupported(angle) {
-                    connection.videoRotationAngle = angle
+            if let connection = self.movieOutput.connection(with: .video) {
+                let targetAngle: CGFloat = self.isFrontFacing ? 270 : 90
+                if connection.isVideoRotationAngleSupported(targetAngle) {
+                    connection.videoRotationAngle = targetAngle
+                } else if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
                 }
             }
 
