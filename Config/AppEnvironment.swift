@@ -58,7 +58,7 @@ enum APIMode: String {
     /// Resolves API mode from:
     /// 1. Process environment variable (set via Xcode scheme) — highest priority
     /// 2. Info.plist key (set via xcconfig / build settings)
-    /// 3. Defaults to `.live`
+    /// 3. Defaults to `.mock` in DEBUG builds, `.live` in release builds.
     static var current: APIMode {
         // Priority 1: Scheme environment variable
         if let envValue = ProcessInfo.processInfo.environment["API_MODE"]?.lowercased(),
@@ -66,8 +66,16 @@ enum APIMode: String {
             return mode
         }
         // Priority 2: Info.plist
-        let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String ?? "live").lowercased()
-        return APIMode(rawValue: raw) ?? .live
+        if let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String)?.lowercased(),
+           let mode = APIMode(rawValue: raw) {
+            return mode
+        }
+        // Priority 3: Sensible defaults (DEBUG builds default to mock so app works without Xcode debugger)
+        #if DEBUG
+        return .mock
+        #else
+        return .live
+        #endif
     }
 }
 

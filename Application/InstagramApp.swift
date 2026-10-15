@@ -26,9 +26,11 @@ struct InstagramApp: App {
             NetworkMonitor.shared.start()
         }
 
-        // Auto-login in mock API mode for development/testing.
+        // Session restoration and mock auto-login for development/testing.
         // Uses the same flow as production: authenticate → populate SessionStore → set router state.
-        if AppConfig.shared.isMockAPI {
+        if SessionStore.shared.currentUser != nil {
+            AppRouter.shared.isAuthenticated = true
+        } else if AppConfig.shared.isMockAPI {
             performMockAutoLogin()
         }
     }

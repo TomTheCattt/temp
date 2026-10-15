@@ -34,17 +34,38 @@ final class SessionStore: SessionStoreProtocol {
     /// The current authenticated user's full profile.
     private(set) var currentUser: User?
 
-    private init() {}
+    private let sessionUserKey = "com.instagram.current_session_user"
 
-    /// Populate session after successful authentication.
+    private init() {
+        _ = restoreSession()
+    }
+
+    /// Populate session after successful authentication and persist to local storage.
     func setSession(user: User) {
         currentUserId = user.id
         currentUser = user
+
+        if let encoded = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(encoded, forKey: sessionUserKey)
+        }
+    }
+
+    /// Restore session from local storage on app launch.
+    @discardableResult
+    func restoreSession() -> User? {
+        guard let data = UserDefaults.standard.data(forKey: sessionUserKey),
+              let user = try? JSONDecoder().decode(User.self, from: data) else {
+            return nil
+        }
+        currentUserId = user.id
+        currentUser = user
+        return user
     }
 
     /// Clear session on logout.
     func clear() {
         currentUserId = ""
         currentUser = nil
+        UserDefaults.standard.removeObject(forKey: sessionUserKey)
     }
 }
