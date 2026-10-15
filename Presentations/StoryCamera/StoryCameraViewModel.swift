@@ -128,6 +128,9 @@ final class StoryCameraViewModel {
         }
 
         if cameraPermissionGranted {
+            if cameraService.isSessionConfigured {
+                isFrontCamera = cameraService.isFrontFacing
+            }
             _ = await cameraService.configureSession(isFront: isFrontCamera)
             cameraService.start()
         }
@@ -137,6 +140,7 @@ final class StoryCameraViewModel {
     }
 
     private func loadLatestGalleryThumbnail() async {
+        guard latestGalleryThumbnail == nil else { return }
         if photoLibraryService.checkAuthorization() {
             let assets = await photoLibraryService.fetchAssets(in: nil, limit: 1)
             if let first = assets.first {

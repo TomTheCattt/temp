@@ -176,9 +176,14 @@ final class CameraFilterRenderer: NSObject, ObservableObject, @unchecked Sendabl
         }
 
         // Fix orientation
-        if let connection = videoOutput.connection(with: .video) {
-            connection.videoRotationAngle = 90
-            if currentPosition == .front {
+        if let connection = videoOutput.connection(with: .video),
+           let device = cameraDevice(for: currentPosition) {
+            let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+            let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+            if connection.isVideoRotationAngleSupported(angle) {
+                connection.videoRotationAngle = angle
+            }
+            if currentPosition == .front && connection.isVideoMirroringSupported {
                 connection.isVideoMirrored = true
             }
         }

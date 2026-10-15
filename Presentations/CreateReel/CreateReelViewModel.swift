@@ -165,6 +165,9 @@ final class CreateReelViewModel {
     // MARK: - Setup
 
     func setupCamera() async {
+        if cameraService.isSessionConfigured {
+            isFrontCamera = cameraService.isFrontFacing
+        }
         _ = await cameraService.configureSession(isFront: isFrontCamera)
         cameraService.start()
         await loadLatestGalleryThumbnail()
@@ -176,6 +179,7 @@ final class CreateReelViewModel {
     }
 
     func loadLatestGalleryThumbnail() async {
+        guard latestGalleryThumbnail == nil else { return }
         let authorized = await photoLibraryService.requestAuthorization()
         guard authorized else { return }
 

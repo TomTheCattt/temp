@@ -65,6 +65,11 @@ final class CameraService: NSObject, @unchecked Sendable {
             return false
         }
 
+        // Fast path: if already configured with matching camera position, return immediately!
+        if isSessionConfigured && isFrontFacing == isFront && videoDeviceInput != nil {
+            return true
+        }
+
         return await withCheckedContinuation { continuation in
             sessionQueue.async { [weak self] in
                 guard let self else {
@@ -72,8 +77,38 @@ final class CameraService: NSObject, @unchecked Sendable {
                     return
                 }
 
+                // If session is already configured, only hot-swap the video input device!
+                if self.isSessionConfigured, let currentInput = self.videoDeviceInput {
+                    if self.isFrontFacing != isFront {
+                        self.session.beginConfiguration()
+                        self.session.removeInput(currentInput)
+                        let position: AVCaptureDevice.Position = isFront ? .front : .back
+                        if let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+                           let newInput = try? AVCaptureDeviceInput(device: videoDevice),
+                           self.session.canAddInput(newInput) {
+                            self.session.addInput(newInput)
+                            self.videoDeviceInput = newInput
+                            self.isFrontFacing = isFront
+                        } else {
+                            self.session.addInput(currentInput)
+                        }
+                        self.session.commitConfiguration()
+                    }
+                    continuation.resume(returning: true)
+                    return
+                }
+
+                // Initial full session configuration
                 self.session.beginConfiguration()
                 self.session.sessionPreset = .high
+
+                // Remove any stale inputs/outputs
+                for input in self.session.inputs {
+                    self.session.removeInput(input)
+                }
+                for output in self.session.outputs {
+                    self.session.removeOutput(output)
+                }
 
                 // Video input
                 let position: AVCaptureDevice.Position = isFront ? .front : .back
@@ -201,6 +236,17 @@ final class CameraService: NSObject, @unchecked Sendable {
                 if self.videoDeviceInput?.device.hasFlash == true {
                     settings.flashMode = isFlashOn ? .on : .off
                 }
+
+                // Setup photo orientation
+                if let connection = self.photoOutput.connection(with: .video),
+                   let device = self.videoDeviceInput?.device {
+                    let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+                    let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+                    if connection.isVideoRotationAngleSupported(angle) {
+                        connection.videoRotationAngle = angle
+                    }
+                }
+
                 Task { @MainActor in
                     self.photoOutput.capturePhoto(with: settings, delegate: self)
                 }
@@ -219,14 +265,13 @@ final class CameraService: NSObject, @unchecked Sendable {
             let outputURL = tempDir.appendingPathComponent("story_recording_\(UUID().uuidString).mp4")
             try? FileManager.default.removeItem(at: outputURL)
 
-            // Setup orientation
-            if let connection = self.movieOutput.connection(with: .video) {
-                if #available(iOS 17.0, *) {
-                    if connection.isVideoRotationAngleSupported(90) {
-                        connection.videoRotationAngle = 90
-                    }
-                } else if connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .portrait
+            // Setup movie orientation
+            if let connection = self.movieOutput.connection(with: .video),
+               let device = self.videoDeviceInput?.device {
+                let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+                let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+                if connection.isVideoRotationAngleSupported(angle) {
+                    connection.videoRotationAngle = angle
                 }
             }
 

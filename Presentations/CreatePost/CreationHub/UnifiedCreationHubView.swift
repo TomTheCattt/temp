@@ -55,9 +55,9 @@ struct UnifiedCreationHubView: View {
                 case .post:
                     CreatePostView(viewModel: postViewModel)
                 case .story:
-                    StoryCameraView(viewModel: storyViewModel)
+                    StoryCameraView(viewModel: storyViewModel, stopCameraOnDisappear: false)
                 case .reel:
-                    CreateReelView(viewModel: reelViewModel)
+                    CreateReelView(viewModel: reelViewModel, stopCameraOnDisappear: false)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,6 +70,16 @@ struct UnifiedCreationHubView: View {
         }
         .statusBarHidden()
         .animation(.easeInOut(duration: 0.25), value: shouldShowModeSwitcher)
+        .onDisappear {
+            CameraService.shared.stop()
+        }
+        .onChange(of: selectedMode) { oldMode, newMode in
+            if newMode == .post {
+                CameraService.shared.stop()
+            } else if oldMode == .post {
+                CameraService.shared.start()
+            }
+        }
     }
 
     // MARK: - Bottom Mode Switcher

@@ -13,10 +13,12 @@ import AVKit
 struct CreateReelView: View {
 
     @State private var viewModel: CreateReelViewModel
+    var stopCameraOnDisappear: Bool = true
     @Environment(\.dismiss) private var dismiss
 
-    init(viewModel: CreateReelViewModel) {
+    init(viewModel: CreateReelViewModel, stopCameraOnDisappear: Bool = true) {
         _viewModel = State(initialValue: viewModel)
+        self.stopCameraOnDisappear = stopCameraOnDisappear
     }
 
     var body: some View {
@@ -37,7 +39,9 @@ struct CreateReelView: View {
             await viewModel.setupCamera()
         }
         .onDisappear {
-            viewModel.stopCamera()
+            if stopCameraOnDisappear {
+                viewModel.stopCamera()
+            }
         }
         .onChange(of: viewModel.isPublished) { _, published in
             if published {

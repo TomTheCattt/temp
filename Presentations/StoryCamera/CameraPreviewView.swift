@@ -26,6 +26,7 @@ struct CameraPreviewView: UIViewRepresentable {
         if uiView.videoPreviewLayer.session != session {
             uiView.videoPreviewLayer.session = session
         }
+        uiView.updateOrientation()
     }
 }
 
@@ -41,16 +42,57 @@ final class CameraPreviewUIView: UIView {
         layer as! AVCaptureVideoPreviewLayer
     }
 
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupObservers()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupObservers()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setupObservers() {
+        if #available(iOS 18.0, *) {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleSessionChange),
+                name: AVCaptureSession.didStartRunningNotification,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleSessionChange),
+                name: AVCaptureInput.Port.formatDescriptionDidChangeNotification,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func handleSessionChange() {
+        DispatchQueue.main.async { [weak self] in
+            self?.updateOrientation()
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         videoPreviewLayer.frame = bounds
-        if let connection = videoPreviewLayer.connection {
-            if #available(iOS 17.0, *) {
-                if connection.isVideoRotationAngleSupported(90) {
-                    connection.videoRotationAngle = 90
-                }
-            } else if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+        updateOrientation()
+    }
+
+    func updateOrientation() {
+        guard let connection = videoPreviewLayer.connection else { return }
+
+        if let device = (videoPreviewLayer.session?.inputs.first(where: { ($0 as? AVCaptureDeviceInput)?.device.hasMediaType(.video) == true }) as? AVCaptureDeviceInput)?.device {
+            let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: videoPreviewLayer)
+            let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+            if connection.isVideoRotationAngleSupported(angle) {
+                connection.videoRotationAngle = angle
             }
         }
     }

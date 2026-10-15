@@ -53,8 +53,11 @@ struct StoryCameraView: View {
         Color.green
     ]
 
-    init(viewModel: StoryCameraViewModel) {
+    var stopCameraOnDisappear: Bool = true
+
+    init(viewModel: StoryCameraViewModel, stopCameraOnDisappear: Bool = true) {
         _viewModel = State(initialValue: viewModel)
+        self.stopCameraOnDisappear = stopCameraOnDisappear
     }
 
     var body: some View {
@@ -72,7 +75,9 @@ struct StoryCameraView: View {
             await viewModel.checkPermissions()
         }
         .onDisappear {
-            viewModel.cameraService.stop()
+            if stopCameraOnDisappear {
+                viewModel.cameraService.stop()
+            }
         }
         .onChange(of: viewModel.isPublished) { _, published in
             if published { dismiss() }
