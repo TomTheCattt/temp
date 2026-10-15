@@ -42,7 +42,7 @@ struct CreateActionSheetView: View {
                 ) {
                     dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        AppRouter.shared.present(sheet: .createPost)
+                        AppRouter.shared.present(fullScreen: .createPost)
                     }
                 }
 
@@ -57,7 +57,7 @@ struct CreateActionSheetView: View {
                 ) {
                     dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        AppRouter.shared.present(sheet: .createReel)
+                        AppRouter.shared.present(fullScreen: .createReel)
                     }
                 }
 
@@ -72,7 +72,7 @@ struct CreateActionSheetView: View {
                 ) {
                     dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        AppRouter.shared.present(sheet: .createStory)
+                        AppRouter.shared.present(fullScreen: .createStory)
                     }
                 }
 

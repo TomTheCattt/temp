@@ -123,6 +123,9 @@ enum AppFullScreen: Identifiable {
     case storyCamera
     case storyViewer(userId: String)
     case myStory
+    case createPost
+    case createStory
+    case createReel
 
     var id: String {
         switch self {
@@ -131,6 +134,9 @@ enum AppFullScreen: Identifiable {
         case .storyCamera:          return "storyCamera"
         case .storyViewer(let id):  return "storyViewer_\(id)"
         case .myStory:              return "myStory"
+        case .createPost:           return "createPost"
+        case .createStory:          return "createStory"
+        case .createReel:           return "createReel"
         }
     }
 }

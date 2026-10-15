@@ -81,7 +81,7 @@ struct CreatePostView: View {
                     viewModel.setCapturedMedia(data: data)
                 }
             }
-            .sheet(isPresented: $isShowingLayout) {
+            .fullScreenCover(isPresented: $isShowingLayout) {
                 LayoutCollageView(isPresented: $isShowingLayout) { data in
                     viewModel.setCapturedMedia(data: data)
                 }

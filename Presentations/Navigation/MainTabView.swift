@@ -343,6 +343,27 @@ struct MainTabView: View {
                 )
             )
             .presentationBackground(.clear)
+
+        case .createPost:
+            CreatePostView(
+                viewModel: CreatePostViewModel(
+                    createPostUseCase: DIContainer.shared.resolve(CreatePostUseCaseProtocol.self)
+                )
+            )
+
+        case .createStory:
+            StoryCameraView(
+                viewModel: StoryCameraViewModel(
+                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
+                )
+            )
+
+        case .createReel:
+            CreateReelView(
+                viewModel: CreateReelViewModel(
+                    reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
+                )
+            )
         }
     }
 
