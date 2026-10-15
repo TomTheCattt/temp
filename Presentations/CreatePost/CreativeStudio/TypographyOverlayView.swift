@@ -31,6 +31,48 @@ public enum TextFontStyle: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - TextAnimationType
+
+public enum TextAnimationType: String, CaseIterable, Identifiable {
+    case none = "Không"
+    case typewriter = "Chữ đánh máy"
+    case reveal = "Hiện ra"
+    case bounce = "Nhảy"
+
+    public var id: String { rawValue }
+
+    public var iconName: String {
+        switch self {
+        case .none: return "slash.circle"
+        case .typewriter: return "character.cursor.ibeam"
+        case .reveal: return "sparkle"
+        case .bounce: return "arrow.up.and.down"
+        }
+    }
+}
+
+// MARK: - TextEffectType
+
+public enum TextEffectType: String, CaseIterable, Identifiable {
+    case none = "Không"
+    case sparkle = "Lấp lánh"
+    case neon = "Neon"
+    case wavy = "Lung linh"
+    case pixel = "Pixel"
+
+    public var id: String { rawValue }
+
+    public var iconName: String {
+        switch self {
+        case .none: return "slash.circle"
+        case .sparkle: return "sparkles"
+        case .neon: return "bolt.fill"
+        case .wavy: return "water.waves"
+        case .pixel: return "circle.grid.2x2"
+        }
+    }
+}
+
 // MARK: - TextOverlayItem
 
 public struct TextOverlayItem: Identifiable {
@@ -40,6 +82,9 @@ public struct TextOverlayItem: Identifiable {
     public var hasBackground: Bool
     public var fontStyle: TextFontStyle
     public var alignment: TextAlignment
+    public var isItalic: Bool
+    public var animation: TextAnimationType
+    public var effect: TextEffectType
     public var offset: CGSize
     public var scale: CGFloat
 
@@ -50,6 +95,9 @@ public struct TextOverlayItem: Identifiable {
         hasBackground: Bool = false,
         fontStyle: TextFontStyle = .modern,
         alignment: TextAlignment = .center,
+        isItalic: Bool = false,
+        animation: TextAnimationType = .none,
+        effect: TextEffectType = .none,
         offset: CGSize = .zero,
         scale: CGFloat = 1.0
     ) {
@@ -59,6 +107,9 @@ public struct TextOverlayItem: Identifiable {
         self.hasBackground = hasBackground
         self.fontStyle = fontStyle
         self.alignment = alignment
+        self.isItalic = isItalic
+        self.animation = animation
+        self.effect = effect
         self.offset = offset
         self.scale = scale
     }
@@ -101,7 +152,8 @@ struct TypographyOverlayView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Text(item.text)
-                .font(item.fontStyle.font)
+                .font(item.effect == .pixel ? .system(size: 28, weight: .bold, design: .monospaced) : item.fontStyle.font)
+                .italic(item.isItalic)
                 .multilineTextAlignment(item.alignment)
                 .foregroundStyle(item.color)
                 .padding(.horizontal, item.hasBackground ? 12 : 6)
@@ -115,7 +167,12 @@ struct TypographyOverlayView: View {
                         .strokeBorder(isSelected ? ColorTokens.accentPrimary : Color.clear, lineWidth: 1.5)
                         .padding(-4)
                 )
-                .shadow(color: .black.opacity(item.hasBackground ? 0.35 : 0.7), radius: 4, x: 0, y: 2)
+                .shadow(
+                    color: item.effect == .neon ? item.color.opacity(0.8) : (item.effect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(item.hasBackground ? 0.35 : 0.7)),
+                    radius: (item.effect == .neon || item.effect == .sparkle) ? 10 : 4,
+                    x: 0,
+                    y: 2
+                )
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if isSelected {

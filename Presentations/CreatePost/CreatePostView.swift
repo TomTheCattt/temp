@@ -234,7 +234,7 @@ struct CreatePostView: View {
                     viewModel.toggleMultiSelect()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: viewModel.isMultiSelectEnabled ? "square.stack.on.square.fill" : "square.stack.on.square")
+                        Image(systemName: viewModel.isMultiSelectEnabled ? "square.on.square.fill" : "square.on.square")
                             .font(.caption)
                         Text("CHỌN NHIỀU")
                             .font(DS.Font.caption2)
@@ -247,17 +247,6 @@ struct CreatePostView: View {
                         viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : Color(.systemGray6),
                         in: Capsule()
                     )
-                }
-
-                // Camera Launch Button
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Image(systemName: "camera")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .padding(7)
-                        .background(Color(.systemGray6), in: Circle())
                 }
             }
         }

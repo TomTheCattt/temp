@@ -618,45 +618,15 @@ struct StoryCameraView: View {
     // MARK: - Story Sticker Drawer
 
     private var storyStickerDrawer: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: DS.Spacing.lg) {
-                    stickerTile(icon: "mappin.and.ellipse", title: "VỊ TRÍ", color: .red) {
-                        viewModel.texts.append(TextOverlayItem(text: "📍 Vị trí", hasBackground: true))
-                        isShowingStickerDrawer = false
-                    }
-
-                    stickerTile(icon: "at", title: "NHẮC TÊN", color: .orange) {
-                        viewModel.texts.append(TextOverlayItem(text: "@banbe", hasBackground: true))
-                        isShowingStickerDrawer = false
-                    }
-
-                    stickerTile(icon: "chart.bar.xaxis", title: "THĂM DÒ", color: .purple) {
-                        viewModel.texts.append(TextOverlayItem(text: "📊 Có / Không?", hasBackground: true))
-                        isShowingStickerDrawer = false
-                    }
-
-                    stickerTile(icon: "questionmark.circle", title: "CÂU HỎI", color: .blue) {
-                        viewModel.texts.append(TextOverlayItem(text: "💬 Hãy hỏi tôi một câu", hasBackground: true))
-                        isShowingStickerDrawer = false
-                    }
-
-                    stickerTile(icon: "link", title: "LIÊN KẾT", color: .indigo) {
-                        viewModel.texts.append(TextOverlayItem(text: "🔗 Xem thêm", hasBackground: true))
-                        isShowingStickerDrawer = false
-                    }
-                }
-                .padding()
+        StoryStickerDrawer(
+            isPresented: $isShowingStickerDrawer,
+            onAddPhotoSticker: { stickerData in
+                viewModel.stickers.append(PIPStickerItem(imageData: stickerData))
+            },
+            onAddTextSticker: { textItem in
+                viewModel.texts.append(textItem)
             }
-            .navigationTitle("Nhãn dán")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.Common.cancel) { isShowingStickerDrawer = false }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
+        )
     }
 
     @ViewBuilder
@@ -740,7 +710,7 @@ struct StoryCameraView: View {
                 Spacer()
 
                 // Center Live Editable Text
-                TextField("Nhập chữ...", text: $editingText, axis: .vertical)
+                TextField("", text: $editingText, axis: .vertical)
                     .focused($isFieldFocused)
                     .font(editingFontStyle.font)
                     .multilineTextAlignment(editingAlignment)

@@ -81,7 +81,7 @@ struct UnifiedCreationHubView: View {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                         selectedMode = mode
                     }
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    HapticFeedbackSafe.impact(.light)
                 } label: {
                     Text(mode.rawValue)
                         .font(.system(size: 13, weight: selectedMode == mode ? .bold : .medium))
@@ -125,12 +125,12 @@ struct UnifiedCreationHubView: View {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 selectedMode = modes[currentIndex + 1]
             }
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            HapticFeedbackSafe.impact(.medium)
         } else if !forward && currentIndex > 0 {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 selectedMode = modes[currentIndex - 1]
             }
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            HapticFeedbackSafe.impact(.medium)
         }
     }
 }

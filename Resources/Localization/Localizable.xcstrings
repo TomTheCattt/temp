@@ -1522,6 +1522,9 @@
     "Chọn ảnh từ thư viện bên dưới" : {
 
     },
+    "Chọn ảnh từ thư viện để tạo sticker tuỳ chỉnh" : {
+
+    },
     "CHỌN NHIỀU" : {
 
     },
@@ -3199,6 +3202,9 @@
           }
         }
       }
+    },
+    "Emoji nổi bật" : {
+
     },
     "Ending..." : {
       "extractionState" : "stale",
@@ -6516,6 +6522,12 @@
 
     },
     "Tin của bạn" : {
+
+    },
+    "TỪ ẢNH" : {
+
+    },
+    "Tự tạo nhãn dán" : {
 
     },
     "Two-Factor Authentication" : {

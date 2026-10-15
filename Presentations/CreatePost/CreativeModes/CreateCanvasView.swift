@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import PhotosUI
 
 // MARK: - CanvasTheme
@@ -16,14 +17,198 @@ struct CanvasTheme: Identifiable {
     let colors: [Color]
 }
 
+// MARK: - TypographyToolTab
+
+enum TypographyToolTab: Equatable {
+    case font        // Aa: Font Family Carousel
+    case animation   // //A: Text Animation Carousel (Chữ đánh máy, Hiện ra, Nhảy)
+    case effect      // A✨: Text Effect Carousel (Lấp lánh, Neon, Lung linh, Pixel)
+}
+
+// MARK: - TaperedVerticalTrackShape
+
+/// Wedge-shaped track for the font size slider matching Instagram iOS:
+/// Tapered from wider at the top (~6pt) to narrower at the bottom (~2pt).
+struct TaperedVerticalTrackShape: Shape {
+    var topWidth: CGFloat = 6.0
+    var bottomWidth: CGFloat = 2.0
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let midX = rect.midX
+        let topHalf = topWidth / 2.0
+        let bottomHalf = bottomWidth / 2.0
+
+        // Top arc / rounded cap
+        path.move(to: CGPoint(x: midX - topHalf, y: rect.minY + topHalf))
+        path.addArc(
+            center: CGPoint(x: midX, y: rect.minY + topHalf),
+            radius: topHalf,
+            startAngle: .degrees(180),
+            endAngle: .degrees(0),
+            clockwise: false
+        )
+        // Down to bottom right
+        path.addLine(to: CGPoint(x: midX + bottomHalf, y: rect.maxY - bottomHalf))
+        // Bottom arc / rounded cap
+        path.addArc(
+            center: CGPoint(x: midX, y: rect.maxY - bottomHalf),
+            radius: bottomHalf,
+            startAngle: .degrees(0),
+            endAngle: .degrees(180),
+            clockwise: false
+        )
+        // Back up to top left
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - UnyieldingTextView & PersistentStoryTextView
+
+/// A UITextView subclass that locks responder status so tapping toolbar buttons,
+/// color swatches, or dragging sliders never dismisses or flickers the keyboard.
+final class UnyieldingTextView: UITextView {
+    var isEditingLocked: Bool = true
+    var maxLayoutWidth: CGFloat = 300
+
+    override var canResignFirstResponder: Bool {
+        if isEditingLocked {
+            return false
+        }
+        return super.canResignFirstResponder
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let fitSize = sizeThatFits(CGSize(width: maxLayoutWidth, height: .greatestFiniteMagnitude))
+        let width = max(44, min(maxLayoutWidth, fitSize.width))
+        let height = max(38, fitSize.height)
+        return CGSize(width: width, height: height)
+    }
+}
+
+/// UIViewRepresentable hosting UnyieldingTextView with intrinsic text hugging and keyboard retention.
+struct PersistentStoryTextView: UIViewRepresentable {
+    @Binding var text: String
+    let font: UIFont
+    let textColor: UIColor
+    let textAlignment: NSTextAlignment
+    let hasBackground: Bool
+    let badgeBackgroundColor: UIColor
+    let isEditingLocked: Bool
+    let maxLayoutWidth: CGFloat
+
+    func makeUIView(context: Context) -> UnyieldingTextView {
+        let textView = UnyieldingTextView()
+        textView.backgroundColor = hasBackground ? badgeBackgroundColor : .clear
+        textView.layer.cornerRadius = 8
+        textView.layer.masksToBounds = true
+        textView.textColor = textColor
+        textView.font = font
+        textView.textAlignment = textAlignment
+        textView.isScrollEnabled = false
+        textView.textContainer.lineFragmentPadding = 0
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        textView.delegate = context.coordinator
+        textView.tintColor = .systemBlue
+        textView.keyboardAppearance = .dark
+        textView.isEditingLocked = isEditingLocked
+        textView.maxLayoutWidth = maxLayoutWidth
+        textView.setContentHuggingPriority(.required, for: .horizontal)
+        textView.setContentHuggingPriority(.required, for: .vertical)
+        textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        DispatchQueue.main.async {
+            textView.becomeFirstResponder()
+        }
+        return textView
+    }
+
+    func updateUIView(_ uiView: UnyieldingTextView, context: Context) {
+        uiView.isEditingLocked = isEditingLocked
+        uiView.maxLayoutWidth = maxLayoutWidth
+
+        if uiView.text != text {
+            uiView.text = text
+        }
+        uiView.font = font
+        uiView.textColor = textColor
+        uiView.textAlignment = textAlignment
+
+        let newBg = hasBackground ? badgeBackgroundColor : .clear
+        if uiView.backgroundColor != newBg {
+            uiView.backgroundColor = newBg
+        }
+        uiView.invalidateIntrinsicContentSize()
+
+        if isEditingLocked && !uiView.isFirstResponder {
+            DispatchQueue.main.async {
+                uiView.becomeFirstResponder()
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UITextViewDelegate {
+        var parent: PersistentStoryTextView
+
+        init(_ parent: PersistentStoryTextView) {
+            self.parent = parent
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            textView.invalidateIntrinsicContentSize()
+        }
+    }
+}
+
+// MARK: - TextFontStyle UIFont Mapping
+
+extension TextFontStyle {
+    func uiFont(size: CGFloat, isItalic: Bool = false) -> UIFont {
+        var descriptor: UIFontDescriptor
+        switch self {
+        case .modern:
+            descriptor = UIFont.systemFont(ofSize: size, weight: .bold).fontDescriptor
+        case .classic:
+            let systemFont = UIFont.systemFont(ofSize: size, weight: .regular)
+            descriptor = systemFont.fontDescriptor.withDesign(.serif) ?? systemFont.fontDescriptor
+        case .signature:
+            let systemFont = UIFont.systemFont(ofSize: size, weight: .medium)
+            descriptor = systemFont.fontDescriptor.withDesign(.rounded) ?? systemFont.fontDescriptor
+        case .neon:
+            let systemFont = UIFont.systemFont(ofSize: size, weight: .semibold)
+            descriptor = systemFont.fontDescriptor.withDesign(.rounded) ?? systemFont.fontDescriptor
+        case .typewriter:
+            let systemFont = UIFont.systemFont(ofSize: size, weight: .medium)
+            descriptor = systemFont.fontDescriptor.withDesign(.monospaced) ?? systemFont.fontDescriptor
+        case .strong:
+            let systemFont = UIFont.systemFont(ofSize: size, weight: .heavy)
+            descriptor = systemFont.fontDescriptor.withDesign(.serif) ?? systemFont.fontDescriptor
+        }
+
+        if isItalic {
+            if let italicDescriptor = descriptor.withSymbolicTraits(.traitItalic) {
+                descriptor = italicDescriptor
+            }
+        }
+
+        return UIFont(descriptor: descriptor, size: size)
+    }
+}
+
 // MARK: - CreateCanvasView
 
 /// Instagram "Create" (Aa) Mode matching official iOS Instagram 1:1:
 /// - Idle: Fullscreen gradient canvas, tap anywhere to begin typing, right vertical tools (collapsed/expanded),
 ///   and bottom "Thêm chú thích...", "Tin của bạn", "Bạn thân", blue next `->` button.
-/// - Typing: Softly dimmed blurred gradient background, top-right "Xong", left vertical font size slider,
-///   font styles carousel, typography tools (color, slant, alignment, highlight), quick tags,
-///   and keyboard retention while interacting with format options.
+/// - Typing: Softly dimmed blurred gradient background, top-right "Xong", left vertical tapered font size slider,
+///   font styles carousel, dynamic animation/effect carousels, persistent keyboard focus,
+///   and text-hugging background highlight.
 struct CreateCanvasView: View {
 
     @Binding var isPresented: Bool
@@ -49,8 +234,8 @@ struct CreateCanvasView: View {
 
     @State private var stickers: [PIPStickerItem] = []
     @State private var texts: [TextOverlayItem] = []
-    @State private var selectedStickerItem: PhotosPickerItem?
     @State private var isRightMenuExpanded = false
+    @State private var isShowingStickerDrawer = false
 
     // Inline Text Editor State
     @State private var isEditingText = false
@@ -61,8 +246,10 @@ struct CreateCanvasView: View {
     @State private var editingFontStyle: TextFontStyle = .modern
     @State private var editingAlignment: TextAlignment = .center
     @State private var editingFontSize: CGFloat = 32
+    @State private var editingAnimation: TextAnimationType = .none
+    @State private var editingEffect: TextEffectType = .none
+    @State private var activeToolTab: TypographyToolTab = .font
     @State private var isColorPickerVisible = false
-    @FocusState private var isFieldFocused: Bool
 
     private let availableColors: [Color] = [
         .white,
@@ -73,6 +260,7 @@ struct CreateCanvasView: View {
         Color.pink,
         Color.purple,
         Color.blue,
+        Color.cyan,
         Color.green
     ]
 
@@ -126,6 +314,17 @@ struct CreateCanvasView: View {
             }
         }
         .statusBarHidden()
+        .sheet(isPresented: $isShowingStickerDrawer) {
+            StoryStickerDrawer(
+                isPresented: $isShowingStickerDrawer,
+                onAddPhotoSticker: { stickerData in
+                    stickers.append(PIPStickerItem(imageData: stickerData))
+                },
+                onAddTextSticker: { textItem in
+                    texts.append(textItem)
+                }
+            )
+        }
     }
 
     // MARK: - Idle Mode UI
@@ -135,6 +334,7 @@ struct CreateCanvasView: View {
             // Top Bar: Dismiss (Left)
             HStack {
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     isPresented = false
                 } label: {
                     Image(systemName: "xmark")
@@ -173,35 +373,28 @@ struct CreateCanvasView: View {
                     startEditing()
                 }
 
-                PhotosPicker(selection: $selectedStickerItem, matching: .images) {
+                Button {
+                    HapticFeedbackSafe.impact(.light)
+                    isShowingStickerDrawer = true
+                } label: {
                     Image(systemName: "face.smiling")
                         .font(.system(size: 20))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
                 }
-                .onChange(of: selectedStickerItem) { _, newItem in
-                    guard let newItem else { return }
-                    Task {
-                        if let data = try? await newItem.loadTransferable(type: Data.self) {
-                            await MainActor.run {
-                                stickers.append(PIPStickerItem(imageData: data))
-                                selectedStickerItem = nil
-                            }
-                        }
-                    }
-                }
 
                 rightCircleButton(icon: "music.note") {
-                    // Audio selection placeholder / feedback
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 rightCircleButton(icon: "bookmark") {
-                    // Saved presets
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 // Gradient Theme Cycler Bubble
                 Button {
+                    HapticFeedbackSafe.selection()
                     withAnimation(.easeInOut(duration: 0.25)) {
                         activeThemeIndex = (activeThemeIndex + 1) % themes.count
                     }
@@ -222,6 +415,7 @@ struct CreateCanvasView: View {
 
                 // Expand button (chevron.down)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isRightMenuExpanded = true
                     }
@@ -238,7 +432,10 @@ struct CreateCanvasView: View {
                     startEditing()
                 }
 
-                PhotosPicker(selection: $selectedStickerItem, matching: .images) {
+                Button {
+                    HapticFeedbackSafe.impact(.light)
+                    isShowingStickerDrawer = true
+                } label: {
                     HStack(spacing: 12) {
                         Text("Nhãn dán")
                             .font(.system(size: 14, weight: .semibold))
@@ -252,28 +449,18 @@ struct CreateCanvasView: View {
                             .background(Color.black.opacity(0.35), in: Circle())
                     }
                 }
-                .onChange(of: selectedStickerItem) { _, newItem in
-                    guard let newItem else { return }
-                    Task {
-                        if let data = try? await newItem.loadTransferable(type: Data.self) {
-                            await MainActor.run {
-                                stickers.append(PIPStickerItem(imageData: data))
-                                selectedStickerItem = nil
-                            }
-                        }
-                    }
-                }
 
                 expandedToolRow(label: "Âm thanh", icon: "music.note") {
-                    // Audio selection
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 expandedToolRow(label: "Đã lưu", icon: "bookmark") {
-                    // Saved
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 // Background gradient cycler with label
                 Button {
+                    HapticFeedbackSafe.selection()
                     withAnimation(.easeInOut(duration: 0.25)) {
                         activeThemeIndex = (activeThemeIndex + 1) % themes.count
                     }
@@ -305,7 +492,7 @@ struct CreateCanvasView: View {
                 }
 
                 expandedToolRow(label: "Vẽ", icon: "scribble") {
-                    // Drawing canvas
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 expandedToolRow(label: "Tải xuống", icon: "arrow.down.to.line") {
@@ -313,11 +500,12 @@ struct CreateCanvasView: View {
                 }
 
                 expandedToolRow(label: "Khác", icon: "ellipsis") {
-                    // More options
+                    HapticFeedbackSafe.impact(.light)
                 }
 
                 // Collapse button (chevron.up)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isRightMenuExpanded = false
                     }
@@ -334,7 +522,10 @@ struct CreateCanvasView: View {
 
     @ViewBuilder
     private func rightCircleButton(icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            HapticFeedbackSafe.impact(.light)
+            action()
+        } label: {
             Image(systemName: icon)
                 .font(.system(size: 20))
                 .foregroundStyle(.white)
@@ -345,7 +536,10 @@ struct CreateCanvasView: View {
 
     @ViewBuilder
     private func expandedToolRow(label: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            HapticFeedbackSafe.impact(.light)
+            action()
+        } label: {
             HStack(spacing: 12) {
                 Text(label)
                     .font(.system(size: 14, weight: .semibold))
@@ -379,6 +573,7 @@ struct CreateCanvasView: View {
             HStack(spacing: DS.Spacing.sm) {
                 // Button 1: Your Story (Tin của bạn)
                 Button {
+                    HapticFeedbackSafe.impact(.medium)
                     finishAndExport()
                 } label: {
                     HStack(spacing: 8) {
@@ -403,6 +598,7 @@ struct CreateCanvasView: View {
 
                 // Button 2: Close Friends (Bạn thân)
                 Button {
+                    HapticFeedbackSafe.impact(.medium)
                     finishAndExport()
                 } label: {
                     HStack(spacing: 8) {
@@ -423,6 +619,7 @@ struct CreateCanvasView: View {
 
                 // Button 3: Blue Next ->
                 Button {
+                    HapticFeedbackSafe.impact(.medium)
                     finishAndExport()
                 } label: {
                     Image(systemName: "arrow.right")
@@ -452,6 +649,7 @@ struct CreateCanvasView: View {
                     Spacer()
 
                     Button("Xong") {
+                        HapticFeedbackSafe.impact(.light)
                         finishEditingText()
                     }
                     .font(.system(size: 17, weight: .bold))
@@ -462,28 +660,31 @@ struct CreateCanvasView: View {
 
                 Spacer()
 
-                // Main Live Typing Field with Left Vertical Slider
+                // Main Live Typing Field with Left Vertical Tapered Slider
                 HStack(alignment: .center, spacing: 0) {
-                    // Left Vertical Font Size Slider
+                    // Left Vertical Tapered Font Size Slider
                     verticalFontSizeSlider
                         .frame(width: 36)
 
                     Spacer()
 
-                    // Center Live Editable Text
-                    TextField("", text: $editingText, axis: .vertical)
-                        .focused($isFieldFocused)
-                        .font(.system(size: editingFontSize, weight: .bold))
-                        .multilineTextAlignment(editingAlignment)
-                        .foregroundStyle(editingColor)
-                        .padding(.horizontal, editingHasBackground ? 16 : 8)
-                        .padding(.vertical, editingHasBackground ? 10 : 4)
-                        .background(
-                            editingHasBackground ? editingColor.smartBadgeBackgroundColor : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 10)
-                        )
-                        .shadow(color: .black.opacity(editingHasBackground ? 0.35 : 0.7), radius: 6, x: 0, y: 2)
-                        .frame(maxWidth: .infinity)
+                    // Center Live Editable Text wrapped with exact text hugging
+                    PersistentStoryTextView(
+                        text: $editingText,
+                        font: editingFontStyle.uiFont(size: editingFontSize, isItalic: false),
+                        textColor: UIColor(editingColor),
+                        textAlignment: editingAlignment.nsTextAlignment,
+                        hasBackground: editingHasBackground,
+                        badgeBackgroundColor: UIColor(editingColor.smartBadgeBackgroundColor),
+                        isEditingLocked: isEditingText,
+                        maxLayoutWidth: max(180, UIScreen.main.bounds.width - 92)
+                    )
+                    .shadow(
+                        color: editingEffect == .neon ? editingColor.opacity(0.8) : (editingEffect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(editingHasBackground ? 0.35 : 0.7)),
+                        radius: (editingEffect == .neon || editingEffect == .sparkle) ? 10 : 4,
+                        x: 0,
+                        y: 2
+                    )
 
                     Spacer()
 
@@ -498,95 +699,87 @@ struct CreateCanvasView: View {
                 keyboardFormattingToolbar
             }
         }
-        .onAppear {
-            isFieldFocused = true
-        }
     }
 
-    // MARK: - Vertical Font Size Slider
+    // MARK: - Tapered Vertical Font Size Slider (Matching media_1792051226454.png)
 
     private var verticalFontSizeSlider: some View {
         GeometryReader { sliderGeo in
-            let sliderHeight: CGFloat = 160
+            let sliderHeight: CGFloat = 170
+            let topPadding = max(0, (sliderGeo.size.height - sliderHeight) / 2)
             let normalized = max(0.0, min(1.0, (editingFontSize - 18) / (56 - 18)))
             let thumbY = sliderHeight * (1.0 - normalized)
 
             ZStack(alignment: .topLeading) {
-                // Subtle Track
-                Capsule()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(width: 3, height: sliderHeight)
-                    .offset(x: 2, y: (sliderGeo.size.height - sliderHeight) / 2)
+                // Tapered vertical track (wider at top, narrower at bottom)
+                TaperedVerticalTrackShape(topWidth: 6.0, bottomWidth: 2.0)
+                    .fill(Color.white.opacity(0.4))
+                    .frame(width: 8, height: sliderHeight)
+                    .offset(x: 10, y: topPadding)
 
-                // Draggable White Half-Circle Thumb
+                // Draggable White Circular Thumb
                 Circle()
                     .fill(Color.white)
                     .frame(width: 22, height: 22)
-                    .shadow(color: .black.opacity(0.4), radius: 3)
-                    .offset(x: -8, y: (sliderGeo.size.height - sliderHeight) / 2 + thumbY - 11)
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { val in
-                                let trackTop = (sliderGeo.size.height - sliderHeight) / 2
-                                let relativeY = val.location.y - trackTop
-                                let clampedY = max(0, min(sliderHeight, relativeY))
-                                let fraction = 1.0 - (clampedY / sliderHeight)
-                                editingFontSize = 18 + fraction * (56 - 18)
-                                isFieldFocused = true
-                            }
-                    )
+                    .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 1)
+                    .offset(x: 3, y: topPadding + thumbY - 11)
             }
+            .frame(width: 36, height: sliderGeo.size.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { val in
+                        let relativeY = val.location.y - topPadding
+                        let clampedY = max(0, min(sliderHeight, relativeY))
+                        let fraction = 1.0 - (clampedY / sliderHeight)
+                        editingFontSize = 18 + fraction * (56 - 18)
+                    }
+            )
         }
     }
 
     // MARK: - Keyboard Formatting Toolbar (Pinned above keyboard)
 
     private var keyboardFormattingToolbar: some View {
-        VStack(spacing: 12) {
-            // Row 1: Font Style Carousel Pills (Modern, Classic, Signature, Neon, Typewriter, Strong)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(TextFontStyle.allCases) { style in
-                        Button {
-                            editingFontStyle = style
-                            isFieldFocused = true
-                        } label: {
-                            Text(style.rawValue)
-                                .font(.system(size: 14, weight: editingFontStyle == style ? .bold : .medium))
-                                .foregroundStyle(editingFontStyle == style ? Color.black : Color.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(
-                                    editingFontStyle == style ? Color.white : Color.black.opacity(0.45),
-                                    in: Capsule()
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, DS.Spacing.md)
+        VStack(spacing: 10) {
+            // Row 1: Dynamic Carousel based on active tool tab
+            switch activeToolTab {
+            case .font:
+                fontFamilyCarousel
+            case .animation:
+                textAnimationCarousel
+            case .effect:
+                textEffectCarousel
             }
 
-            // Row 2: Typography Tools Toolbar
+            // Optional Color Swatches Palette (Appears when rainbow circle is tapped)
+            if isColorPickerVisible {
+                colorSwatchesBar
+            }
+
+            // Row 2: Typography Tools Toolbar (Aa | Rainbow | //A | Align | [A] | A✨)
             HStack(spacing: 16) {
-                // 1. Aa font icon
+                // 1. Aa font icon (Switches to font carousel)
                 Button {
-                    isFieldFocused = true
+                    HapticFeedbackSafe.selection()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        activeToolTab = .font
+                    }
                 } label: {
                     Text("Aa")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(activeToolTab == .font ? Color.black : Color.white)
                         .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.2), in: Circle())
+                        .background(activeToolTab == .font ? Color.white : Color.white.opacity(0.2), in: Circle())
                 }
                 .buttonStyle(.plain)
 
                 // 2. Rainbow Color Picker Circle
                 Button {
+                    HapticFeedbackSafe.selection()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isColorPickerVisible.toggle()
                     }
-                    isFieldFocused = true
                 } label: {
                     Circle()
                         .fill(
@@ -596,31 +789,35 @@ struct CreateCanvasView: View {
                             )
                         )
                         .frame(width: 28, height: 28)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                        .overlay(Circle().stroke(Color.white, lineWidth: isColorPickerVisible ? 3 : 2))
+                        .shadow(radius: 2)
                 }
                 .buttonStyle(.plain)
 
-                // 3. //A Italic Slant Toggle
+                // 3. //A Text Animation Carousel Toggle (matching media_1792051539805.png)
                 Button {
-                    isFieldFocused = true
+                    HapticFeedbackSafe.selection()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        activeToolTab = (activeToolTab == .animation ? .font : .animation)
+                    }
                 } label: {
                     Text("//A")
                         .font(.system(size: 14, weight: .bold))
                         .italic()
-                        .foregroundStyle(.white)
+                        .foregroundStyle((activeToolTab == .animation || editingAnimation != .none) ? Color.black : Color.white)
                         .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.2), in: Circle())
+                        .background((activeToolTab == .animation || editingAnimation != .none) ? Color.white : Color.white.opacity(0.2), in: Circle())
                 }
                 .buttonStyle(.plain)
 
                 // 4. Alignment Toggle
                 Button {
+                    HapticFeedbackSafe.selection()
                     switch editingAlignment {
                     case .leading: editingAlignment = .center
                     case .center: editingAlignment = .trailing
                     case .trailing: editingAlignment = .leading
                     }
-                    isFieldFocused = true
                 } label: {
                     Image(systemName: alignmentIconName)
                         .font(.system(size: 15))
@@ -630,27 +827,30 @@ struct CreateCanvasView: View {
                 }
                 .buttonStyle(.plain)
 
-                // 5. Background Highlight Fill Toggle [A]
+                // 5. Background Highlight Fill Toggle [A] (Hugs text tightly)
                 Button {
+                    HapticFeedbackSafe.selection()
                     editingHasBackground.toggle()
-                    isFieldFocused = true
                 } label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.white, lineWidth: 1.5)
+                            .stroke(editingHasBackground ? Color.black : Color.white, lineWidth: 1.5)
                             .frame(width: 20, height: 20)
                         Text("A")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(editingHasBackground ? Color.black : Color.white)
                     }
                     .frame(width: 36, height: 36)
-                    .background(editingHasBackground ? Color.white.opacity(0.35) : Color.white.opacity(0.15), in: Circle())
+                    .background(editingHasBackground ? Color.white : Color.white.opacity(0.2), in: Circle())
                 }
                 .buttonStyle(.plain)
 
-                // 6. A✨ Animation / Sparkles Effect Toggle
+                // 6. A✨ Text Effect Carousel Toggle (matching media_1792051566892.png)
                 Button {
-                    isFieldFocused = true
+                    HapticFeedbackSafe.selection()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        activeToolTab = (activeToolTab == .effect ? .font : .effect)
+                    }
                 } label: {
                     HStack(spacing: 2) {
                         Text("A")
@@ -658,45 +858,18 @@ struct CreateCanvasView: View {
                         Image(systemName: "sparkles")
                             .font(.system(size: 10))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle((activeToolTab == .effect || editingEffect != .none) ? Color.black : Color.white)
                     .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.2), in: Circle())
+                    .background((activeToolTab == .effect || editingEffect != .none) ? Color.white : Color.white.opacity(0.2), in: Circle())
                 }
                 .buttonStyle(.plain)
-            }
-
-            // Optional Color Swatches Palette (Appears when rainbow circle is tapped)
-            if isColorPickerVisible {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(availableColors, id: \.self) { color in
-                            Button {
-                                editingColor = color
-                                isFieldFocused = true
-                            } label: {
-                                Circle()
-                                    .fill(color)
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white, lineWidth: editingColor == color ? 3 : 1)
-                                    )
-                                    .shadow(radius: 2)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, DS.Spacing.md)
-                    .padding(.vertical, 2)
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // Row 3: Quick Tagging Row (@ Nhắc đến | 📍 Vị trí)
             HStack(spacing: 24) {
                 Button {
+                    HapticFeedbackSafe.selection()
                     editingText += " @"
-                    isFieldFocused = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "at")
@@ -712,7 +885,8 @@ struct CreateCanvasView: View {
                     .frame(width: 1, height: 14)
 
                 Button {
-                    isFieldFocused = true
+                    HapticFeedbackSafe.selection()
+                    editingText += " 📍"
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "mappin.and.ellipse")
@@ -728,6 +902,117 @@ struct CreateCanvasView: View {
         .padding(.bottom, DS.Spacing.md)
     }
 
+    // MARK: - Carousel Views
+
+    private var fontFamilyCarousel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TextFontStyle.allCases) { style in
+                    Button {
+                        HapticFeedbackSafe.selection()
+                        editingFontStyle = style
+                    } label: {
+                        Text(style.rawValue)
+                            .font(.system(size: 14, weight: editingFontStyle == style ? .bold : .medium))
+                            .foregroundStyle(editingFontStyle == style ? Color.black : Color.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(
+                                editingFontStyle == style ? Color.white : Color.black.opacity(0.45),
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DS.Spacing.md)
+        }
+    }
+
+    private var textAnimationCarousel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TextAnimationType.allCases) { anim in
+                    Button {
+                        HapticFeedbackSafe.selection()
+                        editingAnimation = anim
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: anim.iconName)
+                                .font(.system(size: 13, weight: .semibold))
+                            Text(anim.rawValue)
+                                .font(.system(size: 13, weight: editingAnimation == anim ? .bold : .medium))
+                        }
+                        .foregroundStyle(editingAnimation == anim ? Color.black : Color.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            editingAnimation == anim ? Color.white : Color.black.opacity(0.45),
+                            in: Capsule()
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DS.Spacing.md)
+        }
+    }
+
+    private var textEffectCarousel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TextEffectType.allCases) { effect in
+                    Button {
+                        HapticFeedbackSafe.selection()
+                        editingEffect = effect
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: effect.iconName)
+                                .font(.system(size: 13, weight: .semibold))
+                            Text(effect.rawValue)
+                                .font(.system(size: 13, weight: editingEffect == effect ? .bold : .medium))
+                        }
+                        .foregroundStyle(editingEffect == effect ? Color.black : Color.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            editingEffect == effect ? Color.white : Color.black.opacity(0.45),
+                            in: Capsule()
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DS.Spacing.md)
+        }
+    }
+
+    private var colorSwatchesBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(availableColors, id: \.self) { color in
+                    Button {
+                        HapticFeedbackSafe.selection()
+                        editingColor = color
+                    } label: {
+                        Circle()
+                            .fill(color)
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: editingColor == color ? 3 : 1)
+                            )
+                            .shadow(radius: 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.vertical, 2)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
     private var alignmentIconName: String {
         switch editingAlignment {
         case .leading: return "text.alignleft"
@@ -739,6 +1024,7 @@ struct CreateCanvasView: View {
     // MARK: - Editing Helpers
 
     private func startEditing(item: TextOverlayItem? = nil) {
+        HapticFeedbackSafe.impact(.light)
         if let item {
             editingItemId = item.id
             editingText = item.text
@@ -746,6 +1032,8 @@ struct CreateCanvasView: View {
             editingHasBackground = item.hasBackground
             editingFontStyle = item.fontStyle
             editingAlignment = item.alignment
+            editingAnimation = item.animation
+            editingEffect = item.effect
         } else {
             editingItemId = nil
             editingText = ""
@@ -753,10 +1041,12 @@ struct CreateCanvasView: View {
             editingHasBackground = false
             editingFontStyle = .modern
             editingAlignment = .center
+            editingAnimation = .none
+            editingEffect = .none
         }
         isEditingText = true
         isColorPickerVisible = false
-        isFieldFocused = true
+        activeToolTab = .font
     }
 
     private func finishEditingText() {
@@ -770,6 +1060,8 @@ struct CreateCanvasView: View {
                 texts[index].hasBackground = editingHasBackground
                 texts[index].fontStyle = editingFontStyle
                 texts[index].alignment = editingAlignment
+                texts[index].animation = editingAnimation
+                texts[index].effect = editingEffect
             }
         } else if !trimmed.isEmpty {
             texts.append(
@@ -778,7 +1070,9 @@ struct CreateCanvasView: View {
                     color: editingColor,
                     hasBackground: editingHasBackground,
                     fontStyle: editingFontStyle,
-                    alignment: editingAlignment
+                    alignment: editingAlignment,
+                    animation: editingAnimation,
+                    effect: editingEffect
                 )
             )
         }
@@ -822,6 +1116,18 @@ struct CreateCanvasView: View {
         if let jpeg = composite.jpegData(compressionQuality: 0.85) {
             onCanvasCompleted(jpeg)
             isPresented = false
+        }
+    }
+}
+
+// MARK: - TextAlignment Extension
+
+extension TextAlignment {
+    var nsTextAlignment: NSTextAlignment {
+        switch self {
+        case .leading: return .left
+        case .center: return .center
+        case .trailing: return .right
         }
     }
 }
