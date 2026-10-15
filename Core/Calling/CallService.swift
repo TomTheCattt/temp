@@ -99,22 +99,32 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         }
     }
 
-    private(set) var currentCall: ActiveCall?
+    private(set) var currentCall: ActiveCall? {
+        didSet {
+            currentCallSubject.send(currentCall)
+        }
+    }
 
     private let callStateSubject = CurrentValueSubject<CallState, Never>(.idle)
     var callStatePublisher: AnyPublisher<CallState, Never> {
         callStateSubject.eraseToAnyPublisher()
     }
 
+    private let currentCallSubject = CurrentValueSubject<ActiveCall?, Never>(nil)
+    var currentCallPublisher: AnyPublisher<ActiveCall?, Never> {
+        currentCallSubject.eraseToAnyPublisher()
+    }
+
     // MARK: - Dependencies
 
     private let callManager: CallManager
-    private let messageHandler: WebSocketMessageHandler?
+    private var messageHandler: WebSocketMessageHandler?
     private let logger = AppLogger.general
 
     // MARK: - Timers
 
     private var ringTimeoutTask: Task<Void, Never>?
+    private var autoAnswerTask: Task<Void, Never>?
     private let ringTimeoutSeconds: TimeInterval = 45
 
     // MARK: - Subscriptions
@@ -128,7 +138,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         messageHandler: WebSocketMessageHandler? = nil
     ) {
         self.callManager = callManager ?? CallManager.shared
-        self.messageHandler = messageHandler
+        self.messageHandler = messageHandler ?? DIContainer.shared.resolveOptional(WebSocketMessageHandler.self)
         subscribeToCallKitEvents()
         subscribeToSignaling()
     }
@@ -140,6 +150,11 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     ) -> CallService {
         let service = CallService(callManager: callManager, messageHandler: messageHandler)
         return service
+    }
+
+    func configure(messageHandler: WebSocketMessageHandler) {
+        self.messageHandler = messageHandler
+        subscribeToSignaling()
     }
 
     // MARK: - Outgoing Call
@@ -181,6 +196,37 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         currentCallState = .ringing
         callManager.reportOutgoingCallStartedConnecting(uuid: uuid)
         startRingTimeout()
+
+        #if targetEnvironment(simulator)
+        startSimulatorAutoAnswer(uuid: uuid)
+        #else
+        if AppConfig.shared.isMockAPI {
+            startSimulatorAutoAnswer(uuid: uuid)
+        }
+        #endif
+    }
+
+    // MARK: - Simulator Auto-Answer
+
+    private func startSimulatorAutoAnswer(uuid: UUID) {
+        autoAnswerTask?.cancel()
+        autoAnswerTask = Task { [weak self] in
+            // Ring for 3.0 seconds, then simulate partner answering
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard let self, self.currentCallState == .ringing, self.currentCall?.uuid == uuid else { return }
+
+            self.logger.info("Simulator Auto-Answer: Partner picked up -> connecting")
+            self.currentCallState = .connecting
+
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard self.currentCallState == .connecting, self.currentCall?.uuid == uuid else { return }
+
+            self.cancelRingTimeout()
+            self.currentCall?.connectedAt = Date()
+            self.currentCallState = .connected
+            self.callManager.reportOutgoingCallConnected(uuid: uuid)
+            self.logger.info("Simulator Auto-Answer: Connected successfully")
+        }
     }
 
     // MARK: - Accept Incoming Call
@@ -318,19 +364,90 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             endCall(reason: .failed(error.localizedDescription))
         }
 
+        // Present in-app call screen so user sees incoming call UI
+        AppRouter.shared.present(
+            fullScreen: .call(
+                userId: signal.fromUserId,
+                userName: callerName,
+                hasVideo: signal.callType == .video
+            )
+        )
+
         startRingTimeout()
+    }
+
+    // MARK: - Simulate Incoming Call (Testing / Debug)
+
+    func simulateIncomingCall(fromUserId: String, name: String, hasVideo: Bool) async {
+        let signal = CallSignal(
+            callId: UUID().uuidString,
+            fromUserId: fromUserId,
+            toUserId: SessionStore.shared.currentUserId,
+            callType: hasVideo ? .video : .audio,
+            sdp: nil,
+            iceCandidate: nil,
+            iceSdpMid: nil,
+            iceSdpMLineIndex: nil,
+            timestamp: Date()
+        )
+        await handleIncomingCall(signal: signal, callerName: name)
     }
 
     // MARK: - Private: End Call Cleanup
 
     private func endCall(reason: CallEndReason) {
         cancelRingTimeout()
+
+        let endedCall = currentCall
+        let remoteUserId = endedCall?.remoteUserId ?? ""
+        let hasVideo = endedCall?.hasVideo ?? false
+        var durationStr = "00:00"
+        if let connectedAt = endedCall?.connectedAt {
+            let elapsed = Int(Date().timeIntervalSince(connectedAt))
+            let minutes = elapsed / 60
+            let seconds = elapsed % 60
+            if elapsed >= 3600 {
+                let hours = elapsed / 3600
+                let remMinutes = (elapsed % 3600) / 60
+                durationStr = String(format: "%02d:%02d:%02d", hours, remMinutes, seconds)
+            } else {
+                durationStr = String(format: "%02d:%02d", minutes, seconds)
+            }
+        }
+
         currentCallState = .ended(reason)
         currentCall = nil
 
+        // Post didEndCall notification for chat message recording
+        if !remoteUserId.isEmpty {
+            let reasonString: String
+            switch reason {
+            case .localHangup: reasonString = "localHangup"
+            case .remoteHangup: reasonString = "remoteHangup"
+            case .rejected: reasonString = "rejected"
+            case .busy: reasonString = "busy"
+            case .timeout: reasonString = "timeout"
+            case .failed(let err): reasonString = "failed: \(err)"
+            case .cancelled: reasonString = "cancelled"
+            }
+
+            NotificationCenter.default.post(
+                name: .didEndCall,
+                object: nil,
+                userInfo: [
+                    "remoteUserId": remoteUserId,
+                    "hasVideo": hasVideo,
+                    "duration": durationStr,
+                    "reason": reasonString
+                ]
+            )
+        }
+
+        callManager.deactivateAudioSession()
+
         // Reset to idle after a short delay (allow UI to show "ended" state)
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
             if case .ended = currentCallState {
                 currentCallState = .idle
             }
@@ -355,6 +472,8 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     private func cancelRingTimeout() {
         ringTimeoutTask?.cancel()
         ringTimeoutTask = nil
+        autoAnswerTask?.cancel()
+        autoAnswerTask = nil
     }
 
     // MARK: - Private: Subscribe to CallKit Events
@@ -383,6 +502,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         case .setMuted(_, let muted):
             currentCall?.isMuted = muted
+            currentCallSubject.send(currentCall)
 
         case .audioSessionActivated:
             // WebRTC: activate audio track

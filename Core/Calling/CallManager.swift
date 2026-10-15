@@ -38,6 +38,8 @@ final class CallManager: NSObject, @unchecked Sendable {
     /// Currently active call UUIDs tracked by CallKit.
     private var activeCalls: [UUID: CallInfo] = [:]
     private let queue = DispatchQueue(label: "com.instagram.callmanager")
+    private let queueKey = DispatchSpecificKey<Void>()
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
@@ -57,7 +59,17 @@ final class CallManager: NSObject, @unchecked Sendable {
 
         super.init()
 
+        queue.setSpecific(key: queueKey, value: ())
         provider.setDelegate(self, queue: queue)
+        setupAudioSessionObservers()
+    }
+
+    private func syncOnQueue<T>(_ block: () -> T) -> T {
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            return block()
+        } else {
+            return queue.sync { block() }
+        }
     }
 
     // MARK: - Report Incoming Call
@@ -89,14 +101,20 @@ final class CallManager: NSObject, @unchecked Sendable {
             isOutgoing: false,
             hasVideo: hasVideo
         )
-        queue.sync { activeCalls[uuid] = callInfo }
+        syncOnQueue { activeCalls[uuid] = callInfo }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
                 if let error {
-                    self?.queue.sync { _ = self?.activeCalls.removeValue(forKey: uuid) }
+                    self?.syncOnQueue { _ = self?.activeCalls.removeValue(forKey: uuid) }
                     self?.logger.error("Failed to report incoming call: \(error.localizedDescription)")
+                    #if targetEnvironment(simulator)
+                    // Simulator fallback: continue even if CallKit native UI has sandbox limitations
+                    self?.logger.notice("Simulator fallback for incoming call")
+                    continuation.resume()
+                    #else
                     continuation.resume(throwing: error)
+                    #endif
                 } else {
                     self?.logger.info("Reported incoming call from \(callerName)")
                     continuation.resume()
@@ -128,12 +146,21 @@ final class CallManager: NSObject, @unchecked Sendable {
             isOutgoing: true,
             hasVideo: hasVideo
         )
-        queue.sync { activeCalls[uuid] = callInfo }
+        syncOnQueue { activeCalls[uuid] = callInfo }
 
         let transaction = CXTransaction(action: startCallAction)
-        try await callController.request(transaction)
-
-        logger.info("Started outgoing call to \(remoteName)")
+        do {
+            try await callController.request(transaction)
+            logger.info("Started outgoing call to \(remoteName)")
+        } catch {
+            logger.notice("CallKit startOutgoingCall warning: \(error.localizedDescription)")
+            #if targetEnvironment(simulator)
+            // On simulator, CallKit provider may fail; bypass error so in-app call view works seamlessly
+            logger.info("Simulator fallback: proceeding with in-app call flow")
+            #else
+            throw error
+            #endif
+        }
     }
 
     // MARK: - End Call
@@ -142,7 +169,13 @@ final class CallManager: NSObject, @unchecked Sendable {
     func endCall(uuid: UUID) async throws {
         let endCallAction = CXEndCallAction(call: uuid)
         let transaction = CXTransaction(action: endCallAction)
-        try await callController.request(transaction)
+        do {
+            try await callController.request(transaction)
+        } catch {
+            logger.notice("CallKit endCall request warning: \(error.localizedDescription)")
+        }
+        syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
+        deactivateAudioSession()
     }
 
     // MARK: - Report Call Connected
@@ -162,7 +195,8 @@ final class CallManager: NSObject, @unchecked Sendable {
     /// Report that a call has ended (e.g. remote hangup).
     func reportCallEnded(uuid: UUID, reason: CXCallEndedReason) {
         provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
-        queue.sync { _ = activeCalls.removeValue(forKey: uuid) }
+        syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
+        deactivateAudioSession()
     }
 
     // MARK: - Mute
@@ -176,17 +210,17 @@ final class CallManager: NSObject, @unchecked Sendable {
     // MARK: - Helpers
 
     func callInfo(for uuid: UUID) -> CallInfo? {
-        queue.sync { activeCalls[uuid] }
+        syncOnQueue { activeCalls[uuid] }
     }
 
     func callUUID(for callId: String) -> UUID? {
-        queue.sync {
+        syncOnQueue {
             activeCalls.first(where: { $0.value.callId == callId })?.key
         }
     }
 
     var hasActiveCall: Bool {
-        queue.sync { !activeCalls.isEmpty }
+        syncOnQueue { !activeCalls.isEmpty }
     }
 }
 
@@ -196,7 +230,8 @@ extension CallManager: CXProviderDelegate {
 
     func providerDidReset(_ provider: CXProvider) {
         logger.info("CXProvider did reset")
-        queue.sync { activeCalls.removeAll() }
+        syncOnQueue { activeCalls.removeAll() }
+        deactivateAudioSession()
         callEventSubject.send(.providerDidReset)
     }
 
@@ -218,7 +253,8 @@ extension CallManager: CXProviderDelegate {
         logger.info("CXProvider: end call action")
         let uuid = action.callUUID
         callEventSubject.send(.endCall(uuid: uuid))
-        queue.sync { _ = activeCalls.removeValue(forKey: uuid) }
+        syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
+        deactivateAudioSession()
         action.fulfill()
     }
 
@@ -247,11 +283,67 @@ extension CallManager: CXProviderDelegate {
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothA2DP])
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothA2DP, .allowAirPlay])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             logger.error("Failed to configure audio session: \(error.localizedDescription)")
         }
+    }
+
+    func deactivateAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: .notifyOthersOnDeactivation)
+            logger.info("Audio session cleanly deactivated")
+        } catch {
+            logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
+        }
+    }
+
+    private func setupAudioSessionObservers() {
+        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
+            .sink { [weak self] notification in
+                self?.handleAudioInterruption(notification)
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .sink { [weak self] notification in
+                self?.handleAudioRouteChange(notification)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func handleAudioInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            logger.info("Audio session interruption began (e.g. cellular call)")
+        case .ended:
+            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    logger.info("Audio session interruption ended: resuming audio")
+                    configureAudioSession()
+                }
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    private func handleAudioRouteChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+        logger.info("Audio route changed: reason = \(reason.rawValue)")
     }
 }
 
