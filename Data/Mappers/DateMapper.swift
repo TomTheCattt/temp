@@ -10,7 +10,7 @@ import Foundation
 // MARK: - DateMapper
 
 /// Centralized date parsing for DTO → Entity conversion.
-enum DateMapper {
+nonisolated enum DateMapper {
 
     // MARK: - Formatters (cached, thread-safe)
 

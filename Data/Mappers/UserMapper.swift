@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - UserMapper
 
-enum UserMapper {
+nonisolated enum UserMapper {
 
     static func toEntity(_ dto: UserDTO) -> User {
         User(
