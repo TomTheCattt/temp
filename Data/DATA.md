@@ -63,19 +63,19 @@ func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
 
 ### Mock/
 
-Data sources trả về dữ liệu giả lập, không cần network. Dùng cho development và testing khi backend chưa sẵn sàng.
+Data sources trả về dữ liệu giả lập, không cần network. Dùng cho development và testing khi backend chưa sẵn sàng. Tuân thủ triệt để Clean Architecture (`Presentations` không import hay phụ thuộc trực tiếp vào `MockData`).
 
-| File | Mô tả |
-|------|--------|
-| `MockData.swift` | Static data: users, posts, stories, reels, conversations, messages, notifications. Test credentials. |
-| `MockAuthDataSource` | Simulate login/register/logout với delay |
-| `MockPostDataSource` | Trả về MockData.posts với pagination simulation |
-| `MockUserDataSource` | User operations với mock data |
-| `MockMessageDataSource` | Conversations và messages mock |
-| `MockCommentDataSource` | Comments mock |
-| `MockStoryDataSource` | Stories mock |
-| `MockNotificationDataSource` | Notifications mock |
-| `MockReelDataSource` | Reels mock |
+| File | Store nội bộ | Mô tả & Tính năng Stateful |
+|------|--------------|-----------------------------|
+| `MockData.swift` | — | Hệ sinh thái mock: 20 user đa dạng, 30 post (hỗ trợ Carousel 2-4 items, video, image), 12 reel có fallback, 20 comment có nested replies, 10 notification, 20 conversation với rich messages (.text, .image, .audio, .like). |
+| `MockAuthDataSource` | — | Simulate login/register/logout với delay. Test credentials được định nghĩa tại `AppConstants.TestAccount`. |
+| `MockPostDataSource` | `MockPostStore` | Thread-safe (`NSLock`). Stateful: `toggleLike`, `toggleSave`, `adjustCommentsCount`. Phân trang Explore tuần tự tránh duplicate IDs. Đồng bộ số bài viết vào `MockUserStore`. |
+| `MockUserDataSource` | `MockUserStore`, `MockSettingsStore` | Thread-safe (`NSLock`). Stateful: `toggleFollow`, `toggleBlock`, `updateProfile`, `updateAvatar`, `setPrivateAccount`, theo dõi quan hệ và đếm số lượng bài viết. |
+| `MockMessageDataSource` | In-memory storage | Quản lý hội thoại thời gian thực, tin nhắn đa phương tiện, Instagram Notes và huy hiệu unread count. |
+| `MockCommentDataSource` | `MockCommentStore` | Thread-safe (`NSLock`). Lưu trữ comment theo `postId`, hỗ trợ phân cấp replies (`parentId`), toggle like, thêm/xóa comment tự động đồng bộ `commentsCount` của post. |
+| `MockStoryDataSource` | In-memory storage | Lưu trữ stories, đánh dấu đã xem (`markViewed`), tạo story mới. |
+| `MockNotificationDataSource` | `MockNotificationStore` | Thread-safe (`NSLock`). Stateful: `markAsRead`, `markAllAsRead`, tính toán `unreadCount` tự động phản ánh trạng thái đọc. |
+| `MockReelDataSource` | `MockReelStore` | Thread-safe (`NSLock`). Stateful: `toggleLike`, `toggleSave`. Video Reels hỗ trợ cơ chế fallback 2 lớp: resolver trong `MockData` và runtime error fallback trong `ReelPlayerHolder`. |
 
 ---
 
