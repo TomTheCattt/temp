@@ -201,19 +201,18 @@ struct PhotoPIPStickerView: View {
         }
     }
 
-    @ViewBuilder
-    private func shapeView(_ shape: StickerShape) -> some Shape {
+    private func shapeView(_ shape: StickerShape) -> AnyShape {
         switch shape {
         case .roundedRect:
-            RoundedRectangle(cornerRadius: 16)
+            return AnyShape(RoundedRectangle(cornerRadius: 16))
         case .circle:
-            Circle()
+            return AnyShape(Circle())
         case .heart:
-            HeartShape()
+            return AnyShape(HeartShape())
         case .star:
-            StarShape()
+            return AnyShape(StarShape())
         case .square:
-            Rectangle()
+            return AnyShape(Rectangle())
         }
     }
 }

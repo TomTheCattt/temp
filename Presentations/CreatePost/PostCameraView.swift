@@ -8,6 +8,85 @@
 import SwiftUI
 import PhotosUI
 
+// MARK: - PostCameraViewModel
+
+@MainActor
+@Observable
+final class PostCameraViewModel {
+    var isFrontCamera = false
+    var isFlashOn = false
+    var isRecording = false
+    var capturedPreviewData: Data?
+    var isVideo = false
+
+    let cameraService: CameraService = .shared
+
+    var isHardwareAvailable: Bool {
+        cameraService.isHardwareAvailable
+    }
+
+    func setupSession() async {
+        _ = await cameraService.configureSession(isFront: isFrontCamera)
+        cameraService.start()
+    }
+
+    func stopSession() {
+        cameraService.stop()
+    }
+
+    func toggleFlash() {
+        isFlashOn.toggle()
+        cameraService.setTorch(on: isFlashOn)
+    }
+
+    func toggleCamera() {
+        isFrontCamera.toggle()
+        cameraService.switchCamera(isFront: isFrontCamera)
+    }
+
+    func capturePhoto() {
+        Task {
+            do {
+                let photoData = try await cameraService.capturePhoto(isFlashOn: isFlashOn)
+                self.capturedPreviewData = photoData
+                self.isVideo = false
+            } catch {
+                HUDManager.shared.showError(error.localizedDescription)
+            }
+        }
+    }
+
+    func startRecording() {
+        guard !isRecording else {
+            stopRecording()
+            return
+        }
+        isRecording = true
+        cameraService.startRecording()
+    }
+
+    func stopRecording() {
+        guard isRecording else { return }
+        isRecording = false
+        Task {
+            do {
+                let videoURL = try await cameraService.stopRecording()
+                if let videoData = try? Data(contentsOf: videoURL) {
+                    self.capturedPreviewData = videoData
+                    self.isVideo = true
+                }
+            } catch {
+                HUDManager.shared.showError(error.localizedDescription)
+            }
+        }
+    }
+
+    func retake() {
+        capturedPreviewData = nil
+        isVideo = false
+    }
+}
+
 // MARK: - PostCameraView
 
 /// Live Camera Viewfinder for Post creation (Camera-First philosophy).
@@ -18,19 +97,14 @@ struct PostCameraView: View {
     @Binding var isPresented: Bool
     let onMediaCaptured: (Data, Bool) -> Void
 
-    @State private var cameraService = CameraService.shared
-    @State private var isFrontCamera = false
-    @State private var isFlashOn = false
-    @State private var isRecording = false
-    @State private var capturedPreviewData: Data?
-    @State private var isVideo = false
+    @State private var viewModel = PostCameraViewModel()
     @State private var selectedGalleryItem: PhotosPickerItem?
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let previewData = capturedPreviewData, let uiImage = UIImage(data: previewData) {
+            if let previewData = viewModel.capturedPreviewData, let uiImage = UIImage(data: previewData) {
                 // Post-capture Review Screen
                 reviewScreen(image: uiImage)
             } else {
@@ -40,11 +114,10 @@ struct PostCameraView: View {
         }
         .statusBarHidden()
         .task {
-            _ = await cameraService.configureSession(isFront: isFrontCamera)
-            cameraService.start()
+            await viewModel.setupSession()
         }
         .onDisappear {
-            cameraService.stop()
+            viewModel.stopSession()
         }
     }
 
@@ -53,9 +126,9 @@ struct PostCameraView: View {
     private var viewfinderScreen: some View {
         ZStack {
             // Camera Stream
-            if cameraService.isHardwareAvailable {
+            if viewModel.isHardwareAvailable {
                 CameraPreviewView(
-                    session: cameraService.session,
+                    session: viewModel.cameraService.session,
                     isHardwareAvailable: true
                 )
                 .ignoresSafeArea()
@@ -92,12 +165,11 @@ struct PostCameraView: View {
 
             // Flash Toggle
             Button {
-                isFlashOn.toggle()
-                cameraService.toggleTorch(on: isFlashOn)
+                viewModel.toggleFlash()
             } label: {
-                Image(systemName: isFlashOn ? "bolt.fill" : "bolt.slash")
+                Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
                     .font(.title3)
-                    .foregroundStyle(isFlashOn ? .yellow : .white)
+                    .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
                     .frame(width: 44, height: 44)
                     .background(Color.black.opacity(0.4), in: Circle())
             }
@@ -147,10 +219,9 @@ struct PostCameraView: View {
 
             // Right: Camera Flip
             Button {
-                isFrontCamera.toggle()
-                cameraService.switchCamera(isFront: isFrontCamera)
+                viewModel.toggleCamera()
             } label: {
-                Image(systemName: "camera.rotate.fill")
+                Image(systemName: "camera.rotate")
                     .font(.title3)
                     .foregroundStyle(.white)
                     .frame(width: 48, height: 48)
@@ -165,7 +236,11 @@ struct PostCameraView: View {
 
     private var shutterButton: some View {
         Button {
-            capturePhoto()
+            if viewModel.isRecording {
+                viewModel.stopRecording()
+            } else {
+                viewModel.capturePhoto()
+            }
         } label: {
             ZStack {
                 Circle()
@@ -173,15 +248,15 @@ struct PostCameraView: View {
                     .frame(width: 76, height: 76)
 
                 Circle()
-                    .fill(isRecording ? ColorTokens.destructive : Color.white)
-                    .frame(width: isRecording ? 36 : 64, height: isRecording ? 36 : 64)
-                    .animation(.easeInOut(duration: 0.15), value: isRecording)
+                    .fill(viewModel.isRecording ? ColorTokens.destructive : Color.white)
+                    .frame(width: viewModel.isRecording ? 36 : 64, height: viewModel.isRecording ? 36 : 64)
+                    .animation(.easeInOut(duration: 0.15), value: viewModel.isRecording)
             }
         }
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
-                    startRecording()
+                    viewModel.startRecording()
                 }
         )
     }
@@ -227,7 +302,7 @@ struct PostCameraView: View {
             VStack {
                 HStack {
                     Button(L10n.CreatePost.retake) {
-                        capturedPreviewData = nil
+                        viewModel.retake()
                     }
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
@@ -238,8 +313,8 @@ struct PostCameraView: View {
                     Spacer()
 
                     Button(L10n.CreatePost.useMedia) {
-                        if let data = capturedPreviewData {
-                            onMediaCaptured(data, isVideo)
+                        if let data = viewModel.capturedPreviewData {
+                            onMediaCaptured(data, viewModel.isVideo)
                             isPresented = false
                         }
                     }
@@ -253,63 +328,6 @@ struct PostCameraView: View {
                 .padding(.top, DS.Spacing.md)
 
                 Spacer()
-            }
-        }
-    }
-
-    // MARK: - Actions
-
-    private func capturePhoto() {
-        Task {
-            if cameraService.isHardwareAvailable {
-                do {
-                    let photoData = try await cameraService.capturePhoto()
-                    await MainActor.run {
-                        self.capturedPreviewData = photoData
-                        self.isVideo = false
-                    }
-                } catch {
-                    HUDManager.shared.showError(error.localizedDescription)
-                }
-            } else {
-                // Simulator Mock Capture
-                let mockData = cameraService.generateMockImageData()
-                self.capturedPreviewData = mockData
-                self.isVideo = false
-            }
-        }
-    }
-
-    private func startRecording() {
-        guard !isRecording else {
-            stopRecording()
-            return
-        }
-        isRecording = true
-        Task {
-            do {
-                try await cameraService.startRecording()
-            } catch {
-                isRecording = false
-                HUDManager.shared.showError(error.localizedDescription)
-            }
-        }
-    }
-
-    private func stopRecording() {
-        guard isRecording else { return }
-        isRecording = false
-        Task {
-            do {
-                let videoURL = try await cameraService.stopRecording()
-                if let videoData = try? Data(contentsOf: videoURL) {
-                    await MainActor.run {
-                        self.capturedPreviewData = videoData
-                        self.isVideo = true
-                    }
-                }
-            } catch {
-                HUDManager.shared.showError(error.localizedDescription)
             }
         }
     }
