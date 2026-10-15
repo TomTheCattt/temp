@@ -54,7 +54,7 @@ public enum StickerSubjectLifter {
     // MARK: - iOS 17+ VNGenerateForegroundInstanceMaskRequest
 
     @available(iOS 17.0, *)
-    private static func performVisionInstanceMask(cgImage: CGImage, orientation: UIImage.Orientation) -> UIImage? {
+    nonisolated private static func performVisionInstanceMask(cgImage: CGImage, orientation: UIImage.Orientation) -> UIImage? {
         let request = VNGenerateForegroundInstanceMaskRequest()
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
@@ -80,7 +80,7 @@ public enum StickerSubjectLifter {
 
     // MARK: - iOS 16 Fallback VNGeneratePersonSegmentationRequest
 
-    private static func performPersonSegmentation(cgImage: CGImage, orientation: UIImage.Orientation) -> UIImage? {
+    nonisolated private static func performPersonSegmentation(cgImage: CGImage, orientation: UIImage.Orientation) -> UIImage? {
         let request = VNGeneratePersonSegmentationRequest()
         request.qualityLevel = .balanced
         request.outputPixelFormat = kCVPixelFormatType_OneComponent8

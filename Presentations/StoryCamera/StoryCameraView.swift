@@ -370,14 +370,15 @@ struct StoryCameraView: View {
     // MARK: - Bottom Camera Controls (Gallery & Flip Flanking Bar)
 
     private var bottomCameraControls: some View {
-        HStack(alignment: .center) {
+        let currentThumb = viewModel.latestGalleryThumbnail
+        return HStack(alignment: .center) {
             // Left: Gallery Shortcut Button
             PhotosPicker(
                 selection: $selectedGalleryItem,
                 matching: .any(of: [.images, .videos])
             ) {
                 Group {
-                    if let thumb = viewModel.latestGalleryThumbnail {
+                    if let thumb = currentThumb {
                         Image(uiImage: thumb)
                             .resizable()
                             .scaledToFill()
