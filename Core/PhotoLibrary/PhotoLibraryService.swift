@@ -173,8 +173,9 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
 
     public func loadThumbnail(for asset: PHAsset, targetSize: CGSize = CGSize(width: 250, height: 250)) async -> UIImage? {
         await withCheckedContinuation { continuation in
+            let safeContinuation = SafeContinuation(continuation)
             let options = PHImageRequestOptions()
-            options.deliveryMode = .opportunistic
+            options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
             options.isSynchronous = false
 
@@ -185,8 +186,11 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
                 options: options
             ) { image, info in
                 let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if !isDegraded || image != nil {
-                    continuation.resume(returning: image)
+                let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+                let hasError = info?[PHImageErrorKey] != nil
+
+                if !isDegraded || isCancelled || hasError {
+                    safeContinuation.resume(returning: image)
                 }
             }
         }
@@ -196,6 +200,7 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
 
     public func loadHighQualityImage(for asset: PHAsset) async -> UIImage? {
         await withCheckedContinuation { continuation in
+            let safeContinuation = SafeContinuation(continuation)
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
@@ -209,8 +214,11 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
                 options: options
             ) { image, info in
                 let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if !isDegraded {
-                    continuation.resume(returning: image)
+                let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+                let hasError = info?[PHImageErrorKey] != nil
+
+                if !isDegraded || isCancelled || hasError {
+                    safeContinuation.resume(returning: image)
                 }
             }
         }
@@ -220,13 +228,14 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
 
     public func loadImageData(for asset: PHAsset) async -> Data? {
         await withCheckedContinuation { continuation in
+            let safeContinuation = SafeContinuation(continuation)
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
             options.isSynchronous = false
 
             imageManager.requestImageDataAndOrientation(for: asset, options: options) { data, _, _, _ in
-                continuation.resume(returning: data)
+                safeContinuation.resume(returning: data)
             }
         }
     }
@@ -235,17 +244,40 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
 
     public func loadVideoURL(for asset: PHAsset) async -> URL? {
         await withCheckedContinuation { continuation in
+            let safeContinuation = SafeContinuation(continuation)
             let options = PHVideoRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
 
             imageManager.requestAVAsset(forVideo: asset, options: options) { avAsset, _, _ in
                 if let urlAsset = avAsset as? AVURLAsset {
-                    continuation.resume(returning: urlAsset.url)
+                    safeContinuation.resume(returning: urlAsset.url)
                 } else {
-                    continuation.resume(returning: nil)
+                    safeContinuation.resume(returning: nil)
                 }
             }
         }
+    }
+}
+
+// MARK: - Thread-Safe Single-Resume Continuation Helper
+
+private final class SafeContinuation<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<T, Never>?
+
+    init(_ continuation: CheckedContinuation<T, Never>) {
+        self.continuation = continuation
+    }
+
+    func resume(returning value: T) {
+        lock.lock()
+        guard let cont = continuation else {
+            lock.unlock()
+            return
+        }
+        continuation = nil
+        lock.unlock()
+        cont.resume(returning: value)
     }
 }
