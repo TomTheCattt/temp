@@ -375,7 +375,7 @@ public final class CanvasVideoRenderer: @unchecked Sendable {
             let badgeColor = (isLight ? UIColor.black.withAlphaComponent(0.65) : UIColor.white.withAlphaComponent(0.85))
                 .withAlphaComponent(alphaMultiplier)
 
-            let fontSize = 42 * textItem.scale * additionalScale
+            let fontSize = textItem.fontSize * textItem.scale * (canvasSize.width / 360) * additionalScale
             let nsFont = fontForStyle(textItem.fontStyle, effect: textItem.effect, size: fontSize)
 
             let paragraphStyle = NSMutableParagraphStyle()

@@ -8,6 +8,7 @@
 import SwiftUI
 import UIKit
 import PhotosUI
+import PencilKit
 
 // MARK: - CanvasTheme
 
@@ -25,13 +26,80 @@ enum TypographyToolTab: Equatable {
     case effect      // A✨: Text Effect Carousel (Lấp lánh, Neon, Lung linh, Pixel)
 }
 
+enum CanvasCompletionDestination {
+    case editor
+    case yourStory
+    case closeFriends
+}
+
+// MARK: - StoryDrawingToolType
+
+enum StoryDrawingToolType: String, CaseIterable, Identifiable {
+    case pen = "Bút nét"
+    case arrow = "Mũi tên"
+    case marker = "Dạ quang"
+    case neon = "Phát sáng"
+    case eraser = "Tẩy"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .pen: return "pencil.tip"
+        case .arrow: return "arrow.up"
+        case .marker: return "highlighter"
+        case .neon: return "sparkles"
+        case .eraser: return "eraser.line.dashed"
+        }
+    }
+}
+
+// MARK: - StoryPKCanvasRepresentable
+
+struct StoryPKCanvasRepresentable: UIViewRepresentable {
+    @Binding var canvasView: PKCanvasView
+    let toolType: StoryDrawingToolType
+    let color: UIColor
+    let strokeWidth: CGFloat
+    let isInteractionEnabled: Bool
+
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
+        canvasView.drawingPolicy = .anyInput
+        canvasView.isUserInteractionEnabled = isInteractionEnabled
+        updateTool(canvasView)
+        return canvasView
+    }
+
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {
+        uiView.isUserInteractionEnabled = isInteractionEnabled
+        updateTool(uiView)
+    }
+
+    private func updateTool(_ view: PKCanvasView) {
+        switch toolType {
+        case .pen:
+            view.tool = PKInkingTool(.pen, color: color, width: strokeWidth)
+        case .arrow:
+            view.tool = PKInkingTool(.pen, color: color, width: strokeWidth)
+        case .marker:
+            view.tool = PKInkingTool(.marker, color: color, width: strokeWidth * 2.2)
+        case .neon:
+            view.tool = PKInkingTool(.marker, color: color.withAlphaComponent(0.9), width: strokeWidth * 1.5)
+        case .eraser:
+            view.tool = PKEraserTool(.vector)
+        }
+    }
+}
+
 // MARK: - TaperedVerticalTrackShape
 
-/// Wedge-shaped track for the font size slider matching Instagram iOS:
-/// Tapered from wider at the top (~6pt) to narrower at the bottom (~2pt).
+/// Wedge-shaped track for the font size & brush size sliders matching Instagram iOS:
+/// Tapered from wider at the top (16pt) to narrower at the bottom (4pt).
 struct TaperedVerticalTrackShape: Shape {
-    var topWidth: CGFloat = 6.0
-    var bottomWidth: CGFloat = 2.0
+    var topWidth: CGFloat = 16.0
+    var bottomWidth: CGFloat = 4.0
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -67,16 +135,72 @@ struct TaperedVerticalTrackShape: Shape {
 // MARK: - UnyieldingTextView & PersistentStoryTextView
 
 /// A UITextView subclass that locks responder status so tapping toolbar buttons,
-/// color swatches, or dragging sliders never dismisses or flickers the keyboard.
+/// color swatches, or dragging sliders never dismisses or flickers the keyboard,
+/// while allowing smooth resignation when tapping Done or the background canvas.
 final class UnyieldingTextView: UITextView {
+    static weak var currentActiveInstance: UnyieldingTextView?
+
     var isEditingLocked: Bool = true
+    var shouldAllowResign: Bool = false
     var maxLayoutWidth: CGFloat = 300
 
-    override var canResignFirstResponder: Bool {
-        if isEditingLocked {
-            return false
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            UnyieldingTextView.currentActiveInstance = self
         }
-        return super.canResignFirstResponder
+        return result
+    }
+
+    override func resignFirstResponder() -> Bool {
+        if shouldAllowResign || !isEditingLocked {
+            if UnyieldingTextView.currentActiveInstance === self {
+                UnyieldingTextView.currentActiveInstance = nil
+            }
+            return super.resignFirstResponder()
+        }
+        return false
+    }
+
+    override var canResignFirstResponder: Bool {
+        if shouldAllowResign || !isEditingLocked {
+            return true
+        }
+        return false
+    }
+
+    override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        if newSuperview == nil {
+            shouldAllowResign = true
+            isEditingLocked = false
+            _ = super.resignFirstResponder()
+            if UnyieldingTextView.currentActiveInstance === self {
+                UnyieldingTextView.currentActiveInstance = nil
+            }
+        }
+    }
+
+    override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        if newWindow == nil {
+            shouldAllowResign = true
+            isEditingLocked = false
+            _ = super.resignFirstResponder()
+            if UnyieldingTextView.currentActiveInstance === self {
+                UnyieldingTextView.currentActiveInstance = nil
+            }
+        }
+    }
+
+    static func dismissKeyboard() {
+        if let active = currentActiveInstance {
+            active.shouldAllowResign = true
+            active.isEditingLocked = false
+            _ = active.resignFirstResponder()
+            currentActiveInstance = nil
+        }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     override var intrinsicContentSize: CGSize {
@@ -113,13 +237,16 @@ struct PersistentStoryTextView: UIViewRepresentable {
         textView.tintColor = .systemBlue
         textView.keyboardAppearance = .dark
         textView.isEditingLocked = isEditingLocked
+        textView.shouldAllowResign = !isEditingLocked
         textView.maxLayoutWidth = maxLayoutWidth
         textView.setContentHuggingPriority(.required, for: .horizontal)
         textView.setContentHuggingPriority(.required, for: .vertical)
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        DispatchQueue.main.async {
-            textView.becomeFirstResponder()
+        if isEditingLocked {
+            DispatchQueue.main.async {
+                textView.becomeFirstResponder()
+            }
         }
         return textView
     }
@@ -141,9 +268,17 @@ struct PersistentStoryTextView: UIViewRepresentable {
         }
         uiView.invalidateIntrinsicContentSize()
 
-        if isEditingLocked && !uiView.isFirstResponder {
-            DispatchQueue.main.async {
-                uiView.becomeFirstResponder()
+        if isEditingLocked {
+            uiView.shouldAllowResign = false
+            if !uiView.isFirstResponder {
+                DispatchQueue.main.async {
+                    uiView.becomeFirstResponder()
+                }
+            }
+        } else {
+            uiView.shouldAllowResign = true
+            if uiView.isFirstResponder {
+                uiView.resignFirstResponder()
             }
         }
     }
@@ -208,11 +343,41 @@ extension TextFontStyle {
 ///   and bottom "Thêm chú thích...", "Tin của bạn", "Bạn thân", blue next `->` button.
 /// - Typing: Softly dimmed blurred gradient background, top-right "Xong", left vertical tapered font size slider,
 ///   font styles carousel, dynamic animation/effect carousels, persistent keyboard focus,
-///   and text-hugging background highlight.
+///   and text-hugging background highlight. Dismisses keyboard on canvas background tap or "Xong".
+/// - Drawing: In-place PencilKit Metal drawing layer directly over canvas gradient, top bar with "Hoàn tác",
+///   5 brush tools, "Xong", left 16pt vertical tapered stroke slider, and bottom color palette with page dots.
 struct CreateCanvasView: View {
 
     @Binding var isPresented: Bool
-    let onCanvasCompleted: (Data, Bool) -> Void
+    let onCanvasCompleted: (Data, Bool, CanvasCompletionDestination) -> Void
+
+    // MARK: - Constants
+    private enum Constants {
+        // Sliders (Font Size & Drawing Stroke Width)
+        static let sliderTrackTopWidth: CGFloat = 16.0
+        static let sliderTrackBottomWidth: CGFloat = 4.0
+        static let sliderHeight: CGFloat = 190.0
+        static let sliderThumbSize: CGFloat = 28.0
+        static let sliderHitboxWidth: CGFloat = 48.0
+        static let sliderTrackWidth: CGFloat = 20.0
+        static let sliderThumbShadowRadius: CGFloat = 4.0
+
+        // Font Size Range
+        static let minFontSize: CGFloat = 18.0
+        static let maxFontSize: CGFloat = 56.0
+        static let defaultFontSize: CGFloat = 32.0
+
+        // Drawing Stroke Width Range
+        static let minStrokeWidth: CGFloat = 3.0
+        static let maxStrokeWidth: CGFloat = 36.0
+        static let defaultStrokeWidth: CGFloat = 8.0
+
+        // Buttons & Palette Constants
+        static let circularButtonSize: CGFloat = 44.0
+        static let toolIconSize: CGFloat = 20.0
+        static let drawingPaletteColorSize: CGFloat = 28.0
+        static let drawingToolButtonSize: CGFloat = 38.0
+    }
 
     @State private var themes: [CanvasTheme] = [
         CanvasTheme(name: "Sunset", colors: [
@@ -234,12 +399,17 @@ struct CreateCanvasView: View {
 
     @State private var stickers: [PIPStickerItem] = []
     @State private var texts: [TextOverlayItem] = []
-    @State private var drawingImage: UIImage? = nil
     @State private var isRightMenuExpanded = false
     @State private var isShowingStickerDrawer = false
-    @State private var isShowingDrawingCanvas = false
     @State private var isShowingMusicPicker = false
     @State private var selectedAudioTrack: PostAudioTrackItem? = nil
+
+    // In-place Drawing Mode State (Apple PencilKit)
+    @State private var canvasView = PKCanvasView()
+    @State private var isDrawingMode = false
+    @State private var activeDrawingTool: StoryDrawingToolType = .pen
+    @State private var drawingColor: Color = .white
+    @State private var drawingStrokeWidth: CGFloat = Constants.defaultStrokeWidth
 
     // Inline Text Editor State
     @State private var isEditingText = false
@@ -249,7 +419,7 @@ struct CreateCanvasView: View {
     @State private var editingHasBackground = false
     @State private var editingFontStyle: TextFontStyle = .modern
     @State private var editingAlignment: TextAlignment = .center
-    @State private var editingFontSize: CGFloat = 32
+    @State private var editingFontSize: CGFloat = Constants.defaultFontSize
     @State private var editingAnimation: TextAnimationType = .none
     @State private var editingEffect: TextEffectType = .none
     @State private var activeToolTab: TypographyToolTab = .font
@@ -268,6 +438,19 @@ struct CreateCanvasView: View {
         Color.green
     ]
 
+    // Official Instagram 9-color drawing palette (matching media_1792055892992.png)
+    private let drawingPaletteColors: [Color] = [
+        .white,
+        .black,
+        Color(red: 0.1, green: 0.6, blue: 1.0),   // Light Blue
+        Color(red: 0.3, green: 0.85, blue: 0.35), // Green
+        Color(red: 1.0, green: 0.82, blue: 0.2),  // Yellow
+        Color(red: 1.0, green: 0.55, blue: 0.15), // Orange
+        Color(red: 0.95, green: 0.25, blue: 0.35),// Red / Coral
+        Color(red: 0.85, green: 0.1, blue: 0.55), // Deep Pink
+        Color(red: 0.65, green: 0.15, blue: 0.85) // Purple
+    ]
+
     var body: some View {
         ZStack {
             // Background Dynamic Gradient with Tap-to-type support
@@ -279,18 +462,9 @@ struct CreateCanvasView: View {
             .ignoresSafeArea()
             .contentShape(Rectangle())
             .onTapGesture {
-                if !isEditingText {
+                if !isEditingText && !isDrawingMode {
                     startEditing()
                 }
-            }
-
-            // Overlaid PencilKit Drawing (if any)
-            if let drawingImage {
-                Image(uiImage: drawingImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
             }
 
             // Overlaid Canvas Elements (Stickers & Texts)
@@ -310,20 +484,33 @@ struct CreateCanvasView: View {
                             texts.removeAll { $0.id == textItem.id }
                         },
                         onEdit: {
-                            startEditing(item: textItem)
+                            if !isDrawingMode {
+                                startEditing(item: textItem)
+                            }
                         }
                     )
                 }
             }
+            .allowsHitTesting(!isDrawingMode && !isEditingText)
 
-            // Idle Mode UI (Hidden while editing text)
-            if !isEditingText {
-                idleOverlayUI
-            }
+            // Overlaid PencilKit Drawing Canvas (in-place Metal GPU layer)
+            StoryPKCanvasRepresentable(
+                canvasView: $canvasView,
+                toolType: activeDrawingTool,
+                color: UIColor(drawingColor),
+                strokeWidth: drawingStrokeWidth,
+                isInteractionEnabled: isDrawingMode
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(isDrawingMode)
 
-            // Active Inline Text Editor Overlay (Typing Mode)
-            if isEditingText {
+            // Dynamic Contextual Overlays based on active mode
+            if isDrawingMode {
+                inlineDrawingOverlayUI
+            } else if isEditingText {
                 inlineTextEditorOverlay
+            } else {
+                idleOverlayUI
             }
         }
         .statusBarHidden()
@@ -338,13 +525,11 @@ struct CreateCanvasView: View {
                 }
             )
         }
-        .fullScreenCover(isPresented: $isShowingDrawingCanvas) {
-            StoryDrawingCanvasView(isPresented: $isShowingDrawingCanvas) { renderedDrawing in
-                self.drawingImage = renderedDrawing
-            }
-        }
         .sheet(isPresented: $isShowingMusicPicker) {
             StudioAudioPickerSheet(selectedTrack: $selectedAudioTrack)
+        }
+        .onDisappear {
+            UnyieldingTextView.dismissKeyboard()
         }
     }
 
@@ -427,7 +612,9 @@ struct CreateCanvasView: View {
 
                 rightCircleButton(icon: "scribble") {
                     HapticFeedbackSafe.impact(.light)
-                    isShowingDrawingCanvas = true
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isDrawingMode = true
+                    }
                 }
 
                 rightCircleButton(icon: "bookmark") {
@@ -536,11 +723,13 @@ struct CreateCanvasView: View {
 
                 expandedToolRow(label: "Vẽ", icon: "scribble") {
                     HapticFeedbackSafe.impact(.light)
-                    isShowingDrawingCanvas = true
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isDrawingMode = true
+                    }
                 }
 
                 expandedToolRow(label: "Tải xuống", icon: "arrow.down.to.line") {
-                    finishAndExport()
+                    downloadCanvas()
                 }
 
                 expandedToolRow(label: "Khác", icon: "ellipsis") {
@@ -618,7 +807,7 @@ struct CreateCanvasView: View {
                 // Button 1: Your Story (Tin của bạn)
                 Button {
                     HapticFeedbackSafe.impact(.medium)
-                    finishAndExport()
+                    finishAndExport(destination: .yourStory)
                 } label: {
                     HStack(spacing: 8) {
                         ZStack(alignment: .bottomTrailing) {
@@ -643,7 +832,7 @@ struct CreateCanvasView: View {
                 // Button 2: Close Friends (Bạn thân)
                 Button {
                     HapticFeedbackSafe.impact(.medium)
-                    finishAndExport()
+                    finishAndExport(destination: .closeFriends)
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "star.circle.fill")
@@ -664,7 +853,7 @@ struct CreateCanvasView: View {
                 // Button 3: Blue Next ->
                 Button {
                     HapticFeedbackSafe.impact(.medium)
-                    finishAndExport()
+                    finishAndExport(destination: .editor)
                 } label: {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 18, weight: .bold))
@@ -682,10 +871,15 @@ struct CreateCanvasView: View {
 
     private var inlineTextEditorOverlay: some View {
         ZStack {
-            // Subtle dark blur over current gradient (NOT opaque black!)
+            // Subtle dark blur over current gradient (dismisses keyboard on tap outside)
             Color.black.opacity(0.4)
                 .background(.ultraThinMaterial)
                 .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    HapticFeedbackSafe.impact(.light)
+                    finishEditingText()
+                }
 
             VStack(spacing: 0) {
                 // Top Action Toolbar: "Xong" (Done) button on top right
@@ -706,9 +900,9 @@ struct CreateCanvasView: View {
 
                 // Main Live Typing Field with Left Vertical Tapered Slider
                 HStack(alignment: .center, spacing: 0) {
-                    // Left Vertical Tapered Font Size Slider
+                    // Left Vertical Tapered Font Size Slider (16pt track, 28pt thumb, 48pt hitbox)
                     verticalFontSizeSlider
-                        .frame(width: 36)
+                        .frame(width: Constants.sliderHitboxWidth)
 
                     Spacer()
 
@@ -721,7 +915,7 @@ struct CreateCanvasView: View {
                         hasBackground: editingHasBackground,
                         badgeBackgroundColor: UIColor(editingColor.smartBadgeBackgroundColor),
                         isEditingLocked: isEditingText,
-                        maxLayoutWidth: max(180, UIScreen.main.bounds.width - 92)
+                        maxLayoutWidth: max(180, UIScreen.main.bounds.width - 116)
                     )
                     .shadow(
                         color: editingEffect == .neon ? editingColor.opacity(0.8) : (editingEffect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(editingHasBackground ? 0.35 : 0.7)),
@@ -733,42 +927,52 @@ struct CreateCanvasView: View {
                     Spacer()
 
                     // Balance spacer for left slider
-                    Spacer().frame(width: 36)
+                    Spacer().frame(width: Constants.sliderHitboxWidth)
                 }
-                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.horizontal, DS.Spacing.xs)
 
                 Spacer()
 
                 // Keyboard Accessory Formatting Bar (Retains keyboard focus on tap)
                 keyboardFormattingToolbar
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Prevent background tap from dismissing keyboard when tapping between buttons
+                    }
             }
         }
     }
 
-    // MARK: - Tapered Vertical Font Size Slider (Matching media_1792051226454.png)
+    // MARK: - Tapered Vertical Font Size Slider (Matching media_1792051226454.png & 16pt track)
 
     private var verticalFontSizeSlider: some View {
         GeometryReader { sliderGeo in
-            let sliderHeight: CGFloat = 170
+            let sliderHeight = Constants.sliderHeight
             let topPadding = max(0, (sliderGeo.size.height - sliderHeight) / 2)
-            let normalized = max(0.0, min(1.0, (editingFontSize - 18) / (56 - 18)))
+            let normalized = max(0.0, min(1.0, (editingFontSize - Constants.minFontSize) / (Constants.maxFontSize - Constants.minFontSize)))
             let thumbY = sliderHeight * (1.0 - normalized)
 
             ZStack(alignment: .topLeading) {
-                // Tapered vertical track (wider at top, narrower at bottom)
-                TaperedVerticalTrackShape(topWidth: 6.0, bottomWidth: 2.0)
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: 8, height: sliderHeight)
-                    .offset(x: 10, y: topPadding)
+                // Tapered vertical track (16pt top, 4pt bottom)
+                TaperedVerticalTrackShape(
+                    topWidth: Constants.sliderTrackTopWidth,
+                    bottomWidth: Constants.sliderTrackBottomWidth
+                )
+                .fill(Color.white.opacity(0.35))
+                .frame(width: Constants.sliderTrackWidth, height: sliderHeight)
+                .offset(x: 12, y: topPadding)
 
-                // Draggable White Circular Thumb
+                // Draggable White Circular Thumb (28pt)
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 22, height: 22)
-                    .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 1)
-                    .offset(x: 3, y: topPadding + thumbY - 11)
+                    .frame(width: Constants.sliderThumbSize, height: Constants.sliderThumbSize)
+                    .shadow(color: .black.opacity(0.35), radius: Constants.sliderThumbShadowRadius, x: 0, y: 2)
+                    .offset(
+                        x: 12 + (Constants.sliderTrackWidth - Constants.sliderThumbSize) / 2,
+                        y: topPadding + thumbY - Constants.sliderThumbSize / 2
+                    )
             }
-            .frame(width: 36, height: sliderGeo.size.height)
+            .frame(width: Constants.sliderHitboxWidth, height: sliderGeo.size.height)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
@@ -776,7 +980,189 @@ struct CreateCanvasView: View {
                         let relativeY = val.location.y - topPadding
                         let clampedY = max(0, min(sliderHeight, relativeY))
                         let fraction = 1.0 - (clampedY / sliderHeight)
-                        editingFontSize = 18 + fraction * (56 - 18)
+                        editingFontSize = Constants.minFontSize + fraction * (Constants.maxFontSize - Constants.minFontSize)
+                    }
+            )
+        }
+    }
+
+    // MARK: - Inline Drawing Overlay UI (In-place Drawing Mode, matching media_1792055892992.png)
+
+    private var inlineDrawingOverlayUI: some View {
+        VStack(spacing: 0) {
+            // Top Toolbar: "Hoàn tác" (Left) | 5 Brush Tools (Center) | "Xong" (Right)
+            HStack(spacing: 0) {
+                // Undo Button
+                Button {
+                    HapticFeedbackSafe.impact(.light)
+                    canvasView.undoManager?.undo()
+                } label: {
+                    Text("Hoàn tác")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                }
+                .frame(minWidth: 70, alignment: .leading)
+
+                Spacer()
+
+                // 5 Brush Tools (Bút nét, Mũi tên, Dạ quang, Phát sáng, Tẩy)
+                HStack(spacing: 12) {
+                    ForEach(StoryDrawingToolType.allCases) { tool in
+                        Button {
+                            HapticFeedbackSafe.selection()
+                            activeDrawingTool = tool
+                        } label: {
+                            ZStack {
+                                if activeDrawingTool == tool {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: Constants.drawingToolButtonSize, height: Constants.drawingToolButtonSize)
+                                    Image(systemName: tool.iconName)
+                                        .font(.system(size: 17, weight: .bold))
+                                        .foregroundStyle(Color.black)
+                                } else {
+                                    Circle()
+                                        .fill(Color.black.opacity(0.3))
+                                        .frame(width: Constants.drawingToolButtonSize, height: Constants.drawingToolButtonSize)
+                                    Image(systemName: tool.iconName)
+                                        .font(.system(size: 17, weight: .medium))
+                                        .foregroundStyle(Color.white)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Spacer()
+
+                // Done Button ("Xong")
+                Button {
+                    HapticFeedbackSafe.impact(.light)
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isDrawingMode = false
+                    }
+                } label: {
+                    Text("Xong")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                }
+                .frame(minWidth: 70, alignment: .trailing)
+            }
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.top, DS.Spacing.md)
+
+            // Middle area: Left Vertical Stroke Width Slider + Transparent Canvas Area
+            HStack(alignment: .center, spacing: 0) {
+                verticalDrawingStrokeWidthSlider
+                    .frame(width: Constants.sliderHitboxWidth)
+                    .padding(.leading, 2)
+
+                Spacer()
+            }
+            .frame(maxHeight: .infinity)
+
+            // Bottom Palette Bar: Eyedropper + 9 Color Circles + 3 Page Dots
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    // Eyedropper Button
+                    Button {
+                        HapticFeedbackSafe.impact(.light)
+                    } label: {
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: Constants.drawingPaletteColorSize + 6, height: Constants.drawingPaletteColorSize + 6)
+                            .overlay(
+                                Image(systemName: "eyedropper.halffull")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.black)
+                            )
+                            .shadow(radius: 2)
+                    }
+                    .buttonStyle(.plain)
+
+                    // 9 Color Swatches
+                    ForEach(drawingPaletteColors, id: \.self) { color in
+                        Button {
+                            HapticFeedbackSafe.selection()
+                            drawingColor = color
+                        } label: {
+                            Circle()
+                                .fill(color)
+                                .frame(width: Constants.drawingPaletteColorSize, height: Constants.drawingPaletteColorSize)
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            Color.white,
+                                            lineWidth: drawingColor == color ? 3.0 : (color == .black ? 1.0 : 0.0)
+                                        )
+                                )
+                                .scaleEffect(drawingColor == color ? 1.15 : 1.0)
+                                .shadow(radius: 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, DS.Spacing.sm)
+
+                // 3 Page Dots Indicator (Matching media_1792055892992.png: • • •)
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 5, height: 5)
+                    Circle()
+                        .fill(Color.white.opacity(0.4))
+                        .frame(width: 5, height: 5)
+                    Circle()
+                        .fill(Color.white.opacity(0.4))
+                        .frame(width: 5, height: 5)
+                }
+                .padding(.top, 2)
+            }
+            .padding(.bottom, DS.Spacing.xl)
+        }
+    }
+
+    // MARK: - Vertical Drawing Stroke Width Slider (16pt track, 28pt thumb, 48pt hitbox)
+
+    private var verticalDrawingStrokeWidthSlider: some View {
+        GeometryReader { sliderGeo in
+            let sliderHeight = Constants.sliderHeight
+            let topPadding = max(0, (sliderGeo.size.height - sliderHeight) / 2)
+            let normalized = max(0.0, min(1.0, (drawingStrokeWidth - Constants.minStrokeWidth) / (Constants.maxStrokeWidth - Constants.minStrokeWidth)))
+            let thumbY = sliderHeight * (1.0 - normalized)
+
+            ZStack(alignment: .topLeading) {
+                // Tapered vertical track (16pt top, 4pt bottom)
+                TaperedVerticalTrackShape(
+                    topWidth: Constants.sliderTrackTopWidth,
+                    bottomWidth: Constants.sliderTrackBottomWidth
+                )
+                .fill(Color.white.opacity(0.35))
+                .frame(width: Constants.sliderTrackWidth, height: sliderHeight)
+                .offset(x: 12, y: topPadding)
+
+                // Draggable White Circular Thumb (28pt)
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: Constants.sliderThumbSize, height: Constants.sliderThumbSize)
+                    .shadow(color: .black.opacity(0.35), radius: Constants.sliderThumbShadowRadius, x: 0, y: 2)
+                    .offset(
+                        x: 12 + (Constants.sliderTrackWidth - Constants.sliderThumbSize) / 2,
+                        y: topPadding + thumbY - Constants.sliderThumbSize / 2
+                    )
+            }
+            .frame(width: Constants.sliderHitboxWidth, height: sliderGeo.size.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { val in
+                        let relativeY = val.location.y - topPadding
+                        let clampedY = max(0, min(sliderHeight, relativeY))
+                        let fraction = 1.0 - (clampedY / sliderHeight)
+                        drawingStrokeWidth = Constants.minStrokeWidth + fraction * (Constants.maxStrokeWidth - Constants.minStrokeWidth)
                     }
             )
         }
@@ -1078,6 +1464,7 @@ struct CreateCanvasView: View {
             editingAlignment = item.alignment
             editingAnimation = item.animation
             editingEffect = item.effect
+            editingFontSize = item.fontSize
         } else {
             editingItemId = nil
             editingText = ""
@@ -1087,6 +1474,7 @@ struct CreateCanvasView: View {
             editingAlignment = .center
             editingAnimation = .none
             editingEffect = .none
+            editingFontSize = Constants.defaultFontSize
         }
         isEditingText = true
         isColorPickerVisible = false
@@ -1094,6 +1482,9 @@ struct CreateCanvasView: View {
     }
 
     private func finishEditingText() {
+        // Unlock and dismiss keyboard before transitioning SwiftUI view hierarchy
+        UnyieldingTextView.dismissKeyboard()
+
         let trimmed = editingText.trimmingCharacters(in: .whitespacesAndNewlines)
         if let id = editingItemId {
             if trimmed.isEmpty {
@@ -1106,6 +1497,7 @@ struct CreateCanvasView: View {
                 texts[index].alignment = editingAlignment
                 texts[index].animation = editingAnimation
                 texts[index].effect = editingEffect
+                texts[index].fontSize = editingFontSize
             }
         } else if !trimmed.isEmpty {
             texts.append(
@@ -1116,7 +1508,8 @@ struct CreateCanvasView: View {
                     fontStyle: editingFontStyle,
                     alignment: editingAlignment,
                     animation: editingAnimation,
-                    effect: editingEffect
+                    effect: editingEffect,
+                    fontSize: editingFontSize
                 )
             )
         }
@@ -1125,21 +1518,39 @@ struct CreateCanvasView: View {
 
     // MARK: - Export
 
-    private func finishAndExport() {
+    private func renderPencilKitDrawing(targetSize: CGSize) -> UIImage? {
+        guard !canvasView.drawing.bounds.isEmpty else { return nil }
+        return autoreleasepool {
+            let canvasBounds = canvasView.bounds.width > 0 ? canvasView.bounds : UIScreen.main.bounds
+            let scale = canvasBounds.width > 0 ? (targetSize.width / canvasBounds.width) : 1.0
+            return canvasView.drawing.image(from: canvasBounds, scale: scale)
+        }
+    }
+
+    private func finishAndExport(destination: CanvasCompletionDestination = .editor) {
         let validTexts = texts.filter {
             !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
         let hasAnimation = validTexts.contains { $0.animation != .none }
 
-        // If any text has animation or music selected, render as 1080x1920 MP4 Video
-        if hasAnimation || selectedAudioTrack != nil {
+        // Audio tracks in StudioAudioPickerSheet are catalogue metadata only; no
+        // licensed/local audio asset exists to mix into AVAssetWriter yet. Do not
+        // silently manufacture a muted MP4 just because a track was selected.
+        if selectedAudioTrack != nil {
+            HUDManager.shared.showInfo("Âm thanh chưa thể xuất trong bản này")
+        }
+
+        // Animated text requires a video. Static canvases remain images until an
+        // actual audio-mixing pipeline is available.
+        if hasAnimation {
             HUDManager.shared.showLoading("Đang xử lý video...")
             Task {
                 do {
+                    let renderedDrawing = renderPencilKitDrawing(targetSize: CGSize(width: 1080, height: 1920))
                     let (_, videoData) = try await CanvasVideoRenderer.shared.renderVideo(
                         gradientColors: themes[activeThemeIndex].colors,
-                        drawings: drawingImage,
+                        drawings: renderedDrawing,
                         stickers: stickers,
                         texts: validTexts,
                         duration: 5.0,
@@ -1147,26 +1558,40 @@ struct CreateCanvasView: View {
                     )
                     await MainActor.run {
                         HUDManager.shared.dismiss()
-                        onCanvasCompleted(videoData, true)
+                        onCanvasCompleted(videoData, true, destination)
                         isPresented = false
                     }
                 } catch {
                     await MainActor.run {
                         HUDManager.shared.dismiss()
-                        exportStaticImage(validTexts: validTexts)
+                        exportStaticImage(validTexts: validTexts, destination: destination)
                     }
                 }
             }
         } else {
-            exportStaticImage(validTexts: validTexts)
+            exportStaticImage(validTexts: validTexts, destination: destination)
         }
     }
 
-    private func exportStaticImage(validTexts: [TextOverlayItem]) {
+    private func exportStaticImage(
+        validTexts: [TextOverlayItem],
+        destination: CanvasCompletionDestination
+    ) {
+        guard let composite = makeStaticComposite(validTexts: validTexts),
+              let jpeg = composite.jpegData(compressionQuality: 0.88) else {
+            HUDManager.shared.showError("Không thể xuất ảnh")
+            return
+        }
+        onCanvasCompleted(jpeg, false, destination)
+        isPresented = false
+    }
+
+    private func makeStaticComposite(validTexts: [TextOverlayItem]) -> UIImage? {
         let renderSize = CGSize(width: 1080, height: 1920)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1.0
         let bgRenderer = UIGraphicsImageRenderer(size: renderSize, format: format)
+        let renderedDrawing = renderPencilKitDrawing(targetSize: renderSize)
 
         let bgImage = bgRenderer.image { context in
             let cgContext = context.cgContext
@@ -1183,8 +1608,8 @@ struct CreateCanvasView: View {
             }
 
             // Draw PencilKit drawing if any
-            if let drawingImage {
-                drawingImage.draw(in: CGRect(origin: .zero, size: renderSize))
+            if let renderedDrawing {
+                renderedDrawing.draw(in: CGRect(origin: .zero, size: renderSize))
             }
         }
 
@@ -1195,9 +1620,45 @@ struct CreateCanvasView: View {
             renderSize: renderSize
         )
 
-        if let jpeg = composite.jpegData(compressionQuality: 0.88) {
-            onCanvasCompleted(jpeg, false)
-            isPresented = false
+        return composite
+    }
+
+    private func downloadCanvas() {
+        let validTexts = texts.filter {
+            !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        let hasAnimation = validTexts.contains { $0.animation != .none }
+
+        HUDManager.shared.showLoading("Đang lưu vào thư viện...")
+        Task {
+            do {
+                if hasAnimation {
+                    let drawing = renderPencilKitDrawing(targetSize: CGSize(width: 1080, height: 1920))
+                    let (url, _) = try await CanvasVideoRenderer.shared.renderVideo(
+                        gradientColors: themes[activeThemeIndex].colors,
+                        drawings: drawing,
+                        stickers: stickers,
+                        texts: validTexts,
+                        duration: 5.0,
+                        fps: 30
+                    )
+                    try await PhotoLibraryService.shared.saveVideo(at: url)
+                } else if let image = makeStaticComposite(validTexts: validTexts),
+                          let data = image.jpegData(compressionQuality: 0.88) {
+                    try await PhotoLibraryService.shared.saveImageData(data)
+                } else {
+                    throw PhotoLibrarySaveError.invalidImage
+                }
+                await MainActor.run {
+                    HUDManager.shared.dismiss()
+                    HUDManager.shared.showInfo("Đã lưu vào thư viện ảnh")
+                }
+            } catch {
+                await MainActor.run {
+                    HUDManager.shared.dismiss()
+                    HUDManager.shared.showError("Không thể lưu: \(error.localizedDescription)")
+                }
+            }
         }
     }
 }

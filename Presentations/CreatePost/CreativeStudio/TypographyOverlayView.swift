@@ -85,6 +85,9 @@ public struct TextOverlayItem: Identifiable {
     public var isItalic: Bool
     public var animation: TextAnimationType
     public var effect: TextEffectType
+    /// Point size on the logical 9:16 canvas. This must travel with the item
+    /// so editing, preview, image export and video export agree.
+    public var fontSize: CGFloat
     public var offset: CGSize
     public var scale: CGFloat
 
@@ -98,6 +101,7 @@ public struct TextOverlayItem: Identifiable {
         isItalic: Bool = false,
         animation: TextAnimationType = .none,
         effect: TextEffectType = .none,
+        fontSize: CGFloat = 32,
         offset: CGSize = .zero,
         scale: CGFloat = 1.0
     ) {
@@ -110,6 +114,7 @@ public struct TextOverlayItem: Identifiable {
         self.isItalic = isItalic
         self.animation = animation
         self.effect = effect
+        self.fontSize = fontSize
         self.offset = offset
         self.scale = scale
     }
@@ -152,7 +157,11 @@ struct TypographyOverlayView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Text(item.text)
-                .font(item.effect == .pixel ? .system(size: 28, weight: .bold, design: .monospaced) : item.fontStyle.font)
+                .font(
+                    item.effect == .pixel
+                        ? .system(size: item.fontSize, weight: .bold, design: .monospaced)
+                        : Font(item.fontStyle.uiFont(size: item.fontSize))
+                )
                 .italic(item.isItalic)
                 .multilineTextAlignment(item.alignment)
                 .foregroundStyle(item.color)

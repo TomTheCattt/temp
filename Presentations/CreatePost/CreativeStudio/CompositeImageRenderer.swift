@@ -92,7 +92,7 @@ public final class CompositeImageRenderer {
 
                 let badgeColor = isLight ? UIColor.black.withAlphaComponent(0.65) : UIColor.white.withAlphaComponent(0.85)
 
-                let fontSize = 42 * textItem.scale
+                let fontSize = textItem.fontSize * textItem.scale * (renderSize.width / 360)
                 let nsFont: UIFont
                 switch textItem.fontStyle {
                 case .modern:
