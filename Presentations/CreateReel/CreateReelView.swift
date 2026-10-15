@@ -22,10 +22,16 @@ struct CreateReelView: View {
 
     var body: some View {
         NavigationStack {
-            if viewModel.isShowingEditor {
-                editorScreen
-            } else {
-                captureScreen
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                if viewModel.isShowingShareDetails {
+                    shareDetailsScreen
+                } else if viewModel.isShowingEditor {
+                    editorScreen
+                } else {
+                    captureScreen
+                }
             }
         }
         .task {
@@ -35,20 +41,27 @@ struct CreateReelView: View {
             viewModel.stopCamera()
         }
         .onChange(of: viewModel.isPublished) { _, published in
-            if published { dismiss() }
+            if published {
+                dismiss()
+            }
         }
         .onChange(of: viewModel.videoPickerItem) { _, _ in
-            Task { await viewModel.loadVideoFromPicker() }
+            Task {
+                await viewModel.loadVideoFromPicker()
+            }
+        }
+        .sheet(isPresented: $viewModel.isShowingTrimmer) {
+            clipTrimmerSheet
         }
     }
 
-    // MARK: - Capture Screen
+    // MARK: - 1. Capture Screen
 
     private var captureScreen: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            // Live Camera Viewfinder or Simulator Fallback
+            // Viewfinder
             if viewModel.cameraService.isHardwareAvailable {
                 CameraPreviewView(
                     session: viewModel.cameraService.session,
@@ -59,144 +72,338 @@ struct CreateReelView: View {
                 simulatorMockPreview
             }
 
-            // Controls
-            VStack {
-                // Top bar
-                HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.35), in: Circle())
-                    }
+            // Ghost Alignment Overlay
+            if viewModel.isGhostEnabled, let ghost = viewModel.ghostFrame {
+                Image(uiImage: ghost)
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(0.35)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea()
+            }
 
-                    Spacer()
-
-                    // Audio picker
-                    Button(action: {
-                        HUDManager.shared.showInfo(L10n.CreateReel.addAudio)
-                    }) {
-                        HStack(spacing: DS.Spacing.xxs) {
-                            Image(systemName: "music.note")
-                            Text(L10n.CreateReel.addAudio)
-                        }
-                        .font(DS.Font.captionBold)
+            // Countdown Overlay
+            if viewModel.isCountingDown {
+                ZStack {
+                    Color.black.opacity(0.3).ignoresSafeArea()
+                    Text("\(viewModel.countdownRemaining)")
+                        .font(.system(size: 110, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, DS.Spacing.sm)
-                        .padding(.vertical, DS.Spacing.iconGap)
-                        .background(Color.black.opacity(0.4), in: Capsule())
-                    }
-
-                    Spacer()
-
-                    // Settings / Flash
-                    Button(action: {
-                        viewModel.toggleFlash()
-                    }) {
-                        Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
-                            .font(DS.Font.title3)
-                            .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.35), in: Circle())
-                    }
+                        .scaleEffect(1.1)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.5), value: viewModel.countdownRemaining)
                 }
-                .padding(.horizontal, DS.Spacing.md)
-                .padding(.top, DS.Spacing.md)
+            }
+
+            // Overlaid UI Controls
+            VStack(spacing: 0) {
+                // Top Multi-Segment Progress Bar
+                topSegmentProgressBar
+                    .padding(.top, DS.Spacing.xs)
+                    .padding(.horizontal, DS.Spacing.sm)
+
+                // Top Controls Bar
+                topControlsBar
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.top, DS.Spacing.sm)
 
                 Spacer()
 
-                // Right side tools
-                HStack {
+                // Left Vertical Tools Toolbar
+                HStack(alignment: .center) {
+                    leftVerticalToolbar
+                        .padding(.leading, DS.Spacing.md)
+
                     Spacer()
-                    VStack(spacing: DS.Spacing.lg) {
-                        toolButton(icon: "camera.rotate", label: "Flip") {
-                            viewModel.toggleCamera()
-                        }
-                        toolButton(icon: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash", label: "Flash") {
-                            viewModel.toggleFlash()
-                        }
-                        toolButton(icon: "timer", label: "Timer") {
-                            HUDManager.shared.showInfo("Hẹn giờ đếm ngược: 3s")
-                        }
-                        toolButton(icon: "sparkles", label: "Effects") {
-                            HUDManager.shared.showInfo("Hiệu ứng AR đang tải...")
-                        }
-                        toolButton(icon: "square.grid.2x2", label: "Layout") {
-                            HUDManager.shared.showInfo("Bố cục chia màn hình")
-                        }
-                    }
-                    .padding(.trailing, DS.Spacing.md)
                 }
 
                 Spacer()
 
-                // Bottom: duration + capture + gallery
-                VStack(spacing: DS.Spacing.md) {
-                    // Duration selector
-                    HStack(spacing: DS.Spacing.md) {
-                        durationChip("15s", isSelected: viewModel.selectedDuration == "15s") {
-                            viewModel.selectedDuration = "15s"
-                        }
-                        durationChip("30s", isSelected: viewModel.selectedDuration == "30s") {
-                            viewModel.selectedDuration = "30s"
-                        }
-                        durationChip("60s", isSelected: viewModel.selectedDuration == "60s") {
-                            viewModel.selectedDuration = "60s"
-                        }
-                        durationChip("90s", isSelected: viewModel.selectedDuration == "90s") {
-                            viewModel.selectedDuration = "90s"
-                        }
-                    }
-
-                    // Capture + gallery
-                    HStack(spacing: DS.Spacing.xxxl) {
-                        // Gallery
-                        PhotosPicker(
-                            selection: $viewModel.videoPickerItem,
-                            matching: .videos
-                        ) {
-                            RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
-                                .fill(Color.white.opacity(0.2))
-                                .frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
-                                .overlay {
-                                    Image(systemName: "photo")
-                                        .font(DS.Font.caption)
-                                        .foregroundStyle(.white)
-                                }
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
-                                        .stroke(Color.white, lineWidth: 1.5)
-                                )
-                        }
-
-                        // Record button
-                        Button(action: {
-                            if viewModel.isRecording {
-                                viewModel.stopRecording()
-                            } else {
-                                viewModel.startRecording()
-                            }
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .stroke(Color.white, lineWidth: DS.Stroke.extraThick)
-                                    .frame(width: DS.Size.captureButton, height: DS.Size.captureButton)
-                                Circle()
-                                    .fill(viewModel.isRecording ? ColorTokens.destructive : ColorTokens.destructive.opacity(DS.Opacity.nearOpaque))
-                                    .frame(width: viewModel.isRecording ? DS.Size.avatarCompact : DS.Size.captureButtonInner, height: viewModel.isRecording ? DS.Size.avatarCompact : DS.Size.captureButtonInner)
-                                    .clipShape(viewModel.isRecording ? AnyShape(RoundedRectangle(cornerRadius: DS.Radius.medium)) : AnyShape(Circle()))
-                            }
-                        }
-
-                        // Placeholder for balance
-                        Color.clear.frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
-                    }
-                }
-                .padding(.bottom, DS.Spacing.mediaControlsBottom)
+                // Bottom Record & Gallery Controls
+                bottomCaptureControls
+                    .padding(.horizontal, DS.Spacing.xl)
+                    .padding(.bottom, DS.Spacing.xxl + 30) // Offset for bottom mode switcher in creation hub
             }
         }
         .navigationBarHidden(true)
+    }
+
+    // MARK: - Top Multi-Segment Progress Bar
+
+    private var topSegmentProgressBar: some View {
+        GeometryReader { proxy in
+            let totalWidth = proxy.size.width
+            let limit = viewModel.selectedDurationLimit.rawValue
+
+            HStack(spacing: 3) {
+                // Previously recorded segments
+                ForEach(viewModel.recordedClips) { clip in
+                    let segmentWidth = max(4.0, (clip.duration / limit) * totalWidth)
+                    Capsule()
+                        .fill(Color.white)
+                        .frame(width: segmentWidth, height: 4)
+                }
+
+                // Currently active recording segment
+                if viewModel.isRecording {
+                    let liveWidth = max(4.0, (viewModel.currentClipDuration / limit) * totalWidth)
+                    Capsule()
+                        .fill(ColorTokens.accentPrimary)
+                        .frame(width: liveWidth, height: 4)
+                }
+
+                // Remaining unfilled duration
+                Capsule()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(height: 4)
+            }
+        }
+        .frame(height: 4)
+    }
+
+    // MARK: - Top Controls Bar
+
+    private var topControlsBar: some View {
+        HStack {
+            // Dismiss
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.black.opacity(0.35), in: Circle())
+            }
+
+            Spacer()
+
+            // Audio Selector Pill
+            Button(action: {
+                HUDManager.shared.showInfo(L10n.CreateReel.addAudio)
+            }) {
+                HStack(spacing: DS.Spacing.xxs) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(viewModel.selectedAudioName ?? L10n.CreateReel.addAudio)
+                        .font(DS.Font.captionBold)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.vertical, 7)
+                .background(Color.black.opacity(0.4), in: Capsule())
+                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+            }
+
+            Spacer()
+
+            // Flash Toggle
+            Button(action: { viewModel.toggleFlash() }) {
+                Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.black.opacity(0.35), in: Circle())
+            }
+        }
+    }
+
+    // MARK: - Left Vertical Toolbar
+
+    private var leftVerticalToolbar: some View {
+        VStack(spacing: DS.Spacing.md) {
+            // Duration Limit Tool (15s, 30s, 60s, 90s)
+            toolPillButton(
+                title: viewModel.selectedDurationLimit.title,
+                icon: nil
+            ) {
+                viewModel.cycleDurationLimit()
+            }
+
+            // Speed Tool (.3x, .5x, 1x, 2x, 3x)
+            toolPillButton(
+                title: viewModel.selectedSpeed.title,
+                icon: nil
+            ) {
+                viewModel.cycleSpeed()
+            }
+
+            // Timer Tool (3s, 10s, Off)
+            toolPillButton(
+                title: viewModel.selectedTimer == .off ? nil : viewModel.selectedTimer.title,
+                icon: "timer"
+            ) {
+                viewModel.cycleTimer()
+            }
+
+            // Ghost / Alignment Tool (Available when clips recorded)
+            if !viewModel.recordedClips.isEmpty {
+                toolPillButton(
+                    title: nil,
+                    icon: "square.2.layers.3d",
+                    isActive: viewModel.isGhostEnabled
+                ) {
+                    viewModel.toggleGhost()
+                }
+            }
+
+            // Flip Camera Tool
+            toolPillButton(
+                title: nil,
+                icon: "camera.rotate"
+            ) {
+                viewModel.toggleCamera()
+            }
+        }
+        .padding(.vertical, DS.Spacing.xs)
+        .padding(.horizontal, 6)
+        .background(Color.black.opacity(0.3), in: Capsule())
+    }
+
+    private func toolPillButton(
+        title: String?,
+        icon: String?,
+        isActive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Group {
+                if let title {
+                    Text(title)
+                        .font(.system(size: 13, weight: .bold))
+                } else if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                }
+            }
+            .foregroundStyle(isActive ? ColorTokens.accentPrimary : .white)
+            .frame(width: 36, height: 36)
+            .background(
+                isActive ? Color.white.opacity(0.2) : Color.clear,
+                in: Circle()
+            )
+        }
+    }
+
+    // MARK: - Bottom Capture Controls
+
+    private var bottomCaptureControls: some View {
+        HStack(alignment: .center) {
+            // Left: Gallery / PhotosPicker Button
+            ZStack {
+                PhotosPicker(
+                    selection: $viewModel.videoPickerItem,
+                    matching: .videos
+                ) {
+                    if let thumbnail = viewModel.latestGalleryThumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
+                                    .stroke(Color.white, lineWidth: 2)
+                            )
+                    } else {
+                        RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(DS.Font.caption)
+                                    .foregroundStyle(.white)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
+                                    .stroke(Color.white, lineWidth: 1.5)
+                            )
+                    }
+                }
+
+                // Delete Last Clip Button if clips exist
+                if !viewModel.recordedClips.isEmpty && !viewModel.isRecording {
+                    Button(action: {
+                        viewModel.deleteLastClip()
+                    }) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Color.black.opacity(0.6), in: Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                    }
+                    .offset(x: 52)
+                }
+            }
+            .frame(width: 80, alignment: .leading)
+
+            Spacer()
+
+            // Center: Reel Shutter / Record Button
+            Button(action: {
+                viewModel.triggerRecord()
+            }) {
+                ZStack {
+                    Circle()
+                        .stroke(Color.white, lineWidth: 5)
+                        .frame(width: 76, height: 76)
+
+                    if viewModel.isRecording {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.red)
+                            .frame(width: 28, height: 28)
+                    } else {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.pink, Color.red],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                    }
+                }
+                .scaleEffect(viewModel.isRecording ? 1.05 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.isRecording)
+            }
+
+            Spacer()
+
+            // Right: Next / Proceed Button when clips exist
+            Group {
+                if !viewModel.recordedClips.isEmpty && !viewModel.isRecording {
+                    Button(action: {
+                        Task {
+                            await viewModel.proceedToEditor()
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Text(L10n.Common.next)
+                                .font(.system(size: 14, weight: .bold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.white, in: Capsule())
+                        .overlay(
+                            // Clip count badge
+                            Text("\(viewModel.recordedClips.count)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 18, height: 18)
+                                .background(Color.red, in: Circle())
+                                .offset(x: 8, y: -8),
+                            alignment: .topTrailing
+                        )
+                    }
+                } else {
+                    Color.clear.frame(width: 80, height: 44)
+                }
+            }
+            .frame(width: 80, alignment: .trailing)
+        }
     }
 
     // MARK: - Simulator Mock Preview
@@ -204,7 +411,7 @@ struct CreateReelView: View {
     private var simulatorMockPreview: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(.systemGray6), Color.black],
+                colors: [Color(white: 0.12), Color.black],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -213,118 +420,375 @@ struct CreateReelView: View {
             VStack(spacing: DS.Spacing.xs) {
                 Image(systemName: "video.fill")
                     .font(.system(size: DS.Spacing.xxxl))
-                    .foregroundStyle(.white.opacity(DS.Opacity.overlay))
-                Text("Reel Camera Viewfinder")
+                    .foregroundStyle(ColorTokens.accentPrimary.opacity(0.8))
+                Text("Reel Camera (Simulator)")
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
-                Text("Simulator Mock Mode: Nhấn nút tròn đỏ để quay")
+                Text("Nhấn nút tròn đỏ để ghi từng đoạn clip")
                     .font(DS.Font.caption)
                     .foregroundStyle(.white.opacity(0.7))
             }
         }
     }
 
-    // MARK: - Editor Screen
+    // MARK: - 2. Editor Screen
 
     private var editorScreen: some View {
-        VStack(spacing: 0) {
-            // Video preview
-            ZStack {
-                Color.black
-                    .frame(height: DS.Size.mediaEditorPreviewHeight)
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                if let url = viewModel.capturedVideoURL {
-                    VideoPlayer(player: AVPlayer(url: url))
-                        .frame(height: DS.Size.mediaEditorPreviewHeight)
-                } else {
-                    VStack(spacing: DS.Spacing.xs) {
-                        Image(systemName: "play.rectangle.fill")
-                            .font(.system(size: DS.Size.iconHero))
-                            .foregroundStyle(.white.opacity(DS.Opacity.medium))
-                        Text(L10n.CreateReel.videoPreview)
-                            .font(DS.Font.caption)
-                            .foregroundStyle(.white.opacity(DS.Opacity.overlay))
+            // Looping Merged Video Preview
+            if let url = viewModel.finalVideoURL {
+                VideoPlayer(player: AVPlayer(url: url))
+                    .ignoresSafeArea()
+            } else {
+                Color.black.ignoresSafeArea()
+            }
+
+            // Editor Overlays
+            VStack {
+                // Top Action Bar
+                HStack(spacing: DS.Spacing.md) {
+                    Button(action: {
+                        viewModel.isShowingEditor = false
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(Color.black.opacity(0.4), in: Circle())
+                    }
+
+                    Spacer()
+
+                    // Top editor tools
+                    HStack(spacing: DS.Spacing.sm) {
+                        editorToolButton(icon: "music.note") {
+                            HUDManager.shared.showInfo(L10n.CreateReel.addAudio)
+                        }
+                        editorToolButton(icon: "character") {
+                            HUDManager.shared.showInfo("Văn bản Aa")
+                        }
+                        editorToolButton(icon: "sparkles") {
+                            HUDManager.shared.showInfo("Hiệu ứng")
+                        }
+                        editorToolButton(icon: "arrow.down.to.line") {
+                            HUDManager.shared.showSuccess("Đã lưu vào cuộn camera")
+                        }
                     }
                 }
+                .padding(.horizontal, DS.Spacing.md)
+                .padding(.top, DS.Spacing.sm)
+
+                Spacer()
+
+                // Bottom Bar: "Chỉnh sửa video" & "Tiếp"
+                HStack(spacing: DS.Spacing.md) {
+                    // Trimmer / Clips review button
+                    Button(action: {
+                        viewModel.isShowingTrimmer = true
+                    }) {
+                        HStack(spacing: DS.Spacing.xxs) {
+                            Image(systemName: "film")
+                            Text("Sửa các đoạn (\(viewModel.recordedClips.count))")
+                                .font(DS.Font.captionBold)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, DS.Spacing.md)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.2), in: Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                    }
+
+                    Spacer()
+
+                    // Next to Share Details
+                    Button(action: {
+                        viewModel.isShowingShareDetails = true
+                    }) {
+                        HStack(spacing: 6) {
+                            Text(L10n.Common.next)
+                                .font(.system(size: 15, weight: .bold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, DS.Spacing.xl)
+                        .padding(.vertical, 11)
+                        .background(ColorTokens.accentPrimary, in: Capsule())
+                    }
+                }
+                .padding(.horizontal, DS.Spacing.lg)
+                .padding(.bottom, DS.Spacing.xl)
             }
-            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
-            .padding()
-
-            // Caption
-            TextField(L10n.CreatePost.captionPlaceholder, text: $viewModel.caption, axis: .vertical)
-                .font(DS.Font.subheadline)
-                .lineLimit(3...5)
-                .padding(.horizontal)
-
-            Spacer()
         }
-        .dismissKeyboardOnTap()
-        .navigationTitle(L10n.CreateReel.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
+        .navigationBarHidden(true)
+    }
+
+    private func editorToolButton(icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
+                .background(Color.black.opacity(0.4), in: Circle())
+        }
+    }
+
+    // MARK: - 3. Clip Trimmer Sheet
+
+    private var clipTrimmerSheet: some View {
+        NavigationStack {
+            VStack(spacing: DS.Spacing.md) {
+                Text("Quản lý các đoạn clip đã quay")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, DS.Spacing.sm)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DS.Spacing.sm) {
+                        ForEach(Array(viewModel.recordedClips.enumerated()), id: \.element.id) { index, clip in
+                            VStack(spacing: DS.Spacing.xs) {
+                                ZStack(alignment: .topTrailing) {
+                                    if let thumb = clip.thumbnail {
+                                        Image(uiImage: thumb)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 90, height: 160)
+                                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.medium))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: DS.Radius.medium)
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 90, height: 160)
+                                    }
+
+                                    // Delete clip button
+                                    Button(action: {
+                                        viewModel.deleteClip(at: index)
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 20))
+                                            .foregroundStyle(.white, Color.red)
+                                    }
+                                    .padding(4)
+                                }
+
+                                Text(String(format: "%.1fs", clip.duration))
+                                    .font(DS.Font.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, DS.Spacing.md)
+                }
+                .frame(height: 200)
+
+                Spacer()
+            }
+            .navigationTitle("Đoạn clip")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.Common.done) {
+                        viewModel.isShowingTrimmer = false
+                        Task {
+                            await viewModel.proceedToEditor()
+                        }
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - 4. Share Details Screen
+
+    private var shareDetailsScreen: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
                 Button(action: {
-                    viewModel.isShowingEditor = false
-                    viewModel.selectedVideoData = nil
-                    viewModel.capturedVideoURL = nil
+                    viewModel.isShowingShareDetails = false
                 }) {
                     Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(ColorTokens.textPrimary)
+                }
+
+                Spacer()
+
+                Text(L10n.CreateReel.title)
+                    .font(DS.Font.headline)
+                    .foregroundStyle(ColorTokens.textPrimary)
+
+                Spacer()
+
+                Color.clear.frame(width: 24, height: 24)
+            }
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.vertical, DS.Spacing.sm)
+            .background(ColorTokens.backgroundPrimary)
+
+            Divider()
+
+            ScrollView {
+                VStack(spacing: DS.Spacing.lg) {
+                    // Preview Card & Caption
+                    HStack(alignment: .top, spacing: DS.Spacing.md) {
+                        // 9:16 Video Cover Card
+                        ZStack(alignment: .bottom) {
+                            if let cover = viewModel.coverImage {
+                                Image(uiImage: cover)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 90, height: 140)
+                                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.medium))
+                            } else {
+                                RoundedRectangle(cornerRadius: DS.Radius.medium)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 90, height: 140)
+                            }
+
+                            Text("Sửa ảnh bìa")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.vertical, 3)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(
+                                    .rect(
+                                        topLeadingRadius: 0,
+                                        bottomLeadingRadius: DS.Radius.medium,
+                                        bottomTrailingRadius: DS.Radius.medium,
+                                        topTrailingRadius: 0
+                                    )
+                                )
+                        }
+                        .frame(width: 90, height: 140)
+
+                        // Caption TextField
+                        TextField(
+                            "Viết chú thích hoặc thêm cuộc thăm dò ý kiến...",
+                            text: $viewModel.caption,
+                            axis: .vertical
+                        )
+                        .font(DS.Font.subheadline)
+                        .lineLimit(4...7)
+                        .padding(.top, DS.Spacing.xs)
+                    }
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.top, DS.Spacing.md)
+
+                    Divider()
+
+                    // Settings Rows (Also Share to Feed, Tag, Location)
+                    VStack(spacing: 0) {
+                        Toggle(isOn: $viewModel.alsoShareToFeed) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Cũng chia sẻ lên Bảng tin")
+                                    .font(DS.Font.subheadline)
+                                    .foregroundStyle(ColorTokens.textPrimary)
+                                Text("Thước phim của bạn sẽ xuất hiện trên trang cá nhân và Bảng tin của người theo dõi.")
+                                    .font(DS.Font.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .tint(ColorTokens.accentPrimary)
+                        .padding(.horizontal, DS.Spacing.md)
+                        .padding(.vertical, DS.Spacing.sm)
+
+                        Divider().padding(.leading, DS.Spacing.md)
+
+                        shareOptionRow(icon: "person.badge.plus", title: "Gắn thẻ người khác") {
+                            HUDManager.shared.showInfo("Gắn thẻ người khác")
+                        }
+
+                        Divider().padding(.leading, DS.Spacing.md)
+
+                        shareOptionRow(icon: "mappin.and.ellipse", title: "Thêm vị trí") {
+                            HUDManager.shared.showInfo("Thêm vị trí")
+                        }
+
+                        Divider().padding(.leading, DS.Spacing.md)
+
+                        shareOptionRow(icon: "music.note", title: "Đổi tên âm thanh") {
+                            HUDManager.shared.showInfo("Đổi tên âm thanh")
+                        }
+                    }
+
+                    Spacer(minLength: 40)
                 }
             }
-            ToolbarItem(placement: .confirmationAction) {
-                Button(L10n.Common.share) {
-                    Task { await viewModel.publish() }
+            .background(ColorTokens.backgroundPrimary)
+
+            Divider()
+
+            // Sticky Bottom Actions: Save Draft & Share Reel
+            HStack(spacing: DS.Spacing.md) {
+                Button(action: {
+                    HUDManager.shared.showSuccess("Đã lưu bản nháp thước phim")
+                    dismiss()
+                }) {
+                    Text("Lưu bản nháp")
+                        .font(DS.Font.subheadlineBold)
+                        .foregroundStyle(ColorTokens.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: DS.Radius.medium)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
                 }
-                .fontWeight(.semibold)
-                .foregroundStyle(ColorTokens.accentPrimary)
+
+                Button(action: {
+                    Task {
+                        await viewModel.publish()
+                    }
+                }) {
+                    Group {
+                        if viewModel.isPublishing {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text(L10n.Common.share)
+                                .font(DS.Font.subheadlineBold)
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(ColorTokens.accentPrimary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+                }
                 .disabled(viewModel.isPublishing)
             }
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.vertical, DS.Spacing.sm)
+            .background(ColorTokens.backgroundPrimary)
         }
+        .navigationBarHidden(true)
     }
 
-    // MARK: - Helpers
-
-    @ViewBuilder
-    private func toolButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func shareOptionRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: DS.Spacing.xxs) {
+            HStack(spacing: DS.Spacing.sm) {
                 Image(systemName: icon)
-                    .font(DS.Font.title3)
-                Text(label)
-                    .font(DS.Font.caption2)
+                    .font(.system(size: 17))
+                    .foregroundStyle(ColorTokens.textPrimary)
+                    .frame(width: 24)
+
+                Text(title)
+                    .font(DS.Font.subheadline)
+                    .foregroundStyle(ColorTokens.textPrimary)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.white)
+            .padding(.horizontal, DS.Spacing.md)
+            .padding(.vertical, DS.Spacing.md)
         }
-    }
-
-    @ViewBuilder
-    private func durationChip(_ text: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(text)
-                .font(DS.Font.caption)
-                .fontWeight(isSelected ? .bold : .regular)
-                .foregroundStyle(isSelected ? .white : .white.opacity(DS.Opacity.medium))
-                .padding(.horizontal, DS.Spacing.sm)
-                .padding(.vertical, DS.Spacing.xxs)
-                .background(
-                    isSelected ? Color.white.opacity(DS.Opacity.placeholder) : Color.black.opacity(0.3),
-                    in: Capsule()
-                )
-        }
-    }
-}
-
-// MARK: - AnyShape
-
-/// Type-erased Shape for conditional clipShape.
-struct AnyShape: Shape {
-    private let _path: @Sendable (CGRect) -> Path
-
-    init<S: Shape>(_ shape: S) {
-        _path = { rect in shape.path(in: rect) }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        _path(rect)
     }
 }

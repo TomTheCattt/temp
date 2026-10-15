@@ -238,8 +238,7 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func stopRecording() async throws -> URL {
         guard isHardwareAvailable else {
-            // Fallback video URL
-            return URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4")!
+            return generateMockVideoURL()
         }
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -261,6 +260,100 @@ final class CameraService: NSObject, @unchecked Sendable {
     }
 
     // MARK: - Mock Generator for Simulator
+
+    func generateMockVideoURL() -> URL {
+        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("mock_reel_\(UUID().uuidString).mp4")
+        try? FileManager.default.removeItem(at: outputURL)
+
+        guard let writer = try? AVAssetWriter(outputURL: outputURL, fileType: .mp4) else {
+            return outputURL
+        }
+
+        let width = 720
+        let height = 1280
+        let settings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height
+        ]
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        input.expectsMediaDataInRealTime = false
+        let attrs: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32ARGB),
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
+            kCVPixelBufferCGImageCompatibilityKey as String: true
+        ]
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: attrs)
+
+        if writer.canAdd(input) {
+            writer.add(input)
+        }
+        writer.startWriting()
+        writer.startSession(atSourceTime: .zero)
+
+        let fps: Int32 = 30
+        let durationSeconds = 3
+        let totalFrames = fps * Int32(durationSeconds)
+
+        for i in 0..<totalFrames {
+            let frameTime = CMTime(value: Int64(i), timescale: fps)
+            while !input.isReadyForMoreMediaData {
+                Thread.sleep(forTimeInterval: 0.005)
+            }
+            var pixelBuffer: CVPixelBuffer?
+            let status = CVPixelBufferCreate(
+                kCFAllocatorDefault,
+                width,
+                height,
+                kCVPixelFormatType_32ARGB,
+                attrs as CFDictionary,
+                &pixelBuffer
+            )
+            if status == kCVReturnSuccess, let buffer = pixelBuffer {
+                CVPixelBufferLockBaseAddress(buffer, [])
+                let data = CVPixelBufferGetBaseAddress(buffer)
+                let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
+                let context = CGContext(
+                    data: data,
+                    width: width,
+                    height: height,
+                    bitsPerComponent: 8,
+                    bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
+                    space: rgbColorSpace,
+                    bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+                )
+                if let context {
+                    let colors = [UIColor.systemPurple.cgColor, UIColor.systemIndigo.cgColor, UIColor.systemPink.cgColor]
+                    if let gradient = CGGradient(colorsSpace: rgbColorSpace, colors: colors as CFArray, locations: [0.0, 0.5, 1.0]) {
+                        context.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: CGFloat(height)), options: [])
+                    }
+                    UIGraphicsPushContext(context)
+                    let text = "Instagram Reel\nClip Segment\n\(Date().formatted(date: .omitted, time: .standard))"
+                    let paragraphStyle = NSMutableParagraphStyle()
+                    paragraphStyle.alignment = .center
+                    let textAttrs: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.systemFont(ofSize: 36, weight: .bold),
+                        .foregroundColor: UIColor.white,
+                        .paragraphStyle: paragraphStyle
+                    ]
+                    (text as NSString).draw(in: CGRect(x: 40, y: CGFloat(height) / 2.0 - 60, width: CGFloat(width) - 80, height: 120), withAttributes: textAttrs)
+                    UIGraphicsPopContext()
+                }
+                CVPixelBufferUnlockBaseAddress(buffer, [])
+                adaptor.append(buffer, withPresentationTime: frameTime)
+            }
+        }
+
+        input.markAsFinished()
+        let semaphore = DispatchSemaphore(value: 0)
+        writer.finishWriting {
+            semaphore.signal()
+        }
+        semaphore.wait()
+        return outputURL
+    }
 
     func generateMockImageData() -> Data {
         let size = CGSize(width: 1080, height: 1920)
