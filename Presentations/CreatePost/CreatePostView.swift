@@ -7,28 +7,72 @@
 
 import SwiftUI
 import Photos
-
-// MARK: - StudioTab
-
-enum StudioTab: String, CaseIterable, Identifiable {
-    case filter = "BỘ LỌC"
-    case edit = "CHỈNH SỬA"
-
-    var id: String { rawValue }
-}
+import PhotosUI
 
 // MARK: - CreatePostView
 
-/// Instagram-standard Post Creation View matching iOS Instagram:
+/// Modern Post Creation View matching the original app reference:
 /// 1. Screen 1: 50/50 Split View (Top Media Preview + Middle Bar + Bottom Native Camera Roll Grid).
-/// 2. Screen 2: Filter & Edit Studio (Color Presets & Fine-tuning adjustments).
+/// 2. Screen 2: Immersive Dark Studio (Top Audio Selector Pill, Center Rounded Media Carousel with Delete, Middle 6-Tool Quickbar, Bottom Thumbnail Strip with Add & Next Button).
 /// 3. Screen 3: Share Details (Caption, Tags, Music, Location, Privacy & Publish).
 struct CreatePostView: View {
 
+    // MARK: - Constants
+
+    private enum Constants {
+        // Top Header
+        static let closeButtonSize: CGFloat = 36
+        static let closeIconSize: CGFloat = 14
+        static let audioPillHeight: CGFloat = 42
+        static let audioCoverSize: CGFloat = 28
+        static let audioCoverRadius: CGFloat = 4
+        static let audioTitleFontSize: CGFloat = 12
+        static let audioSubtitleFontSize: CGFloat = 10
+        static let audioBadgeFontSize: CGFloat = 8
+        static let audioPlusButtonSize: CGFloat = 24
+        static let audioPlusIconSize: CGFloat = 10
+
+        // Media Preview Card
+        static let mediaCardRadius: CGFloat = 16
+        static let mediaCardMaxHeight: CGFloat = 460
+        static let deleteButtonSize: CGFloat = 28
+        static let deleteIconSize: CGFloat = 12
+        static let deleteButtonInset: CGFloat = 10
+        static let pageDotSize: CGFloat = 6
+        static let pageDotActiveOpacity: CGFloat = 1.0
+        static let pageDotInactiveOpacity: CGFloat = 0.35
+        static let pageDotsSpacing: CGFloat = 6
+
+        // Middle Quick Toolbar
+        static let toolButtonSize: CGFloat = 52
+        static let toolButtonRadius: CGFloat = 10
+        static let toolIconSize: CGFloat = 18
+        static let toolLabelFontSize: CGFloat = 10
+        static let toolSpacing: CGFloat = 8
+
+        // Bottom Action Bar
+        static let thumbnailSize: CGFloat = 44
+        static let thumbnailRadius: CGFloat = 6
+        static let thumbnailActiveBorderWidth: CGFloat = 2
+        static let thumbnailStripMaxWidth: CGFloat = 160
+        static let nextButtonHorizontalPadding: CGFloat = 20
+        static let nextButtonVerticalPadding: CGFloat = 10
+        static let nextButtonFontSize: CGFloat = 14
+        static let nextButtonIconSize: CGFloat = 12
+
+        // Opacity & Styling
+        static let darkControlBackgroundOpacity: CGFloat = 0.55
+        static let darkControlStrokeOpacity: CGFloat = 0.15
+        static let headerTopPadding: CGFloat = 8
+        static let audioBadgeVerticalPadding: CGFloat = 1
+        static let audioBadgeHorizontalPadding: CGFloat = 3
+    }
+
     @State private var viewModel: CreatePostViewModel
-    @State private var activeStudioTab: StudioTab = .filter
     @State private var isShowingCamera = false
     @State private var isShowingLocationPicker = false
+    @State private var isShowingAudioPicker = false
+    @State private var additionalMediaPickerItems: [PhotosPickerItem] = []
     @Environment(\.dismiss) private var dismiss
 
     init(viewModel: CreatePostViewModel) {
@@ -42,14 +86,15 @@ struct CreatePostView: View {
                 case .selectMedia:
                     mediaSelectionSplitView
                 case .applyFilter:
-                    filterAndEditStudioView
+                    modernStudioEditorView
                 case .captionAndShare:
                     captionAndShareView
                 }
             }
-            .background(Color(.systemBackground))
+            .background(viewModel.currentStep == .applyFilter ? Color.black : Color(.systemBackground))
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(viewModel.currentStep == .applyFilter ? .hidden : .visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.currentStep == .selectMedia {
@@ -61,7 +106,7 @@ struct CreatePostView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
                         }
-                    } else {
+                    } else if viewModel.currentStep == .captionAndShare {
                         Button {
                             viewModel.goToPreviousStep()
                         } label: {
@@ -86,7 +131,7 @@ struct CreatePostView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .disabled(!viewModel.canPublish)
-                    } else {
+                    } else if viewModel.currentStep == .selectMedia {
                         Button(L10n.Common.next) {
                             Task {
                                 await viewModel.goToNextStep()
@@ -106,6 +151,24 @@ struct CreatePostView: View {
             .sheet(isPresented: $isShowingLocationPicker) {
                 LocationPickerSheet { loc in
                     viewModel.location = loc
+                }
+            }
+            .sheet(isPresented: $isShowingAudioPicker) {
+                StudioAudioPickerSheet(selectedTrack: $viewModel.currentAudioTrack)
+            }
+            .onChange(of: additionalMediaPickerItems) { _, items in
+                guard !items.isEmpty else { return }
+                Task {
+                    var newDatas: [Data] = []
+                    for item in items {
+                        if let data = try? await item.loadTransferable(type: Data.self) {
+                            newDatas.append(data)
+                        }
+                    }
+                    if !newDatas.isEmpty {
+                        viewModel.appendSelectedImageData(newDatas)
+                    }
+                    additionalMediaPickerItems = []
                 }
             }
             .task {
@@ -308,111 +371,282 @@ struct CreatePostView: View {
         .background(Color(.systemBackground))
     }
 
-    // MARK: - Step 2: Filter & Edit Studio
+    // MARK: - Step 2: Modern Studio Editor (TikTok / Reference Layout)
 
-    private var filterAndEditStudioView: some View {
-        VStack(spacing: 0) {
-            // Preview Carousel
-            ZStack {
-                Color.black
+    private var modernStudioEditorView: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.ignoresSafeArea()
 
-                if !viewModel.selectedImages.isEmpty {
-                    let safeIndex = min(viewModel.activeImageIndex, viewModel.selectedImages.count - 1)
-                    if let image = UIImage(data: viewModel.selectedImages[safeIndex]) {
-                        FilteredImagePreview(
-                            sourceImage: image,
-                            filterId: viewModel.selectedFilterId,
-                            intensity: viewModel.filterIntensity,
-                            brightness: viewModel.brightness,
-                            contrast: viewModel.contrast,
-                            saturation: viewModel.saturation,
-                            warmth: viewModel.warmth
-                        )
-                        .aspectRatio(viewModel.aspectRatio.ratioValue, contentMode: .fit)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fit)
-
-            // Multi-image switcher thumbnail strip
-            if viewModel.selectedImages.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: DS.Spacing.xs) {
-                        ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
-                            if let img = ImageDownsampler.shared.downsample(data: viewModel.selectedImages[idx], maxDimension: 120) {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 48, height: 48)
-                                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: DS.Radius.small)
-                                            .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2)
-                                    )
-                                    .onTapGesture {
-                                        viewModel.activeImageIndex = idx
-                                    }
-                            }
-                        }
-                    }
+            VStack(spacing: 0) {
+                // 1. Top Header: Close Button + Audio Selector Pill
+                studioTopHeader
                     .padding(.horizontal, DS.Padding.horizontal)
-                    .padding(.vertical, 6)
+                    .padding(.top, Constants.headerTopPadding)
+
+                Spacer(minLength: DS.Spacing.xs)
+
+                // 2. Center Media Card with Rounded Corners + Delete (X) + Page Dots
+                studioMediaCard
+                    .padding(.horizontal, DS.Padding.horizontal)
+
+                Spacer(minLength: DS.Spacing.xs)
+
+                // 3. Middle Quick-Action Toolbar: 6 Tools
+                studioQuickToolbar
+                    .padding(.horizontal, DS.Padding.horizontal)
+                    .padding(.bottom, DS.Spacing.xs)
+
+                // 4. Active Drawer Panel (Filter / Adjustments / Audio / Text / Overlay)
+                if let drawer = viewModel.activeStudioDrawer {
+                    studioDrawerPanel(drawer)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, DS.Spacing.xs)
                 }
-                .background(Color(.systemBackground))
+
+                // 5. Bottom Action Bar: Selected Thumbnails + Add Button + Next Button (Tiếp ➔)
+                studioBottomActionBar
+                    .padding(.horizontal, DS.Padding.horizontal)
+                    .padding(.bottom, DS.Spacing.sm)
             }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: viewModel.activeStudioDrawer)
+    }
 
-            // Studio Tabs: BỘ LỌC vs CHỈNH SỬA
-            HStack(spacing: 0) {
-                Button {
-                    activeStudioTab = .filter
-                } label: {
-                    VStack(spacing: 6) {
-                        Text(StudioTab.filter.rawValue)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(activeStudioTab == .filter ? .primary : .secondary)
+    // MARK: - Studio Top Header
 
-                        Rectangle()
-                            .fill(activeStudioTab == .filter ? Color.primary : Color.clear)
-                            .frame(height: 2)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-
-                Button {
-                    activeStudioTab = .edit
-                } label: {
-                    VStack(spacing: 6) {
-                        Text(StudioTab.edit.rawValue)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(activeStudioTab == .edit ? .primary : .secondary)
-
-                        Rectangle()
-                            .fill(activeStudioTab == .edit ? Color.primary : Color.clear)
-                            .frame(height: 2)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .background(Color(.systemBackground))
-
-            // Tab Content
-            if activeStudioTab == .filter {
-                filterTabContent
-            } else {
-                editAdjustmentTabContent
+    private var studioTopHeader: some View {
+        HStack {
+            // Close Button (X)
+            Button {
+                viewModel.goToPreviousStep()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: Constants.closeIconSize, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: Constants.closeButtonSize, height: Constants.closeButtonSize)
+                    .background(Color.white.opacity(Constants.darkControlBackgroundOpacity), in: Circle())
             }
 
             Spacer()
+
+            // Audio Selector Pill
+            if let audio = viewModel.currentAudioTrack {
+                Button {
+                    isShowingAudioPicker = true
+                } label: {
+                    HStack(spacing: DS.Spacing.xs) {
+                        // Album Artwork / Music Icon Thumbnail
+                        ZStack {
+                            Color.black.opacity(0.8)
+                            Image(systemName: "music.note")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .frame(width: Constants.audioCoverSize, height: Constants.audioCoverSize)
+                        .clipShape(RoundedRectangle(cornerRadius: Constants.audioCoverRadius))
+
+                        // Song Details
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 9, weight: .bold))
+
+                                Text(audio.title)
+                                    .font(.system(size: Constants.audioTitleFontSize, weight: .semibold))
+                                    .lineLimit(1)
+
+                                if audio.isExplicit {
+                                    Text("E")
+                                        .font(.system(size: Constants.audioBadgeFontSize, weight: .heavy))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, Constants.audioBadgeHorizontalPadding)
+                                        .padding(.vertical, Constants.audioBadgeVerticalPadding)
+                                        .background(Color.white.opacity(0.3), in: RoundedRectangle(cornerRadius: 2))
+                                }
+
+                                if let tag = audio.badgeText {
+                                    Text(tag)
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
+                            }
+                            .foregroundStyle(.white)
+
+                            Text(audio.subtitle)
+                                .font(.system(size: Constants.audioSubtitleFontSize))
+                                .foregroundStyle(.white.opacity(0.65))
+                                .lineLimit(1)
+                        }
+
+                        // Plus Button
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(width: Constants.audioPlusButtonSize, height: Constants.audioPlusButtonSize)
+
+                            Image(systemName: "plus")
+                                .font(.system(size: Constants.audioPlusIconSize, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(.leading, 6)
+                    .padding(.trailing, 10)
+                    .frame(height: Constants.audioPillHeight)
+                    .background(Color.black.opacity(Constants.darkControlBackgroundOpacity), in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(Constants.darkControlStrokeOpacity), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+
+            // Balance placeholder for symmetrical alignment
+            Color.clear
+                .frame(width: Constants.closeButtonSize, height: Constants.closeButtonSize)
         }
     }
 
-    // MARK: - Filter Tab Content
+    // MARK: - Studio Media Card
 
-    private var filterTabContent: some View {
-        VStack(spacing: 0) {
+    private var studioMediaCard: some View {
+        VStack(spacing: Constants.pageDotsSpacing) {
+            ZStack(alignment: .topTrailing) {
+                // Card Media Canvas
+                ZStack {
+                    Color(white: 0.08)
+
+                    if !viewModel.selectedImages.isEmpty {
+                        TabView(selection: $viewModel.activeImageIndex) {
+                            ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
+                                if let image = UIImage(data: viewModel.selectedImages[idx]) {
+                                    FilteredImagePreview(
+                                        sourceImage: image,
+                                        filterId: viewModel.selectedFilterId,
+                                        intensity: viewModel.filterIntensity,
+                                        brightness: viewModel.brightness,
+                                        contrast: viewModel.contrast,
+                                        saturation: viewModel.saturation,
+                                        warmth: viewModel.warmth
+                                    )
+                                    .aspectRatio(viewModel.aspectRatio.ratioValue, contentMode: .fit)
+                                    .tag(idx)
+                                }
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: Constants.mediaCardRadius))
+
+                // Delete Button (X) at Top-Right of Card
+                if !viewModel.selectedImages.isEmpty {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.removeSelectedImage(at: viewModel.activeImageIndex)
+                        }
+                        HapticFeedbackSafe.impact(.medium)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: Constants.deleteIconSize, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: Constants.deleteButtonSize, height: Constants.deleteButtonSize)
+                            .background(Color.black.opacity(0.65), in: Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
+                    }
+                    .padding(Constants.deleteButtonInset)
+                }
+            }
+            .frame(maxHeight: Constants.mediaCardMaxHeight)
+
+            // Page Indicator Dots
+            if viewModel.selectedImages.count > 1 {
+                HStack(spacing: Constants.pageDotsSpacing) {
+                    ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
+                        Circle()
+                            .fill(
+                                viewModel.activeImageIndex == idx
+                                    ? Color.white.opacity(Constants.pageDotActiveOpacity)
+                                    : Color.white.opacity(Constants.pageDotInactiveOpacity)
+                            )
+                            .frame(width: Constants.pageDotSize, height: Constants.pageDotSize)
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    // MARK: - Studio Quick Toolbar
+
+    private var studioQuickToolbar: some View {
+        HStack(spacing: Constants.toolSpacing) {
+            ForEach(StudioTool.allCases) { tool in
+                Button {
+                    handleToolTap(tool)
+                    HapticFeedbackSafe.impact(.light)
+                } label: {
+                    VStack(spacing: 4) {
+                        if tool == .text {
+                            Text("Aa")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                        } else {
+                            Image(systemName: tool.iconName)
+                                .font(.system(size: Constants.toolIconSize, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+
+                        Text(tool.rawValue)
+                            .font(.system(size: Constants.toolLabelFontSize, weight: .medium))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Constants.toolButtonSize)
+                    .background(
+                        viewModel.activeStudioDrawer == tool
+                            ? Color.white.opacity(0.3)
+                            : Color(white: 0.16),
+                        in: RoundedRectangle(cornerRadius: Constants.toolButtonRadius)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: - Studio Drawer Panel
+
+    @ViewBuilder
+    private func studioDrawerPanel(_ drawer: StudioTool) -> some View {
+        VStack(spacing: DS.Spacing.xs) {
+            switch drawer {
+            case .filter:
+                studioFilterDrawer
+            case .edit:
+                studioAdjustmentsDrawer
+            case .audio:
+                studioAudioQuickDrawer
+            case .ratio:
+                studioRatioQuickDrawer
+            case .text:
+                studioTextQuickDrawer
+            case .overlay:
+                studioOverlayQuickDrawer
+            }
+        }
+        .padding(.vertical, DS.Spacing.xs)
+        .background(Color(white: 0.12), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+    }
+
+    // MARK: - Studio Drawers
+
+    private var studioFilterDrawer: some View {
+        VStack(spacing: DS.Spacing.xs) {
             if let firstData = viewModel.selectedImages.first,
                let sourceImage = UIImage(data: firstData) {
                 FilterSelectionView(
@@ -425,26 +659,28 @@ struct CreatePostView: View {
         }
     }
 
-    // MARK: - Edit Adjustment Tab Content
-
-    private var editAdjustmentTabContent: some View {
-        VStack(spacing: DS.Spacing.md) {
-            // Active adjustment slider
+    private var studioAdjustmentsDrawer: some View {
+        VStack(spacing: DS.Spacing.xs) {
             if let adjustment = viewModel.activeAdjustment {
-                HStack(spacing: DS.Spacing.md) {
+                HStack(spacing: DS.Spacing.sm) {
                     Text(adjustment.rawValue)
-                        .font(DS.Font.caption)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
                         .frame(width: 80, alignment: .leading)
 
                     switch adjustment {
                     case .brightness:
                         Slider(value: $viewModel.brightness, in: -0.5...0.5)
+                            .tint(.white)
                     case .contrast:
                         Slider(value: $viewModel.contrast, in: 0.5...1.5)
+                            .tint(.white)
                     case .saturation:
                         Slider(value: $viewModel.saturation, in: 0.0...2.0)
+                            .tint(.white)
                     case .warmth:
                         Slider(value: $viewModel.warmth, in: -0.5...0.5)
+                            .tint(.white)
                     }
 
                     Button("Đặt lại") {
@@ -455,35 +691,201 @@ struct CreatePostView: View {
                         case .warmth: viewModel.warmth = 0.0
                         }
                     }
-                    .font(DS.Font.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
                 }
                 .padding(.horizontal, DS.Padding.horizontal)
-                .padding(.top, DS.Spacing.sm)
             }
 
-            // Adjustment tools scroll strip
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.Spacing.lg) {
+                HStack(spacing: DS.Spacing.md) {
                     ForEach(PostAdjustmentType.allCases) { type in
                         Button {
                             withAnimation {
                                 viewModel.activeAdjustment = type
                             }
                         } label: {
-                            VStack(spacing: DS.Spacing.xs) {
+                            VStack(spacing: 2) {
                                 Image(systemName: type.iconName)
-                                    .font(.title3)
+                                    .font(.system(size: 16))
                                 Text(type.rawValue)
-                                    .font(DS.Font.caption2)
+                                    .font(.system(size: 10))
                             }
-                            .foregroundStyle(viewModel.activeAdjustment == type ? ColorTokens.accentPrimary : .secondary)
-                            .frame(width: 64)
+                            .foregroundStyle(viewModel.activeAdjustment == type ? ColorTokens.accentPrimary : .white.opacity(0.75))
+                            .frame(width: 58)
                         }
                     }
                 }
                 .padding(.horizontal, DS.Padding.horizontal)
-                .padding(.vertical, DS.Spacing.sm)
+            }
+        }
+    }
+
+    private var studioAudioQuickDrawer: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            Image(systemName: "music.note")
+                .foregroundStyle(ColorTokens.accentPrimary)
+            Text(viewModel.currentAudioTrack?.title ?? "Chưa chọn âm thanh")
+                .font(DS.Font.subheadline)
+                .foregroundStyle(.white)
+            Spacer()
+            Button("Thay đổi") {
+                isShowingAudioPicker = true
+            }
+            .font(DS.Font.captionBold)
+            .foregroundStyle(ColorTokens.accentPrimary)
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.vertical, DS.Spacing.xxs)
+    }
+
+    private var studioRatioQuickDrawer: some View {
+        HStack(spacing: DS.Spacing.lg) {
+            ForEach(PostAspectRatio.allCases) { ratio in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        viewModel.aspectRatio = ratio
+                    }
+                    HapticFeedbackSafe.selection()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: ratio == .full ? "iphone" : "aspectratio")
+                            .font(.system(size: 16))
+                        Text(ratio.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(viewModel.aspectRatio == ratio ? ColorTokens.accentPrimary : .white.opacity(0.75))
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.vertical, DS.Spacing.xxs)
+    }
+
+    private var studioTextQuickDrawer: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            Image(systemName: "textformat")
+                .foregroundStyle(.white)
+            Text("Chạm vào ảnh để thêm chữ nghệ thuật")
+                .font(DS.Font.caption)
+                .foregroundStyle(.white.opacity(0.8))
+            Spacer()
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.vertical, DS.Spacing.xxs)
+    }
+
+    private var studioOverlayQuickDrawer: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            Image(systemName: "square.2.layers.3d")
+                .foregroundStyle(.white)
+            Text("Thêm lớp phủ hình ảnh hoặc nhãn dán")
+                .font(DS.Font.caption)
+                .foregroundStyle(.white.opacity(0.8))
+            Spacer()
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.vertical, DS.Spacing.xxs)
+    }
+
+    // MARK: - Studio Bottom Action Bar
+
+    private var studioBottomActionBar: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            // Selected Thumbnails Strip + Add Button
+            HStack(spacing: DS.Spacing.xs) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: DS.Spacing.xs) {
+                        ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
+                            if let img = ImageDownsampler.shared.downsample(data: viewModel.selectedImages[idx], maxDimension: 120) {
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        viewModel.activeImageIndex = idx
+                                    }
+                                    HapticFeedbackSafe.selection()
+                                } label: {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
+                                        .clipShape(RoundedRectangle(cornerRadius: Constants.thumbnailRadius))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: Constants.thumbnailRadius)
+                                                .stroke(
+                                                    viewModel.activeImageIndex == idx ? Color.white : Color.clear,
+                                                    lineWidth: Constants.thumbnailActiveBorderWidth
+                                                )
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: Constants.thumbnailStripMaxWidth)
+
+                // Add More Media Button (+) via PhotosPicker
+                PhotosPicker(
+                    selection: $additionalMediaPickerItems,
+                    maxSelectionCount: max(1, 10 - viewModel.selectedImages.count),
+                    matching: .images
+                ) {
+                    ZStack {
+                        Color(white: 0.18)
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
+                    .clipShape(RoundedRectangle(cornerRadius: Constants.thumbnailRadius))
+                }
+            }
+
+            Spacer()
+
+            // Vibrant Blue "Tiếp ➔" Button
+            Button {
+                Task {
+                    await viewModel.goToNextStep()
+                }
+                HapticFeedbackSafe.impact(.medium)
+            } label: {
+                HStack(spacing: 6) {
+                    Text(L10n.Common.next)
+                        .font(.system(size: Constants.nextButtonFontSize, weight: .bold))
+
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: Constants.nextButtonIconSize, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, Constants.nextButtonHorizontalPadding)
+                .padding(.vertical, Constants.nextButtonVerticalPadding)
+                .background(ColorTokens.accentPrimary, in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func handleToolTap(_ tool: StudioTool) {
+        switch tool {
+        case .ratio:
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                viewModel.cycleAspectRatio()
+            }
+        case .audio:
+            isShowingAudioPicker = true
+        case .text:
+            viewModel.toggleStudioDrawer(.text)
+        case .overlay:
+            viewModel.toggleStudioDrawer(.overlay)
+        case .filter:
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.toggleStudioDrawer(.filter)
+            }
+        case .edit:
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.toggleStudioDrawer(.edit)
             }
         }
     }
@@ -745,5 +1147,125 @@ struct FilteredImagePreview: View {
         }
 
         preview = FilterEngine.shared.renderToUIImage(ciImage)
+    }
+}
+
+// MARK: - StudioAudioPickerSheet
+
+struct StudioAudioPickerSheet: View {
+    @Binding var selectedTrack: PostAudioTrackItem?
+    @Environment(\.dismiss) private var dismiss
+
+    private enum Constants {
+        static let iconContainerSize: CGFloat = 44
+        static let rowVerticalPadding: CGFloat = 4
+        static let badgeFontSize: CGFloat = 9
+        static let badgeCornerRadius: CGFloat = 2
+        static let badgeHorizontalPadding: CGFloat = 3
+        static let badgeVerticalPadding: CGFloat = 1
+    }
+
+    private let presetTracks: [PostAudioTrackItem] = [
+        PostAudioTrackItem(
+            id: "mck_cam_on",
+            title: "MCK · Cảm Ơn",
+            artist: "RP",
+            isExplicit: true,
+            badgeText: "RP",
+            subtitle: "Âm thanh gợi ý"
+        ),
+        PostAudioTrackItem(
+            id: "wren_to_te_ti",
+            title: "Tò Te Tí",
+            artist: "Wren Evans",
+            isExplicit: false,
+            badgeText: "HOT",
+            subtitle: "Thịnh hành trên mạng"
+        ),
+        PostAudioTrackItem(
+            id: "mtp_dung_lam_trai_tim",
+            title: "Đừng Làm Trái Tim Anh Đau",
+            artist: "Sơn Tùng M-TP",
+            isExplicit: false,
+            badgeText: "TOP 1",
+            subtitle: "Âm thanh được dùng nhiều"
+        ),
+        PostAudioTrackItem(
+            id: "mono_waiting_for_you",
+            title: "Waiting For You",
+            artist: "MONO",
+            isExplicit: false,
+            badgeText: nil,
+            subtitle: "Nhạc thịnh hành"
+        ),
+        PostAudioTrackItem(
+            id: "vu_la_lung",
+            title: "Lạ Lùng",
+            artist: "Vũ.",
+            isExplicit: false,
+            badgeText: nil,
+            subtitle: "Giai điệu nhẹ nhàng"
+        )
+    ]
+
+    var body: some View {
+        NavigationStack {
+            List(presetTracks) { track in
+                Button {
+                    selectedTrack = track
+                    HapticFeedbackSafe.impact(.light)
+                    dismiss()
+                } label: {
+                    HStack(spacing: DS.Spacing.sm) {
+                        ZStack {
+                            Color(.systemGray5)
+                            Image(systemName: "music.note")
+                                .foregroundStyle(ColorTokens.accentPrimary)
+                        }
+                        .frame(width: Constants.iconContainerSize, height: Constants.iconContainerSize)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text(track.title)
+                                    .font(DS.Font.headline)
+                                    .foregroundStyle(.primary)
+
+                                if track.isExplicit {
+                                    Text("E")
+                                        .font(.system(size: Constants.badgeFontSize, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, Constants.badgeHorizontalPadding)
+                                        .padding(.vertical, Constants.badgeVerticalPadding)
+                                        .background(Color(.systemGray4), in: RoundedRectangle(cornerRadius: Constants.badgeCornerRadius))
+                                }
+                            }
+
+                            Text("\(track.artist) · \(track.subtitle)")
+                                .font(DS.Font.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        if selectedTrack?.id == track.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(ColorTokens.accentPrimary)
+                                .fontWeight(.bold)
+                        }
+                    }
+                    .padding(.vertical, Constants.rowVerticalPadding)
+                }
+            }
+            .navigationTitle("Chọn âm thanh")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.Common.cancel) {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }

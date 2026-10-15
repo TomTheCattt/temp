@@ -22,6 +22,7 @@ enum CreatePostStep: Int, CaseIterable {
 enum PostAspectRatio: String, CaseIterable, Identifiable {
     case square = "1:1"
     case portrait = "4:5"
+    case full = "9:16"
 
     var id: String { rawValue }
 
@@ -29,6 +30,58 @@ enum PostAspectRatio: String, CaseIterable, Identifiable {
         switch self {
         case .square: return 1.0
         case .portrait: return 4.0 / 5.0
+        case .full: return 9.0 / 16.0
+        }
+    }
+}
+
+// MARK: - PostAudioTrackItem
+
+struct PostAudioTrackItem: Identifiable, Hashable, Sendable {
+    let id: String
+    let title: String
+    let artist: String
+    let isExplicit: Bool
+    let badgeText: String?
+    let subtitle: String
+
+    init(
+        id: String = UUID().uuidString,
+        title: String,
+        artist: String,
+        isExplicit: Bool = false,
+        badgeText: String? = nil,
+        subtitle: String = "Âm thanh gợi ý"
+    ) {
+        self.id = id
+        self.title = title
+        self.artist = artist
+        self.isExplicit = isExplicit
+        self.badgeText = badgeText
+        self.subtitle = subtitle
+    }
+}
+
+// MARK: - StudioTool
+
+enum StudioTool: String, CaseIterable, Identifiable {
+    case audio = "Âm thanh"
+    case text = "Văn bản"
+    case overlay = "Lớp phủ"
+    case filter = "Bộ lọc"
+    case edit = "Chỉnh sửa"
+    case ratio = "Tỷ lệ"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .audio: return "music.note"
+        case .text: return "textformat"
+        case .overlay: return "square.2.layers.3d"
+        case .filter: return "camera.filters"
+        case .edit: return "slider.horizontal.3"
+        case .ratio: return "aspectratio"
         }
     }
 }
@@ -76,7 +129,7 @@ final class CreatePostViewModel {
     var isLoadingAssets: Bool = false
     var hasPhotoLibraryAccess: Bool = false
 
-    // MARK: - Step 2: Filter & Adjustments State
+    // MARK: - Step 2: Studio & Edit State
 
     var selectedImages: [Data] = []
     var activeImageIndex: Int = 0
@@ -89,6 +142,19 @@ final class CreatePostViewModel {
     var contrast: Float = 1.0       // Range: 0.5 to 1.5 (1.0 = normal)
     var saturation: Float = 1.0     // Range: 0.0 to 2.0 (1.0 = normal)
     var warmth: Float = 0.0         // Range: -0.5 to 0.5 (0 = normal)
+
+    // Studio Active Drawer & Tools
+    var activeStudioDrawer: StudioTool? = nil
+    var currentAudioTrack: PostAudioTrackItem? = PostAudioTrackItem(
+        id: "mck_cam_on",
+        title: "MCK · Cảm Ơn",
+        artist: "RP",
+        isExplicit: true,
+        badgeText: "RP",
+        subtitle: "Âm thanh gợi ý"
+    )
+    var stickers: [PIPStickerItem] = []
+    var texts: [TextOverlayItem] = []
 
     // MARK: - Step 3: Caption, Metadata & Share State
 
@@ -203,7 +269,46 @@ final class CreatePostViewModel {
     }
 
     func toggleAspectRatio() {
-        aspectRatio = (aspectRatio == .square) ? .portrait : .square
+        switch aspectRatio {
+        case .square:
+            aspectRatio = .portrait
+        case .portrait:
+            aspectRatio = .full
+        case .full:
+            aspectRatio = .square
+        }
+    }
+
+    func cycleAspectRatio() {
+        toggleAspectRatio()
+    }
+
+    func toggleStudioDrawer(_ tool: StudioTool) {
+        if activeStudioDrawer == tool {
+            activeStudioDrawer = nil
+        } else {
+            activeStudioDrawer = tool
+        }
+    }
+
+    func removeSelectedImage(at index: Int) {
+        guard index >= 0 && index < selectedImages.count else { return }
+        selectedImages.remove(at: index)
+        if selectedImages.isEmpty {
+            activeImageIndex = 0
+            currentStep = .selectMedia
+        } else {
+            activeImageIndex = min(activeImageIndex, selectedImages.count - 1)
+        }
+    }
+
+    func appendSelectedImageData(_ dataList: [Data]) {
+        guard !dataList.isEmpty else { return }
+        let downsampled = dataList.map {
+            ImageDownsampler.shared.downsampleToData(data: $0, maxDimension: 1080) ?? $0
+        }
+        selectedImages.append(contentsOf: downsampled)
+        activeImageIndex = selectedImages.count - 1
     }
 
     func setCapturedMedia(data: Data, isVideo: Bool = false) {
@@ -300,8 +405,16 @@ final class CreatePostViewModel {
             }
 
             // Render to UIImage
-            if let rendered = FilterEngine.shared.renderToUIImage(ciImage),
-               let jpeg = rendered.jpegData(compressionQuality: 0.88) {
+            var rendered = FilterEngine.shared.renderToUIImage(ciImage) ?? uiImage
+            if !stickers.isEmpty || !texts.isEmpty {
+                rendered = CompositeImageRenderer.shared.render(
+                    baseImage: rendered,
+                    stickers: stickers,
+                    texts: texts
+                )
+            }
+
+            if let jpeg = rendered.jpegData(compressionQuality: 0.88) {
                 return jpeg
             }
 
@@ -339,15 +452,27 @@ final class CreatePostViewModel {
         currentStep = .selectMedia
         selectedMediaAssets = []
         selectedImages = []
+        activeImageIndex = 0
         selectedFilterId = "original"
         filterIntensity = 1.0
         brightness = 0.0
         contrast = 1.0
         saturation = 1.0
         warmth = 0.0
+        activeStudioDrawer = nil
+        stickers = []
+        texts = []
         caption = ""
         location = nil
         selectedAudioTrack = nil
+        currentAudioTrack = PostAudioTrackItem(
+            id: "mck_cam_on",
+            title: "MCK · Cảm Ơn",
+            artist: "RP",
+            isExplicit: true,
+            badgeText: "RP",
+            subtitle: "Âm thanh gợi ý"
+        )
         taggedUsers = []
         isPublished = false
     }
