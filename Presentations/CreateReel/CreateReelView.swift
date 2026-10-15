@@ -9,8 +9,7 @@ import SwiftUI
 import PhotosUI
 import AVKit
 
-// MARK: - CreateReelView
-
+@MainActor
 struct CreateReelView: View {
 
     @State private var viewModel: CreateReelViewModel
@@ -286,14 +285,15 @@ struct CreateReelView: View {
     // MARK: - Bottom Capture Controls
 
     private var bottomCaptureControls: some View {
-        HStack(alignment: .center) {
+        let galleryThumb = viewModel.latestGalleryThumbnail
+        return HStack(alignment: .center) {
             // Left: Gallery / PhotosPicker Button
             ZStack {
                 PhotosPicker(
                     selection: $viewModel.videoPickerItem,
                     matching: .videos
                 ) {
-                    if let thumbnail = viewModel.latestGalleryThumbnail {
+                    if let thumbnail = galleryThumb {
                         Image(uiImage: thumbnail)
                             .resizable()
                             .scaledToFill()

@@ -98,7 +98,7 @@ final class CreateReelViewModel {
     var recordedClips: [ReelClip] = []
     var isRecording = false
     var currentClipDuration: Double = 0.0
-    private var recordingTimer: Timer?
+    private var recordingTask: Task<Void, Never>?
     private var recordingStartTime: Date?
 
     var totalRecordedDuration: Double {
@@ -113,7 +113,7 @@ final class CreateReelViewModel {
 
     var isCountingDown = false
     var countdownRemaining: Int = 0
-    private var countdownTimer: Timer?
+    private var countdownTask: Task<Void, Never>?
 
     // MARK: - Camera State
 
@@ -150,16 +150,16 @@ final class CreateReelViewModel {
     // MARK: - Dependencies
 
     private let reelRepository: ReelRepositoryProtocol
-    private let photoLibraryService: PhotoLibraryService
+    private let photoLibraryService: PhotoLibraryServiceProtocol
 
     // MARK: - Init
 
     init(
         reelRepository: ReelRepositoryProtocol,
-        photoLibraryService: PhotoLibraryService = DIContainer.shared.resolve(PhotoLibraryService.self)
+        photoLibraryService: PhotoLibraryServiceProtocol? = nil
     ) {
         self.reelRepository = reelRepository
-        self.photoLibraryService = photoLibraryService
+        self.photoLibraryService = photoLibraryService ?? DIContainer.shared.resolve(PhotoLibraryServiceProtocol.self)
     }
 
     // MARK: - Setup
@@ -243,16 +243,16 @@ final class CreateReelViewModel {
         isCountingDown = true
         countdownRemaining = selectedTimer.rawValue
 
-        countdownTimer?.invalidate()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
+        countdownTask?.cancel()
+        countdownTask = Task { @MainActor [weak self] in
+            while let self, self.isCountingDown, self.countdownRemaining > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { break }
                 self.countdownRemaining -= 1
                 if self.countdownRemaining <= 0 {
-                    self.countdownTimer?.invalidate()
-                    self.countdownTimer = nil
                     self.isCountingDown = false
                     self.beginRecording()
+                    break
                 }
             }
         }
@@ -264,14 +264,16 @@ final class CreateReelViewModel {
         recordingStartTime = Date()
         cameraService.startRecording()
 
-        recordingTimer?.invalidate()
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, self.isRecording else { return }
+        recordingTask?.cancel()
+        recordingTask = Task { @MainActor [weak self] in
+            while let self, self.isRecording {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                guard !Task.isCancelled else { break }
                 if let start = self.recordingStartTime {
                     self.currentClipDuration = Date().timeIntervalSince(start) * self.selectedSpeed.rawValue
                     if (self.totalRecordedDuration + self.currentClipDuration) >= self.selectedDurationLimit.rawValue {
                         self.stopRecording()
+                        break
                     }
                 }
             }
@@ -306,10 +308,10 @@ final class CreateReelViewModel {
     }
 
     private func stopRecordingTimer() {
-        recordingTimer?.invalidate()
-        recordingTimer = nil
-        countdownTimer?.invalidate()
-        countdownTimer = nil
+        recordingTask?.cancel()
+        recordingTask = nil
+        countdownTask?.cancel()
+        countdownTask = nil
         isCountingDown = false
     }
 
@@ -414,15 +416,23 @@ final class CreateReelViewModel {
             return clips.first!.url
         }
 
-        exportSession.outputURL = outputURL
-        exportSession.outputFileType = .mp4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        await exportSession.export()
-        if exportSession.status == .completed {
-            return outputURL
+        if #available(iOS 18.0, *) {
+            do {
+                try await exportSession.export(to: outputURL, as: .mp4)
+                return outputURL
+            } catch {
+                return clips.first!.url
+            }
         } else {
-            return clips.first!.url
+            exportSession.outputURL = outputURL
+            exportSession.outputFileType = .mp4
+            exportSession.shouldOptimizeForNetworkUse = true
+            await exportSession.export()
+            if exportSession.status == .completed {
+                return outputURL
+            } else {
+                return clips.first!.url
+            }
         }
     }
 

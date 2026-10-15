@@ -16,6 +16,7 @@ import AVKit
 ///    central shutter with press-to-record ring, and bottom-left camera roll shortcut.
 /// 2. Story Editor: Interactive Typography (Aa), Sticker Drawer (PIP Photo, Poll, Mention),
 ///    screen swipe color filters (Paris, Oslo, Tokyo), and 1-tap "Your Story" / "Close Friends" publish.
+@MainActor
 struct StoryCameraView: View {
 
     @State private var viewModel: StoryCameraViewModel
@@ -207,14 +208,15 @@ struct StoryCameraView: View {
     // MARK: - Bottom Camera Controls
 
     private var bottomCameraControls: some View {
-        HStack(alignment: .center, spacing: DS.Spacing.xxl) {
+        let galleryThumbnail = viewModel.latestGalleryThumbnail
+        return HStack(alignment: .center, spacing: DS.Spacing.xxl) {
             // Left: Gallery Shortcut Button
             PhotosPicker(
                 selection: $selectedGalleryItem,
                 matching: .any(of: [.images, .videos])
             ) {
                 Group {
-                    if let thumb = viewModel.latestGalleryThumbnail {
+                    if let thumb = galleryThumbnail {
                         Image(uiImage: thumb)
                             .resizable()
                             .scaledToFill()

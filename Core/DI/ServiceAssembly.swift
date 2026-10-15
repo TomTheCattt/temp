@@ -58,5 +58,9 @@ final class ServiceAssembly: Assembly {
         container.register(PhotoLibraryServiceProtocol.self) { _ in
             PhotoLibraryService.shared
         }.inObjectScope(.container)
+
+        container.register(PhotoLibraryService.self) { _ in
+            PhotoLibraryService.shared
+        }.inObjectScope(.container)
     }
 }
