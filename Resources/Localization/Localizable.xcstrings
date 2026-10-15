@@ -4684,6 +4684,9 @@
         }
       }
     },
+    "Reel Camera Viewfinder" : {
+
+    },
     "reels.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6015,6 +6018,9 @@
 
     },
     "Simulator Camera Viewfinder" : {
+
+    },
+    "Simulator Mock Mode: Nhấn nút tròn đỏ để quay" : {
 
     },
     "Sponsored" : {

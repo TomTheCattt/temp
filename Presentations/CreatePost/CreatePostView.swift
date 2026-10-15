@@ -6,16 +6,28 @@
 //
 
 import SwiftUI
-import PhotosUI
+import Photos
+
+// MARK: - StudioTab
+
+enum StudioTab: String, CaseIterable, Identifiable {
+    case filter = "BỘ LỌC"
+    case edit = "CHỈNH SỬA"
+
+    var id: String { rawValue }
+}
 
 // MARK: - CreatePostView
 
+/// Instagram-standard Post Creation View matching iOS Instagram:
+/// 1. Screen 1: 50/50 Split View (Top Media Preview + Middle Bar + Bottom Native Camera Roll Grid).
+/// 2. Screen 2: Filter & Edit Studio (Color Presets & Fine-tuning adjustments).
+/// 3. Screen 3: Share Details (Caption, Tags, Music, Location, Privacy & Publish).
 struct CreatePostView: View {
 
     @State private var viewModel: CreatePostViewModel
+    @State private var activeStudioTab: StudioTab = .filter
     @State private var isShowingCamera = false
-    @State private var isShowingCanvas = false
-    @State private var isShowingLayout = false
     @State private var isShowingLocationPicker = false
     @Environment(\.dismiss) private var dismiss
 
@@ -28,22 +40,35 @@ struct CreatePostView: View {
             VStack(spacing: 0) {
                 switch viewModel.currentStep {
                 case .selectMedia:
-                    mediaSelectionStep
+                    mediaSelectionSplitView
                 case .applyFilter:
-                    filterStep
+                    filterAndEditStudioView
                 case .captionAndShare:
-                    captionStep
+                    captionAndShareView
                 }
             }
+            .background(Color(.systemBackground))
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if viewModel.currentStep == .selectMedia {
-                        Button(L10n.Common.cancel) { dismiss() }
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                        }
                     } else {
-                        Button(action: { viewModel.goToPreviousStep() }) {
+                        Button {
+                            viewModel.goToPreviousStep()
+                        } label: {
                             Image(systemName: "chevron.left")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
                         }
                     }
                 }
@@ -58,14 +83,16 @@ struct CreatePostView: View {
                                 }
                             }
                         }
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .disabled(!viewModel.canPublish)
                     } else {
                         Button(L10n.Common.next) {
-                            viewModel.goToNextStep()
+                            Task {
+                                await viewModel.goToNextStep()
+                            }
                         }
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .disabled(!viewModel.canProceedFromMedia)
                     }
@@ -76,20 +103,13 @@ struct CreatePostView: View {
                     viewModel.setCapturedMedia(data: data, isVideo: isVideo)
                 }
             }
-            .fullScreenCover(isPresented: $isShowingCanvas) {
-                CreateCanvasView(isPresented: $isShowingCanvas) { data in
-                    viewModel.setCapturedMedia(data: data)
-                }
-            }
-            .fullScreenCover(isPresented: $isShowingLayout) {
-                LayoutCollageView(isPresented: $isShowingLayout) { data in
-                    viewModel.setCapturedMedia(data: data)
-                }
-            }
             .sheet(isPresented: $isShowingLocationPicker) {
                 LocationPickerSheet { loc in
                     viewModel.location = loc
                 }
+            }
+            .task {
+                await viewModel.loadInitialLibrary()
             }
         }
     }
@@ -104,247 +124,207 @@ struct CreatePostView: View {
         }
     }
 
-    // MARK: - Step 1: Media Selection & Camera Launch
+    // MARK: - Step 1: Media Selection (50/50 Split View)
 
-    private var mediaSelectionStep: some View {
-        VStack(spacing: DS.Spacing.md) {
-            if viewModel.isLoadingMedia {
-                ProgressView(L10n.Common.loading)
-                    .frame(maxWidth: .infinity, minHeight: DS.Size.mediaPreviewMinHeight)
-            } else if !viewModel.selectedImages.isEmpty {
-                // Interactive Preview Canvas with Aspect Ratio Support
-                let safeIndex = min(viewModel.activeImageIndex, viewModel.selectedImages.count - 1)
-                let activeData = viewModel.selectedImages[safeIndex]
+    private var mediaSelectionSplitView: some View {
+        GeometryReader { geometry in
+            let previewHeight = geometry.size.height * 0.48
 
-                if let uiImage = ImageDownsampler.shared.downsample(data: activeData, maxDimension: 1080) {
-                    ZStack(alignment: .bottom) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(viewModel.aspectRatio.ratioValue, contentMode: .fit)
-                            .clipped()
-                            .background(Color.black)
+            VStack(spacing: 0) {
+                // Top Viewport Preview (48% height)
+                topPreviewViewport
+                    .frame(height: previewHeight)
+                    .background(Color.black)
 
-                        // Floating Overlays: Aspect Ratio & Camera Shortcut
-                        HStack {
-                            // Aspect Ratio Toggle (1:1 / 4:5)
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    viewModel.toggleAspectRatio()
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "aspectratio")
-                                    Text(viewModel.aspectRatio.rawValue)
-                                }
-                                .font(DS.Font.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, DS.Spacing.sm)
-                                .padding(.vertical, 6)
-                                .background(Color.black.opacity(0.6), in: Capsule())
-                            }
+                // Middle Bar: Album Dropdown + Multi-Select + Camera
+                middleControlBar
 
-                            Spacer()
+                // Bottom 4-Column Grid (Remaining height)
+                bottomMediaGrid
+            }
+        }
+    }
 
-                            // Camera Quick Button
-                            Button {
-                                isShowingCamera = true
-                            } label: {
-                                Image(systemName: "camera.fill")
-                                    .font(DS.Font.subheadline)
-                                    .foregroundStyle(.white)
-                                    .padding(8)
-                                    .background(Color.black.opacity(0.6), in: Circle())
-                            }
-                        }
-                        .padding(DS.Spacing.sm)
-                    }
-                }
+    // MARK: - Top Preview Viewport
 
-                // Selected Images Carousel Strip (with Remove "X" buttons)
-                if viewModel.selectedImages.count > 1 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: DS.Spacing.sm) {
-                            ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
-                                if let img = ImageDownsampler.shared.downsample(data: viewModel.selectedImages[idx], maxDimension: 200) {
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: img)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 56, height: 56)
-                                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: DS.Radius.small)
-                                                    .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2.5)
-                                            )
-                                            .onTapGesture {
-                                                viewModel.activeImageIndex = idx
-                                            }
+    private var topPreviewViewport: some View {
+        ZStack(alignment: .bottom) {
+            Color.black
 
-                                        // Badge Index
-                                        Text("\(idx + 1)")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .padding(3)
-                                            .background(ColorTokens.accentPrimary, in: Circle())
-                                            .offset(x: -4, y: 4)
-
-                                        // Remove Button
-                                        Button {
-                                            viewModel.removeImage(at: idx)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.white, ColorTokens.destructive)
-                                        }
-                                        .offset(x: 4, y: -4)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, DS.Padding.horizontal)
-                        .padding(.vertical, DS.Spacing.xs)
-                    }
-                }
+            if let previewImage = viewModel.activePreviewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .aspectRatio(viewModel.aspectRatio.ratioValue, contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else if viewModel.isLoadingAssets {
+                ProgressView()
+                    .tint(.white)
             } else {
-                // Empty State: Action Tiles Hub
-                VStack(spacing: DS.Spacing.lg) {
-                    Spacer().frame(height: DS.Spacing.sm)
-
-                    VStack(spacing: DS.Spacing.xs) {
-                        Image(systemName: "camera.viewfinder")
-                            .font(.system(size: 56))
-                            .foregroundStyle(ColorTokens.accentPrimary)
-                        Text(L10n.CreatePost.title)
-                            .font(DS.Font.headline)
-                        Text("Bắt đầu bằng chụp ảnh mới hoặc chọn từ thư viện")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    // 3 Creative Feature Tiles
-                    HStack(spacing: DS.Spacing.md) {
-                        // Camera Tile
-                        tileButton(
-                            icon: "camera.fill",
-                            title: L10n.CreatePost.camera,
-                            color: Color.blue
-                        ) {
-                            isShowingCamera = true
-                        }
-
-                        // Create (Aa) Canvas Tile
-                        tileButton(
-                            icon: "textformat",
-                            title: L10n.CreatePost.createMode,
-                            color: Color.purple
-                        ) {
-                            isShowingCanvas = true
-                        }
-
-                        // Layout Grid Tile
-                        tileButton(
-                            icon: "square.split.2x2",
-                            title: L10n.CreatePost.layoutMode,
-                            color: Color.orange
-                        ) {
-                            isShowingLayout = true
-                        }
-                    }
-                    .padding(.horizontal, DS.Padding.horizontal)
+                VStack(spacing: DS.Spacing.xs) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.white.opacity(0.4))
+                    Text("Chọn ảnh từ thư viện bên dưới")
+                        .font(DS.Font.caption)
+                        .foregroundStyle(.white.opacity(0.6))
                 }
-                .frame(maxWidth: .infinity, minHeight: DS.Size.mediaPreviewMinHeight)
+            }
+
+            // Floating Controls: Aspect Ratio & Camera Shortcut
+            HStack {
+                // Aspect Ratio Toggle (1:1 / 4:5)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.toggleAspectRatio()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "aspectratio")
+                        Text(viewModel.aspectRatio.rawValue)
+                    }
+                    .font(DS.Font.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, DS.Spacing.sm)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.6), in: Capsule())
+                }
+
+                Spacer()
+
+                // Camera Quick Launch Button
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Image(systemName: "camera.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(Color.black.opacity(0.6), in: Circle())
+                }
+            }
+            .padding(DS.Spacing.sm)
+        }
+    }
+
+    // MARK: - Middle Control Bar
+
+    private var middleControlBar: some View {
+        HStack {
+            // Album Picker Menu (Recents, Favorites, Videos...)
+            Menu {
+                ForEach(viewModel.albums) { album in
+                    Button {
+                        Task { await viewModel.selectAlbum(album) }
+                    } label: {
+                        HStack {
+                            Text(album.title)
+                            Spacer()
+                            Text("\(album.count)")
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(viewModel.selectedAlbum?.title ?? "Gần đây")
+                        .font(DS.Font.headline)
+                        .foregroundStyle(.primary)
+
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+                }
             }
 
             Spacer()
 
-            // Source Selector Actions
-            VStack(spacing: DS.Spacing.sm) {
-                // Action 1: Open Photo Library
-                PhotosPicker(
-                    selection: $viewModel.selectedItems,
-                    maxSelectionCount: DS.Layout.maxPostMedia,
-                    matching: .any(of: [.images, .videos])
-                ) {
-                    Label(L10n.CreatePost.selectFromLibrary, systemImage: "photo.stack")
-                        .font(DS.Font.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.Spacing.formGap)
-                        .background(ColorTokens.buttonPrimary, in: RoundedRectangle(cornerRadius: DS.Radius.input))
+            // Multi-Select Mode Button
+            Button {
+                viewModel.toggleMultiSelect()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: viewModel.isMultiSelectEnabled ? "square.stack.on.square.fill" : "square.stack.on.square")
+                        .font(.caption)
+                    Text("CHỌN NHIỀU")
+                        .font(DS.Font.caption2)
+                        .fontWeight(.bold)
                 }
-                .onChange(of: viewModel.selectedItems) { _, _ in
-                    Task { await viewModel.loadSelectedMedia() }
-                }
-
-                // Action 2: Open Camera
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Label(L10n.CreatePost.camera, systemImage: "camera")
-                        .font(DS.Font.headline)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.Spacing.formGap)
-                        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: DS.Radius.input))
-                }
-            }
-            .padding(.horizontal, DS.Padding.horizontal)
-            .padding(.bottom, DS.Spacing.lg)
-        }
-    }
-
-    // MARK: - Tile Button Helper
-
-    @ViewBuilder
-    private func tileButton(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: DS.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(color, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
-
-                Text(title)
-                    .font(DS.Font.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.Spacing.sm)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: DS.Radius.medium))
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Step 2: Universal Creative Studio (Filters, PIP Stickers, Typography)
-
-    private var filterStep: some View {
-        VStack(spacing: 0) {
-            if !viewModel.selectedImages.isEmpty {
-                let safeIndex = min(viewModel.activeImageIndex, viewModel.selectedImages.count - 1)
-                UniversalCreativeStudioView(
-                    baseImageData: Binding(
-                        get: { viewModel.selectedImages[safeIndex] },
-                        set: { viewModel.updateImage(at: safeIndex, data: $0) }
-                    ),
-                    selectedFilterId: $viewModel.selectedFilterId,
-                    filterIntensity: $viewModel.filterIntensity,
-                    stickers: $viewModel.stickers,
-                    texts: $viewModel.texts,
-                    onProceedToCaption: { _ in
-                        viewModel.goToNextStep()
-                    }
+                .foregroundStyle(viewModel.isMultiSelectEnabled ? .white : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : Color(.systemGray6),
+                    in: Capsule()
                 )
             }
+        }
+        .padding(.horizontal, DS.Padding.horizontal)
+        .padding(.vertical, DS.Spacing.xs)
+        .background(Color(.systemBackground))
+        .overlay(Divider(), alignment: .bottom)
+    }
 
-            // Multi-image thumbnail strip to switch active image
+    // MARK: - Bottom Media Grid
+
+    private var bottomMediaGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 1.5), count: 4),
+                spacing: 1.5
+            ) {
+                ForEach(viewModel.mediaAssets) { asset in
+                    let isSelected = viewModel.selectedMediaAssets.contains(asset)
+                    let selectionIndex = viewModel.selectedMediaAssets.firstIndex(of: asset)
+
+                    AssetThumbnailCell(
+                        asset: asset,
+                        isActive: viewModel.activeAsset == asset,
+                        isMultiSelectEnabled: viewModel.isMultiSelectEnabled,
+                        isSelected: isSelected,
+                        selectionIndex: selectionIndex
+                    )
+                    .onTapGesture {
+                        viewModel.toggleAssetSelection(asset)
+                    }
+                }
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - Step 2: Filter & Edit Studio
+
+    private var filterAndEditStudioView: some View {
+        VStack(spacing: 0) {
+            // Preview Carousel
+            ZStack {
+                Color.black
+
+                if !viewModel.selectedImages.isEmpty {
+                    let safeIndex = min(viewModel.activeImageIndex, viewModel.selectedImages.count - 1)
+                    if let image = UIImage(data: viewModel.selectedImages[safeIndex]) {
+                        FilteredImagePreview(
+                            sourceImage: image,
+                            filterId: viewModel.selectedFilterId,
+                            intensity: viewModel.filterIntensity,
+                            brightness: viewModel.brightness,
+                            contrast: viewModel.contrast,
+                            saturation: viewModel.saturation,
+                            warmth: viewModel.warmth
+                        )
+                        .aspectRatio(viewModel.aspectRatio.ratioValue, contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+
+            // Multi-image switcher thumbnail strip
             if viewModel.selectedImages.count > 1 {
-                Divider()
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: DS.Spacing.xs) {
                         ForEach(0..<viewModel.selectedImages.count, id: \.self) { idx in
@@ -356,25 +336,147 @@ struct CreatePostView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: DS.Radius.small)
-                                            .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2.5)
+                                            .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2)
                                     )
                                     .onTapGesture {
-                                        viewModel.setActiveImage(to: idx)
+                                        viewModel.activeImageIndex = idx
                                     }
                             }
                         }
                     }
                     .padding(.horizontal, DS.Padding.horizontal)
-                    .padding(.vertical, DS.Spacing.xs)
+                    .padding(.vertical, 6)
                 }
                 .background(Color(.systemBackground))
+            }
+
+            // Studio Tabs: BỘ LỌC vs CHỈNH SỬA
+            HStack(spacing: 0) {
+                Button {
+                    activeStudioTab = .filter
+                } label: {
+                    VStack(spacing: 6) {
+                        Text(StudioTab.filter.rawValue)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(activeStudioTab == .filter ? .primary : .secondary)
+
+                        Rectangle()
+                            .fill(activeStudioTab == .filter ? Color.primary : Color.clear)
+                            .frame(height: 2)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                Button {
+                    activeStudioTab = .edit
+                } label: {
+                    VStack(spacing: 6) {
+                        Text(StudioTab.edit.rawValue)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(activeStudioTab == .edit ? .primary : .secondary)
+
+                        Rectangle()
+                            .fill(activeStudioTab == .edit ? Color.primary : Color.clear)
+                            .frame(height: 2)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .background(Color(.systemBackground))
+
+            // Tab Content
+            if activeStudioTab == .filter {
+                filterTabContent
+            } else {
+                editAdjustmentTabContent
+            }
+
+            Spacer()
+        }
+    }
+
+    // MARK: - Filter Tab Content
+
+    private var filterTabContent: some View {
+        VStack(spacing: 0) {
+            if let firstData = viewModel.selectedImages.first,
+               let sourceImage = UIImage(data: firstData) {
+                FilterSelectionView(
+                    selectedFilterId: $viewModel.selectedFilterId,
+                    filterIntensity: $viewModel.filterIntensity,
+                    sourceImage: sourceImage,
+                    showsPreview: false
+                )
             }
         }
     }
 
-    // MARK: - Step 3: Caption, Audience, Details & Share
+    // MARK: - Edit Adjustment Tab Content
 
-    private var captionStep: some View {
+    private var editAdjustmentTabContent: some View {
+        VStack(spacing: DS.Spacing.md) {
+            // Active adjustment slider
+            if let adjustment = viewModel.activeAdjustment {
+                HStack(spacing: DS.Spacing.md) {
+                    Text(adjustment.rawValue)
+                        .font(DS.Font.caption)
+                        .frame(width: 80, alignment: .leading)
+
+                    switch adjustment {
+                    case .brightness:
+                        Slider(value: $viewModel.brightness, in: -0.5...0.5)
+                    case .contrast:
+                        Slider(value: $viewModel.contrast, in: 0.5...1.5)
+                    case .saturation:
+                        Slider(value: $viewModel.saturation, in: 0.0...2.0)
+                    case .warmth:
+                        Slider(value: $viewModel.warmth, in: -0.5...0.5)
+                    }
+
+                    Button("Đặt lại") {
+                        switch adjustment {
+                        case .brightness: viewModel.brightness = 0.0
+                        case .contrast: viewModel.contrast = 1.0
+                        case .saturation: viewModel.saturation = 1.0
+                        case .warmth: viewModel.warmth = 0.0
+                        }
+                    }
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+                .padding(.top, DS.Spacing.sm)
+            }
+
+            // Adjustment tools scroll strip
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.Spacing.lg) {
+                    ForEach(PostAdjustmentType.allCases) { type in
+                        Button {
+                            withAnimation {
+                                viewModel.activeAdjustment = type
+                            }
+                        } label: {
+                            VStack(spacing: DS.Spacing.xs) {
+                                Image(systemName: type.iconName)
+                                    .font(.title3)
+                                Text(type.rawValue)
+                                    .font(DS.Font.caption2)
+                            }
+                            .foregroundStyle(viewModel.activeAdjustment == type ? ColorTokens.accentPrimary : .secondary)
+                            .frame(width: 64)
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+                .padding(.vertical, DS.Spacing.sm)
+            }
+        }
+    }
+
+    // MARK: - Step 3: Caption, Details & Share
+
+    private var captionAndShareView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
                 // Media Thumbnail + Caption TextEditor
@@ -396,15 +498,64 @@ struct CreatePostView: View {
 
                 Divider()
 
-                // Location Picker & Active Location Chip
-                if let loc = viewModel.location {
+                // Add Music Row
+                Button {
+                    HUDManager.shared.showInfo("Thêm nhạc nền vào bài viết")
+                } label: {
                     HStack {
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundStyle(ColorTokens.accentPrimary)
-                        Text(loc.name)
-                            .font(DS.Font.subheadline)
-                            .foregroundStyle(.primary)
+                        Image(systemName: "music.note")
+                            .font(.body)
+                            .frame(width: 24)
+                        Text("Thêm nhạc")
+                            .font(DS.Font.body)
                         Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+
+                Divider()
+
+                // Tag People Row
+                Button {
+                    HUDManager.shared.showInfo("Chạm vào ảnh để gắn thẻ người dùng")
+                } label: {
+                    HStack {
+                        Image(systemName: "person.crop.circle")
+                            .font(.body)
+                            .frame(width: 24)
+                        Text(L10n.CreatePost.tagPeople)
+                            .font(DS.Font.body)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+
+                Divider()
+
+                // Add Location Row
+                HStack {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.body)
+                        .frame(width: 24)
+                    Button {
+                        isShowingLocationPicker = true
+                    } label: {
+                        Text(viewModel.location?.name ?? L10n.CreatePost.addLocation)
+                            .font(DS.Font.body)
+                            .foregroundStyle(viewModel.location != nil ? ColorTokens.accentPrimary : .primary)
+                    }
+
+                    Spacer()
+
+                    if viewModel.location != nil {
                         Button {
                             viewModel.location = nil
                         } label: {
@@ -412,105 +563,173 @@ struct CreatePostView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.horizontal, DS.Padding.horizontal)
-                    .padding(.vertical, DS.Spacing.xs)
-                } else {
-                    Button {
-                        isShowingLocationPicker = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundStyle(.secondary)
-                            Text(L10n.CreatePost.addLocation)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .font(DS.Font.subheadline)
-                        .padding(.horizontal, DS.Padding.horizontal)
-                        .padding(.vertical, DS.Spacing.sm)
-                    }
                 }
+                .padding(.horizontal, DS.Padding.horizontal)
 
                 Divider()
 
-                // Tag People
-                Button(action: {}) {
-                    HStack {
-                        Image(systemName: "person.crop.circle")
-                            .foregroundStyle(.secondary)
-                        Text(L10n.CreatePost.tagPeople)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(DS.Font.subheadline)
-                    .padding(.horizontal, DS.Padding.horizontal)
-                    .padding(.vertical, DS.Spacing.sm)
-                }
-
-                Divider()
-
-                // Audience Selector (Everyone / Close Friends)
-                HStack {
-                    Image(systemName: "person.2")
-                        .foregroundStyle(.secondary)
+                // Audience Picker
+                VStack(alignment: .leading, spacing: DS.Spacing.xs) {
                     Text(L10n.CreatePost.audience)
-                        .font(DS.Font.subheadline)
-
-                    Spacer()
-
-                    Picker("", selection: $viewModel.isCloseFriendsOnly) {
+                        .font(DS.Font.subheadlineBold)
+                    Picker(L10n.CreatePost.audience, selection: $viewModel.isCloseFriendsOnly) {
                         Text(L10n.CreatePost.everyone).tag(false)
                         Text(L10n.CreatePost.closeFriends).tag(true)
                     }
-                    .pickerStyle(.menu)
+                    .pickerStyle(.segmented)
                 }
                 .padding(.horizontal, DS.Padding.horizontal)
-                .padding(.vertical, DS.Spacing.xs)
 
                 Divider()
 
-                // Advanced Settings (Hide likes, Turn off comments)
+                // Advanced Settings
                 DisclosureGroup(L10n.CreatePost.advancedSettings) {
-                    VStack(spacing: DS.Spacing.md) {
+                    VStack(spacing: DS.Spacing.sm) {
                         Toggle(L10n.CreatePost.hideLikes, isOn: $viewModel.hideLikes)
-                            .font(DS.Font.caption)
                         Toggle(L10n.CreatePost.turnOffComments, isOn: $viewModel.disableComments)
-                            .font(DS.Font.caption)
+                        Toggle("Chia sẻ lên Facebook", isOn: $viewModel.shareToFacebook)
                     }
                     .padding(.top, DS.Spacing.xs)
                 }
-                .font(DS.Font.subheadlineBold)
                 .padding(.horizontal, DS.Padding.horizontal)
-                .padding(.vertical, DS.Spacing.xs)
-
-                Divider()
-
-                // Social Sharing Options
-                VStack(alignment: .leading, spacing: DS.Spacing.sm) {
-                    Text(L10n.CreatePost.alsoShareTo)
-                        .font(DS.Font.subheadlineBold)
-                        .padding(.horizontal, DS.Padding.horizontal)
-
-                    shareToggleRow(title: "Facebook", isOn: .constant(false))
-                    shareToggleRow(title: "Threads", isOn: .constant(false))
-                }
-                .padding(.top, DS.Spacing.xxs)
             }
-            .padding(.top, DS.Spacing.md)
+            .padding(.vertical, DS.Spacing.sm)
         }
-        .scrollDismissesKeyboard(.interactively)
+    }
+}
+
+// MARK: - AssetThumbnailCell
+
+struct AssetThumbnailCell: View {
+    let asset: MediaAssetItem
+    let isActive: Bool
+    let isMultiSelectEnabled: Bool
+    let isSelected: Bool
+    let selectionIndex: Int?
+
+    @State private var thumbnail: UIImage?
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if let thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Color(.systemGray5)
+                }
+            }
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fill)
+            .clipped()
+            .overlay(
+                isActive ? Color.white.opacity(0.25) : Color.clear
+            )
+
+            // Video duration badge
+            if asset.isVideo {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text(asset.formattedDuration)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 3))
+                    }
+                    .padding(3)
+                }
+            }
+
+            // Multi-Select Index Badge
+            if isMultiSelectEnabled {
+                ZStack {
+                    Circle()
+                        .stroke(Color.white, lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+
+                    if isSelected, let idx = selectionIndex {
+                        Circle()
+                            .fill(ColorTokens.accentPrimary)
+                            .frame(width: 22, height: 22)
+
+                        Text("\(idx + 1)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Circle()
+                            .fill(Color.black.opacity(0.2))
+                            .frame(width: 22, height: 22)
+                    }
+                }
+                .padding(4)
+            }
+        }
+        .task {
+            thumbnail = await PhotoLibraryService.shared.loadThumbnail(for: asset.phAsset)
+        }
+    }
+}
+
+// MARK: - FilteredImagePreview
+
+struct FilteredImagePreview: View {
+    let sourceImage: UIImage
+    let filterId: String
+    let intensity: Float
+    let brightness: Float
+    let contrast: Float
+    let saturation: Float
+    let warmth: Float
+
+    @State private var preview: UIImage?
+
+    var body: some View {
+        Group {
+            if let preview {
+                Image(uiImage: preview)
+                    .resizable()
+            } else {
+                Image(uiImage: sourceImage)
+                    .resizable()
+            }
+        }
+        .task(id: filterId) { update() }
+        .onChange(of: intensity) { _, _ in update() }
+        .onChange(of: brightness) { _, _ in update() }
+        .onChange(of: contrast) { _, _ in update() }
+        .onChange(of: saturation) { _, _ in update() }
+        .onChange(of: warmth) { _, _ in update() }
     }
 
-    @ViewBuilder
-    private func shareToggleRow(title: String, isOn: Binding<Bool>) -> some View {
-        Toggle(title, isOn: isOn)
-            .font(DS.Font.subheadline)
-            .padding(.horizontal, DS.Padding.horizontal)
+    private func update() {
+        guard var ciImage = CIImage(image: sourceImage) else { return }
+
+        // Filter
+        if filterId != "original", let filter = FilterRegistry.filter(byId: filterId) {
+            ciImage = FilterEngine.shared.apply(filter: filter, to: ciImage, intensity: intensity)
+        }
+
+        // Adjustments
+        if brightness != 0.0 || contrast != 1.0 || saturation != 1.0 {
+            let colorControls = CIFilter.colorControls()
+            colorControls.inputImage = ciImage
+            colorControls.brightness = brightness
+            colorControls.contrast = contrast
+            colorControls.saturation = saturation
+            if let out = colorControls.outputImage { ciImage = out }
+        }
+
+        if warmth != 0.0 {
+            let tempFilter = CIFilter.temperatureAndTint()
+            tempFilter.inputImage = ciImage
+            tempFilter.neutral = CIVector(x: CGFloat(6500.0 + Double(warmth * 2500.0)), y: 0)
+            if let out = tempFilter.outputImage { ciImage = out }
+        }
+
+        preview = FilterEngine.shared.renderToUIImage(ciImage)
     }
 }

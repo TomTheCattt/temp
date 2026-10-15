@@ -6,17 +6,16 @@
 //
 
 import SwiftUI
+import Photos
 import PhotosUI
 
 // MARK: - CreatePostStep
 
 enum CreatePostStep: Int, CaseIterable {
-    case selectMedia
-    case applyFilter
-    case captionAndShare
+    case selectMedia      // Instagram 50/50 Native Gallery Viewport
+    case applyFilter      // Filter & Adjustments Edit Studio
+    case captionAndShare  // Caption, Tags, Music, Location, Privacy & Share
 }
-
-// MARK: - CreatePostViewModel
 
 // MARK: - PostAspectRatio
 
@@ -34,59 +33,82 @@ enum PostAspectRatio: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - PostAdjustmentType
+
+enum PostAdjustmentType: String, CaseIterable, Identifiable {
+    case brightness = "Độ sáng"
+    case contrast = "Độ tương phản"
+    case saturation = "Độ bão hòa"
+    case warmth = "Độ ấm"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .brightness: return "sun.max"
+        case .contrast:   return "circle.righthalf.filled"
+        case .saturation: return "paintpalette"
+        case .warmth:     return "thermometer.sun"
+        }
+    }
+}
+
 // MARK: - CreatePostViewModel
 
 @MainActor
 @Observable
 final class CreatePostViewModel {
 
-    // MARK: - State
+    // MARK: - Navigation State
 
     var currentStep: CreatePostStep = .selectMedia
 
-    /// Selected photo items from PhotosPicker.
-    var selectedItems: [PhotosPickerItem] = []
+    // MARK: - Step 1: Native Photo Library & Viewport State
 
-    /// Loaded images (UIImage data) from selection or camera/canvas.
-    private(set) var selectedImages: [Data] = []
-
-    /// Aspect ratio for the post preview.
+    var albums: [MediaAlbumItem] = []
+    var selectedAlbum: MediaAlbumItem?
+    var mediaAssets: [MediaAssetItem] = []
+    var selectedMediaAssets: [MediaAssetItem] = []
+    var activeAsset: MediaAssetItem?
+    var activePreviewImage: UIImage?
+    var isMultiSelectEnabled: Bool = false
     var aspectRatio: PostAspectRatio = .square
+    var isLoadingAssets: Bool = false
+    var hasPhotoLibraryAccess: Bool = false
 
-    /// Currently selected filter id for preview and baking (defaults to "original").
+    // MARK: - Step 2: Filter & Adjustments State
+
+    var selectedImages: [Data] = []
+    var activeImageIndex: Int = 0
     var selectedFilterId: String = "original"
-
-    /// Filter intensity (0.0 to 1.0).
     var filterIntensity: Float = 1.0
 
-    /// Currently active image index when multiple images are selected.
-    var activeImageIndex: Int = 0
+    // Adjustments
+    var activeAdjustment: PostAdjustmentType? = nil
+    var brightness: Float = 0.0     // Range: -0.5 to 0.5 (0 = normal)
+    var contrast: Float = 1.0       // Range: 0.5 to 1.5 (1.0 = normal)
+    var saturation: Float = 1.0     // Range: 0.0 to 2.0 (1.0 = normal)
+    var warmth: Float = 0.0         // Range: -0.5 to 0.5 (0 = normal)
 
-    /// Multi-layer PIP stickers on the active image.
-    var stickers: [PIPStickerItem] = []
+    // MARK: - Step 3: Caption, Metadata & Share State
 
-    /// Multi-layer Typography items on the active image.
-    var texts: [TextOverlayItem] = []
-
-    /// Caption text.
     var caption: String = ""
-
-    /// Location (optional).
     var location: PostLocation?
-
-    /// Audience and Privacy settings.
+    var selectedAudioTrack: String? = nil
+    var taggedUsers: [String] = []
     var isCloseFriendsOnly: Bool = false
     var hideLikes: Bool = false
     var disableComments: Bool = false
+    var shareToFacebook: Bool = false
 
-    /// Publishing state.
+    // Publish status
     private(set) var isPublishing = false
-    private(set) var isLoadingMedia = false
     private(set) var isPublished = false
 
     // MARK: - Dependencies
 
     private let createPostUseCase: CreatePostUseCaseProtocol
+    private let photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared
 
     // MARK: - Init
 
@@ -94,122 +116,139 @@ final class CreatePostViewModel {
         self.createPostUseCase = createPostUseCase
     }
 
-    // MARK: - Actions
+    // MARK: - Library Loading
 
-    /// Set media captured from Camera, Canvas, or Layout.
-    func setCapturedMedia(data: Data, isVideo: Bool = false) {
-        let optimized = ImageDownsampler.shared.downsampleToData(data: data) ?? data
-        selectedImages = [optimized]
-        activeImageIndex = 0
+    func loadInitialLibrary() async {
+        isLoadingAssets = true
+        let authorized = await photoLibraryService.requestAuthorization()
+        self.hasPhotoLibraryAccess = authorized
+
+        if authorized {
+            let loadedAlbums = await photoLibraryService.fetchAlbums()
+            self.albums = loadedAlbums
+            self.selectedAlbum = loadedAlbums.first
+
+            let assets = await photoLibraryService.fetchAssets(in: selectedAlbum, limit: 150)
+            self.mediaAssets = assets
+
+            if let first = assets.first {
+                self.activeAsset = first
+                self.selectedMediaAssets = [first]
+                await loadPreviewImage(for: first)
+            }
+        }
+        isLoadingAssets = false
     }
 
-    /// Append additional image data.
-    func appendMedia(data: Data) {
-        guard selectedImages.count < DS.Layout.maxPostMedia else { return }
-        let optimized = ImageDownsampler.shared.downsampleToData(data: data) ?? data
-        selectedImages.append(optimized)
+    func selectAlbum(_ album: MediaAlbumItem) async {
+        selectedAlbum = album
+        isLoadingAssets = true
+        let assets = await photoLibraryService.fetchAssets(in: album, limit: 150)
+        self.mediaAssets = assets
+        if let first = assets.first, selectedMediaAssets.isEmpty {
+            self.activeAsset = first
+            self.selectedMediaAssets = [first]
+            await loadPreviewImage(for: first)
+        }
+        isLoadingAssets = false
     }
 
-    /// Update image data at a specific index.
-    func updateImage(at index: Int, data: Data) {
-        guard index >= 0 && index < selectedImages.count else { return }
-        selectedImages[index] = data
-    }
-
-    /// Remove an image from the carousel.
-    func removeImage(at index: Int) {
-        guard index >= 0 && index < selectedImages.count else { return }
-        selectedImages.remove(at: index)
-        if activeImageIndex >= selectedImages.count {
-            activeImageIndex = max(0, selectedImages.count - 1)
+    func loadPreviewImage(for asset: MediaAssetItem) async {
+        if let image = await photoLibraryService.loadHighQualityImage(for: asset.phAsset) {
+            self.activePreviewImage = image
         }
     }
 
-    /// Toggle aspect ratio between 1:1 and 4:5.
+    // MARK: - Asset Selection
+
+    func toggleAssetSelection(_ asset: MediaAssetItem) {
+        if isMultiSelectEnabled {
+            if let index = selectedMediaAssets.firstIndex(of: asset) {
+                // If removing the currently active asset, update active asset
+                selectedMediaAssets.remove(at: index)
+                if activeAsset == asset {
+                    activeAsset = selectedMediaAssets.last
+                    if let newActive = activeAsset {
+                        Task { await loadPreviewImage(for: newActive) }
+                    }
+                }
+            } else {
+                guard selectedMediaAssets.count < 10 else {
+                    HUDManager.shared.showInfo("Tối đa 10 ảnh hoặc video")
+                    return
+                }
+                selectedMediaAssets.append(asset)
+                activeAsset = asset
+                Task { await loadPreviewImage(for: asset) }
+            }
+        } else {
+            // Single selection mode
+            selectedMediaAssets = [asset]
+            activeAsset = asset
+            Task { await loadPreviewImage(for: asset) }
+        }
+    }
+
+    func toggleMultiSelect() {
+        isMultiSelectEnabled.toggle()
+        if !isMultiSelectEnabled && selectedMediaAssets.count > 1 {
+            // Revert to only the active asset
+            if let active = activeAsset {
+                selectedMediaAssets = [active]
+            } else if let first = selectedMediaAssets.first {
+                selectedMediaAssets = [first]
+                activeAsset = first
+            }
+        }
+    }
+
     func toggleAspectRatio() {
         aspectRatio = (aspectRatio == .square) ? .portrait : .square
     }
 
-    /// Load image data from PhotosPickerItems with memory-efficient downsampling.
-    func loadSelectedMedia() async {
-        guard !selectedItems.isEmpty else { return }
-        isLoadingMedia = true
-        var images: [Data] = []
-
-        for item in selectedItems {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                let downsampled = ImageDownsampler.shared.downsampleToData(data: data, maxDimension: 1080) ?? data
-                images.append(downsampled)
-            }
-        }
-
-        selectedImages = images
+    func setCapturedMedia(data: Data, isVideo: Bool = false) {
+        let optimized = ImageDownsampler.shared.downsampleToData(data: data) ?? data
+        selectedImages = [optimized]
         activeImageIndex = 0
-        isLoadingMedia = false
+        currentStep = .applyFilter
     }
 
-    /// Bakes the current filter, PIP stickers, and typography overlays into the active image.
-    func bakeStudioLayers() {
-        guard !selectedImages.isEmpty else { return }
-        let safeIndex = min(activeImageIndex, selectedImages.count - 1)
-        guard let base = UIImage(data: selectedImages[safeIndex]) else { return }
+    // MARK: - Navigation Transitions
 
-        // 1. Filter base image if needed
-        var filteredBase = base
-        if selectedFilterId != "original",
-           let filter = FilterRegistry.filter(byId: selectedFilterId),
-           let ciImage = CIImage(image: base) {
-            let engine = FilterEngine.shared
-            let outputCI = engine.apply(filter: filter, to: ciImage, intensity: filterIntensity)
-            if let rendered = engine.renderToUIImage(outputCI) {
-                filteredBase = rendered
-            }
-        }
-
-        // 2. Bake stickers and typography overlays
-        let composite = CompositeImageRenderer.shared.render(
-            baseImage: filteredBase,
-            stickers: stickers,
-            texts: texts,
-            renderSize: CGSize(width: 1080, height: 1080)
-        )
-
-        if let jpeg = composite.jpegData(compressionQuality: 0.85) {
-            selectedImages[safeIndex] = jpeg
-        }
-
-        // 3. Reset overlays and filter for this baked image
-        stickers = []
-        texts = []
-        selectedFilterId = "original"
-        filterIntensity = 1.0
-    }
-
-    /// Switch active image in step 2 with auto-baking the previous image's layers.
-    func setActiveImage(to index: Int) {
-        guard index >= 0 && index < selectedImages.count, index != activeImageIndex else { return }
-        if !stickers.isEmpty || !texts.isEmpty || selectedFilterId != "original" {
-            bakeStudioLayers()
-        }
-        activeImageIndex = index
-    }
-
-    /// Move to next step.
-    func goToNextStep() {
+    func goToNextStep() async {
         switch currentStep {
         case .selectMedia:
-            if !selectedImages.isEmpty {
-                currentStep = .applyFilter
+            // Prepare high-res images for Step 2
+            HUDManager.shared.showLoading("Đang xử lý ảnh...")
+            var imagesData: [Data] = []
+            for item in selectedMediaAssets {
+                if let data = await photoLibraryService.loadImageData(for: item.phAsset) {
+                    let downsampled = ImageDownsampler.shared.downsampleToData(data: data, maxDimension: 1080) ?? data
+                    imagesData.append(downsampled)
+                }
             }
+            HUDManager.shared.dismiss()
+
+            if !imagesData.isEmpty {
+                self.selectedImages = imagesData
+                self.activeImageIndex = 0
+                self.currentStep = .applyFilter
+            } else if let preview = activePreviewImage, let jpeg = preview.jpegData(compressionQuality: 0.9) {
+                self.selectedImages = [jpeg]
+                self.activeImageIndex = 0
+                self.currentStep = .applyFilter
+            }
+
         case .applyFilter:
-            bakeStudioLayers()
+            // Bake filter & adjustments into selected images before moving to caption
+            bakeStudioAdjustments()
             currentStep = .captionAndShare
+
         case .captionAndShare:
-            break // Final step — publish instead
+            break
         }
     }
 
-    /// Move to previous step.
     func goToPreviousStep() {
         switch currentStep {
         case .selectMedia:
@@ -221,7 +260,57 @@ final class CreatePostViewModel {
         }
     }
 
-    /// Publish the post.
+    // MARK: - Filter & Adjustment Baking
+
+    func bakeStudioAdjustments() {
+        guard !selectedImages.isEmpty else { return }
+
+        selectedImages = selectedImages.map { data in
+            guard let uiImage = UIImage(data: data),
+                  var ciImage = CIImage(image: uiImage) else {
+                return data
+            }
+
+            // 1. Apply Selected Filter
+            if selectedFilterId != "original",
+               let filter = FilterRegistry.filter(byId: selectedFilterId) {
+                ciImage = FilterEngine.shared.apply(filter: filter, to: ciImage, intensity: filterIntensity)
+            }
+
+            // 2. Apply Custom Adjustments (Brightness, Contrast, Saturation, Warmth)
+            if brightness != 0.0 || contrast != 1.0 || saturation != 1.0 {
+                let colorControls = CIFilter.colorControls()
+                colorControls.inputImage = ciImage
+                colorControls.brightness = brightness
+                colorControls.contrast = contrast
+                colorControls.saturation = saturation
+                if let output = colorControls.outputImage {
+                    ciImage = output
+                }
+            }
+
+            if warmth != 0.0 {
+                let tempFilter = CIFilter.temperatureAndTint()
+                tempFilter.inputImage = ciImage
+                let targetTemp = 6500.0 + Double(warmth * 2500.0)
+                tempFilter.neutral = CIVector(x: CGFloat(targetTemp), y: 0)
+                if let output = tempFilter.outputImage {
+                    ciImage = output
+                }
+            }
+
+            // Render to UIImage
+            if let rendered = FilterEngine.shared.renderToUIImage(ciImage),
+               let jpeg = rendered.jpegData(compressionQuality: 0.88) {
+                return jpeg
+            }
+
+            return data
+        }
+    }
+
+    // MARK: - Publish
+
     func publish() async {
         guard !isPublishing, !selectedImages.isEmpty else { return }
         isPublishing = true
@@ -229,11 +318,10 @@ final class CreatePostViewModel {
 
         do {
             let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-            let bakedImages = bakeFilteredImages()
             let post = try await createPostUseCase.execute(
                 CreatePostInput(
                     caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
-                    mediaData: bakedImages,
+                    mediaData: selectedImages,
                     location: location
                 )
             )
@@ -241,60 +329,36 @@ final class CreatePostViewModel {
             isPublished = true
             HUDManager.shared.showSuccess(L10n.HUD.published)
         } catch {
-            // Surfaced via the global HUD only — avoid a duplicate alert.
             HUDManager.shared.showError(error.userMessage)
         }
 
         isPublishing = false
     }
 
-    /// Renders the chosen filter into the selected images before upload.
-    private func bakeFilteredImages() -> [Data] {
-        guard selectedFilterId != "original",
-              let filter = FilterRegistry.filter(byId: selectedFilterId) else {
-            return selectedImages
-        }
-        let engine = FilterEngine.shared
-        return selectedImages.map { data in
-            guard let uiImage = UIImage(data: data),
-                  let ciImage = CIImage(image: uiImage) else {
-                return data
-            }
-            let filtered = engine.apply(filter: filter, to: ciImage, intensity: filterIntensity)
-            if let result = engine.renderToUIImage(filtered),
-               let jpeg = result.jpegData(compressionQuality: 0.85) {
-                return jpeg
-            }
-            return data
-        }
-    }
-
-    /// Reset all state for a new post.
     func reset() {
         currentStep = .selectMedia
-        selectedItems = []
+        selectedMediaAssets = []
         selectedImages = []
         selectedFilterId = "original"
         filterIntensity = 1.0
-        activeImageIndex = 0
-        stickers = []
-        texts = []
+        brightness = 0.0
+        contrast = 1.0
+        saturation = 1.0
+        warmth = 0.0
         caption = ""
         location = nil
+        selectedAudioTrack = nil
+        taggedUsers = []
         isPublished = false
     }
 
-    // MARK: - Computed
+    // MARK: - Computed Properties
 
     var canProceedFromMedia: Bool {
-        !selectedImages.isEmpty
+        !selectedMediaAssets.isEmpty || !selectedImages.isEmpty
     }
 
     var canPublish: Bool {
         !selectedImages.isEmpty && !isPublishing
-    }
-
-    var mediaCount: Int {
-        selectedImages.count
     }
 }
