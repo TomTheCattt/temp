@@ -109,6 +109,11 @@ final class HUDManager {
         show(.error(message))
     }
 
+    /// Show informational feedback with an info icon.
+    func showInfo(_ message: String? = nil) {
+        show(.symbol("info.circle", message))
+    }
+
     /// Update progress (0.0 – 1.0).
     func showProgress(_ value: CGFloat) {
         show(.progress(value))
