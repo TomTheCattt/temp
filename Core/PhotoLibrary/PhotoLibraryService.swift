@@ -72,6 +72,8 @@ public protocol PhotoLibraryServiceProtocol: Sendable {
     func loadHighQualityImage(for asset: PHAsset) async -> UIImage?
     func loadImageData(for asset: PHAsset) async -> Data?
     func loadVideoURL(for asset: PHAsset) async -> URL?
+    func saveImageData(_ data: Data) async throws
+    func saveVideo(at url: URL) async throws
 }
 
 // MARK: - PhotoLibraryService
@@ -256,6 +258,60 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
                     safeContinuation.resume(returning: nil)
                 }
             }
+        }
+    }
+
+    // MARK: - Save Media
+
+    public func saveImageData(_ data: Data) async throws {
+        guard await requestAuthorization() else {
+            throw PhotoLibrarySaveError.authorizationDenied
+        }
+        guard let image = UIImage(data: data) else {
+            throw PhotoLibrarySaveError.invalidImage
+        }
+        try await performPhotoLibraryChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }
+    }
+
+    public func saveVideo(at url: URL) async throws {
+        guard await requestAuthorization() else {
+            throw PhotoLibrarySaveError.authorizationDenied
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw PhotoLibrarySaveError.missingVideo
+        }
+        try await performPhotoLibraryChanges {
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+        }
+    }
+
+    private func performPhotoLibraryChanges(_ changes: @escaping @Sendable () -> Void) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            PHPhotoLibrary.shared().performChanges(changes) { success, error in
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: error ?? PhotoLibrarySaveError.saveFailed)
+                }
+            }
+        }
+    }
+}
+
+public enum PhotoLibrarySaveError: LocalizedError {
+    case authorizationDenied
+    case invalidImage
+    case missingVideo
+    case saveFailed
+
+    public var errorDescription: String? {
+        switch self {
+        case .authorizationDenied: return "Photo Library permission was denied."
+        case .invalidImage: return "The exported image could not be read."
+        case .missingVideo: return "The exported video file no longer exists."
+        case .saveFailed: return "The media could not be saved to Photo Library."
         }
     }
 }
