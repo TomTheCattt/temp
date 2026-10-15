@@ -65,17 +65,19 @@ func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
 
 Data sources trả về dữ liệu giả lập, không cần network. Dùng cho development và testing khi backend chưa sẵn sàng. Tuân thủ triệt để Clean Architecture (`Presentations` không import hay phụ thuộc trực tiếp vào `MockData`).
 
-| File | Store nội bộ | Mô tả & Tính năng Stateful |
-|------|--------------|-----------------------------|
-| `MockData.swift` | — | Hệ sinh thái mock: 20 user đa dạng, 30 post (hỗ trợ Carousel 2-4 items, video, image), 12 reel có fallback, 20 comment có nested replies, 10 notification, 20 conversation với rich messages (.text, .image, .audio, .like). |
+Đặc biệt, hệ sinh thái mock data đã được nâng cấp toàn diện để đáp ứng việc **phân trang vô tận (Infinite Pagination)** với quy mô dữ liệu mở rộng và kiểm thử nghiêm ngặt:
+
+| File | Store nội bộ | Quy mô & Tính năng Phân trang Stateful |
+|------|--------------|-----------------------------------------|
+| `MockData.swift` | — | **60 users** đa dạng (35 followedBy, 30 following); **100 posts** (25 Carousel 2-4 items, 33 video posts, 8 địa điểm); **50 reels** chuẩn 9:16 có fallback 2 lớp; **50 notifications** chia 4 nhóm thời gian; **35 conversations** với rich message types; comments pool đa dạng. |
 | `MockAuthDataSource` | — | Simulate login/register/logout với delay. Test credentials được định nghĩa tại `AppConstants.TestAccount`. |
-| `MockPostDataSource` | `MockPostStore` | Thread-safe (`NSLock`). Stateful: `toggleLike`, `toggleSave`, `adjustCommentsCount`. Phân trang Explore tuần tự tránh duplicate IDs. Đồng bộ số bài viết vào `MockUserStore`. |
-| `MockUserDataSource` | `MockUserStore`, `MockSettingsStore` | Thread-safe (`NSLock`). Stateful: `toggleFollow`, `toggleBlock`, `updateProfile`, `updateAvatar`, `setPrivateAccount`, theo dõi quan hệ và đếm số lượng bài viết. |
-| `MockMessageDataSource` | In-memory storage | Quản lý hội thoại thời gian thực, tin nhắn đa phương tiện, Instagram Notes và huy hiệu unread count. |
-| `MockCommentDataSource` | `MockCommentStore` | Thread-safe (`NSLock`). Lưu trữ comment theo `postId`, hỗ trợ phân cấp replies (`parentId`), toggle like, thêm/xóa comment tự động đồng bộ `commentsCount` của post. |
+| `MockPostDataSource` | `MockPostStore` | Thread-safe (`NSLock`). Cắt lát phân trang `[start..<end]` chuẩn xác cho cả `fetchFeed` (100 bài/5 trang), `fetchUserPosts` (cắt lát theo `page` & `perPage`), và `fetchExplorePosts` (hỗ trợ phân trang bất đối xứng: trang 1 lấy 30 bài, trang 2+ lấy 20 bài, 0 duplicate IDs). |
+| `MockUserDataSource` | `MockUserStore`, `MockSettingsStore` | Thread-safe (`NSLock`). Hỗ trợ phân trang danh sách Followers/Following (trang 1 lấy 30 người -> thỏa mãn ngưỡng `hasMorePages = count >= 30` của `FollowListViewModel`, trang 2 lấy 5 người còn lại). |
+| `MockMessageDataSource` | In-memory storage | Thread-safe (`NSLock`). Phân trang hội thoại `fetchConversations(page:perPage:)` theo slice `[start..<end]` (trang 1 lấy 20 hội thoại, trang 2 lấy 15 hội thoại, trang 3 trả về `[]`). Quản lý tin nhắn thời gian thực và unread state. |
+| `MockCommentDataSource` | `MockCommentStore` | Thread-safe (`NSLock`). Sinh pool bình luận động lên đến **60–80 bình luận** có replies cho các bài viết hot, đảm bảo `result.count == 20 >= 20` kích hoạt cờ `hasMorePages = true` trong `CommentsViewModel` để test cuộn tải thêm nhiều trang. |
 | `MockStoryDataSource` | In-memory storage | Lưu trữ stories, đánh dấu đã xem (`markViewed`), tạo story mới. |
-| `MockNotificationDataSource` | `MockNotificationStore` | Thread-safe (`NSLock`). Stateful: `markAsRead`, `markAllAsRead`, tính toán `unreadCount` tự động phản ánh trạng thái đọc. |
-| `MockReelDataSource` | `MockReelStore` | Thread-safe (`NSLock`). Stateful: `toggleLike`, `toggleSave`. Video Reels hỗ trợ cơ chế fallback 2 lớp: resolver trong `MockData` và runtime error fallback trong `ReelPlayerHolder`. |
+| `MockNotificationDataSource` | `MockNotificationStore` | Thread-safe (`NSLock`). 50 thông báo phân bố theo các nhóm thời gian ("Hôm nay", "Hôm qua", "7 ngày qua", "Trước đó"). Hỗ trợ `markAsRead`, `markAllAsRead`. |
+| `MockReelDataSource` | `MockReelStore` | Thread-safe (`NSLock`). Hỗ trợ phân trang 50 video Reels qua 5 trang (`pageSize = 10`), cắt lát `fetchUserReels` chuẩn xác, bảo toàn cơ chế fallback video 2 lớp. |
 
 ---
 
