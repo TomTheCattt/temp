@@ -17,6 +17,8 @@ enum DS {
     // MARK: - Spacing (padding, margins, gaps)
 
     enum Spacing {
+        /// 0pt — clear
+        static let clear: CGFloat = 0
         /// 1pt — hairline (grid gutters, 1px underlines/dividers).
         static let hairline: CGFloat = 1
         /// 2pt — hairline gaps.
