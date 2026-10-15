@@ -247,7 +247,8 @@ final class MockUserStore: @unchecked Sendable {
 
     func followers(for userId: String, page: Int, perPage: Int) -> [User] {
         lock.lock(); defer { lock.unlock() }
-        let candidates = _users.filter { $0.isFollowedBy || $0.id != userId }
+        let isCurrent = (userId == _currentUser.id || userId == "user_current" || (userId.isEmpty && _currentUser.id == MockData.currentUser.id))
+        let candidates = isCurrent ? _users.filter { $0.isFollowedBy } : _users.filter { $0.id != userId }
         let start = (page - 1) * perPage
         let end = min(start + perPage, candidates.count)
         guard start < end else { return [] }

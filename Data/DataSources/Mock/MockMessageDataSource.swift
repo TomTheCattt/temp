@@ -81,7 +81,10 @@ final class MockMessageDataSource: @unchecked Sendable {
         try await simulateDelay(seconds: 0.05)
         lock.lock()
         defer { lock.unlock() }
-        return inMemoryConversations
+        let start = (page - 1) * perPage
+        let end = min(start + perPage, inMemoryConversations.count)
+        guard start < end else { return [] }
+        return Array(inMemoryConversations[start..<end])
     }
 
     func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {

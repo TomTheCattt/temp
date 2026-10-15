@@ -30,29 +30,74 @@ final class MockCommentStore: @unchecked Sendable {
 
     func comments(forPostId postId: String) -> [Comment] {
         lock.lock(); defer { lock.unlock() }
-        if let existing = _commentsByPostId[postId] {
+        let existing = _commentsByPostId[postId] ?? []
+        let targetCount: Int = {
+            if let post = MockPostStore.shared.posts.first(where: { $0.id == postId }) {
+                return min(max(post.commentsCount, existing.count), 60)
+            }
+            return existing.count
+        }()
+
+        if existing.count >= targetCount && !existing.isEmpty {
             return existing
         }
-        // If post exists in MockPostStore and has commentsCount > 0 but no seed comments, generate realistic initial comments
-        if let post = MockPostStore.shared.posts.first(where: { $0.id == postId }), post.commentsCount > 0 {
-            let count = min(post.commentsCount, 5)
-            let generated = (0..<count).map { idx in
-                Comment(
-                    id: "comment_\(postId)_\(idx)",
+
+        // Generate additional comments up to targetCount
+        var list = existing
+        let startIdx = existing.count
+        let needCount = max(targetCount - startIdx, (existing.isEmpty ? 5 : 0))
+
+        if needCount > 0 {
+            let sampleTexts = [
+                "Bức ảnh tuyệt đẹp quá bạn ơi! Chụp bằng máy gì vậy ạ? 📸✨",
+                "Quá đỉnh luôn, góc chụp này nghệ thuật thật sự! 🔥👏",
+                "Khung cảnh bình yên và đẹp mê hồn 😍",
+                "Tone màu cinematic đỉnh chóp luôn nha! 🎨",
+                "So inspiring and stunning composition! 🌟",
+                "Thích góc máy này quá đi mất, xin info địa điểm với bạn ơi!",
+                "Incredible vibes! Need to visit this place soon ✈️",
+                "Năng lượng tích cực quá, chúc bạn tuần mới rực rỡ nhé! ❤️",
+                "Amazing perspective, beautiful lighting ✨",
+                "Xuất sắc luôn bạn mình ơi! Trông như bìa tạp chí ấy 💯",
+                "Love the mood and tone of this shot! 📷",
+                "Tuyệt tác luôn! Đẹp không góc chết luôn á 🤩"
+            ]
+
+            for idx in startIdx..<(startIdx + needCount) {
+                let commentId = "comment_\(postId)_\(idx)"
+                let author = MockData.users[(idx + abs(postId.hashValue)) % MockData.users.count]
+                let text = sampleTexts[idx % sampleTexts.count]
+                let hasReplies = (idx % 3 == 0)
+                let replies: [Comment] = hasReplies ? [
+                    Comment(
+                        id: "reply_\(postId)_\(idx)_0",
+                        postId: postId,
+                        author: MockData.users[(idx + 1) % MockData.users.count],
+                        text: "Cảm ơn bạn nhiều nha! Mình chụp bằng iPhone 15 Pro Max á ❤️",
+                        likesCount: (idx % 5) + 1,
+                        isLiked: false,
+                        replies: [],
+                        parentId: commentId,
+                        createdAt: Date(timeIntervalSinceNow: -Double(idx + 1) * 1800 + 300)
+                    )
+                ] : []
+
+                let comment = Comment(
+                    id: commentId,
                     postId: postId,
-                    author: MockData.users[(idx + abs(postId.hashValue)) % MockData.users.count],
-                    text: ["Super cool! 🔥", "Amazing perspective 📸", "So inspiring ✨", "Love this so much 😍", "Incredible work! 👏"][idx % 5],
-                    likesCount: idx + 1,
-                    isLiked: false,
-                    replies: [],
+                    author: author,
+                    text: text,
+                    likesCount: (idx * 3 + 1) % 45,
+                    isLiked: idx % 4 == 0,
+                    replies: replies,
                     parentId: nil,
-                    createdAt: Date(timeIntervalSinceNow: -Double(idx + 1) * 3600)
+                    createdAt: Date(timeIntervalSinceNow: -Double(idx + 1) * 1800)
                 )
+                list.append(comment)
             }
-            _commentsByPostId[postId] = generated
-            return generated
+            _commentsByPostId[postId] = list
         }
-        return []
+        return list
     }
 
     func replies(forCommentId commentId: String) -> [Comment] {

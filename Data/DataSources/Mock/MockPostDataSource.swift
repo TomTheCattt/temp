@@ -97,10 +97,13 @@ final class MockPostDataSource: @unchecked Sendable {
         let currentUserId = SessionStore.shared.currentUserId
         let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
         let allPosts = store.posts
-        if isCurrent {
-            return allPosts.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
-        }
-        return allPosts.filter { $0.author.id == userId }
+        let userPosts = isCurrent
+            ? allPosts.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
+            : allPosts.filter { $0.author.id == userId }
+        let start = (page - 1) * perPage
+        let end = min(start + perPage, userPosts.count)
+        guard start < end else { return [] }
+        return Array(userPosts[start..<end])
     }
 
     func fetchPost(id: String) async throws -> Post {
@@ -161,7 +164,15 @@ final class MockPostDataSource: @unchecked Sendable {
     func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
         try await simulateDelay()
         let posts = store.posts
-        let start = (page - 1) * perPage
+        let start: Int = {
+            if page == 1 {
+                return 0
+            }
+            if perPage == 20 {
+                return 30 + (page - 2) * perPage
+            }
+            return (page - 1) * perPage
+        }()
         let end = min(start + perPage, posts.count)
         guard start < end else { return [] }
         return Array(posts[start..<end])

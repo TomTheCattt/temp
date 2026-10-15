@@ -77,10 +77,13 @@ final class MockReelDataSource: @unchecked Sendable {
         let currentUserId = SessionStore.shared.currentUserId
         let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
         let all = store.reels
-        if isCurrent {
-            return all.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
-        }
-        return all.filter { $0.author.id == userId }
+        let userReels = isCurrent
+            ? all.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
+            : all.filter { $0.author.id == userId }
+        let start = (page - 1) * perPage
+        let end = min(start + perPage, userReels.count)
+        guard start < end else { return [] }
+        return Array(userReels[start..<end])
     }
 
     func likeReel(id: String) async throws {
