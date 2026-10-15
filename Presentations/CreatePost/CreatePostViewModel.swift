@@ -371,54 +371,56 @@ final class CreatePostViewModel {
         guard !selectedImages.isEmpty else { return }
 
         selectedImages = selectedImages.map { data in
-            guard let uiImage = UIImage(data: data),
-                  var ciImage = CIImage(image: uiImage) else {
+            autoreleasepool {
+                guard let uiImage = UIImage(data: data),
+                      var ciImage = CIImage(image: uiImage) else {
+                    return data
+                }
+
+                // 1. Apply Selected Filter
+                if selectedFilterId != "original",
+                   let filter = FilterRegistry.filter(byId: selectedFilterId) {
+                    ciImage = FilterEngine.shared.apply(filter: filter, to: ciImage, intensity: filterIntensity)
+                }
+
+                // 2. Apply Custom Adjustments (Brightness, Contrast, Saturation, Warmth)
+                if brightness != 0.0 || contrast != 1.0 || saturation != 1.0 {
+                    let colorControls = CIFilter.colorControls()
+                    colorControls.inputImage = ciImage
+                    colorControls.brightness = brightness
+                    colorControls.contrast = contrast
+                    colorControls.saturation = saturation
+                    if let output = colorControls.outputImage {
+                        ciImage = output
+                    }
+                }
+
+                if warmth != 0.0 {
+                    let tempFilter = CIFilter.temperatureAndTint()
+                    tempFilter.inputImage = ciImage
+                    let targetTemp = 6500.0 + Double(warmth * 2500.0)
+                    tempFilter.neutral = CIVector(x: CGFloat(targetTemp), y: 0)
+                    if let output = tempFilter.outputImage {
+                        ciImage = output
+                    }
+                }
+
+                // Render to UIImage
+                var rendered = FilterEngine.shared.renderToUIImage(ciImage) ?? uiImage
+                if !stickers.isEmpty || !texts.isEmpty {
+                    rendered = CompositeImageRenderer.shared.render(
+                        baseImage: rendered,
+                        stickers: stickers,
+                        texts: texts
+                    )
+                }
+
+                if let jpeg = rendered.jpegData(compressionQuality: 0.88) {
+                    return jpeg
+                }
+
                 return data
             }
-
-            // 1. Apply Selected Filter
-            if selectedFilterId != "original",
-               let filter = FilterRegistry.filter(byId: selectedFilterId) {
-                ciImage = FilterEngine.shared.apply(filter: filter, to: ciImage, intensity: filterIntensity)
-            }
-
-            // 2. Apply Custom Adjustments (Brightness, Contrast, Saturation, Warmth)
-            if brightness != 0.0 || contrast != 1.0 || saturation != 1.0 {
-                let colorControls = CIFilter.colorControls()
-                colorControls.inputImage = ciImage
-                colorControls.brightness = brightness
-                colorControls.contrast = contrast
-                colorControls.saturation = saturation
-                if let output = colorControls.outputImage {
-                    ciImage = output
-                }
-            }
-
-            if warmth != 0.0 {
-                let tempFilter = CIFilter.temperatureAndTint()
-                tempFilter.inputImage = ciImage
-                let targetTemp = 6500.0 + Double(warmth * 2500.0)
-                tempFilter.neutral = CIVector(x: CGFloat(targetTemp), y: 0)
-                if let output = tempFilter.outputImage {
-                    ciImage = output
-                }
-            }
-
-            // Render to UIImage
-            var rendered = FilterEngine.shared.renderToUIImage(ciImage) ?? uiImage
-            if !stickers.isEmpty || !texts.isEmpty {
-                rendered = CompositeImageRenderer.shared.render(
-                    baseImage: rendered,
-                    stickers: stickers,
-                    texts: texts
-                )
-            }
-
-            if let jpeg = rendered.jpegData(compressionQuality: 0.88) {
-                return jpeg
-            }
-
-            return data
         }
     }
 
