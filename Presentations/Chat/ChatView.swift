@@ -178,8 +178,9 @@ struct ChatView: View {
                 // Audio Call (24pt, 44x44pt)
                 Button {
                     HapticFeedbackSafe.impact(.medium)
-                    let recipientUser = viewModel.recipient ?? MockData.currentUser
-                    AppRouter.shared.present(fullScreen: .call(userId: recipientUser.id, userName: recipientUser.username, hasVideo: false))
+                    let targetId = viewModel.recipient?.id ?? viewModel.conversationId
+                    let targetName = viewModel.recipient?.username ?? "User"
+                    AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: false))
                 } label: {
                     Image(systemName: "phone")
                         .font(.system(size: 24, weight: .regular))
@@ -190,8 +191,9 @@ struct ChatView: View {
                 // Video Call (24pt, 44x44pt)
                 Button {
                     HapticFeedbackSafe.impact(.medium)
-                    let recipientUser = viewModel.recipient ?? MockData.currentUser
-                    AppRouter.shared.present(fullScreen: .call(userId: recipientUser.id, userName: recipientUser.username, hasVideo: true))
+                    let targetId = viewModel.recipient?.id ?? viewModel.conversationId
+                    let targetName = viewModel.recipient?.username ?? "User"
+                    AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: true))
                 } label: {
                     Image(systemName: "video")
                         .font(.system(size: 24, weight: .regular))

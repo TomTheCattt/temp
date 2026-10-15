@@ -173,7 +173,25 @@ final class DirectMessagesViewModel {
     func addOrUpdateNote(text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let currentUser = MockData.currentUser
+        let currentUser = SessionStore.shared.currentUser ?? User(
+            id: SessionStore.shared.currentUserId.isEmpty ? "user_current" : SessionStore.shared.currentUserId,
+            username: AppConstants.TestAccount.username,
+            fullName: AppConstants.TestAccount.fullName,
+            email: AppConstants.TestAccount.email,
+            phone: nil,
+            avatarURL: nil,
+            bio: nil,
+            website: nil,
+            isVerified: true,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
         let newNote = InstagramNote(
             id: "note_current_\(UUID().uuidString.prefix(6))",
             user: currentUser,

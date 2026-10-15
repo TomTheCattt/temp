@@ -45,8 +45,8 @@ final class AuthViewModel {
         // Pre-fill test credentials in debug/mock mode for convenience
         #if DEBUG
         if AppConfig.shared.isMockAPI {
-            email = MockData.testEmail
-            password = MockData.testPassword
+            email = AppConstants.TestAccount.email
+            password = AppConstants.TestAccount.password
         }
         #endif
     }

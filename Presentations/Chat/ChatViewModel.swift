@@ -155,8 +155,6 @@ final class ChatViewModel {
             if recipient == nil {
                 if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
                     recipient = otherUser
-                } else if let firstOther = MockData.users.first(where: { $0.id != currentUserId }) {
-                    recipient = firstOther
                 }
             }
 
@@ -230,7 +228,25 @@ final class ChatViewModel {
 
         // Optimistic UI: insert pending message with .sending status
         let tempId = "temp_\(UUID().uuidString.prefix(8))"
-        let currentUser = MockData.currentUser
+        let currentUser = SessionStore.shared.currentUser ?? User(
+            id: currentUserId,
+            username: AppConstants.TestAccount.username,
+            fullName: AppConstants.TestAccount.fullName,
+            email: AppConstants.TestAccount.email,
+            phone: nil,
+            avatarURL: nil,
+            bio: nil,
+            website: nil,
+            isVerified: true,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
         let pendingMessage = Message(
             id: tempId,
             conversationId: conversationId,

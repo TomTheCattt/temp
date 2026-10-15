@@ -20,6 +20,7 @@ struct NewMessageSheet: View {
     @State private var isCreating = false
 
     private let messageRepository: MessageRepositoryProtocol = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+    private let userRepository: UserRepositoryProtocol = DIContainer.shared.resolve(UserRepositoryProtocol.self)
 
     var body: some View {
         NavigationStack {
@@ -208,7 +209,13 @@ struct NewMessageSheet: View {
     // MARK: - Actions
 
     private func loadSuggestedUsers() {
-        suggestedUsers = MockData.users.filter { $0.id != SessionStore.shared.currentUserId }
+        Task {
+            if let users = try? await userRepository.fetchSuggested(page: 1, perPage: 20) {
+                await MainActor.run {
+                    self.suggestedUsers = users.filter { $0.id != SessionStore.shared.currentUserId }
+                }
+            }
+        }
     }
 
     private func handleStartChat() async {
