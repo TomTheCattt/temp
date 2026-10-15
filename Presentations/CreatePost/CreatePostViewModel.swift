@@ -62,6 +62,12 @@ final class CreatePostViewModel {
     /// Currently active image index when multiple images are selected.
     var activeImageIndex: Int = 0
 
+    /// Multi-layer PIP stickers on the active image.
+    var stickers: [PIPStickerItem] = []
+
+    /// Multi-layer Typography items on the active image.
+    var texts: [TextOverlayItem] = []
+
     /// Caption text.
     var caption: String = ""
 
@@ -104,6 +110,12 @@ final class CreatePostViewModel {
         selectedImages.append(optimized)
     }
 
+    /// Update image data at a specific index.
+    func updateImage(at index: Int, data: Data) {
+        guard index >= 0 && index < selectedImages.count else { return }
+        selectedImages[index] = data
+    }
+
     /// Remove an image from the carousel.
     func removeImage(at index: Int) {
         guard index >= 0 && index < selectedImages.count else { return }
@@ -136,6 +148,52 @@ final class CreatePostViewModel {
         isLoadingMedia = false
     }
 
+    /// Bakes the current filter, PIP stickers, and typography overlays into the active image.
+    func bakeStudioLayers() {
+        guard !selectedImages.isEmpty else { return }
+        let safeIndex = min(activeImageIndex, selectedImages.count - 1)
+        guard let base = UIImage(data: selectedImages[safeIndex]) else { return }
+
+        // 1. Filter base image if needed
+        var filteredBase = base
+        if selectedFilterId != "original",
+           let filter = FilterRegistry.filter(byId: selectedFilterId),
+           let ciImage = CIImage(image: base) {
+            let engine = FilterEngine.shared
+            let outputCI = engine.apply(filter: filter, to: ciImage, intensity: filterIntensity)
+            if let rendered = engine.renderToUIImage(outputCI) {
+                filteredBase = rendered
+            }
+        }
+
+        // 2. Bake stickers and typography overlays
+        let composite = CompositeImageRenderer.shared.render(
+            baseImage: filteredBase,
+            stickers: stickers,
+            texts: texts,
+            renderSize: CGSize(width: 1080, height: 1080)
+        )
+
+        if let jpeg = composite.jpegData(compressionQuality: 0.85) {
+            selectedImages[safeIndex] = jpeg
+        }
+
+        // 3. Reset overlays and filter for this baked image
+        stickers = []
+        texts = []
+        selectedFilterId = "original"
+        filterIntensity = 1.0
+    }
+
+    /// Switch active image in step 2 with auto-baking the previous image's layers.
+    func setActiveImage(to index: Int) {
+        guard index >= 0 && index < selectedImages.count, index != activeImageIndex else { return }
+        if !stickers.isEmpty || !texts.isEmpty || selectedFilterId != "original" {
+            bakeStudioLayers()
+        }
+        activeImageIndex = index
+    }
+
     /// Move to next step.
     func goToNextStep() {
         switch currentStep {
@@ -144,6 +202,7 @@ final class CreatePostViewModel {
                 currentStep = .applyFilter
             }
         case .applyFilter:
+            bakeStudioLayers()
             currentStep = .captionAndShare
         case .captionAndShare:
             break // Final step — publish instead
@@ -218,6 +277,8 @@ final class CreatePostViewModel {
         selectedFilterId = "original"
         filterIntensity = 1.0
         activeImageIndex = 0
+        stickers = []
+        texts = []
         caption = ""
         location = nil
         isPublished = false

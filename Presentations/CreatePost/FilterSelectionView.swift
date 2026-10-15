@@ -15,6 +15,7 @@ struct FilterSelectionView: View {
     @Binding var selectedFilterId: String
     @Binding var filterIntensity: Float
     let sourceImage: UIImage
+    var showsPreview: Bool = true
 
     @State private var thumbnails: [FilterThumbnail] = []
     @State private var previewImage: UIImage?
@@ -24,10 +25,12 @@ struct FilterSelectionView: View {
     var body: some View {
         VStack(spacing: 0) {
             // MARK: Preview
-            imagePreview
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                .clipped()
+            if showsPreview {
+                imagePreview
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipped()
+            }
 
             // MARK: Intensity Slider
             if showIntensitySlider && selectedFilterId != "original" {

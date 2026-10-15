@@ -330,11 +330,13 @@ struct CreatePostView: View {
                 UniversalCreativeStudioView(
                     baseImageData: Binding(
                         get: { viewModel.selectedImages[safeIndex] },
-                        set: { _ in }
+                        set: { viewModel.updateImage(at: safeIndex, data: $0) }
                     ),
                     selectedFilterId: $viewModel.selectedFilterId,
                     filterIntensity: $viewModel.filterIntensity,
-                    onProceedToCaption: { bakedData in
+                    stickers: $viewModel.stickers,
+                    texts: $viewModel.texts,
+                    onProceedToCaption: { _ in
                         viewModel.goToNextStep()
                     }
                 )
@@ -357,7 +359,7 @@ struct CreatePostView: View {
                                             .stroke(viewModel.activeImageIndex == idx ? ColorTokens.accentPrimary : Color.clear, lineWidth: 2.5)
                                     )
                                     .onTapGesture {
-                                        viewModel.activeImageIndex = idx
+                                        viewModel.setActiveImage(to: idx)
                                     }
                             }
                         }
