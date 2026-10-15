@@ -78,8 +78,8 @@ struct StoryCameraView: View {
             if published { dismiss() }
         }
         .fullScreenCover(isPresented: $isShowingCreateCanvas) {
-            CreateCanvasView(isPresented: $isShowingCreateCanvas) { bakedData in
-                viewModel.loadFromGallery(data: bakedData, isVideo: false)
+            CreateCanvasView(isPresented: $isShowingCreateCanvas) { bakedData, isVideo in
+                viewModel.loadFromGallery(data: bakedData, isVideo: isVideo)
             }
         }
         .fullScreenCover(isPresented: $isShowingLayoutCollage) {

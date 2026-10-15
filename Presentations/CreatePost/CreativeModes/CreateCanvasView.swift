@@ -212,7 +212,7 @@ extension TextFontStyle {
 struct CreateCanvasView: View {
 
     @Binding var isPresented: Bool
-    let onCanvasCompleted: (Data) -> Void
+    let onCanvasCompleted: (Data, Bool) -> Void
 
     @State private var themes: [CanvasTheme] = [
         CanvasTheme(name: "Sunset", colors: [
@@ -234,8 +234,12 @@ struct CreateCanvasView: View {
 
     @State private var stickers: [PIPStickerItem] = []
     @State private var texts: [TextOverlayItem] = []
+    @State private var drawingImage: UIImage? = nil
     @State private var isRightMenuExpanded = false
     @State private var isShowingStickerDrawer = false
+    @State private var isShowingDrawingCanvas = false
+    @State private var isShowingMusicPicker = false
+    @State private var selectedAudioTrack: PostAudioTrackItem? = nil
 
     // Inline Text Editor State
     @State private var isEditingText = false
@@ -278,6 +282,15 @@ struct CreateCanvasView: View {
                 if !isEditingText {
                     startEditing()
                 }
+            }
+
+            // Overlaid PencilKit Drawing (if any)
+            if let drawingImage {
+                Image(uiImage: drawingImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
             }
 
             // Overlaid Canvas Elements (Stickers & Texts)
@@ -325,6 +338,14 @@ struct CreateCanvasView: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $isShowingDrawingCanvas) {
+            StoryDrawingCanvasView(isPresented: $isShowingDrawingCanvas) { renderedDrawing in
+                self.drawingImage = renderedDrawing
+            }
+        }
+        .sheet(isPresented: $isShowingMusicPicker) {
+            StudioAudioPickerSheet(selectedTrack: $selectedAudioTrack)
+        }
     }
 
     // MARK: - Idle Mode UI
@@ -342,6 +363,21 @@ struct CreateCanvasView: View {
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
+                }
+
+                if let track = selectedAudioTrack {
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "music.note")
+                            .font(.system(size: 12))
+                        Text(track.title)
+                            .font(.system(size: 12, weight: .semibold))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.45), in: Capsule())
                 }
 
                 Spacer()
@@ -386,6 +422,12 @@ struct CreateCanvasView: View {
 
                 rightCircleButton(icon: "music.note") {
                     HapticFeedbackSafe.impact(.light)
+                    isShowingMusicPicker = true
+                }
+
+                rightCircleButton(icon: "scribble") {
+                    HapticFeedbackSafe.impact(.light)
+                    isShowingDrawingCanvas = true
                 }
 
                 rightCircleButton(icon: "bookmark") {
@@ -452,6 +494,7 @@ struct CreateCanvasView: View {
 
                 expandedToolRow(label: "Âm thanh", icon: "music.note") {
                     HapticFeedbackSafe.impact(.light)
+                    isShowingMusicPicker = true
                 }
 
                 expandedToolRow(label: "Đã lưu", icon: "bookmark") {
@@ -493,6 +536,7 @@ struct CreateCanvasView: View {
 
                 expandedToolRow(label: "Vẽ", icon: "scribble") {
                     HapticFeedbackSafe.impact(.light)
+                    isShowingDrawingCanvas = true
                 }
 
                 expandedToolRow(label: "Tải xuống", icon: "arrow.down.to.line") {
@@ -1082,6 +1126,43 @@ struct CreateCanvasView: View {
     // MARK: - Export
 
     private func finishAndExport() {
+        let validTexts = texts.filter {
+            !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+
+        let hasAnimation = validTexts.contains { $0.animation != .none }
+
+        // If any text has animation or music selected, render as 1080x1920 MP4 Video
+        if hasAnimation || selectedAudioTrack != nil {
+            HUDManager.shared.showLoading("Đang xử lý video...")
+            Task {
+                do {
+                    let (_, videoData) = try await CanvasVideoRenderer.shared.renderVideo(
+                        gradientColors: themes[activeThemeIndex].colors,
+                        drawings: drawingImage,
+                        stickers: stickers,
+                        texts: validTexts,
+                        duration: 5.0,
+                        fps: 30
+                    )
+                    await MainActor.run {
+                        HUDManager.shared.dismiss()
+                        onCanvasCompleted(videoData, true)
+                        isPresented = false
+                    }
+                } catch {
+                    await MainActor.run {
+                        HUDManager.shared.dismiss()
+                        exportStaticImage(validTexts: validTexts)
+                    }
+                }
+            }
+        } else {
+            exportStaticImage(validTexts: validTexts)
+        }
+    }
+
+    private func exportStaticImage(validTexts: [TextOverlayItem]) {
         let renderSize = CGSize(width: 1080, height: 1920)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1.0
@@ -1100,10 +1181,11 @@ struct CreateCanvasView: View {
                     options: []
                 )
             }
-        }
 
-        let validTexts = texts.filter {
-            !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            // Draw PencilKit drawing if any
+            if let drawingImage {
+                drawingImage.draw(in: CGRect(origin: .zero, size: renderSize))
+            }
         }
 
         let composite = CompositeImageRenderer.shared.render(
@@ -1113,8 +1195,8 @@ struct CreateCanvasView: View {
             renderSize: renderSize
         )
 
-        if let jpeg = composite.jpegData(compressionQuality: 0.85) {
-            onCanvasCompleted(jpeg)
+        if let jpeg = composite.jpegData(compressionQuality: 0.88) {
+            onCanvasCompleted(jpeg, false)
             isPresented = false
         }
     }

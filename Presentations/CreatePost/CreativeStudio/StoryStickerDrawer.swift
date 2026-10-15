@@ -23,6 +23,8 @@ struct StoryStickerDrawer: View {
 
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isProcessingPhoto = false
+    @State private var isShowingLocationSearch = false
+    @State private var isShowingLinkDialog = false
 
     private let quickEmojis: [String] = [
         "❤️", "🔥", "😍", "😂", "👏", "🎉", "✨", "💯", "🍕", "☕️", "🌈", "🐶"
@@ -57,6 +59,19 @@ struct StoryStickerDrawer: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .sheet(isPresented: $isShowingLocationSearch) {
+            LocationSearchSheet(isPresented: $isShowingLocationSearch) { locationName in
+                onAddTextSticker(TextOverlayItem(text: "📍 \(locationName)", hasBackground: true))
+                isPresented = false
+            }
+        }
+        .sheet(isPresented: $isShowingLinkDialog) {
+            LinkInputDialog(isPresented: $isShowingLinkDialog) { url in
+                let cleanURL = url.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: "")
+                onAddTextSticker(TextOverlayItem(text: "🔗 \(cleanURL)", hasBackground: true))
+                isPresented = false
+            }
+        }
     }
 
     // MARK: - Custom Photo Sticker Card
@@ -115,10 +130,19 @@ struct StoryStickerDrawer: View {
             guard let newItem else { return }
             isProcessingPhoto = true
             Task {
-                if let rawData = try? await newItem.loadTransferable(type: Data.self) {
-                    let optimizedData = await downsampleImageData(rawData, maxDimension: 1080)
+                if let rawData = try? await newItem.loadTransferable(type: Data.self),
+                   let rawImage = UIImage(data: rawData) {
+                    // Auto-extract foreground subject using Vision Framework
+                    let finalData: Data
+                    if let liftedSubject = await StickerSubjectLifter.liftSubject(from: rawImage),
+                       let png = liftedSubject.pngData() {
+                        finalData = png
+                    } else {
+                        finalData = await downsampleImageData(rawData, maxDimension: 1080)
+                    }
+
                     await MainActor.run {
-                        onAddPhotoSticker(optimizedData)
+                        onAddPhotoSticker(finalData)
                         isProcessingPhoto = false
                         selectedPhotoItem = nil
                         isPresented = false
@@ -145,8 +169,7 @@ struct StoryStickerDrawer: View {
                 icon: "mappin.and.ellipse",
                 color: Color.red
             ) {
-                onAddTextSticker(TextOverlayItem(text: "📍 Vị trí", hasBackground: true))
-                isPresented = false
+                isShowingLocationSearch = true
             }
 
             stickerButton(
@@ -163,7 +186,7 @@ struct StoryStickerDrawer: View {
                 icon: "chart.bar.xaxis",
                 color: Color.purple
             ) {
-                onAddTextSticker(TextOverlayItem(text: "📊 Thăm dò ý kiến", hasBackground: true))
+                onAddTextSticker(TextOverlayItem(text: "📊 Có / Không?", hasBackground: true))
                 isPresented = false
             }
 
@@ -190,8 +213,7 @@ struct StoryStickerDrawer: View {
                 icon: "link",
                 color: Color.indigo
             ) {
-                onAddTextSticker(TextOverlayItem(text: "🔗 Xem thêm", hasBackground: true))
-                isPresented = false
+                isShowingLinkDialog = true
             }
         }
     }
