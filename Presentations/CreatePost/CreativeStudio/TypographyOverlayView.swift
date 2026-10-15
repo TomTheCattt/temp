@@ -11,6 +11,8 @@ import SwiftUI
 
 public enum TextFontStyle: String, CaseIterable, Identifiable {
     case modern = "Modern"
+    case classic = "Classic"
+    case signature = "Signature"
     case neon = "Neon"
     case typewriter = "Typewriter"
     case strong = "Strong"
@@ -20,6 +22,8 @@ public enum TextFontStyle: String, CaseIterable, Identifiable {
     var font: Font {
         switch self {
         case .modern: return .system(size: 28, weight: .bold, design: .default)
+        case .classic: return .system(size: 28, weight: .regular, design: .serif)
+        case .signature: return .system(size: 30, weight: .medium, design: .rounded).italic()
         case .neon: return .system(size: 28, weight: .semibold, design: .rounded)
         case .typewriter: return .system(size: 26, weight: .medium, design: .monospaced)
         case .strong: return .system(size: 32, weight: .heavy, design: .serif)

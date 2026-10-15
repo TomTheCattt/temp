@@ -97,6 +97,18 @@ public final class CompositeImageRenderer {
                 switch textItem.fontStyle {
                 case .modern:
                     nsFont = UIFont.systemFont(ofSize: fontSize, weight: .bold)
+                case .classic:
+                    if let descriptor = UIFont.systemFont(ofSize: fontSize, weight: .regular).fontDescriptor.withDesign(.serif) {
+                        nsFont = UIFont(descriptor: descriptor, size: fontSize)
+                    } else {
+                        nsFont = UIFont.systemFont(ofSize: fontSize, weight: .regular)
+                    }
+                case .signature:
+                    if let descriptor = UIFont.systemFont(ofSize: fontSize, weight: .medium).fontDescriptor.withDesign(.rounded)?.withSymbolicTraits(.traitItalic) {
+                        nsFont = UIFont(descriptor: descriptor, size: fontSize)
+                    } else {
+                        nsFont = UIFont.italicSystemFont(ofSize: fontSize)
+                    }
                 case .neon:
                     if let descriptor = UIFont.systemFont(ofSize: fontSize, weight: .semibold).fontDescriptor.withDesign(.rounded) {
                         nsFont = UIFont(descriptor: descriptor, size: fontSize)

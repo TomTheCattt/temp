@@ -24,6 +24,7 @@ struct StoryCameraView: View {
     @State private var isShowingCreateCanvas = false
     @State private var isShowingLayoutCollage = false
     @State private var isShowingStickerDrawer = false
+    @State private var isLeftMenuExpanded = false
 
     // Inline Text Editor State
     @State private var isEditingText = false
@@ -110,72 +111,194 @@ struct StoryCameraView: View {
                 permissionDeniedView
             }
 
-            // Left Vertical Tool Strip
+            // Left Vertical Tool Strip (Instagram 1:1)
             HStack {
-                VStack(spacing: DS.Spacing.lg) {
-                    Spacer().frame(height: 60)
-
-                    // Mode 1: Create (Aa)
-                    leftToolButton(icon: "textformat", label: "Tạo") {
-                        isShowingCreateCanvas = true
-                    }
-
-                    // Mode 2: Layout
-                    leftToolButton(icon: "square.grid.2x2", label: "Bố cục") {
-                        isShowingLayoutCollage = true
-                    }
-
-                    // Mode 3: Boomerang
-                    leftToolButton(
-                        icon: "infinity",
-                        label: "Boomerang",
-                        isActive: viewModel.mode == .boomerang
-                    ) {
-                        viewModel.mode = (viewModel.mode == .boomerang) ? .normal : .boomerang
-                    }
-
-                    // Mode 4: Hands-Free
-                    leftToolButton(
-                        icon: "hand.raised.fill",
-                        label: "Rảnh tay",
-                        isActive: viewModel.mode == .hands_free
-                    ) {
-                        viewModel.mode = (viewModel.mode == .hands_free) ? .normal : .hands_free
-                    }
-
-                    Spacer()
-                }
-                .padding(.leading, DS.Spacing.md)
+                leftVerticalToolBar
+                    .padding(.leading, 18)
 
                 Spacer()
             }
 
-            // Top Bar & Bottom Controls
+            // Top Bar
             VStack {
                 topCameraBar
+                Spacer()
+            }
+
+            // Central Shutter Button (Lower Third, elevated above bottom mode switcher)
+            VStack {
+                Spacer()
+                centralShutterButton
+                    .padding(.bottom, 78)
+            }
+
+            // Bottom Flanking Controls (Gallery Shortcut on Left, Camera Flip on Right)
+            VStack {
                 Spacer()
                 bottomCameraControls
             }
         }
     }
 
-    // MARK: - Left Tool Button
+    // MARK: - Left Vertical Tool Strip (Collapsed / Expanded)
 
-    @ViewBuilder
-    private func leftToolButton(icon: String, label: String, isActive: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(isActive ? ColorTokens.accentPrimary : .white)
-                    .frame(width: 40, height: 40)
-                    .background(Color.black.opacity(0.35), in: Circle())
+    private var leftVerticalToolBar: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Spacer().frame(height: 100)
 
-                Text(label)
-                    .font(.system(size: 10, weight: .medium))
+            if !isLeftMenuExpanded {
+                // Collapsed State: Pure glyphs (matching media_1792049381031.png)
+                Button {
+                    isShowingCreateCanvas = true
+                } label: {
+                    Text("Aa")
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    viewModel.mode = (viewModel.mode == .boomerang) ? .normal : .boomerang
+                } label: {
+                    Image(systemName: "infinity")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(viewModel.mode == .boomerang ? ColorTokens.accentPrimary : .white)
+                        .frame(width: 32, height: 32)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    isShowingLayoutCollage = true
+                } label: {
+                    Image(systemName: "rectangle.split.2x1")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    viewModel.currentFilterIndex = (viewModel.currentFilterIndex + 1) % StoryFilter.allFilters.count
+                } label: {
+                    Image(systemName: "circle.hexagongrid")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isLeftMenuExpanded = true
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+            } else {
+                // Expanded State: Glyphs + Labels (matching media_1792049565500.png)
+                Button {
+                    isShowingCreateCanvas = true
+                } label: {
+                    HStack(spacing: 14) {
+                        Text("Aa")
+                            .font(.system(size: 20, weight: .bold, design: .serif))
+                            .frame(width: 32, alignment: .center)
+                        Text("Tạo")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
                     .foregroundStyle(.white)
-                    .shadow(radius: 2)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    viewModel.mode = (viewModel.mode == .boomerang) ? .normal : .boomerang
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "infinity")
+                            .font(.system(size: 20, weight: .semibold))
+                            .frame(width: 32, alignment: .center)
+                        Text("Boomerang")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(viewModel.mode == .boomerang ? ColorTokens.accentPrimary : .white)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    isShowingLayoutCollage = true
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "rectangle.split.2x1")
+                            .font(.system(size: 20, weight: .medium))
+                            .frame(width: 32, alignment: .center)
+                        Text("Bố cục")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    viewModel.currentFilterIndex = (viewModel.currentFilterIndex + 1) % StoryFilter.allFilters.count
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "circle.hexagongrid")
+                            .font(.system(size: 20, weight: .medium))
+                            .frame(width: 32, alignment: .center)
+
+                        HStack(spacing: 6) {
+                            Text("MỚI")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Color.white, in: RoundedRectangle(cornerRadius: 3))
+
+                            Text("Hiệu ứng")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    viewModel.mode = (viewModel.mode == .hands_free) ? .normal : .hands_free
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "circle.inset.filled")
+                            .font(.system(size: 20, weight: .medium))
+                            .frame(width: 32, alignment: .center)
+                        Text("Rảnh tay")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(viewModel.mode == .hands_free ? ColorTokens.accentPrimary : .white)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
+
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isLeftMenuExpanded = false
+                    }
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 32, alignment: .center)
+                        Text("Đóng")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+                }
             }
+
+            Spacer()
         }
     }
 
@@ -185,54 +308,92 @@ struct StoryCameraView: View {
         HStack {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
-                    .font(.title2)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Color.black.opacity(0.35), in: Circle())
+                    .shadow(color: .black.opacity(0.45), radius: 3)
             }
 
             Spacer()
 
             Button(action: { viewModel.toggleFlash() }) {
                 Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
-                    .font(.title3)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
                     .frame(width: 44, height: 44)
-                    .background(Color.black.opacity(0.35), in: Circle())
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+            }
+
+            Spacer()
+
+            Button(action: { /* Settings */ }) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
             }
         }
         .padding(.horizontal, DS.Spacing.md)
         .padding(.top, DS.Spacing.md)
     }
 
-    // MARK: - Bottom Camera Controls
+    // MARK: - Central Shutter Button
+
+    private var centralShutterButton: some View {
+        Button(action: {
+            if viewModel.mode == .hands_free || viewModel.isRecording {
+                viewModel.stopRecording()
+            } else {
+                viewModel.capturePhoto()
+            }
+        }) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white, lineWidth: 4)
+                    .frame(width: 80, height: 80)
+
+                Circle()
+                    .fill(viewModel.isRecording ? ColorTokens.destructive : Color.white)
+                    .frame(width: viewModel.isRecording ? 36 : 68, height: viewModel.isRecording ? 36 : 68)
+                    .animation(.easeInOut(duration: 0.15), value: viewModel.isRecording)
+            }
+        }
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    viewModel.startRecording()
+                }
+        )
+    }
+
+    // MARK: - Bottom Camera Controls (Gallery & Flip Flanking Bar)
 
     private var bottomCameraControls: some View {
-        let galleryThumbnail = viewModel.latestGalleryThumbnail
-        return HStack(alignment: .center, spacing: DS.Spacing.xxl) {
+        HStack(alignment: .center) {
             // Left: Gallery Shortcut Button
             PhotosPicker(
                 selection: $selectedGalleryItem,
                 matching: .any(of: [.images, .videos])
             ) {
                 Group {
-                    if let thumb = galleryThumbnail {
+                    if let thumb = viewModel.latestGalleryThumbnail {
                         Image(uiImage: thumb)
                             .resizable()
                             .scaledToFill()
                     } else {
                         Image(systemName: "photo")
-                            .font(.title3)
+                            .font(.subheadline)
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
-                    RoundedRectangle(cornerRadius: DS.Radius.small)
+                    RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.white, lineWidth: 1.5)
                 )
-                .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: DS.Radius.small))
+                .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
             }
             .onChange(of: selectedGalleryItem) { _, newItem in
                 guard let newItem else { return }
@@ -246,45 +407,17 @@ struct StoryCameraView: View {
 
             Spacer()
 
-            // Center: Shutter Button
-            Button(action: {
-                if viewModel.mode == .hands_free || viewModel.isRecording {
-                    viewModel.stopRecording()
-                } else {
-                    viewModel.capturePhoto()
-                }
-            }) {
-                ZStack {
-                    Circle()
-                        .stroke(Color.white, lineWidth: 5)
-                        .frame(width: 76, height: 76)
-
-                    Circle()
-                        .fill(viewModel.isRecording ? ColorTokens.destructive : Color.white)
-                        .frame(width: viewModel.isRecording ? 36 : 64, height: viewModel.isRecording ? 36 : 64)
-                        .animation(.easeInOut(duration: 0.15), value: viewModel.isRecording)
-                }
-            }
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.5)
-                    .onEnded { _ in
-                        viewModel.startRecording()
-                    }
-            )
-
-            Spacer()
-
-            // Right: Camera Flip
+            // Right: Camera Rotate (Flip) Button
             Button(action: { viewModel.toggleCamera() }) {
-                Image(systemName: "camera.rotate")
-                    .font(.title3)
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(Color.black.opacity(0.35), in: Circle())
+                    .frame(width: 40, height: 40)
+                    .background(Color.black.opacity(0.55), in: Circle())
             }
         }
-        .padding(.horizontal, DS.Padding.horizontal)
-        .padding(.bottom, DS.Spacing.xl)
+        .padding(.horizontal, DS.Spacing.md)
+        .padding(.bottom, DS.Spacing.md)
     }
 
     // MARK: - Screen 2: Story Editor

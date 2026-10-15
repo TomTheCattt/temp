@@ -75,27 +75,28 @@ struct UnifiedCreationHubView: View {
     // MARK: - Bottom Mode Switcher
 
     private var bottomModeSwitcher: some View {
-        HStack(spacing: DS.Spacing.xl) {
+        HStack(spacing: DS.Spacing.xs) {
             ForEach(CreationHubMode.allCases) { mode in
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                         selectedMode = mode
                     }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     Text(mode.rawValue)
                         .font(.system(size: 13, weight: selectedMode == mode ? .bold : .medium))
                         .foregroundStyle(selectedMode == mode ? .white : .white.opacity(0.55))
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
+                        .frame(width: 82, height: 32)
                         .background(
                             selectedMode == mode ? Color.black.opacity(0.4) : Color.clear,
                             in: Capsule()
                         )
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, DS.Spacing.md)
-        .padding(.vertical, 6)
+        .padding(.horizontal, DS.Spacing.xs)
+        .padding(.vertical, 4)
         .background(
             Color.black.opacity(0.55),
             in: Capsule()
@@ -104,6 +105,32 @@ struct UnifiedCreationHubView: View {
             Capsule()
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
+        .gesture(
+            DragGesture(minimumDistance: 15)
+                .onEnded { value in
+                    if value.translation.width < -25 {
+                        switchMode(forward: true)
+                    } else if value.translation.width > 25 {
+                        switchMode(forward: false)
+                    }
+                }
+        )
         .padding(.bottom, DS.Spacing.md)
+    }
+
+    private func switchMode(forward: Bool) {
+        let modes = CreationHubMode.allCases
+        guard let currentIndex = modes.firstIndex(of: selectedMode) else { return }
+        if forward && currentIndex < modes.count - 1 {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                selectedMode = modes[currentIndex + 1]
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        } else if !forward && currentIndex > 0 {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                selectedMode = modes[currentIndex - 1]
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
     }
 }

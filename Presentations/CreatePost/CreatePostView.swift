@@ -171,9 +171,8 @@ struct CreatePostView: View {
                 }
             }
 
-            // Floating Controls: Aspect Ratio & Camera Shortcut
+            // Floating Controls: Aspect Ratio Toggle (1:1 / 4:5)
             HStack {
-                // Aspect Ratio Toggle (1:1 / 4:5)
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         viewModel.toggleAspectRatio()
@@ -192,17 +191,6 @@ struct CreatePostView: View {
                 }
 
                 Spacer()
-
-                // Camera Quick Launch Button
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Image(systemName: "camera.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(Color.black.opacity(0.6), in: Circle())
-                }
             }
             .padding(DS.Spacing.sm)
         }
@@ -240,24 +228,37 @@ struct CreatePostView: View {
 
             Spacer()
 
-            // Multi-Select Mode Button
-            Button {
-                viewModel.toggleMultiSelect()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: viewModel.isMultiSelectEnabled ? "square.stack.on.square.fill" : "square.stack.on.square")
-                        .font(.caption)
-                    Text("CHỌN NHIỀU")
-                        .font(DS.Font.caption2)
-                        .fontWeight(.bold)
+            HStack(spacing: DS.Spacing.sm) {
+                // Multi-Select Mode Button
+                Button {
+                    viewModel.toggleMultiSelect()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.isMultiSelectEnabled ? "square.stack.on.square.fill" : "square.stack.on.square")
+                            .font(.caption)
+                        Text("CHỌN NHIỀU")
+                            .font(DS.Font.caption2)
+                            .fontWeight(.bold)
+                    }
+                    .foregroundStyle(viewModel.isMultiSelectEnabled ? .white : .primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : Color(.systemGray6),
+                        in: Capsule()
+                    )
                 }
-                .foregroundStyle(viewModel.isMultiSelectEnabled ? .white : .primary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : Color(.systemGray6),
-                    in: Capsule()
-                )
+
+                // Camera Launch Button
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Image(systemName: "camera")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(7)
+                        .background(Color(.systemGray6), in: Circle())
+                }
             }
         }
         .padding(.horizontal, DS.Padding.horizontal)
@@ -274,6 +275,29 @@ struct CreatePostView: View {
                 columns: Array(repeating: GridItem(.flexible(), spacing: 1.5), count: 4),
                 spacing: 1.5
             ) {
+                // Cell 0: Interactive Camera Tile
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            ZStack {
+                                Color(.systemGray6)
+                                VStack(spacing: 4) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(.primary)
+                                    Text("Máy ảnh")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .clipped()
+                }
+                .buttonStyle(.plain)
+
                 ForEach(viewModel.mediaAssets) { asset in
                     let isSelected = viewModel.selectedMediaAssets.contains(asset)
                     let selectionIndex = viewModel.selectedMediaAssets.firstIndex(of: asset)
@@ -290,6 +314,7 @@ struct CreatePostView: View {
                     }
                 }
             }
+            .padding(.bottom, 64)
         }
         .background(Color(.systemBackground))
     }
@@ -611,21 +636,21 @@ struct AssetThumbnailCell: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            Group {
-                if let thumbnail {
-                    Image(uiImage: thumbnail)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Color(.systemGray5)
+            Color.clear
+                .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color(.systemGray5)
+                    }
                 }
-            }
-            .frame(minWidth: 0, maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fill)
-            .clipped()
-            .overlay(
-                isActive ? Color.white.opacity(0.25) : Color.clear
-            )
+                .clipped()
+                .overlay(
+                    isActive ? Color.white.opacity(0.25) : Color.clear
+                )
 
             // Video duration badge
             if asset.isVideo {

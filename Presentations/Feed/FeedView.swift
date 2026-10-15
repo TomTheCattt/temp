@@ -123,7 +123,7 @@ struct FeedView: View {
             HStack {
                 // Button 1: Create (+)
                 Button {
-                    AppRouter.shared.present(sheet: .createMenu)
+                    AppRouter.shared.present(fullScreen: .creationHub(initialMode: .post))
                 } label: {
                     Image(systemName: "plus.app")
                         .font(DS.Font.title3)
