@@ -30,8 +30,7 @@ enum CameraServiceError: LocalizedError {
 
 // MARK: - CameraService
 
-@MainActor
-final class CameraService: NSObject {
+final class CameraService: NSObject, @unchecked Sendable {
 
     static let shared = CameraService()
 
@@ -88,7 +87,7 @@ final class CameraService: NSObject {
                 if self.session.canAddInput(videoInput) {
                     self.session.addInput(videoInput)
                     self.videoDeviceInput = videoInput
-                    Task { @MainActor in self.isFrontFacing = isFront }
+                    self.isFrontFacing = isFront
                 }
 
                 // Audio input
@@ -102,7 +101,11 @@ final class CameraService: NSObject {
                 // Photo output
                 if self.session.canAddOutput(self.photoOutput) {
                     self.session.addOutput(self.photoOutput)
-                    self.photoOutput.isHighResolutionCaptureEnabled = true
+                    if #available(iOS 16.0, *) {
+                        // High-resolution photo capture is default in iOS 16+
+                    } else {
+                        self.photoOutput.isHighResolutionCaptureEnabled = true
+                    }
                 }
 
                 // Movie output
@@ -111,7 +114,7 @@ final class CameraService: NSObject {
                 }
 
                 self.session.commitConfiguration()
-                Task { @MainActor in self.isSessionConfigured = true }
+                self.isSessionConfigured = true
                 continuation.resume(returning: true)
             }
         }
@@ -157,7 +160,7 @@ final class CameraService: NSObject {
                self.session.canAddInput(newInput) {
                 self.session.addInput(newInput)
                 self.videoDeviceInput = newInput
-                Task { @MainActor in self.isFrontFacing = isFront }
+                self.isFrontFacing = isFront
             }
 
             self.session.commitConfiguration()
@@ -192,15 +195,15 @@ final class CameraService: NSObject {
                     return
                 }
 
-                Task { @MainActor in
-                    self.photoContinuation = continuation
-                }
+                self.photoContinuation = continuation
 
                 let settings = AVCapturePhotoSettings()
                 if self.videoDeviceInput?.device.hasFlash == true {
                     settings.flashMode = isFlashOn ? .on : .off
                 }
-                self.photoOutput.capturePhoto(with: settings, delegate: self)
+                Task { @MainActor in
+                    self.photoOutput.capturePhoto(with: settings, delegate: self)
+                }
             }
         }
     }
@@ -217,11 +220,19 @@ final class CameraService: NSObject {
             try? FileManager.default.removeItem(at: outputURL)
 
             // Setup orientation
-            if let connection = self.movieOutput.connection(with: .video), connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+            if let connection = self.movieOutput.connection(with: .video) {
+                if #available(iOS 17.0, *) {
+                    if connection.isVideoRotationAngleSupported(90) {
+                        connection.videoRotationAngle = 90
+                    }
+                } else if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                }
             }
 
-            self.movieOutput.startRecording(to: outputURL, recordingDelegate: self)
+            Task { @MainActor in
+                self.movieOutput.startRecording(to: outputURL, recordingDelegate: self)
+            }
         }
     }
 
@@ -238,9 +249,7 @@ final class CameraService: NSObject {
                     return
                 }
 
-                Task { @MainActor in
-                    self.recordContinuation = continuation
-                }
+                self.recordContinuation = continuation
 
                 if self.movieOutput.isRecording {
                     self.movieOutput.stopRecording()
@@ -253,7 +262,7 @@ final class CameraService: NSObject {
 
     // MARK: - Mock Generator for Simulator
 
-    private func generateMockImageData() -> Data {
+    func generateMockImageData() -> Data {
         let size = CGSize(width: 1080, height: 1920)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { context in
@@ -284,40 +293,36 @@ final class CameraService: NSObject {
 // MARK: - AVCapturePhotoCaptureDelegate
 
 extension CameraService: AVCapturePhotoCaptureDelegate {
-    nonisolated func photoOutput(
+    func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        Task { @MainActor in
-            if let error {
-                self.photoContinuation?.resume(throwing: error)
-            } else if let data = photo.fileDataRepresentation() {
-                self.photoContinuation?.resume(returning: data)
-            } else {
-                self.photoContinuation?.resume(throwing: CameraServiceError.captureFailed)
-            }
-            self.photoContinuation = nil
+        if let error {
+            self.photoContinuation?.resume(throwing: error)
+        } else if let data = photo.fileDataRepresentation() {
+            self.photoContinuation?.resume(returning: data)
+        } else {
+            self.photoContinuation?.resume(throwing: CameraServiceError.captureFailed)
         }
+        self.photoContinuation = nil
     }
 }
 
 // MARK: - AVCaptureFileOutputRecordingDelegate
 
 extension CameraService: AVCaptureFileOutputRecordingDelegate {
-    nonisolated func fileOutput(
+    func fileOutput(
         _ output: AVCaptureFileOutput,
         didFinishRecordingTo outputFileURL: URL,
         from connections: [AVCaptureConnection],
         error: Error?
     ) {
-        Task { @MainActor in
-            if let error {
-                self.recordContinuation?.resume(throwing: error)
-            } else {
-                self.recordContinuation?.resume(returning: outputFileURL)
-            }
-            self.recordContinuation = nil
+        if let error {
+            self.recordContinuation?.resume(throwing: error)
+        } else {
+            self.recordContinuation?.resume(returning: outputFileURL)
         }
+        self.recordContinuation = nil
     }
 }
