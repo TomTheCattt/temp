@@ -35,6 +35,7 @@ public struct TextOverlayItem: Identifiable {
     public var color: Color
     public var hasBackground: Bool
     public var fontStyle: TextFontStyle
+    public var alignment: TextAlignment
     public var offset: CGSize
     public var scale: CGFloat
 
@@ -44,6 +45,7 @@ public struct TextOverlayItem: Identifiable {
         color: Color = .white,
         hasBackground: Bool = false,
         fontStyle: TextFontStyle = .modern,
+        alignment: TextAlignment = .center,
         offset: CGSize = .zero,
         scale: CGFloat = 1.0
     ) {
@@ -52,8 +54,31 @@ public struct TextOverlayItem: Identifiable {
         self.color = color
         self.hasBackground = hasBackground
         self.fontStyle = fontStyle
+        self.alignment = alignment
         self.offset = offset
         self.scale = scale
+    }
+}
+
+// MARK: - Color Contrast Extension
+
+extension Color {
+    var isLightColor: Bool {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        let uiColor = UIColor(self)
+        if uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+            let luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+            return luminance > 0.6
+        }
+        var white: CGFloat = 0
+        if uiColor.getWhite(&white, alpha: &alpha) {
+            return white > 0.6
+        }
+        return false
+    }
+
+    var smartBadgeBackgroundColor: Color {
+        isLightColor ? Color.black.opacity(0.65) : Color.white.opacity(0.85)
     }
 }
 
@@ -63,6 +88,7 @@ struct TypographyOverlayView: View {
 
     @Binding var item: TextOverlayItem
     let onDelete: () -> Void
+    var onEdit: (() -> Void)? = nil
 
     @State private var dragOffset: CGSize = .zero
     @State private var currentScale: CGFloat = 1.0
@@ -72,19 +98,31 @@ struct TypographyOverlayView: View {
         ZStack(alignment: .topTrailing) {
             Text(item.text)
                 .font(item.fontStyle.font)
+                .multilineTextAlignment(item.alignment)
                 .foregroundStyle(item.color)
-                .padding(.horizontal, item.hasBackground ? 12 : 4)
-                .padding(.vertical, item.hasBackground ? 6 : 2)
+                .padding(.horizontal, item.hasBackground ? 12 : 6)
+                .padding(.vertical, item.hasBackground ? 6 : 4)
                 .background(
-                    item.hasBackground ? Color.black.opacity(0.65) : Color.clear,
+                    item.hasBackground ? item.color.smartBadgeBackgroundColor : Color.clear,
                     in: RoundedRectangle(cornerRadius: 8)
                 )
-                .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(isSelected ? ColorTokens.accentPrimary : Color.clear, lineWidth: 1.5)
+                        .padding(-4)
+                )
+                .shadow(color: .black.opacity(item.hasBackground ? 0.35 : 0.7), radius: 4, x: 0, y: 2)
+                .contentShape(Rectangle())
                 .onTapGesture {
-                    isSelected.toggle()
+                    if isSelected {
+                        onEdit?()
+                    } else {
+                        isSelected = true
+                    }
                 }
 
             if isSelected {
+                // Delete button (top-trailing)
                 Button(action: onDelete) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.body)
@@ -92,6 +130,17 @@ struct TypographyOverlayView: View {
                         .background(Circle().fill(Color.white).padding(2))
                 }
                 .offset(x: 12, y: -12)
+
+                // Edit button (top-leading)
+                if let onEdit {
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(.white, ColorTokens.accentPrimary)
+                            .background(Circle().fill(Color.white).padding(2))
+                    }
+                    .offset(x: -12, y: -12)
+                }
             }
         }
         .scaleEffect(item.scale * currentScale)
@@ -119,3 +168,4 @@ struct TypographyOverlayView: View {
         )
     }
 }
+

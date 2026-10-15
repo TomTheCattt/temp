@@ -78,29 +78,87 @@ public final class CompositeImageRenderer {
                 let centerX = renderSize.width / 2 + textItem.offset.width * (renderSize.width / 360)
                 let centerY = renderSize.height / 2 + textItem.offset.height * (renderSize.height / 360)
 
+                let uiColor = UIColor(textItem.color)
+                var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+                var isLight = false
+                if uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+                    isLight = (0.299 * red + 0.587 * green + 0.114 * blue) > 0.6
+                } else {
+                    var white: CGFloat = 0
+                    if uiColor.getWhite(&white, alpha: &alpha) {
+                        isLight = white > 0.6
+                    }
+                }
+
+                let badgeColor = isLight ? UIColor.black.withAlphaComponent(0.65) : UIColor.white.withAlphaComponent(0.85)
+
+                let fontSize = 42 * textItem.scale
+                let nsFont: UIFont
+                switch textItem.fontStyle {
+                case .modern:
+                    nsFont = UIFont.systemFont(ofSize: fontSize, weight: .bold)
+                case .neon:
+                    if let descriptor = UIFont.systemFont(ofSize: fontSize, weight: .semibold).fontDescriptor.withDesign(.rounded) {
+                        nsFont = UIFont(descriptor: descriptor, size: fontSize)
+                    } else {
+                        nsFont = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+                    }
+                case .typewriter:
+                    if let descriptor = UIFont.systemFont(ofSize: fontSize * 0.9, weight: .medium).fontDescriptor.withDesign(.monospaced) {
+                        nsFont = UIFont(descriptor: descriptor, size: fontSize * 0.9)
+                    } else {
+                        nsFont = UIFont.monospacedSystemFont(ofSize: fontSize * 0.9, weight: .medium)
+                    }
+                case .strong:
+                    if let descriptor = UIFont.systemFont(ofSize: fontSize * 1.1, weight: .heavy).fontDescriptor.withDesign(.serif) {
+                        nsFont = UIFont(descriptor: descriptor, size: fontSize * 1.1)
+                    } else {
+                        nsFont = UIFont.systemFont(ofSize: fontSize * 1.1, weight: .heavy)
+                    }
+                }
+
+                let paragraphStyle = NSMutableParagraphStyle()
+                switch textItem.alignment {
+                case .leading: paragraphStyle.alignment = .left
+                case .center: paragraphStyle.alignment = .center
+                case .trailing: paragraphStyle.alignment = .right
+                }
+
+                let shadow = NSShadow()
+                shadow.shadowColor = UIColor.black.withAlphaComponent(textItem.hasBackground ? 0.35 : 0.7)
+                shadow.shadowOffset = CGSize(width: 0, height: 2)
+                shadow.shadowBlurRadius = 4
+
                 let attributes: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 42 * textItem.scale, weight: .bold),
-                    .foregroundColor: UIColor(textItem.color)
+                    .font: nsFont,
+                    .foregroundColor: uiColor,
+                    .paragraphStyle: paragraphStyle,
+                    .shadow: shadow
                 ]
 
                 let attributedString = NSAttributedString(string: textItem.text, attributes: attributes)
-                let textSize = attributedString.size()
+                let maxBounds = CGSize(width: renderSize.width * 0.88, height: renderSize.height)
+                let textBoundingRect = attributedString.boundingRect(
+                    with: maxBounds,
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    context: nil
+                )
 
                 let textRect = CGRect(
-                    x: centerX - textSize.width / 2,
-                    y: centerY - textSize.height / 2,
-                    width: textSize.width,
-                    height: textSize.height
+                    x: centerX - textBoundingRect.width / 2,
+                    y: centerY - textBoundingRect.height / 2,
+                    width: ceil(textBoundingRect.width),
+                    height: ceil(textBoundingRect.height)
                 )
 
                 if textItem.hasBackground {
                     let bgRect = textRect.insetBy(dx: -16, dy: -8)
                     let bgPath = UIBezierPath(roundedRect: bgRect, cornerRadius: 12)
-                    UIColor.black.withAlphaComponent(0.65).setFill()
+                    badgeColor.setFill()
                     bgPath.fill()
                 }
 
-                attributedString.draw(in: textRect)
+                attributedString.draw(with: textRect, options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
 
                 cgContext.restoreGState()
             }
