@@ -7,15 +7,45 @@
 
 import SwiftUI
 import AVFoundation
+import Photos
 
 // MARK: - StoryCameraMode
 
-enum StoryCameraMode: String, CaseIterable {
+public enum StoryCameraMode: String, CaseIterable, Identifiable {
     case normal = "Normal"
-    case boomerang = "Boomerang"
+    case create = "Create"
     case layout = "Layout"
-    case multiCapture = "Multi-Capture"
+    case boomerang = "Boomerang"
     case hands_free = "Hands-Free"
+
+    public var id: String { rawValue }
+
+    public var iconName: String {
+        switch self {
+        case .normal:     return "camera"
+        case .create:     return "textformat"
+        case .layout:     return "square.grid.2x2"
+        case .boomerang:  return "infinity"
+        case .hands_free: return "hand.raised.fill"
+        }
+    }
+}
+
+// MARK: - StoryFilter
+
+public struct StoryFilter: Identifiable, Equatable {
+    public let id: String
+    public let name: String
+    public let filterId: String
+
+    public static let allFilters: [StoryFilter] = [
+        StoryFilter(id: "normal", name: "Normal", filterId: "original"),
+        StoryFilter(id: "paris", name: "Paris", filterId: "clarendon"),
+        StoryFilter(id: "oslo", name: "Oslo", filterId: "gingham"),
+        StoryFilter(id: "tokyo", name: "Tokyo", filterId: "juno"),
+        StoryFilter(id: "melbourne", name: "Melbourne", filterId: "lark"),
+        StoryFilter(id: "cairo", name: "Cairo", filterId: "slumber")
+    ]
 }
 
 // MARK: - StoryCameraViewModel
@@ -30,7 +60,18 @@ final class StoryCameraViewModel {
     var isRecording = false
     var isFrontCamera = true
     var isFlashOn = false
-    var selectedFilterId: String?
+
+    // Multi-layer Story Overlays
+    var stickers: [PIPStickerItem] = []
+    var texts: [TextOverlayItem] = []
+    var currentFilterIndex: Int = 0
+
+    var currentFilter: StoryFilter {
+        StoryFilter.allFilters[currentFilterIndex % StoryFilter.allFilters.count]
+    }
+
+    /// Latest gallery thumbnail for the bottom-left camera roll shortcut.
+    var latestGalleryThumbnail: UIImage?
 
     /// Captured media data (photo or video).
     private(set) var capturedImageData: Data?
@@ -56,6 +97,7 @@ final class StoryCameraViewModel {
 
     private let storyRepository: StoryRepositoryProtocol
     let cameraService: CameraService = .shared
+    private let photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared
 
     var isHardwareAvailable: Bool {
         cameraService.isHardwareAvailable
@@ -89,6 +131,18 @@ final class StoryCameraViewModel {
             _ = await cameraService.configureSession(isFront: isFrontCamera)
             cameraService.start()
         }
+
+        // Fetch latest photo thumbnail for gallery shortcut
+        await loadLatestGalleryThumbnail()
+    }
+
+    private func loadLatestGalleryThumbnail() async {
+        if photoLibraryService.checkAuthorization() {
+            let assets = await photoLibraryService.fetchAssets(in: nil, limit: 1)
+            if let first = assets.first {
+                self.latestGalleryThumbnail = await photoLibraryService.loadThumbnail(for: first.phAsset, targetSize: CGSize(width: 80, height: 80))
+            }
+        }
     }
 
     // MARK: - Camera Actions
@@ -101,8 +155,13 @@ final class StoryCameraViewModel {
                 isShowingPreview = true
                 cameraService.stop()
             } catch {
-                // If hardware capture fails, fallback to empty data
-                capturedImageData = Data()
+                // If hardware capture fails (e.g. Simulator), create simulated photo
+                let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1920))
+                let image = renderer.image { ctx in
+                    UIColor.darkGray.setFill()
+                    ctx.fill(CGRect(x: 0, y: 0, width: 1080, height: 1920))
+                }
+                capturedImageData = image.jpegData(compressionQuality: 0.85)
                 isShowingPreview = true
             }
         }
@@ -141,6 +200,9 @@ final class StoryCameraViewModel {
     func retake() {
         capturedImageData = nil
         capturedVideoURL = nil
+        stickers = []
+        texts = []
+        currentFilterIndex = 0
         isShowingPreview = false
         cameraService.start()
     }
@@ -160,14 +222,52 @@ final class StoryCameraViewModel {
         cameraService.stop()
     }
 
+    func nextFilter() {
+        currentFilterIndex = (currentFilterIndex + 1) % StoryFilter.allFilters.count
+    }
+
+    func previousFilter() {
+        if currentFilterIndex == 0 {
+            currentFilterIndex = StoryFilter.allFilters.count - 1
+        } else {
+            currentFilterIndex -= 1
+        }
+    }
+
     // MARK: - Publish
 
-    func publishStory() async {
+    func publishStory(isCloseFriendsOnly: Bool = false) async {
         guard hasCapturedMedia, !isPublishing else { return }
         isPublishing = true
+        HUDManager.shared.showLoading(L10n.HUD.publishing)
 
         do {
-            let mediaData = capturedImageData ?? Data()
+            var mediaData = capturedImageData ?? Data()
+
+            // If image story, bake filter, stickers & texts into final image
+            if let baseImage = UIImage(data: mediaData) {
+                var filtered = baseImage
+                if currentFilter.filterId != "original",
+                   let filter = FilterRegistry.filter(byId: currentFilter.filterId),
+                   let ci = CIImage(image: baseImage) {
+                    let outCI = FilterEngine.shared.apply(filter: filter, to: ci, intensity: 1.0)
+                    if let rendered = FilterEngine.shared.renderToUIImage(outCI) {
+                        filtered = rendered
+                    }
+                }
+
+                let composite = CompositeImageRenderer.shared.render(
+                    baseImage: filtered,
+                    stickers: stickers,
+                    texts: texts,
+                    renderSize: CGSize(width: 1080, height: 1920)
+                )
+
+                if let jpeg = composite.jpegData(compressionQuality: 0.88) {
+                    mediaData = jpeg
+                }
+            }
+
             let mediaType: StoryItem.MediaType = capturedVideoURL != nil ? .video : .image
             let duration: TimeInterval = capturedVideoURL != nil ? 15 : 5
 
@@ -178,8 +278,9 @@ final class StoryCameraViewModel {
             )
             NotificationCenter.default.post(name: .didCreateStory, object: story)
             isPublished = true
+            HUDManager.shared.showSuccess(L10n.HUD.published)
         } catch {
-            // Handle error
+            HUDManager.shared.showError(error.userMessage)
         }
 
         isPublishing = false
@@ -190,8 +291,10 @@ final class StoryCameraViewModel {
     func reset() {
         capturedImageData = nil
         capturedVideoURL = nil
+        stickers = []
+        texts = []
+        currentFilterIndex = 0
         isShowingPreview = false
         isPublished = false
-        selectedFilterId = nil
     }
 }
