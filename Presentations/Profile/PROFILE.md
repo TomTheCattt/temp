@@ -35,11 +35,15 @@ Module hiển thị trang profile của user (bản thân hoặc người khác)
 - Mỗi tab có empty state riêng; **LazyImage** (Nuke) cho hiệu suất tốt
 - **Share Profile**: `ShareLink` chia sẻ link profile (`universalLinkHost/username`)
 
-### Custom Navigation Bar (4 buttons)
-- **Leading**: Nút khóa/quyền riêng tư (lock icon) + username
-- **Center nghiêng Trailing**: Nút `@` (Threads badge)
-- **Gần Trailing**: Nút tạo bài viết (`plus.app`)
-- **Trailing**: Nút cài đặt menu 3 gạch (`line.3.horizontal`)
+### Custom Navigation Bar
+- **MyProfileNavigationBar (Current User)**:
+  - **Leading**: Nút `+` (nếu là root tab Profile) để mở `creationHub(initialMode: .post)` hoặc nút back `chevron.left` (nếu được push vào stack), kích thước icon 24pt, touch target 44x44pt.
+  - **Center**: Username + icon khóa riêng tư (`lock.fill`) nếu tài khoản là private.
+  - **Trailing**: Nút Threads (`@`, 24pt, 44x44pt) và nút Menu cài đặt 3 gạch (`line.3.horizontal`, 24pt, 44x44pt, điều hướng `.settings`).
+- **UserProfileNavigationBar (Other User)**:
+  - **Leading**: Nút back (`chevron.left`, 24pt, 44x44pt) và Username.
+  - **Trailing**: Nút thông báo (`bell`, 24pt, 44x44pt) và nút tùy chọn (`ellipsis`, 24pt, 44x44pt).
+- **Quy chuẩn đồng bộ**: Tất cả icon thanh điều hướng đạt chuẩn 24pt, touch target 44x44pt và hỗ trợ phản hồi xúc giác an toàn qua `HapticFeedbackSafe`.
 - **Blur**: Không sử dụng blur (nền trong suốt khi ở đỉnh trang, nền phẳng `systemBackground` khi cuộn).
 
 ## Architecture

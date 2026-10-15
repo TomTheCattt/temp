@@ -77,11 +77,11 @@ struct MainTabView: View {
     }
 
     // MARK: - Tab Label
-
+    
     @ViewBuilder
     private func tabLabel(for tab: AppTab) -> some View {
         let isSelected = router.selectedTab == tab
-        Label(tab.title, systemImage: isSelected ? tab.selectedIcon : tab.icon)
+        Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
     }
 
     // MARK: - Route Destination

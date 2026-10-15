@@ -123,44 +123,32 @@ struct FeedView: View {
             HStack {
                 // Button 1: Create (+)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(fullScreen: .creationHub(initialMode: .post))
                 } label: {
-                    Image(systemName: "plus.app")
-                        .font(DS.Font.title3)
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
 
                 Spacer()
 
-                // Button 2: Logo / Dropdown
+                // Button 2: Logo (clean brand title without dropdown)
+                Text(L10n.Feed.title)
+                    .font(DS.Font.navBrand)
+
+                Spacer()
+
+                // Button 3: Activity / Notifications (Heart)
                 Button {
-                    // Feed filter menu
+                    HapticFeedbackSafe.impact(.light)
+                    AppRouter.shared.push(.notifications)
                 } label: {
-                    HStack(spacing: DS.Spacing.xxs) {
-                        Text(L10n.Feed.title)
-                            .font(DS.Font.navBrand)
-                        Image(systemName: "chevron.down")
-                            .font(DS.Font.caption2)
-                            .fontWeight(.semibold)
-                    }
-                }
-
-                Spacer()
-
-                // Button Group 3: Activity / Notifications & Direct Messages / Chat
-                HStack(spacing: DS.Spacing.md) {
-                    Button {
-                        AppRouter.shared.push(.notifications)
-                    } label: {
-                        Image(systemName: "heart")
-                            .font(DS.Font.title3)
-                    }
-
-                    Button {
-                        AppRouter.shared.push(.directMessages)
-                    } label: {
-                        Image(systemName: "paperplane")
-                            .font(DS.Font.title3)
-                    }
+                    Image(systemName: "heart")
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
                 }
             }
             .tint(.primary)

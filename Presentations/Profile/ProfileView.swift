@@ -456,36 +456,48 @@ struct MyProfileNavigationBar: View {
                 // Leading Button: '+' if root tab, '<' back button if pushed onto stack
                 if isRootTab {
                     Button {
+                        HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.present(fullScreen: .creationHub(initialMode: .post))
                     } label: {
-                        Image(systemName: "plus.app")
-                            .font(DS.Font.title3)
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .regular))
+                            .frame(width: 44, height: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
                 } else {
                     Button {
+                        HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.pop()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(DS.Font.title3)
+                            .font(.system(size: 24, weight: .regular))
+                            .frame(width: 44, height: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
                 }
                 
                 Spacer()
                 
                 // Trailing Button Group: Threads & Hamburger Menu
-                HStack(spacing: DS.Spacing.md) {
+                HStack(spacing: DS.Spacing.xs) {
                     Button {
+                        HapticFeedbackSafe.impact(.light)
                         // Open Threads
                     } label: {
                         Image(systemName: "at")
-                            .font(DS.Font.title3)
+                            .font(.system(size: 24, weight: .regular))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     
                     Button {
+                        HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.push(.settings)
                     } label: {
                         Image(systemName: "line.3.horizontal")
-                            .font(DS.Font.title3)
+                            .font(.system(size: 24, weight: .regular))
+                            .frame(width: 44, height: 44, alignment: .trailing)
+                            .contentShape(Rectangle())
                     }
                 }
             }
@@ -506,10 +518,13 @@ struct UserProfileNavigationBar: View {
             // Leading Button Group: Back + Username
             HStack(spacing: DS.Spacing.sm) {
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.pop()
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(DS.Font.title3)
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 
                 Text(viewModel.user?.username ?? L10n.Profile.unknownUser)
@@ -519,21 +534,27 @@ struct UserProfileNavigationBar: View {
             
             Spacer()
             
-            HStack(spacing: DS.Spacing.lg) {
+            HStack(spacing: DS.Spacing.xs) {
                 // Notification Button
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     // Notification options
                 } label: {
                     Image(systemName: "bell")
-                        .font(DS.Font.title3)
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 
                 // More (...) Button
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     // Profile options
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(DS.Font.title3)
+                        .font(.system(size: 24, weight: .regular))
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
                 }
             }
         }

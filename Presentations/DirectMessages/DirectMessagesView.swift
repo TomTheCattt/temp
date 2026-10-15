@@ -90,11 +90,14 @@ struct DirectMessagesView: View {
             trailing: {
                 // Button 2: Trailing (New message / Edit)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     // New message
                 } label: {
                     Image(systemName: "square.and.pencil")
-                        .font(DS.Font.title3)
+                        .font(.system(size: 24, weight: .regular))
                         .foregroundStyle(Color.primary)
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
                 }
             }
         )

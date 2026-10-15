@@ -91,11 +91,14 @@ struct ReelsView: View {
             HStack {
                 // Button 1: Leading (Camera)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(fullScreen: .camera)
                 } label: {
                     Image(systemName: "camera")
-                        .font(.title3)
+                        .font(.system(size: 24, weight: .regular))
                         .foregroundStyle(.white)
+                        .frame(width: 44, height: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
 
                 Spacer()
@@ -125,11 +128,14 @@ struct ReelsView: View {
 
                 // Button 4: Trailing (Search)
                 Button {
+                    HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.switchTab(.explore)
                 } label: {
                     Image(systemName: "magnifyingglass")
-                        .font(.title3)
+                        .font(.system(size: 24, weight: .regular))
                         .foregroundStyle(.white)
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
                 }
             }
             .padding(.horizontal, DS.Padding.horizontal)

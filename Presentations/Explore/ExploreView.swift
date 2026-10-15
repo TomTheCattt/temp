@@ -98,11 +98,14 @@ struct ExploreView: View {
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
                     Button {
+                        HapticFeedbackSafe.impact(.light)
                         // Explore map/filter action
                     } label: {
                         Image(systemName: "map")
-                            .font(.title3)
+                            .font(.system(size: 24, weight: .regular))
                             .foregroundStyle(Color.primary)
+                            .frame(width: 44, height: 44, alignment: .trailing)
+                            .contentShape(Rectangle())
                     }
                     .transition(.opacity)
                 }

@@ -24,7 +24,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .reels:    return "play.square"
         case .chat:     return "paperplane"
         case .explore:  return "magnifyingglass"
-        case .profile:  return "person.circle"
+        case .profile:  return "person.crop.circle"
         }
     }
 
@@ -34,7 +34,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .reels:    return "play.square.fill"
         case .chat:     return "paperplane.fill"
         case .explore:  return "magnifyingglass"
-        case .profile:  return "person.circle.fill"
+        case .profile:  return "person.crop.circle.fill"
         }
     }
 
