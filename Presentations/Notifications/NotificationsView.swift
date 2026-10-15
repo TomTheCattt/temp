@@ -27,7 +27,7 @@ struct NotificationsView: View {
                 ForEach(viewModel.notifications) { notification in
                     NotificationRow(notification: notification)
                         .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: DS.Spacing.iconGap, leading: DS.Spacing.md, bottom: DS.Spacing.iconGap, trailing: DS.Spacing.md))
+                        .listRowInsets(EdgeInsets(top: DS.Spacing.iconGap, leading: DS.Spacing.clear, bottom: DS.Spacing.iconGap, trailing: DS.Spacing.clear))
                 }
             }
         }
@@ -117,6 +117,7 @@ private struct NotificationRow: View {
             }
         }
         .padding(.vertical, DS.Spacing.xxs)
+        .padding(.horizontal, DS.Spacing.md)
         .background(notification.isRead ? Color.clear : ColorTokens.accentPrimary.opacity(DS.Opacity.subtle))
         .contentShape(Rectangle())
     }
