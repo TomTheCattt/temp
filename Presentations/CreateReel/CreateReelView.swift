@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PhotosUI
+import AVKit
 
 // MARK: - CreateReelView
 
@@ -27,6 +28,12 @@ struct CreateReelView: View {
                 captureScreen
             }
         }
+        .task {
+            await viewModel.setupCamera()
+        }
+        .onDisappear {
+            viewModel.stopCamera()
+        }
         .onChange(of: viewModel.isPublished) { _, published in
             if published { dismiss() }
         }
@@ -41,20 +48,16 @@ struct CreateReelView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            // Camera preview placeholder
-            RoundedRectangle(cornerRadius: DS.Radius.large)
-                .fill(ColorTokens.backgroundSubtler)
-                .padding(.horizontal, DS.Spacing.xxs)
-                .padding(.vertical, DS.Spacing.modalTop + DS.Spacing.xxl)
-                .overlay {
-                    VStack(spacing: DS.Spacing.xs) {
-                        Image(systemName: "video.fill")
-                            .font(.system(size: DS.Spacing.xxxl))
-                        Text(L10n.CreatePost.captionPlaceholder)
-                            .font(DS.Font.caption)
-                    }
-                    .foregroundStyle(.white.opacity(DS.Opacity.overlay))
-                }
+            // Live Camera Viewfinder or Simulator Fallback
+            if viewModel.cameraService.isHardwareAvailable {
+                CameraPreviewView(
+                    session: viewModel.cameraService.session,
+                    isHardwareAvailable: true
+                )
+                .ignoresSafeArea()
+            } else {
+                simulatorMockPreview
+            }
 
             // Controls
             VStack {
@@ -64,12 +67,16 @@ struct CreateReelView: View {
                         Image(systemName: "xmark")
                             .font(.title2)
                             .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.35), in: Circle())
                     }
 
                     Spacer()
 
                     // Audio picker
-                    Button(action: {}) {
+                    Button(action: {
+                        HUDManager.shared.showInfo(L10n.CreateReel.addAudio)
+                    }) {
                         HStack(spacing: DS.Spacing.xxs) {
                             Image(systemName: "music.note")
                             Text(L10n.CreateReel.addAudio)
@@ -78,16 +85,20 @@ struct CreateReelView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.sm)
                         .padding(.vertical, DS.Spacing.iconGap)
-                        .background(Color.white.opacity(DS.Opacity.placeholder), in: Capsule())
+                        .background(Color.black.opacity(0.4), in: Capsule())
                     }
 
                     Spacer()
 
-                    // Settings
-                    Button(action: {}) {
-                        Image(systemName: "gearshape")
+                    // Settings / Flash
+                    Button(action: {
+                        viewModel.toggleFlash()
+                    }) {
+                        Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
                             .font(DS.Font.title3)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.35), in: Circle())
                     }
                 }
                 .padding(.horizontal, DS.Spacing.md)
@@ -102,24 +113,40 @@ struct CreateReelView: View {
                         toolButton(icon: "camera.rotate", label: "Flip") {
                             viewModel.toggleCamera()
                         }
-                        toolButton(icon: "bolt.slash", label: "Flash") {}
-                        toolButton(icon: "timer", label: "Timer") {}
-                        toolButton(icon: "sparkles", label: "Effects") {}
-                        toolButton(icon: "square.grid.2x2", label: "Layout") {}
+                        toolButton(icon: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash", label: "Flash") {
+                            viewModel.toggleFlash()
+                        }
+                        toolButton(icon: "timer", label: "Timer") {
+                            HUDManager.shared.showInfo("Hẹn giờ đếm ngược: 3s")
+                        }
+                        toolButton(icon: "sparkles", label: "Effects") {
+                            HUDManager.shared.showInfo("Hiệu ứng AR đang tải...")
+                        }
+                        toolButton(icon: "square.grid.2x2", label: "Layout") {
+                            HUDManager.shared.showInfo("Bố cục chia màn hình")
+                        }
                     }
                     .padding(.trailing, DS.Spacing.md)
                 }
 
                 Spacer()
 
-                // Bottom: capture + gallery
+                // Bottom: duration + capture + gallery
                 VStack(spacing: DS.Spacing.md) {
                     // Duration selector
                     HStack(spacing: DS.Spacing.md) {
-                        durationChip("15s", isSelected: true)
-                        durationChip("30s", isSelected: false)
-                        durationChip("60s", isSelected: false)
-                        durationChip("90s", isSelected: false)
+                        durationChip("15s", isSelected: viewModel.selectedDuration == "15s") {
+                            viewModel.selectedDuration = "15s"
+                        }
+                        durationChip("30s", isSelected: viewModel.selectedDuration == "30s") {
+                            viewModel.selectedDuration = "30s"
+                        }
+                        durationChip("60s", isSelected: viewModel.selectedDuration == "60s") {
+                            viewModel.selectedDuration = "60s"
+                        }
+                        durationChip("90s", isSelected: viewModel.selectedDuration == "90s") {
+                            viewModel.selectedDuration = "90s"
+                        }
                     }
 
                     // Capture + gallery
@@ -130,13 +157,17 @@ struct CreateReelView: View {
                             matching: .videos
                         ) {
                             RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
-                                .fill(Color.gray.opacity(DS.Opacity.overlay))
+                                .fill(Color.white.opacity(0.2))
                                 .frame(width: DS.Size.buttonCompactHeight, height: DS.Size.buttonCompactHeight)
                                 .overlay {
                                     Image(systemName: "photo")
                                         .font(DS.Font.caption)
                                         .foregroundStyle(.white)
                                 }
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
+                                        .stroke(Color.white, lineWidth: 1.5)
+                                )
                         }
 
                         // Record button
@@ -168,6 +199,31 @@ struct CreateReelView: View {
         .navigationBarHidden(true)
     }
 
+    // MARK: - Simulator Mock Preview
+
+    private var simulatorMockPreview: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(.systemGray6), Color.black],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: DS.Spacing.xs) {
+                Image(systemName: "video.fill")
+                    .font(.system(size: DS.Spacing.xxxl))
+                    .foregroundStyle(.white.opacity(DS.Opacity.overlay))
+                Text("Reel Camera Viewfinder")
+                    .font(DS.Font.headline)
+                    .foregroundStyle(.white)
+                Text("Simulator Mock Mode: Nhấn nút tròn đỏ để quay")
+                    .font(DS.Font.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+    }
+
     // MARK: - Editor Screen
 
     private var editorScreen: some View {
@@ -176,13 +232,19 @@ struct CreateReelView: View {
             ZStack {
                 Color.black
                     .frame(height: DS.Size.mediaEditorPreviewHeight)
-                VStack(spacing: DS.Spacing.xs) {
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: DS.Size.iconHero))
-                        .foregroundStyle(.white.opacity(DS.Opacity.medium))
-                    Text(L10n.CreateReel.videoPreview)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(.white.opacity(DS.Opacity.overlay))
+
+                if let url = viewModel.capturedVideoURL {
+                    VideoPlayer(player: AVPlayer(url: url))
+                        .frame(height: DS.Size.mediaEditorPreviewHeight)
+                } else {
+                    VStack(spacing: DS.Spacing.xs) {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: DS.Size.iconHero))
+                            .foregroundStyle(.white.opacity(DS.Opacity.medium))
+                        Text(L10n.CreateReel.videoPreview)
+                            .font(DS.Font.caption)
+                            .foregroundStyle(.white.opacity(DS.Opacity.overlay))
+                    }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
@@ -204,6 +266,7 @@ struct CreateReelView: View {
                 Button(action: {
                     viewModel.isShowingEditor = false
                     viewModel.selectedVideoData = nil
+                    viewModel.capturedVideoURL = nil
                 }) {
                     Image(systemName: "chevron.left")
                 }
@@ -235,17 +298,19 @@ struct CreateReelView: View {
     }
 
     @ViewBuilder
-    private func durationChip(_ text: String, isSelected: Bool) -> some View {
-        Text(text)
-            .font(DS.Font.caption)
-            .fontWeight(isSelected ? .bold : .regular)
-            .foregroundStyle(isSelected ? .white : .white.opacity(DS.Opacity.medium))
-            .padding(.horizontal, DS.Spacing.sm)
-            .padding(.vertical, DS.Spacing.xxs)
-            .background(
-                isSelected ? Color.white.opacity(DS.Opacity.placeholder) : Color.clear,
-                in: Capsule()
-            )
+    private func durationChip(_ text: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(DS.Font.caption)
+                .fontWeight(isSelected ? .bold : .regular)
+                .foregroundStyle(isSelected ? .white : .white.opacity(DS.Opacity.medium))
+                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.vertical, DS.Spacing.xxs)
+                .background(
+                    isSelected ? Color.white.opacity(DS.Opacity.placeholder) : Color.black.opacity(0.3),
+                    in: Capsule()
+                )
+        }
     }
 }
 

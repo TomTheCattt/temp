@@ -22,9 +22,14 @@ final class CreateReelViewModel {
     /// Selected video data.
     var selectedVideoData: Data?
 
+    /// Video file URL for playback/review.
+    var capturedVideoURL: URL?
+
     /// Recording state (for camera capture).
     var isRecording = false
     var isFrontCamera = true
+    var isFlashOn = false
+    var selectedDuration = "15s"
 
     /// Edit state.
     var caption: String = ""
@@ -37,6 +42,8 @@ final class CreateReelViewModel {
     private(set) var isPublishing = false
     private(set) var isPublished = false
 
+    let cameraService: CameraService = .shared
+
     // MARK: - Dependencies
 
     private let reelRepository: ReelRepositoryProtocol
@@ -47,30 +54,63 @@ final class CreateReelViewModel {
         self.reelRepository = reelRepository
     }
 
-    // MARK: - Actions
+    // MARK: - Camera Actions
+
+    func setupCamera() async {
+        _ = await cameraService.configureSession(isFront: isFrontCamera)
+        cameraService.start()
+    }
+
+    func stopCamera() {
+        cameraService.stop()
+    }
+
+    func toggleCamera() {
+        isFrontCamera.toggle()
+        cameraService.switchCamera(isFront: isFrontCamera)
+    }
+
+    func toggleFlash() {
+        isFlashOn.toggle()
+        cameraService.setTorch(on: isFlashOn)
+    }
 
     func loadVideoFromPicker() async {
         guard let item = videoPickerItem else { return }
 
         if let data = try? await item.loadTransferable(type: Data.self) {
             selectedVideoData = data
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4")
+            try? data.write(to: tempURL)
+            capturedVideoURL = tempURL
             isShowingEditor = true
         }
     }
 
     func startRecording() {
+        guard !isRecording else {
+            stopRecording()
+            return
+        }
         isRecording = true
-        // Real: start AVCaptureMovieFileOutput
+        cameraService.startRecording()
     }
 
     func stopRecording() {
+        guard isRecording else { return }
         isRecording = false
-        selectedVideoData = Data() // Placeholder
-        isShowingEditor = true
-    }
-
-    func toggleCamera() {
-        isFrontCamera.toggle()
+        Task {
+            do {
+                let videoURL = try await cameraService.stopRecording()
+                self.capturedVideoURL = videoURL
+                if let data = try? Data(contentsOf: videoURL) {
+                    self.selectedVideoData = data
+                    self.isShowingEditor = true
+                }
+            } catch {
+                HUDManager.shared.showError(error.localizedDescription)
+            }
+        }
     }
 
     func publish() async {
@@ -98,6 +138,7 @@ final class CreateReelViewModel {
     func reset() {
         videoPickerItem = nil
         selectedVideoData = nil
+        capturedVideoURL = nil
         isRecording = false
         isShowingEditor = false
         caption = ""

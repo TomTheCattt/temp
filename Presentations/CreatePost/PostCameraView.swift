@@ -7,6 +7,8 @@
 
 import SwiftUI
 import PhotosUI
+import AVKit
+import UniformTypeIdentifiers
 
 // MARK: - PostCameraViewModel
 
@@ -17,6 +19,7 @@ final class PostCameraViewModel {
     var isFlashOn = false
     var isRecording = false
     var capturedPreviewData: Data?
+    var capturedVideoURL: URL?
     var isVideo = false
 
     let cameraService: CameraService = .shared
@@ -49,6 +52,7 @@ final class PostCameraViewModel {
             do {
                 let photoData = try await cameraService.capturePhoto(isFlashOn: isFlashOn)
                 self.capturedPreviewData = photoData
+                self.capturedVideoURL = nil
                 self.isVideo = false
             } catch {
                 HUDManager.shared.showError(error.localizedDescription)
@@ -71,6 +75,7 @@ final class PostCameraViewModel {
         Task {
             do {
                 let videoURL = try await cameraService.stopRecording()
+                self.capturedVideoURL = videoURL
                 if let videoData = try? Data(contentsOf: videoURL) {
                     self.capturedPreviewData = videoData
                     self.isVideo = true
@@ -83,6 +88,7 @@ final class PostCameraViewModel {
 
     func retake() {
         capturedPreviewData = nil
+        capturedVideoURL = nil
         isVideo = false
     }
 }
@@ -104,9 +110,14 @@ struct PostCameraView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if let previewData = viewModel.capturedPreviewData, let uiImage = UIImage(data: previewData) {
-                // Post-capture Review Screen
-                reviewScreen(image: uiImage)
+            if let previewData = viewModel.capturedPreviewData {
+                if viewModel.isVideo, let videoURL = viewModel.capturedVideoURL {
+                    videoReviewScreen(url: videoURL)
+                } else if let uiImage = UIImage(data: previewData) {
+                    reviewScreen(image: uiImage)
+                } else {
+                    viewfinderScreen
+                }
             } else {
                 // Live Viewfinder Screen
                 viewfinderScreen
@@ -203,8 +214,11 @@ struct PostCameraView: View {
             .onChange(of: selectedGalleryItem) { _, newItem in
                 guard let newItem else { return }
                 Task {
+                    let isVideo = newItem.supportedContentTypes.contains(where: {
+                        $0.conforms(to: .movie) || $0.conforms(to: .video)
+                    })
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        onMediaCaptured(data, false)
+                        onMediaCaptured(data, isVideo)
                         isPresented = false
                     }
                 }
@@ -290,7 +304,7 @@ struct PostCameraView: View {
         }
     }
 
-    // MARK: - Post-capture Review Screen
+    // MARK: - Post-capture Photo Review Screen
 
     private func reviewScreen(image: UIImage) -> some View {
         ZStack {
@@ -314,7 +328,47 @@ struct PostCameraView: View {
 
                     Button(L10n.CreatePost.useMedia) {
                         if let data = viewModel.capturedPreviewData {
-                            onMediaCaptured(data, viewModel.isVideo)
+                            onMediaCaptured(data, false)
+                            isPresented = false
+                        }
+                    }
+                    .font(DS.Font.headline)
+                    .foregroundStyle(ColorTokens.accentPrimary)
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.vertical, DS.Spacing.xs)
+                    .background(Color.white, in: Capsule())
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+                .padding(.top, DS.Spacing.md)
+
+                Spacer()
+            }
+        }
+    }
+
+    // MARK: - Post-capture Video Review Screen
+
+    private func videoReviewScreen(url: URL) -> some View {
+        ZStack {
+            VideoPlayer(player: AVPlayer(url: url))
+                .ignoresSafeArea()
+
+            VStack {
+                HStack {
+                    Button(L10n.CreatePost.retake) {
+                        viewModel.retake()
+                    }
+                    .font(DS.Font.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, DS.Spacing.md)
+                    .padding(.vertical, DS.Spacing.xs)
+                    .background(Color.black.opacity(0.5), in: Capsule())
+
+                    Spacer()
+
+                    Button(L10n.CreatePost.useMedia) {
+                        if let data = viewModel.capturedPreviewData {
+                            onMediaCaptured(data, true)
                             isPresented = false
                         }
                     }
