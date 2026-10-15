@@ -41,32 +41,22 @@ final class VideoThumbnailGenerator: @unchecked Sendable {
             return cached
         }
 
-        // Generate on background queue
-        return await withCheckedContinuation { continuation in
-            queue.async { [weak self] in
-                guard let self else {
-                    continuation.resume(returning: nil)
-                    return
-                }
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 540, height: 960) // Half resolution for performance
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
 
-                let asset = AVAsset(url: url)
-                let generator = AVAssetImageGenerator(asset: asset)
-                generator.appliesPreferredTrackTransform = true
-                generator.maximumSize = CGSize(width: 540, height: 960) // Half resolution for performance
-                generator.requestedTimeToleranceBefore = .zero
-                generator.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
+        let cmTime = CMTime(seconds: time, preferredTimescale: 600)
 
-                let cmTime = CMTime(seconds: time, preferredTimescale: 600)
-
-                do {
-                    let cgImage = try generator.copyCGImage(at: cmTime, actualTime: nil)
-                    let image = UIImage(cgImage: cgImage)
-                    self.cache.setObject(image, forKey: cacheKey)
-                    continuation.resume(returning: image)
-                } catch {
-                    continuation.resume(returning: nil)
-                }
-            }
+        do {
+            let (cgImage, _) = try await generator.image(at: cmTime)
+            let image = UIImage(cgImage: cgImage)
+            cache.setObject(image, forKey: cacheKey)
+            return image
+        } catch {
+            return nil
         }
     }
 
