@@ -47,6 +47,16 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .profile:  return "Profile"
         }
     }
+
+    func appIcon(selected: Bool) -> AppIcon {
+        switch self {
+        case .feed:     return .home(selected: selected)
+        case .reels:    return .reels(selected: selected)
+        case .chat:     return .share2026(selected: selected)
+        case .explore:  return .search(selected: selected)
+        case .profile:  return .profile(selected: selected)
+        }
+    }
 }
 
 // MARK: - AppRoute

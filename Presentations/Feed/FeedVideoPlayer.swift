@@ -35,9 +35,7 @@ struct FeedVideoPlayer: View {
                 isMuted.toggle()
                 playerHolder.player.isMuted = isMuted
             } label: {
-                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(.white)
+                InstagramIcon(isMuted ? .soundOff : .soundOn, size: DS.Size.iconSmall, color: .white)
                     .padding(DS.Spacing.xs)
                     .background(
                         Circle().fill(Color.black.opacity(DS.Opacity.overlay))

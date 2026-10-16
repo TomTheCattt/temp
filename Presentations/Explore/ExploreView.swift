@@ -57,9 +57,7 @@ struct ExploreView: View {
             HStack(spacing: DS.Spacing.xs) {
                 // Expanding Search Bar
                 HStack(spacing: DS.Spacing.xs) {
-                    Image(systemName: "magnifyingglass")
-                        .font(DS.Font.subheadline)
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.search(selected: false), size: DS.Size.iconSmall, color: ColorTokens.textSecondary)
 
                     TextField(L10n.Common.search, text: $viewModel.searchText)
                         .textFieldStyle(.plain)
@@ -74,9 +72,7 @@ struct ExploreView: View {
                         Button {
                             viewModel.searchText = ""
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(.secondary)
+                            InstagramIcon(.system(name: "xmark.circle.fill"), size: DS.Size.iconSmall, color: ColorTokens.textSecondary)
                         }
                     }
                 }
@@ -101,9 +97,7 @@ struct ExploreView: View {
                         HapticFeedbackSafe.impact(.light)
                         // Explore map/filter action
                     } label: {
-                        Image(systemName: "map")
-                            .font(.system(size: 24, weight: .regular))
-                            .foregroundStyle(Color.primary)
+                        InstagramIcon(.system(name: "map"), size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 44, height: 44, alignment: .trailing)
                             .contentShape(Rectangle())
                     }
@@ -236,9 +230,7 @@ struct ExploreView: View {
             } else if viewModel.searchText.isEmpty {
                 // Search hint when user just focused search bar
                 VStack(spacing: DS.Spacing.sm) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.largeTitle)
-                        .foregroundStyle(.tertiary)
+                    InstagramIcon(.search(selected: false), size: DS.Size.iconHero, color: ColorTokens.textSecondary.opacity(0.6))
                     Text("Tìm kiếm tài khoản, bài viết, thẻ hashtag...")
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
@@ -250,8 +242,7 @@ struct ExploreView: View {
                 // Hint for short query
                 HStack(spacing: DS.Spacing.xs) {
                     Spacer()
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.system(name: "info.circle"), size: DS.Size.iconSmall, color: ColorTokens.textSecondary)
                     Text("Nhập ít nhất 2 ký tự để tìm kiếm")
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
@@ -308,9 +299,7 @@ private struct ExploreGridItem: View {
             .clipped()
             .overlay(alignment: .topTrailing) {
                 if post.mediaItems.count > 1 {
-                    Image(systemName: "square.on.square")
-                        .font(DS.Font.caption)
-                        .foregroundStyle(.white)
+                    InstagramIcon(.system(name: "square.on.square"), size: DS.Size.iconSmall, color: .white)
                         .shadow(radius: 2)
                         .padding(DS.Spacing.iconGap)
                 }
@@ -343,9 +332,7 @@ private struct SearchResultRow: View {
                         .fontWeight(.semibold)
 
                     if user.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(DS.Font.caption2)
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        InstagramIcon(.verifiedBadge, size: DS.Size.iconXSmall, color: ColorTokens.accentPrimary)
                     }
                 }
 

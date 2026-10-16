@@ -159,10 +159,7 @@ struct EditProfileView: View {
     private var avatarPlaceholder: some View {
         ZStack {
             Circle().fill(Color(.systemGray5))
-            Image(systemName: "person.crop.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(.gray.opacity(0.6))
+            InstagramIcon(.profile(selected: true), size: DS.Size.avatarXLarge, color: .gray.opacity(0.6))
         }
     }
 

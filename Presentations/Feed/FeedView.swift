@@ -42,14 +42,14 @@ struct FeedView: View {
                         // Error state (only when there is nothing to show)
                         ErrorStateView(
                             message: errorMessage,
-                            systemImage: "wifi.exclamationmark",
+                            icon: .system(name: "wifi.exclamationmark"),
                             retryAction: { Task { await viewModel.loadFeed() } }
                         )
                     } else if viewModel.posts.isEmpty {
                         // Empty state
                         EmptyStateView(
                             message: L10n.Feed.emptyState,
-                            systemImage: "photo.on.rectangle.angled"
+                            icon: .system(name: "photo.on.rectangle.angled")
                         )
                     } else {
                         // Posts
@@ -71,8 +71,6 @@ struct FeedView: View {
                             .onDisappear {
                                 visiblePostIds.remove(post.id)
                             }
-
-                            Divider()
                         }
 
                         if viewModel.isLoadingMore {
@@ -126,8 +124,7 @@ struct FeedView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(fullScreen: .creationHub(initialMode: .post))
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.plus, size: DS.Size.iconDefault, color: .primary)
                         .frame(width: 44, height: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
@@ -145,8 +142,7 @@ struct FeedView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.push(.notifications)
                 } label: {
-                    Image(systemName: "heart")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.like(selected: false), size: DS.Size.iconDefault, color: .primary)
                         .frame(width: 44, height: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }

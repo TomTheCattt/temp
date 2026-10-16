@@ -104,9 +104,7 @@ private struct ToastContentView: View {
 
     var body: some View {
         HStack(spacing: DS.Spacing.sm) {
-            Image(systemName: item.style.icon)
-                .font(.system(size: DS.Size.iconMedium, weight: .semibold))
-                .foregroundStyle(item.style.tintColor)
+            InstagramIcon(.system(name: item.style.icon), size: DS.Size.iconMedium, color: item.style.tintColor)
 
             Text(item.message)
                 .font(DS.Font.subheadline)

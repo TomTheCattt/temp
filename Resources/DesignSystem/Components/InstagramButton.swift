@@ -64,6 +64,7 @@ struct InstagramButton: View {
 
     let title: String
     var icon: String? = nil
+    var appIcon: AppIcon? = nil
     var style: InstagramButtonStyle = .primary
     var size: InstagramButtonSize = .standard
     var isLoading: Bool = false
@@ -74,6 +75,7 @@ struct InstagramButton: View {
     init(
         _ title: String,
         icon: String? = nil,
+        appIcon: AppIcon? = nil,
         style: InstagramButtonStyle = .primary,
         size: InstagramButtonSize = .standard,
         isLoading: Bool = false,
@@ -83,6 +85,7 @@ struct InstagramButton: View {
     ) {
         self.title = title
         self.icon = icon
+        self.appIcon = appIcon
         self.style = style
         self.size = size
         self.isLoading = isLoading
@@ -103,9 +106,10 @@ struct InstagramButton: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: foregroundColor))
                         .scaleEffect(0.85)
                 } else {
-                    if let icon {
-                        Image(systemName: icon)
-                            .font(size.font)
+                    if let appIcon {
+                        InstagramIcon(appIcon, size: 16, color: foregroundColor)
+                    } else if let icon {
+                        InstagramIcon(.system(name: icon), size: 16, color: foregroundColor)
                     }
                     Text(title)
                         .font(size.font)

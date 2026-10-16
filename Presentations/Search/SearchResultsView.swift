@@ -65,9 +65,7 @@ struct SearchResultsView: View {
     private var searchHeader: some View {
         HStack(spacing: DS.Spacing.xs) {
             HStack(spacing: DS.Spacing.xs) {
-                Image(systemName: "magnifyingglass")
-                    .font(DS.Font.subheadline)
-                    .foregroundStyle(.secondary)
+                InstagramIcon(.search(), size: DS.Size.iconSmall, color: .secondary)
 
                 TextField(L10n.Common.search, text: $viewModel.query)
                     .textFieldStyle(.plain)
@@ -81,9 +79,7 @@ struct SearchResultsView: View {
                     Button {
                         viewModel.query = ""
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.close, size: DS.Size.iconSmall, color: .secondary)
                     }
                 }
             }
@@ -228,9 +224,7 @@ struct SearchResultsView: View {
                             .fill(ColorTokens.buttonSecondary)
                             .frame(width: DS.Size.avatarList, height: DS.Size.avatarList)
                             .overlay {
-                                Image(systemName: "mappin.circle.fill")
-                                    .font(DS.Font.title3)
-                                    .foregroundStyle(.secondary)
+                                InstagramIcon(.system(name: "mappin.circle.fill"), size: DS.Size.iconDefault, color: .secondary)
                             }
 
                         VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
@@ -278,9 +272,7 @@ struct SearchResultsView: View {
                         .font(DS.Font.username)
 
                     if user.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        InstagramIcon(.verifiedBadge, size: DS.Size.iconXSmall)
                     }
                 }
 
@@ -321,9 +313,7 @@ struct SearchResultsView: View {
                     .clipped()
                     .overlay(alignment: .topTrailing) {
                         if post.mediaItems.count > 1 {
-                            Image(systemName: "square.on.square")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(.white)
+                            InstagramIcon(.picture, size: DS.Size.iconSmall, color: .white)
                                 .shadow(radius: 2)
                                 .padding(DS.Spacing.iconGap)
                         }
@@ -342,9 +332,7 @@ struct SearchResultsView: View {
 
     private var emptyStateView: some View {
         VStack(spacing: DS.Spacing.xs) {
-            Image(systemName: "magnifyingglass")
-                .font(.largeTitle)
-                .foregroundStyle(.tertiary)
+            InstagramIcon(.search(), size: DS.Size.iconJumbo, color: .secondary)
                 .padding(.bottom, DS.Spacing.xxs)
 
             Text(L10n.Search.noResults)

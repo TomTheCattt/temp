@@ -51,9 +51,7 @@ struct LocationView: View {
                 .frame(height: 150)
                 .overlay {
                     VStack(spacing: DS.Spacing.xxs) {
-                        Image(systemName: "map.fill")
-                            .font(.title)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.system(name: "map.fill"), size: DS.Size.iconLarge, color: .secondary)
                         Text(viewModel.locationName)
                             .font(DS.Font.caption)
                             .foregroundStyle(.secondary)

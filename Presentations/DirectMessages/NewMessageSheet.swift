@@ -107,9 +107,7 @@ struct NewMessageSheet: View {
                                     selectedUsers.removeAll { $0.id == user.id }
                                 }
                             } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(ColorTokens.accentPrimary)
+                                InstagramIcon(.close, size: 10, color: ColorTokens.accentPrimary)
                             }
                         }
                         .padding(.horizontal, 10)
@@ -161,9 +159,7 @@ struct NewMessageSheet: View {
                             .foregroundStyle(Color.primary)
 
                         if user.isVerified {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(DS.Font.caption2)
-                                .foregroundStyle(ColorTokens.accentPrimary)
+                            InstagramIcon(.verifiedBadgeSmall, size: DS.Size.iconXSmall)
                         }
                     }
 
@@ -184,9 +180,7 @@ struct NewMessageSheet: View {
                         Circle()
                             .fill(ColorTokens.accentPrimary)
                             .frame(width: 24, height: 24)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.system(name: "checkmark"), size: 12, color: .white)
                     }
                 }
             }

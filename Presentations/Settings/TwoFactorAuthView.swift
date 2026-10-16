@@ -25,19 +25,22 @@ struct TwoFactorAuthView: View {
 
             Section {
                 Toggle(isOn: $isTwoFactorEnabled) {
-                    Label("Two-Factor Authentication", systemImage: "shield.checkered")
+                    HStack(spacing: DS.Spacing.sm) {
+                        InstagramIcon(.lock, size: DS.Size.iconDefault)
+                        Text("Two-Factor Authentication")
+                    }
                 }
             }
 
             if isTwoFactorEnabled {
                 Section("Authentication Method") {
                     ForEach(TwoFactorMethod.allCases, id: \.self) { method in
-                        HStack {
-                            Label(method.title, systemImage: method.icon)
+                        HStack(spacing: DS.Spacing.sm) {
+                            InstagramIcon(method.appIcon, size: DS.Size.iconDefault)
+                            Text(method.title)
                             Spacer()
                             if selectedMethod == method {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(ColorTokens.accentPrimary)
+                                InstagramIcon(.system(name: "checkmark"), size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                             }
                         }
                         .contentShape(Rectangle())
@@ -66,10 +69,10 @@ private enum TwoFactorMethod: CaseIterable {
         }
     }
 
-    var icon: String {
+    var appIcon: AppIcon {
         switch self {
-        case .sms: return "message"
-        case .authenticatorApp: return "lock.shield"
+        case .sms: return .comment
+        case .authenticatorApp: return .lock
         }
     }
 }

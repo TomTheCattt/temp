@@ -143,11 +143,13 @@ struct FloatingTextField: View {
                     Button {
                         isPasswordVisible.toggle()
                     } label: {
-                        Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                            .font(.system(size: DS.Size.iconMedium))
-                            .foregroundStyle(ColorTokens.textTertiary)
-                            .frame(width: DS.Size.buttonSmallHeight, height: DS.Size.buttonSmallHeight)
-                            .contentShape(Rectangle())
+                        InstagramIcon(
+                            .system(name: isPasswordVisible ? "eye.slash" : "eye"),
+                            size: DS.Size.iconMedium,
+                            color: ColorTokens.textTertiary
+                        )
+                        .frame(width: DS.Size.buttonSmallHeight, height: DS.Size.buttonSmallHeight)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

@@ -65,9 +65,11 @@ struct InstagramAvatarView: View {
                 Circle()
                     .fill(ColorTokens.buttonSecondary)
                     .overlay {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: size * 0.45))
-                            .foregroundStyle(ColorTokens.textTertiary)
+                        InstagramIcon(
+                            .system(name: "person.fill"),
+                            size: size * 0.45,
+                            color: ColorTokens.textTertiary
+                        )
                     }
             }
         }
@@ -97,10 +99,12 @@ struct InstagramAvatarView: View {
     // MARK: - Plus Badge
 
     private var plusBadge: some View {
-        Image(systemName: "plus.circle.fill")
-            .font(.system(size: max(14, size * 0.32)))
-            .foregroundStyle(ColorTokens.brandBlue)
-            .background(Circle().fill(ColorTokens.backgroundPrimary))
-            .offset(x: 2, y: 2)
+        InstagramIcon(
+            .system(name: "plus.circle.fill"),
+            size: max(14, size * 0.32),
+            color: ColorTokens.brandBlue
+        )
+        .background(Circle().fill(ColorTokens.backgroundPrimary))
+        .offset(x: 2, y: 2)
     }
 }

@@ -77,9 +77,7 @@ struct ReportPostView: View {
                         submitReport()
                     }) {
                         HStack(spacing: DS.Spacing.sm) {
-                            Image(systemName: reason.icon)
-                                .font(DS.Font.body)
-                                .foregroundStyle(.primary)
+                            InstagramIcon(.system(name: reason.icon), size: DS.Size.iconDefault, color: .primary)
                                 .frame(width: DS.Size.iconDefault)
 
                             Text(reason.rawValue)
@@ -88,9 +86,7 @@ struct ReportPostView: View {
 
                             Spacer()
 
-                            Image(systemName: "chevron.right")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(.secondary)
+                            InstagramIcon(.chevronRight, size: DS.Size.iconSmall, color: .secondary)
                         }
                     }
                 }
@@ -121,9 +117,7 @@ struct ReportPostView: View {
         VStack(spacing: DS.Spacing.lg) {
             Spacer()
 
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: DS.Size.iconJumbo))
-                .foregroundStyle(ColorTokens.success)
+            InstagramIcon(.system(name: "checkmark.circle.fill"), size: DS.Size.iconJumbo, color: ColorTokens.success)
 
             Text(L10n.ReportPost.submittedTitle)
                 .font(DS.Font.title3)

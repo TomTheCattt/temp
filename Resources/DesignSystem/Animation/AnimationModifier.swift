@@ -87,8 +87,7 @@ extension View {
     func likeEffect(trigger: Int) -> some View {
         self.changeEffect(
             .spray(origin: .center) {
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(.red)
+                InstagramIcon(.like(selected: true), size: 24, color: .red)
             },
             value: trigger
         )
@@ -136,8 +135,7 @@ extension View {
     func riseEffect(trigger: Int) -> some View {
         self.changeEffect(
             .rise(origin: .center) {
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(.red)
+                InstagramIcon(.like(selected: true), size: 24, color: .red)
             },
             value: trigger
         )

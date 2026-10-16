@@ -130,9 +130,7 @@ struct ProfileView: View {
                     Circle()
                         .fill(ColorTokens.buttonSecondary)
                         .overlay {
-                            Image(systemName: "person.fill")
-                                .font(DS.Font.title)
-                                .foregroundStyle(ColorTokens.textSecondary)
+                            InstagramIcon(.system(name: "person.fill"), size: DS.Size.iconLarge, color: ColorTokens.textSecondary)
                         }
                 }
             }
@@ -180,9 +178,7 @@ struct ProfileView: View {
                     .font(DS.Font.subheadline)
                     .fontWeight(.semibold)
                 if user.isVerified {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(DS.Font.caption)
-                        .foregroundStyle(ColorTokens.accentPrimary)
+                    InstagramIcon(.verifiedBadge, size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                 }
             }
 
@@ -290,11 +286,13 @@ struct ProfileView: View {
                         Task { await viewModel.loadReelsIfNeeded() }
                     }
                 } label: {
-                    Image(systemName: grid.icon)
-                        .font(DS.Font.title3)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.Padding.inputBar)
-                        .foregroundStyle(selectedGrid == grid ? .primary : .secondary)
+                    InstagramIcon(
+                        grid.appIcon(isSelected: selectedGrid == grid),
+                        size: DS.Size.iconDefault,
+                        color: selectedGrid == grid ? ColorTokens.textPrimary : ColorTokens.textSecondary
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DS.Padding.inputBar)
                 }
             }
         }
@@ -392,9 +390,7 @@ struct ProfileView: View {
                         .aspectRatio(1, contentMode: .fill)
                         .clipped()
                         .overlay(alignment: .bottomLeading) {
-                            Image(systemName: "play.fill")
-                                .font(DS.Font.caption)
-                                .foregroundStyle(.white)
+                            InstagramIcon(.system(name: "play.fill"), size: DS.Size.iconXSmall, color: .white)
                                 .padding(DS.Spacing.xxs)
                         }
                     }
@@ -441,8 +437,7 @@ struct MyProfileNavigationBar: View {
                     HStack(spacing: DS.Spacing.xxs) {
                         let isPrivate = viewModel.user?.isPrivate ?? SessionStore.shared.currentUser?.isPrivate ?? false
                         if isPrivate {
-                            Image(systemName: "lock.fill")
-                                .font(DS.Font.subheadline)
+                            InstagramIcon(.lock, size: DS.Size.iconSmall, color: ColorTokens.textPrimary)
                         }
                         let username = viewModel.user?.username ?? SessionStore.shared.currentUser?.username ?? ""
                         Text(username)
@@ -459,8 +454,7 @@ struct MyProfileNavigationBar: View {
                         HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.present(fullScreen: .creationHub(initialMode: .post))
                     } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 24, weight: .regular))
+                        InstagramIcon(.plus, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 44, height: 44, alignment: .leading)
                             .contentShape(Rectangle())
                     }
@@ -469,8 +463,7 @@ struct MyProfileNavigationBar: View {
                         HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.pop()
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 24, weight: .regular))
+                        InstagramIcon(.chevronLeft, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 44, height: 44, alignment: .leading)
                             .contentShape(Rectangle())
                     }
@@ -484,8 +477,7 @@ struct MyProfileNavigationBar: View {
                         HapticFeedbackSafe.impact(.light)
                         // Open Threads
                     } label: {
-                        Image(systemName: "at")
-                            .font(.system(size: 24, weight: .regular))
+                        InstagramIcon(.threads, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                     }
@@ -494,8 +486,7 @@ struct MyProfileNavigationBar: View {
                         HapticFeedbackSafe.impact(.light)
                         AppRouter.shared.push(.settings)
                     } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 24, weight: .regular))
+                        InstagramIcon(.menu, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 44, height: 44, alignment: .trailing)
                             .contentShape(Rectangle())
                     }
@@ -521,8 +512,7 @@ struct UserProfileNavigationBar: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.pop()
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.chevronLeft, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         .frame(width: 44, height: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
@@ -540,8 +530,7 @@ struct UserProfileNavigationBar: View {
                     HapticFeedbackSafe.impact(.light)
                     // Notification options
                 } label: {
-                    Image(systemName: "bell")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.system(name: "bell"), size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -551,8 +540,7 @@ struct UserProfileNavigationBar: View {
                     HapticFeedbackSafe.impact(.light)
                     // Profile options
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.options, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         .frame(width: 44, height: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
@@ -571,11 +559,11 @@ enum ProfileGrid: Int, CaseIterable {
     case reels
     case tagged
 
-    var icon: String {
+    func appIcon(isSelected: Bool) -> AppIcon {
         switch self {
-        case .posts:  return "squareshape.split.3x3"
-        case .reels:  return "play.square"
-        case .tagged: return "person.crop.square"
+        case .posts:  return .grid(selected: isSelected)
+        case .reels:  return .reels(selected: isSelected)
+        case .tagged: return .tag(selected: isSelected)
         }
     }
 }

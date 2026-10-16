@@ -27,9 +27,7 @@ struct ForceUpdateView: View {
 
             VStack(spacing: DS.Spacing.xl) {
 
-                Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: DS.Size.iconJumbo, weight: .regular))
-                    .foregroundStyle(ColorTokens.accentPrimary)
+                InstagramIcon(.system(name: "arrow.down.circle.fill"), size: DS.Size.iconJumbo, color: ColorTokens.accentPrimary)
 
                 VStack(spacing: DS.Spacing.sm) {
                     Text(L10n.ForceUpdate.title)

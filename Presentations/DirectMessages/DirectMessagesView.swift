@@ -156,9 +156,7 @@ struct DirectMessagesView: View {
                         Text(SessionStore.shared.currentUser?.username ?? L10n.Tab.chat)
                             .font(DS.Font.title3)
                             .fontWeight(.bold)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .fontWeight(.bold)
+                        InstagramIcon(.chevronDown, size: 12, color: .primary)
                     }
                     .foregroundStyle(Color.primary)
                 }
@@ -169,9 +167,7 @@ struct DirectMessagesView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(sheet: .newMessage)
                 } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 24, weight: .regular))
-                        .foregroundStyle(Color.primary)
+                    InstagramIcon(.system(name: "square.and.pencil"), size: 24, color: .primary)
                         .frame(width: 44, height: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
@@ -230,9 +226,7 @@ struct DirectMessagesView: View {
                     .clipShape(Circle())
 
                     if note.isCurrentUser {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        InstagramIcon(.system(name: "plus.circle.fill"), size: 16, color: ColorTokens.accentPrimary)
                             .background(Circle().fill(Color(UIColor.systemBackground)))
                             .offset(x: 2, y: 2)
                     }
@@ -253,9 +247,7 @@ struct DirectMessagesView: View {
 
     private var searchBarSection: some View {
         HStack(spacing: DS.Spacing.xs) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
+            InstagramIcon(.search(), size: 14, color: .secondary)
 
             TextField("Tìm kiếm", text: $viewModel.searchQuery)
                 .textFieldStyle(.plain)
@@ -265,9 +257,7 @@ struct DirectMessagesView: View {
                 Button {
                     viewModel.searchQuery = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.system(name: "xmark.circle.fill"), size: 14, color: .secondary)
                 }
             }
         }
@@ -323,9 +313,11 @@ private struct ConversationRow: View {
                         .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
 
                     if otherUser?.isVerified == true {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(DS.Font.caption2)
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        InstagramIcon(
+                            .verifiedBadge,
+                            size: DS.Size.iconSmall,
+                            color: ColorTokens.accentPrimary
+                        )
                     }
                 }
 
@@ -361,9 +353,7 @@ private struct ConversationRow: View {
 
                 // Muted indicator
                 if conversation.isMuted {
-                    Image(systemName: "bell.slash.fill")
-                        .font(DS.Font.caption)
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.system(name: "bell.slash.fill"), size: 12, color: .secondary)
                 }
 
                 // Quick Camera Icon (Standard Instagram Inbox Right Action)
@@ -371,9 +361,7 @@ private struct ConversationRow: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(fullScreen: .creationHub(initialMode: .story))
                 } label: {
-                    Image(systemName: "camera")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.camera, size: 20, color: .secondary)
                         .frame(width: 32, height: 32)
                 }
             }

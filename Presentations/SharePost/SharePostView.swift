@@ -24,8 +24,7 @@ struct SharePostView: View {
             VStack(spacing: 0) {
                 // Search bar
                 HStack(spacing: DS.Spacing.inputVertical) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.search(selected: false), size: DS.Size.iconSmall, color: .secondary)
                     TextField(L10n.Common.search, text: $searchQuery)
                         .textFieldStyle(.plain)
                         .font(DS.Font.subheadline)
@@ -81,9 +80,9 @@ struct SharePostView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: DS.Spacing.md) {
-                    quickShareItem(icon: "plus.circle", label: "Add to Story")
-                    quickShareItem(icon: "star.circle.fill", label: "Close Friends")
-                    quickShareItem(icon: "link", label: "Copy Link")
+                    quickShareItem(icon: .system(name: "plus.circle"), label: "Add to Story")
+                    quickShareItem(icon: .star(selected: true), label: "Close Friends")
+                    quickShareItem(icon: .link16, label: "Copy Link")
                 }
                 .padding(.horizontal)
             }
@@ -92,7 +91,7 @@ struct SharePostView: View {
     }
 
     @ViewBuilder
-    private func quickShareItem(icon: String, label: String) -> some View {
+    private func quickShareItem(icon: AppIcon, label: String) -> some View {
         Button(action: {
             if label == "Copy Link" {
                 viewModel.copyLink()
@@ -100,8 +99,7 @@ struct SharePostView: View {
             }
         }) {
             VStack(spacing: DS.Spacing.iconGap) {
-                Image(systemName: icon)
-                    .font(.title2)
+                InstagramIcon(icon, size: DS.Size.iconDefault, color: .primary)
                     .frame(width: DS.Size.avatarStoryCircle, height: DS.Size.avatarStoryCircle)
                     .background(ColorTokens.buttonSecondary, in: Circle())
                 Text(label)
@@ -139,9 +137,11 @@ struct SharePostView: View {
 
             // Selection circle
             Button(action: { viewModel.toggleUser(user.id) }) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(isSelected ? ColorTokens.accentPrimary : .secondary)
+                InstagramIcon(
+                    isSelected ? .system(name: "checkmark.circle.fill") : .system(name: "circle"),
+                    size: DS.Size.iconMedium,
+                    color: isSelected ? ColorTokens.accentPrimary : .secondary
+                )
             }
         }
         .padding(.horizontal)
@@ -173,9 +173,9 @@ struct SharePostView: View {
             } else {
                 // External options
                 HStack(spacing: DS.Spacing.xl) {
-                    externalButton(icon: "message.fill", label: "Message")
-                    externalButton(icon: "envelope.fill", label: "Email")
-                    externalButton(icon: "square.and.arrow.up", label: "More")
+                    externalButton(icon: .system(name: "message.fill"), label: "Message")
+                    externalButton(icon: .system(name: "envelope.fill"), label: "Email")
+                    externalButton(icon: .system(name: "square.and.arrow.up"), label: "More")
                 }
                 .padding()
             }
@@ -183,11 +183,10 @@ struct SharePostView: View {
     }
 
     @ViewBuilder
-    private func externalButton(icon: String, label: String) -> some View {
+    private func externalButton(icon: AppIcon, label: String) -> some View {
         Button(action: {}) {
             VStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: icon)
-                    .font(DS.Font.title3)
+                InstagramIcon(icon, size: DS.Size.iconDefault, color: .primary)
                 Text(label)
                     .font(DS.Font.caption2)
             }

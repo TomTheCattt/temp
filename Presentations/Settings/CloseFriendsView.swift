@@ -204,9 +204,7 @@ struct CloseFriendsView: View {
 
             Spacer()
 
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(DS.Font.title3)
-                .foregroundStyle(isSelected ? ColorTokens.accentPrimary : Color(.systemGray3))
+            InstagramIcon(.system(name: isSelected ? "checkmark.circle.fill" : "circle"), size: DS.Size.iconDefault, color: isSelected ? ColorTokens.accentPrimary : Color(.systemGray3))
         }
         .contentShape(Rectangle())
         .onTapGesture {

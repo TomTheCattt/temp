@@ -135,8 +135,7 @@ struct LoginView: View {
 
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: DS.Spacing.xs) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(ColorTokens.destructive)
+            InstagramIcon(.system(name: "exclamationmark.triangle.fill"), size: DS.Size.iconSmall, color: ColorTokens.destructive)
             Text(message)
                 .font(DS.Font.caption)
                 .foregroundStyle(ColorTokens.destructive)
@@ -197,9 +196,7 @@ struct LoginView: View {
 
             // Meta logo
             HStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: "infinity")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(ColorTokens.textPrimary)
+                InstagramIcon(.system(name: "infinity"), size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                 Text("Meta")
                     .font(DS.Font.headline)
                     .foregroundStyle(ColorTokens.textPrimary)

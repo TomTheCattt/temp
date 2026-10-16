@@ -62,7 +62,7 @@ final class ProfileViewModel {
         let currentUserId = SessionStore.shared.currentUserId
         let isMe = (userId == nil || userId == currentUserId || userId == "user_current")
         if isMe {
-            self.user = SessionStore.shared.currentUser ?? MockUserStore.shared.currentUser
+            self.user = SessionStore.shared.currentUser ?? MockData.currentUser
         }
     }
 

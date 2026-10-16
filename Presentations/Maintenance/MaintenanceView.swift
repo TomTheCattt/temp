@@ -26,9 +26,7 @@ struct MaintenanceView: View {
 
             VStack(spacing: DS.Spacing.xl) {
 
-                Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.system(size: DS.Size.iconJumbo, weight: .regular))
-                    .foregroundStyle(ColorTokens.warning)
+                InstagramIcon(.system(name: "wrench.and.screwdriver.fill"), size: DS.Size.iconJumbo, color: ColorTokens.warning)
 
                 VStack(spacing: DS.Spacing.sm) {
                     Text(L10n.Maintenance.title)

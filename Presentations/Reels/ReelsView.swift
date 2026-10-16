@@ -94,9 +94,7 @@ struct ReelsView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.present(fullScreen: .camera)
                 } label: {
-                    Image(systemName: "camera")
-                        .font(.system(size: 24, weight: .regular))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.camera, size: DS.Size.iconDefault, color: .white)
                         .frame(width: 44, height: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
@@ -131,9 +129,7 @@ struct ReelsView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.switchTab(.explore)
                 } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 24, weight: .regular))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.search(selected: false), size: DS.Size.iconDefault, color: .white)
                         .frame(width: 44, height: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
@@ -214,9 +210,7 @@ struct ReelItemView: View {
                 // Dim overlay + play icon when not active
                 if !isActive {
                     Color.black.opacity(DS.Opacity.low)
-                    Image(systemName: "play.fill")
-                        .font(.system(size: DS.Size.iconHero))
-                        .foregroundStyle(.white.opacity(DS.Opacity.medium))
+                    InstagramIcon(.system(name: "play.fill"), size: DS.Size.iconHero, color: .white.opacity(DS.Opacity.medium))
                 }
 
                 // Content overlay
@@ -285,8 +279,7 @@ struct ReelItemView: View {
             // Audio
             if let audio = reel.audioTrack {
                 HStack(spacing: DS.Spacing.iconGap) {
-                    Image(systemName: "music.note")
-                        .font(DS.Font.caption2)
+                    InstagramIcon(.system(name: "music.note"), size: DS.Size.iconSmall, color: .white)
                     Text("\(audio.artistName) • \(audio.name)")
                         .font(DS.Font.caption2)
                         .lineLimit(1)
@@ -304,9 +297,7 @@ struct ReelItemView: View {
             // Like
             VStack(spacing: DS.Spacing.xxs) {
                 Button(action: onLike) {
-                    Image(systemName: reel.isLiked ? "heart.fill" : "heart")
-                        .font(DS.Font.title)
-                        .foregroundStyle(reel.isLiked ? ColorTokens.likeRed : .white)
+                    InstagramIcon(.like(selected: reel.isLiked), size: DS.Size.iconLarge, color: reel.isLiked ? ColorTokens.likeRed : .white)
                 }
                 Text(formatCount(reel.likesCount))
                     .font(DS.Font.caption2)
@@ -316,9 +307,7 @@ struct ReelItemView: View {
             // Comment
             VStack(spacing: DS.Spacing.xxs) {
                 Button(action: onComment) {
-                    Image(systemName: "bubble.right")
-                        .font(DS.Font.title)
-                        .foregroundStyle(.white)
+                    InstagramIcon(.comment, size: DS.Size.iconLarge, color: .white)
                 }
                 Text(formatCount(reel.commentsCount))
                     .font(DS.Font.caption2)
@@ -328,9 +317,7 @@ struct ReelItemView: View {
             // Share
             VStack(spacing: DS.Spacing.xxs) {
                 ShareLink(item: authorShareURL, subject: Text(reel.author.username)) {
-                    Image(systemName: "paperplane")
-                        .font(DS.Font.title)
-                        .foregroundStyle(.white)
+                    InstagramIcon(.share, size: DS.Size.iconLarge, color: .white)
                 }
                 Text(formatCount(reel.sharesCount))
                     .font(DS.Font.caption2)
@@ -339,9 +326,7 @@ struct ReelItemView: View {
 
             // Save
             Button(action: onSave) {
-                Image(systemName: reel.isSaved ? "bookmark.fill" : "bookmark")
-                    .font(DS.Font.title)
-                    .foregroundStyle(.white)
+                InstagramIcon(.save(selected: reel.isSaved), size: DS.Size.iconLarge, color: .white)
             }
 
             // Audio disc

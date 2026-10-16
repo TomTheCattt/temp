@@ -27,7 +27,7 @@ struct FollowListView: View {
             } else if !viewModel.isLoading && viewModel.filteredUsers.isEmpty {
                 EmptyStateView(
                     message: L10n.FollowList.empty,
-                    systemImage: "person.2"
+                    icon: .people
                 )
             } else {
                 listContent
@@ -85,9 +85,7 @@ struct FollowListView: View {
                     Text(user.username)
                         .font(DS.Font.username)
                     if user.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(ColorTokens.accentPrimary)
+                        InstagramIcon(.verifiedBadge, size: DS.Size.iconXSmall)
                     }
                 }
                 Text(user.fullName)

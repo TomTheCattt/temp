@@ -14,14 +14,32 @@ import SwiftUI
 struct ErrorStateView: View {
 
     let message: String
-    var systemImage: String = "exclamationmark.triangle"
+    var icon: AppIcon
     var retryAction: (() -> Void)?
+
+    init(
+        message: String,
+        icon: AppIcon = .system(name: "exclamationmark.triangle"),
+        retryAction: (() -> Void)? = nil
+    ) {
+        self.message = message
+        self.icon = icon
+        self.retryAction = retryAction
+    }
+
+    init(
+        message: String,
+        systemImage: String,
+        retryAction: (() -> Void)? = nil
+    ) {
+        self.message = message
+        self.icon = .system(name: systemImage)
+        self.retryAction = retryAction
+    }
 
     var body: some View {
         VStack(spacing: DS.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(.largeTitle)
-                .foregroundStyle(ColorTokens.textSecondary)
+            InstagramIcon(icon, size: DS.Size.iconJumbo, color: ColorTokens.textSecondary)
 
             Text(message)
                 .font(DS.Font.subheadline)
@@ -48,20 +66,29 @@ struct ErrorStateView: View {
 struct EmptyStateView: View {
 
     let message: String
-    var systemImage: String = "tray"
+    var icon: AppIcon
     var title: String?
+
+    init(message: String, icon: AppIcon = .system(name: "tray"), title: String? = nil) {
+        self.message = message
+        self.icon = icon
+        self.title = title
+    }
+
+    init(message: String, systemImage: String, title: String? = nil) {
+        self.message = message
+        self.icon = .system(name: systemImage)
+        self.title = title
+    }
 
     var body: some View {
         VStack(spacing: DS.Spacing.md) {
-            Image(systemName: systemImage)
-                .font(.largeTitle)
-                .foregroundStyle(ColorTokens.textSecondary)
+            InstagramIcon(icon, size: DS.Size.iconJumbo, color: ColorTokens.textSecondary)
 
             if let title {
                 Text(title)
-                    .font(DS.Font.username)
+                    .font(DS.Font.headline)
                     .foregroundStyle(ColorTokens.textPrimary)
-                    .multilineTextAlignment(.center)
             }
 
             Text(message)

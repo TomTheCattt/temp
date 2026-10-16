@@ -128,9 +128,7 @@ struct CommentsView: View {
             VStack {
                 Spacer().frame(height: DS.Spacing.xs)
                 Button(action: {}) {
-                    Image(systemName: comment.isLiked ? "heart.fill" : "heart")
-                        .font(DS.Font.caption)
-                        .foregroundStyle(comment.isLiked ? ColorTokens.likeRed : .secondary)
+                    InstagramIcon(AppIcon.like(selected: comment.isLiked), size: DS.Size.iconSmall, color: comment.isLiked ? ColorTokens.likeRed : .secondary)
                 }
             }
         }
@@ -189,9 +187,7 @@ struct CommentsView: View {
             Spacer()
 
             Button(action: { viewModel.cancelReply() }) {
-                Image(systemName: "xmark")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(.secondary)
+                InstagramIcon(.close, size: DS.Size.iconSmall, color: .secondary)
             }
         }
         .font(DS.Font.caption)

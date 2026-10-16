@@ -65,9 +65,7 @@ struct MediaViewerView: View {
                 HStack {
                     Spacer()
                     Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(.white.opacity(DS.Opacity.nearOpaque))
+                        InstagramIcon(.close, size: DS.Size.iconLarge, color: .white.opacity(DS.Opacity.nearOpaque))
                             .padding()
                     }
                 }
@@ -87,9 +85,7 @@ struct MediaViewerView: View {
             ZStack {
                 Color.black
                 VStack(spacing: DS.Spacing.sm) {
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: DS.Size.iconJumbo))
-                        .foregroundStyle(.white.opacity(DS.Opacity.strong))
+                    InstagramIcon(.system(name: "play.circle.fill"), size: DS.Size.iconJumbo, color: .white.opacity(DS.Opacity.strong))
                     Text(L10n.MediaViewer.videoPlayer)
                         .font(DS.Font.caption)
                         .foregroundStyle(.white.opacity(DS.Opacity.overlay))
@@ -105,8 +101,7 @@ struct MediaViewerView: View {
                         .scaledToFit()
                 case .failure:
                     VStack(spacing: DS.Spacing.xs) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.title)
+                        InstagramIcon(.system(name: "exclamationmark.triangle"), size: DS.Size.iconLarge, color: .white.opacity(DS.Opacity.medium))
                         Text(L10n.MediaViewer.failedToLoad)
                             .font(DS.Font.caption)
                     }
