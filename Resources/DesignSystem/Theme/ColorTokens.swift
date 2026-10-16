@@ -37,10 +37,10 @@ enum ColorTokens {
     // MARK: - Surface
 
     /// Card/cell surface.
-    static let surface = Color(.secondarySystemBackground)
+    static let surface = Color.dynamic(lightHex: 0xFFFFFF, darkHex: 0x121212)
 
     /// Elevated surface (floating elements).
-    static let surfaceElevated = Color(.tertiarySystemBackground)
+    static let surfaceElevated = Color.dynamic(lightHex: 0xF7F9F9, darkHex: 0x262626)
 
     // MARK: - Text
 
@@ -112,11 +112,11 @@ enum ColorTokens {
     /// Button background (primary CTA) — Blue 60.
     static let buttonPrimary = PrimitiveColors.Blue.blue60
 
-    /// Button background (secondary) — Gray 20.
-    static let buttonSecondary = PrimitiveColors.Gray.gray20
+    /// Button background (secondary) — Adaptive: #EFEFEF Light | #262626 Dark.
+    static let buttonSecondary = Color.dynamic(lightHex: 0xEFEFEF, darkHex: 0x262626)
 
-    /// Button disabled — Gray 30.
-    static let buttonDisabled = PrimitiveColors.Gray.gray30
+    /// Button disabled — Adaptive: #DBDFE4 Light | #363636 Dark.
+    static let buttonDisabled = Color.dynamic(lightHex: 0xDBDFE4, darkHex: 0x363636)
 
     // MARK: - Special
 

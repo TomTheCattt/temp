@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Primitive Color Palette
 
@@ -142,7 +143,7 @@ enum PrimitiveColors {
     ]
 }
 
-// MARK: - Color Hex Initializer
+// MARK: - Color Hex & Dynamic Initializers
 
 extension Color {
     /// Initialize a Color from a hex integer, e.g. `Color(hex: 0xFF0069)`.
@@ -151,5 +152,19 @@ extension Color {
         let g = Double((hex >> 8) & 0xFF) / 255.0
         let b = Double(hex & 0xFF) / 255.0
         self.init(red: r, green: g, blue: b, opacity: opacity)
+    }
+
+    /// Creates a dynamic SwiftUI Color that adapts automatically based on the active UIUserInterfaceStyle (light / dark).
+    static func dynamic(light: Color, dark: Color) -> Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
+    }
+
+    /// Creates a dynamic SwiftUI Color from hex values for light and dark modes.
+    static func dynamic(lightHex: UInt, darkHex: UInt) -> Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark ? UIColor(Color(hex: darkHex)) : UIColor(Color(hex: lightHex))
+        })
     }
 }

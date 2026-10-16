@@ -39,6 +39,7 @@ struct UIKitTextField: UIViewRepresentable {
             for: .editingChanged
         )
         textField.tintColor = .textPrimary
+        textField.textColor = .label
         return textField
     }
 
@@ -48,6 +49,7 @@ struct UIKitTextField: UIViewRepresentable {
             textField.text = text
         }
 
+        textField.textColor = .label
         textField.isSecureTextEntry = isSecure
         textField.keyboardType = keyboardType
         textField.textContentType = textContentType
