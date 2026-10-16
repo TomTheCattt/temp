@@ -144,94 +144,83 @@ extension Color {
 
 // MARK: - TypographyOverlayView
 
+// MARK: - TypographyOverlayView
+
 struct TypographyOverlayView: View {
 
     @Binding var item: TextOverlayItem
-    let onDelete: () -> Void
-    var onEdit: (() -> Void)? = nil
+    var onStartEditing: () -> Void
+    var onDragChanged: ((CGPoint) -> Void)? = nil
+    var onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
 
     @State private var dragOffset: CGSize = .zero
     @State private var currentScale: CGFloat = 1.0
-    @State private var isSelected: Bool = false
 
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Text(item.text)
-                .font(
-                    item.effect == .pixel
-                        ? .system(size: item.fontSize, weight: .bold, design: .monospaced)
-                        : Font(item.fontStyle.uiFont(size: item.fontSize))
-                )
-                .italic(item.isItalic)
-                .multilineTextAlignment(item.alignment)
-                .foregroundStyle(item.color)
-                .padding(.horizontal, item.hasBackground ? 12 : 6)
-                .padding(.vertical, item.hasBackground ? 6 : 4)
-                .background(
-                    item.hasBackground ? item.color.smartBadgeBackgroundColor : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 8)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(isSelected ? ColorTokens.accentPrimary : Color.clear, lineWidth: 1.5)
-                        .padding(-4)
-                )
-                .shadow(
-                    color: item.effect == .neon ? item.color.opacity(0.8) : (item.effect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(item.hasBackground ? 0.35 : 0.7)),
-                    radius: (item.effect == .neon || item.effect == .sparkle) ? 10 : 4,
-                    x: 0,
-                    y: 2
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if isSelected {
-                        onEdit?()
-                    } else {
-                        isSelected = true
-                    }
-                }
+    init(
+        item: Binding<TextOverlayItem>,
+        onStartEditing: @escaping () -> Void,
+        onDragChanged: ((CGPoint) -> Void)? = nil,
+        onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
+    ) {
+        self._item = item
+        self.onStartEditing = onStartEditing
+        self.onDragChanged = onDragChanged
+        self.onDragEnded = onDragEnded
+    }
 
-            if isSelected {
-                // Delete button (top-trailing)
-                Button(action: onDelete) {
-                    InstagramIcon(.close, size: 18, color: ColorTokens.destructive)
-                        .background(Circle().fill(Color.white).padding(2))
-                }
-                .offset(x: 12, y: -12)
-
-                // Edit button (top-leading)
-                if let onEdit {
-                    Button(action: onEdit) {
-                        InstagramIcon(.system(name: "pencil.circle.fill"), size: 18, color: ColorTokens.accentPrimary)
-                            .background(Circle().fill(Color.white).padding(2))
-                    }
-                    .offset(x: -12, y: -12)
-                }
+    // Backward-compatible initializer for UniversalCreativeStudioView & StoryCameraView
+    init(
+        item: Binding<TextOverlayItem>,
+        onDelete: (() -> Void)? = nil,
+        onEdit: (() -> Void)? = nil,
+        onDragChanged: ((CGPoint) -> Void)? = nil,
+        onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
+    ) {
+        self._item = item
+        self.onStartEditing = onEdit ?? {}
+        self.onDragChanged = onDragChanged
+        self.onDragEnded = { location, translation in
+            if let onDragEnded {
+                onDragEnded(location, translation)
+            } else {
+                item.wrappedValue.offset.width += translation.width
+                item.wrappedValue.offset.height += translation.height
             }
         }
-        .scaleEffect(item.scale * currentScale)
-        .offset(x: item.offset.width + dragOffset.width, y: item.offset.height + dragOffset.height)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    dragOffset = value.translation
-                }
-                .onEnded { value in
-                    item.offset.width += value.translation.width
-                    item.offset.height += value.translation.height
-                    dragOffset = .zero
-                }
-        )
-        .simultaneousGesture(
-            MagnificationGesture()
-                .onChanged { scale in
-                    currentScale = scale
-                }
-                .onEnded { scale in
-                    item.scale = max(0.5, min(3.0, item.scale * scale))
-                    currentScale = 1.0
-                }
-        )
+    }
+
+    var body: some View {
+        AnimatedStoryTextView(item: item)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                HapticFeedbackSafe.impact(.light)
+                onStartEditing()
+            }
+            .scaleEffect(item.scale * currentScale)
+            .offset(x: item.offset.width + dragOffset.width, y: item.offset.height + dragOffset.height)
+            .gesture(
+                DragGesture(minimumDistance: 3, coordinateSpace: .global)
+                    .onChanged { value in
+                        dragOffset = value.translation
+                        onDragChanged?(value.location)
+                    }
+                    .onEnded { value in
+                        let location = value.location
+                        let translation = value.translation
+                        dragOffset = .zero
+                        onDragEnded?(location, translation)
+                    }
+            )
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { scale in
+                        currentScale = scale
+                    }
+                    .onEnded { scale in
+                        item.scale = max(0.5, min(3.0, item.scale * scale))
+                        currentScale = 1.0
+                    }
+            )
     }
 }
 

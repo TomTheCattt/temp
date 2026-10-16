@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 // MARK: - MockMessageDataSource
 
@@ -552,7 +553,7 @@ actor MockMessageDataSource {
         Task { @MainActor in
             AppState.shared.setUnreadChatCount(unreadConversations)
             #if !targetEnvironment(simulator)
-            UIApplication.shared.applicationIconBadgeNumber = unreadConversations
+            UNUserNotificationCenter.current().setBadgeCount(unreadConversations)
             #endif
         }
     }

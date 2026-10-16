@@ -404,6 +404,11 @@ struct CreateCanvasView: View {
     @State private var isShowingMusicPicker = false
     @State private var selectedAudioTrack: PostAudioTrackItem? = nil
 
+    // Drag-to-Delete Zone State
+    @State private var isDraggingTextItem = false
+    @State private var isOverTrashZone = false
+    @State private var trashZoneCenter: CGPoint = .zero
+
     // In-place Drawing Mode State (Apple PencilKit)
     @State private var canvasView = PKCanvasView()
     @State private var isDrawingMode = false
@@ -476,17 +481,20 @@ struct CreateCanvasView: View {
                     }
                 }
 
-                // Typography Items with tap-to-edit
+                // Typography Items with direct tap-to-edit & drag-to-delete
                 ForEach($texts) { $textItem in
                     TypographyOverlayView(
                         item: $textItem,
-                        onDelete: {
-                            texts.removeAll { $0.id == textItem.id }
-                        },
-                        onEdit: {
+                        onStartEditing: {
                             if !isDrawingMode {
                                 startEditing(item: textItem)
                             }
+                        },
+                        onDragChanged: { location in
+                            handleTextDragChanged(location: location)
+                        },
+                        onDragEnded: { location, translation in
+                            handleTextDragEnded(item: textItem, location: location, translation: translation)
                         }
                     )
                 }
@@ -511,6 +519,17 @@ struct CreateCanvasView: View {
                 inlineTextEditorOverlay
             } else {
                 idleOverlayUI
+            }
+
+            // Delete Drop Zone (Thùng rác ở đáy) - CHỈ hiển thị khi người dùng drag text
+            if isDraggingTextItem {
+                VStack {
+                    Spacer()
+                    deleteTrashZoneView
+                        .padding(.bottom, DS.Spacing.xl)
+                }
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .zIndex(99)
             }
         }
         .statusBarHidden()
@@ -566,6 +585,7 @@ struct CreateCanvasView: View {
             }
             .padding(.horizontal, DS.Spacing.md)
             .padding(.top, DS.Spacing.md)
+            .opacity(isDraggingTextItem ? 0.0 : 1.0)
 
             // Right Vertical Tools Strip
             HStack {
@@ -573,12 +593,15 @@ struct CreateCanvasView: View {
                 rightVerticalToolBar
                     .padding(.trailing, DS.Spacing.md)
             }
+            .opacity(isDraggingTextItem ? 0.0 : 1.0)
 
             Spacer()
 
             // Bottom Action Bar: "Thêm chú thích...", "Tin của bạn", "Bạn thân", Blue Next `->`
             bottomActionBar
+                .opacity(isDraggingTextItem ? 0.0 : 1.0)
         }
+        .animation(.easeInOut(duration: 0.2), value: isDraggingTextItem)
     }
 
     // MARK: - Right Vertical Toolbar (Collapsed / Expanded)
@@ -1636,6 +1659,83 @@ struct CreateCanvasView: View {
                     HUDManager.shared.showError("Không thể lưu: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+
+    // MARK: - Drag-To-Delete Trash Zone & Handlers
+
+    private var deleteTrashZoneView: some View {
+        GeometryReader { geo in
+            let frame = geo.frame(in: .global)
+            let center = CGPoint(x: frame.midX, y: frame.midY)
+
+            ZStack {
+                Circle()
+                    .fill(isOverTrashZone ? ColorTokens.destructive : Color.black.opacity(0.65))
+                    .frame(width: isOverTrashZone ? 64 : 54, height: isOverTrashZone ? 64 : 54)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(isOverTrashZone ? 0.9 : 0.45), lineWidth: 1.5)
+                    )
+                    .shadow(
+                        color: isOverTrashZone ? ColorTokens.destructive.opacity(0.6) : Color.black.opacity(0.35),
+                        radius: isOverTrashZone ? 14 : 6,
+                        x: 0,
+                        y: 3
+                    )
+
+                InstagramIcon(.system(name: "trash.fill"), size: isOverTrashZone ? 26 : 22, color: .white)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                trashZoneCenter = center
+            }
+            .onChange(of: frame) { _, newFrame in
+                trashZoneCenter = CGPoint(x: newFrame.midX, y: newFrame.midY)
+            }
+        }
+        .frame(width: 80, height: 80)
+    }
+
+    private func handleTextDragChanged(location: CGPoint) {
+        if !isDraggingTextItem {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                isDraggingTextItem = true
+            }
+        }
+
+        let hitDistance = hypot(location.x - trashZoneCenter.x, location.y - trashZoneCenter.y)
+        let isCurrentlyOver = hitDistance <= 52.0
+
+        if isCurrentlyOver != isOverTrashZone {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                isOverTrashZone = isCurrentlyOver
+            }
+            if isCurrentlyOver {
+                HapticFeedbackSafe.impact(.medium)
+            }
+        }
+    }
+
+    private func handleTextDragEnded(item: TextOverlayItem, location: CGPoint, translation: CGSize) {
+        let hitDistance = hypot(location.x - trashZoneCenter.x, location.y - trashZoneCenter.y)
+        let isDroppedInTrash = hitDistance <= 52.0
+
+        if isDroppedInTrash {
+            HapticFeedbackSafe.notification(.success)
+            withAnimation(.easeOut(duration: 0.2)) {
+                texts.removeAll { $0.id == item.id }
+            }
+        } else {
+            if let index = texts.firstIndex(where: { $0.id == item.id }) {
+                texts[index].offset.width += translation.width
+                texts[index].offset.height += translation.height
+            }
+        }
+
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            isDraggingTextItem = false
+            isOverTrashZone = false
         }
     }
 }
