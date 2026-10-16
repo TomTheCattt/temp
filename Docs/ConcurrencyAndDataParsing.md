@@ -971,35 +971,19 @@ init(dep: SomeMainActorClass? = nil) {
 }
 ```
 
-### 9.2 Actor → Class + NSLock (Non-Sendable Type Crossing)
+### 9.2 Actor & Modern Concurrency (Elimination of NSLock)
 
-**Vấn đề:** Actor boundary yêu cầu mọi giá trị cross boundary phải `Sendable`.
-`CIImage`, `UIImage`, `[any ImageFilter]` không conform `Sendable`.
+**Hiện đại hóa:** Dự án đã loại bỏ 100% `NSLock` để chuyển sang giải pháp chuẩn mực của Swift 6 và iOS 18+:
+- **Swift `actor`**: Cho các thành phần async (`InMemoryStorage`, `FilterThumbnailGenerator`, `PhotoLibraryService`).
+- **`OSAllocatedUnfairLock`**: Cho các critical sections đồng bộ siêu nhẹ (Mock Stores, CameraService) — bộ nhớ chỉ ~8 bytes, tốc độ 5-10 ns, tự động conform `Sendable`.
 
-| File | Trước | Sau |
-|------|-------|-----|
-| `FilterThumbnailGenerator.swift` | `actor` + `withTaskGroup` | `final class @unchecked Sendable` + `NSLock` + sequential |
-| `InMemoryStorage.swift` | `actor` | `final class @unchecked Sendable` + `NSLock` |
-
-**Pattern tổng quát:**
-```swift
-// ❌ Actor gây warning khi làm việc với non-Sendable types (CIImage, etc.)
-actor FilterThumbnailGenerator {
-    func generate(image: UIImage) async -> [Thumbnail] { // UIImage cross boundary!
-        ...
-    }
-}
-
-// ✅ Class + lock — không có boundary crossing
-final class FilterThumbnailGenerator: @unchecked Sendable {
-    private let lock = NSLock()
-    private var cache: [String: [Thumbnail]] = [:]
-
-    func generate(image: UIImage) async -> [Thumbnail] { // No boundary issue
-        ...
-    }
-}
-```
+| File | Ban đầu | Giai đoạn cũ | Hiện đại hóa (Swift 6) |
+|------|---------|--------------|------------------------|
+| `InMemoryStorage.swift` | `actor` | `class` + `NSLock` | **`actor InMemoryStorage: LocalStorageProtocol`** (Zero lock) |
+| `FilterThumbnailGenerator.swift` | `actor` + `withTaskGroup` | `class` + `NSLock` | **`actor FilterThumbnailGenerator`** (Zero lock, sequential render) |
+| `PhotoLibraryService.swift` | `class` | `class` + `NSLock` (SafeContinuation) | **`actor PhotoLibraryService`** + `OSAllocatedUnfairLock` (SafeContinuation) |
+| `Mock*DataSource.swift` | `class` | `class` + `NSLock` | **`class` + `OSAllocatedUnfairLock`** (Zero ObjC overhead) |
+| `CameraService.swift` | `class` | `class` + `NSLock` | **`class` + `OSAllocatedUnfairLock`** (Zero micro-stalls) |
 
 ### 9.3 Static Property Concurrency Safety
 

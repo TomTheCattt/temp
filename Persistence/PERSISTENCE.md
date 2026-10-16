@@ -58,7 +58,7 @@ Implementation đơn giản lưu trữ trong RAM. Dùng cho:
 - SwiftUI Previews
 - Development trước khi SwiftData models sẵn sàng
 
-**Thread safety:** `NSLock` bảo vệ mọi read/write — tránh actor-isolation crossing warnings khi dùng từ `@MainActor`.
+**Thread safety:** `actor InMemoryStorage` — Thread-safe tuyệt đối nhờ Swift actor isolation, loại bỏ hoàn toàn `@unchecked Sendable` và lock thủ công.
 
 **Behavior:**
 - `save()` — upsert (update nếu tồn tại, insert nếu chưa)

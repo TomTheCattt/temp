@@ -245,7 +245,7 @@ struct PersistentStoryTextView: UIViewRepresentable {
 
         if isEditingLocked {
             DispatchQueue.main.async {
-                textView.becomeFirstResponder()
+                let _ = textView.becomeFirstResponder()
             }
         }
         return textView
@@ -272,13 +272,13 @@ struct PersistentStoryTextView: UIViewRepresentable {
             uiView.shouldAllowResign = false
             if !uiView.isFirstResponder {
                 DispatchQueue.main.async {
-                    uiView.becomeFirstResponder()
+                    let _ = uiView.becomeFirstResponder()
                 }
             }
         } else {
             uiView.shouldAllowResign = true
             if uiView.isFirstResponder {
-                uiView.resignFirstResponder()
+                let _ = uiView.resignFirstResponder()
             }
         }
     }
