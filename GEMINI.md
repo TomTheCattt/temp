@@ -8,8 +8,11 @@
 1. **Zero Memory Leak & OOM Prevention**:
    - Mọi vòng lặp xử lý hình ảnh, video frames (`AVAssetWriter`), hoặc nén dữ liệu lặp đi lặp lại phải được bọc trong `@autoreleasepool { ... }` để giải phóng bộ nhớ ngay lập tức sau mỗi chu kỳ.
    - Bắt buộc tái sử dụng buffer qua `CVPixelBufferPool` khi render video, nghiêm cấm cấp phát mới (alloc) bộ nhớ liên tục trong render loop.
-2. **Non-blocking UI & Multi-threading**:
-   - Toàn bộ tác vụ nặng (tách nền Vision, encode video, xử lý CoreImage/Filter, giải nén ảnh lớn, render composite) phải được điều hướng sang background queue (`qos: .userInitiated`).
+2. **Non-blocking UI & Modern Concurrency (Task, Combine, Async/Await)**:
+   - Ưu tiên tuyệt đối các giải pháp hiện đại của Swift: `async/await`, `Task`, `TaskGroup`, `actor`, `@MainActor`, `AsyncStream`, và `Combine` (`AnyCancellable`, Publishers) thay thế hoàn toàn cho GCD cũ kỹ (`DispatchQueue`, semaphore, completion callbacks lồng nhau).
+   - Bảo vệ trạng thái chia sẻ (thread safety) qua `actor` để loại bỏ data races ở cấp độ compile-time của Swift 6.
+   - Luôn đảm bảo ViewModels và mọi thao tác cập nhật giao diện người dùng (UI) được đánh dấu `@MainActor`.
+   - Hỗ trợ Cooperative Cancellation: Luôn hủy `Task` hoặc `cancellables` khi view biến mất (`onDisappear` / `deinit`) để tiết kiệm CPU và pin.
    - Giữ Main Thread hoàn toàn thông thoáng để duy trì tần số quét 60/120 FPS ProMotion.
 3. **Memory Capping & Safe Image Downsampling**:
    - Khi nhận ảnh từ người dùng hoặc camera, luôn nén và downsample ảnh về kích thước hiển thị mục tiêu (ví dụ: tối đa 1080px đối với sticker/feed) bằng `CGImageSourceCreateThumbnailAtIndex` trước khi lưu vào RAM. Không giữ nguyên ảnh gốc 48MP/20MB trong bộ nhớ.
@@ -117,9 +120,11 @@
    - Tại sao lại chọn cấu trúc / pattern này thay vì giải pháp khác?
    - Mã nguồn có tuân thủ nghiêm ngặt ranh giới Clean Architecture (`Presentations → Domain ← Data`) không? Có lạm dụng `@ObservedObject` / `@State` hay logic bị rò rỉ vào tầng hiển thị không?
    - Cách viết này có tự nhiên, thanh lịch (Idiomatic Swift 6 / SwiftUI) và dễ bảo trì lâu dài không?
-2. **Code Đã Được Tối Ưu Tối Đa Chưa? (Deep Performance & Memory Optimization)**:
+2. **Code Đã Được Tối Ưu Tối Đa Chưa? (Deep Performance & Modern Concurrency)**:
+   - Đã ưu tiên sử dụng `async/await`, `Task`, `@MainActor`, `actor`, `Combine` thay vì GCD `DispatchQueue` cũ kỹ chưa?
+   - Đã xử lý hủy tác vụ (Task cancellation / `AnyCancellable`) khi view biến mất để chống rò rỉ tài nguyên chưa?
    - Có tạo object / closure / modifier dư thừa làm re-trigger SwiftUI view body hoặc re-layout không?
-   - Các tác vụ tính toán, parsing, filter, hoặc xử lý đồ họa / video đã được đưa vào background thread hoặc dùng cấu trúc dữ liệu tối ưu ($O(1)$, $O(n)$) chưa?
+   - Các tác vụ tính toán, parsing, filter, hoặc xử lý đồ họa / video đã được đưa vào background actor/Task chưa?
    - Đã kiểm soát bộ nhớ triệt để: bọc `@autoreleasepool` khi cần, xử lý `[weak self]` tránh retain cycle, dùng buffer pool / thumbnail downsampling chưa?
 3. **Code Có Bị Thừa / Lặp Không? (Zero Duplication & DRY)**:
    - Logic, modifier, animation, hoặc UI snippet này đã tồn tại ở đâu trong codebase chưa? Có thể tái sử dụng token (`DS.*`), atomic component (`InstagramButton`, `InstagramAvatarView`), hoặc Core Utilities không?

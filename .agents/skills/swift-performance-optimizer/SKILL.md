@@ -23,10 +23,19 @@ This skill equips the agent with high-performance Swift / iOS engineering patter
 - **Safe Image Downsampling**: Never decode full-resolution images (e.g., 48MP/20MB) into memory. Always downsample images to the target display resolution using `CGImageSourceCreateThumbnailAtIndex` before setting them to SwiftUI / UIKit views.
 - **Strict Retain Cycle Prevention**: Always capture `[weak self]` in closures, escaping completions, delegates, and Combine / AsyncStream pipelines to prevent memory leaks.
 
-### B. Main Thread Protection & Smooth Concurrency
-- **Non-blocking UI**: Offload heavy computational tasks (Vision person segmentation, image filtering with CoreImage, video transcoding, crypto hashing) to background queues (`qos: .userInitiated` or custom Swift Concurrency Tasks/Actors).
-- **ProMotion 120 FPS / 60 FPS Guarantee**: Ensure the Main Thread remains purely responsive for touch events, gestures, and layout updates.
-- **Shared Graphics Context**: Reuse graphics contexts (e.g., `CIContext`, `MTLDevice`, `MTLCommandQueue`) as singletons instead of recreating them on every render call.
+### B. Main Thread Protection & Modern Concurrency (Task, Combine, Async/Await)
+- **Prioritize Modern Concurrency Over Legacy GCD**:
+  - Always prefer `async/await`, `Task`, `TaskGroup`, `actor`, `@MainActor`, and `AsyncStream` (or `Combine` publishers) over legacy `DispatchQueue.global().async`, callbacks with completions, and blocking semaphores.
+  - Isolate mutable shared state within `actor` types to eliminate data races at compile time under Swift 6 strict concurrency.
+  - Route all UI updates explicitly to `@MainActor` (e.g. `@MainActor final class ViewModel: ObservableObject`).
+- **Structured Concurrency & Cooperative Cancellation**:
+  - Always store ongoing asynchronous work in `Task<Void, Never>?` or `Set<AnyCancellable>` and cancel them in `.onDisappear` or `deinit`.
+  - Periodically check `Task.isCancelled` or `try Task.checkCancellation()` in loops to abort discarded work immediately and conserve battery/CPU.
+- **Non-blocking UI & ProMotion 120 FPS / 60 FPS Guarantee**:
+  - Offload heavy computational tasks (Vision segmentation, CoreImage filters, video compression, hashing) to background `Task.detached(priority: .userInitiated)` or dedicated actors.
+  - Keep the Main Thread completely free for touch responsiveness, gestures, and 60/120 FPS animations.
+- **Shared Graphics Context**:
+  - Reuse graphics contexts (e.g., `CIContext`, `MTLDevice`, `MTLCommandQueue`) as singletons instead of recreating them on every render call.
 
 ### C. SwiftUI & Layout Efficiency
 - **Prevent Unnecessary Body Re-evaluation**: Split views into small, focused subviews. Avoid passing unnecessary state dependencies or computing complex properties inside `var body: some View`.
