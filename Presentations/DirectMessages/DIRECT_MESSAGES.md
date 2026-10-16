@@ -14,11 +14,12 @@ Module hiển thị danh sách tất cả conversations (hội thoại) của us
 
 ## Tính năng chính
 
-- **Tab 3 trong MainTabView**: Đóng vai trò là Tab Chat với icon máy bay giấy (`paperplane` / `paperplane.fill`), tích hợp **Badge đỏ hiển thị số tin nhắn chưa đọc** (`.badge(appState.unreadChatCount)`), tự động ẩn khi không còn tin chưa đọc.
-- **Đồng bộ thời gian thực 2 chiều (Real-Time 2-Way Sync)**:
-  - Khi gửi tin nhắn từ màn hình `ChatView`: Hội thoại tương ứng tự động cập nhật tin nhắn cuối (`lastMessage`) và được đưa lên đỉnh danh sách (`index = 0`) ngay lập tức mà không cần kéo refresh.
-  - Khi có tin nhắn đến qua WebSocket: Tự động cập nhật nội dung tin nhắn cuối, đưa hội thoại lên đầu, và tăng badge chưa đọc.
-  - Khi người dùng vào `ChatView` và xem tin: `unreadCount` tự động xóa về 0 và đồng bộ ngay sang `DirectMessagesView` cũng như Tab Bar badge.
+- **Tab 3 trong MainTabView**: Đóng vai trò là Tab Chat với icon máy bay giấy (`paperplane` / `paperplane.fill`), tích hợp **Badge đỏ hiển thị số cuộc hội thoại chưa đọc** (`.badge(appState.unreadChatCount)`), chuẩn 1:1 Instagram iOS HIG (đếm số cuộc trò chuyện có tin nhắn chưa đọc thay vì đếm số tin nhắn lẻ), tự động ẩn khi không còn cuộc trò chuyện chưa đọc.
+- **Đồng bộ thời gian thực 2 chiều & Cold Start**:
+  - Khi mở app (Cold Start): `MainTabView` tự động gọi `loadInitialUnreadBadge()` nạp chính xác số cuộc trò chuyện chưa đọc từ `MessageRepositoryProtocol`.
+  - Khi gửi/nhận tin nhắn hoặc cuộc gọi nhỡ: Cập nhật `lastMessage`, đưa hội thoại lên đầu, và cập nhật badge tức thì.
+  - Khi người dùng vào `ChatView` và xem tin: `unreadCount` tự động xóa về 0, đồng bộ ngay sang badge tab bar và `UIApplication.shared.applicationIconBadgeNumber`.
+  - Khi toggle "Đánh dấu chưa đọc / đã đọc" qua Context Menu: Gọi trực tiếp xuống `markAsUnread` / `markAsRead` trên repository để cập nhật badge ngay lập tức.
 - **Custom Navigation Bar**: Nút Center hiển thị Username current user kèm dropdown chevron, nút Trailing là nút soạn tin nhắn mới (`square.and.pencil`) mở `NewMessageSheet`. Không áp dụng hiệu ứng blur.
 - **Instagram Notes Carousel**: Thanh ngang danh sách "Ghi chú" (Notes) 24h trên cùng với bubble suy nghĩ (tối đa 60 ký tự), hỗ trợ thêm/sửa ghi chú của bản thân và xem ghi chú của bạn bè.
 - **Search Bar Capsule**: Ô tìm kiếm bo tròn tìm nhanh bạn bè và hội thoại với hiệu ứng clear text và animation mượt mà.

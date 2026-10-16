@@ -79,15 +79,18 @@ struct MainTabView: View {
             fullScreenContent(fullScreen)
         }
         .overlay(alignment: .top) {
-            if shouldShowOngoingCallBanner {
-                InAppOngoingCallBanner()
-                    .padding(.top, DS.Spacing.xs)
+            if let call = currentCall, callState.isActive, !isCallViewPresented {
+                InAppOngoingCallBanner(call: call, callState: callState)
                     .padding(.horizontal, DS.Spacing.md)
+                    .safeAreaPadding(.top)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(100)
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: shouldShowOngoingCallBanner)
+        .task {
+            await loadInitialUnreadBadge()
+        }
         .onReceive(CallService.shared.currentCallPublisher) { call in
             self.currentCall = call
         }
@@ -384,14 +387,29 @@ struct MainTabView: View {
         case .creationHub(let mode):
             UnifiedCreationHubView(initialMode: mode)
 
-        case .call(let userId, let userName, let hasVideo):
+        case .call(let userId, let userName, let avatarURL, let hasVideo):
             CallView(
                 viewModel: CallViewModel(
                     remoteUserId: userId,
                     remoteName: userName,
+                    remoteAvatarURL: avatarURL,
                     hasVideo: hasVideo
                 )
             )
+        }
+    }
+
+    // MARK: - Badge Sync
+
+    private func loadInitialUnreadBadge() async {
+        let repo = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+        if let count = try? await repo.getUnreadConversationsCount() {
+            await MainActor.run {
+                appState.setUnreadChatCount(count)
+                #if !targetEnvironment(simulator)
+                UIApplication.shared.applicationIconBadgeNumber = count
+                #endif
+            }
         }
     }
 

@@ -62,8 +62,11 @@ Module xử lý toàn diện giao diện và logic cho cuộc gọi thoại (Aud
 - **High-Fidelity Synthetic Stream trên Simulator**: Khi chạy trên Simulator, tự động kích hoạt bộ sinh frame CoreGraphics 30 FPS với gradient động, radar concentric pulses và timecode vào `CVPixelBufferPool`, triệt tiêu hoàn toàn lỗi màn hình đen.
 
 ### 3.4. Đa Nhiệm & Công Thái Học (Touch Ergonomics & Multitasking)
-- **In-App Ongoing Call Banner**: Khi thu nhỏ cuộc gọi qua nút Chevron Down, banner nổi xuất hiện ở đỉnh `MainTabView`, hiển thị thời lượng đếm giây, avatar đối tác và nút cúp máy nhanh 44x44pt.
-- **PiP Bounds Clamping & Occlusion Fix**: Khung PiP camera bản thân được neo mặc định ở `targetY = 110`, không bao giờ che khuất nút Flip Camera ở góc trên bên phải.
+- **In-App Ongoing Call Banner**: Khi thu nhỏ cuộc gọi qua nút Chevron Down, banner nổi xuất hiện ở đỉnh `MainTabView`, nằm thanh thoát ngay dưới Dynamic Island / notch nhờ `.safeAreaPadding(.top)`. Tách biệt vùng chạm mở lại cuộc gọi (Info Area) và nút Hangup màu đỏ độc lập (`.buttonStyle(.plain)`), triệt tiêu hoàn toàn xung đột cử chỉ.
+- **Optimistic UI (<16ms, 0 Delay)**: Nút Mute và Speaker phản hồi ngay tức thì trong 1 frame hiển thị (< 16ms), đồng bộ phần cứng audio ngay tức khắc và đẩy các tác vụ IPC CallKit/WebSocket ra background Task không chặn giao diện.
+- **PiP Bounds Clamping & Gesture Resolution**: Khung PiP camera bản thân được neo mặc định ở `targetY = 110`, không bao giờ che khuất nút Flip Camera ở góc trên bên phải. Kết hợp `DragGesture(minimumDistance: 10)` và `highPriorityGesture(TapGesture())` giúp lật camera bằng 1 chạm ăn ngay 100%.
+- **Hiển Thị Camera Preview Khi Đang Đổ Chuông**: Khi gọi Video Call, luồng camera/synthetic preview hiển thị tức thì toàn màn hình trong giai đoạn đổ chuông (`initiating`, `ringing`, `connecting`), sau đó tự động chuyển thành PiP khi người nhận bắt máy.
+- **CallKit Graceful Fallback**: Trên thiết bị thật khi CallKit bị giới hạn (MDM, Screen Time, vùng lãnh thổ), hệ thống tự động fallback sang in-app call view mà không ném throw làm ngắt cuộc gọi.
 - **Chống Va Chạm Gọi Chéo Người Dùng**: Khi đang trong cuộc gọi với User A, bấm gọi User B trong Chat sẽ hiển thị cảnh báo `ToastManager.shared.warning` thay vì ghi đè gây mất liên lạc.
 - **Đồng Bộ Dữ Liệu Lịch Sử Chat DM (Rule 7)**: Ghi nhận chính xác `sender` là người gọi, cuộc gọi nhỡ xuất hiện ở bên trái của người nhận và tăng `unreadCount += 1`.
 

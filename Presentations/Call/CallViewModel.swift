@@ -45,6 +45,7 @@ final class CallViewModel {
 
     let remoteUserId: String
     let remoteName: String
+    let remoteAvatarURL: URL?
 
     // MARK: - Publishers for View
 
@@ -74,12 +75,14 @@ final class CallViewModel {
     init(
         remoteUserId: String,
         remoteName: String,
+        remoteAvatarURL: URL? = nil,
         hasVideo: Bool,
         callService: CallService? = nil,
         pipeline: CallMediaPipelineProtocol? = nil
     ) {
         self.remoteUserId = remoteUserId
         self.remoteName = remoteName
+        self.remoteAvatarURL = remoteAvatarURL
         self.hasVideo = hasVideo
         // Standard Instagram video call defaults to speaker output
         if hasVideo {
@@ -101,11 +104,14 @@ final class CallViewModel {
     deinit {
         taskCoordinator.cancelAll()
         let localPipeline = pipeline
+        let localCallService = callService
         Task { @MainActor in
             UIDevice.current.isProximityMonitoringEnabled = false
             UIApplication.shared.isIdleTimerDisabled = false
-            localPipeline.stopVideo()
-            localPipeline.stopAudio()
+            if !localCallService.currentCallState.isActive {
+                localPipeline.stopVideo()
+                localPipeline.stopAudio()
+            }
         }
     }
 
@@ -123,6 +129,7 @@ final class CallViewModel {
             try await callService.initiateCall(
                 to: remoteUserId,
                 name: remoteName,
+                avatarURL: remoteAvatarURL,
                 hasVideo: hasVideo
             )
             // Start audio & video capture for outgoing call
@@ -162,19 +169,23 @@ final class CallViewModel {
         try? await callService.hangup()
     }
 
-    func toggleMute() async {
+    func toggleMute() {
         HapticFeedbackSafe.selection()
-        try? await callService.toggleMute()
-        isMuted = callService.currentCall?.isMuted ?? false
+        isMuted.toggle()
         pipeline.setMuted(isMuted)
+        Task {
+            try? await callService.toggleMute()
+        }
     }
 
-    func toggleSpeaker() async {
+    func toggleSpeaker() {
         HapticFeedbackSafe.selection()
-        try? await callService.toggleSpeaker()
-        isSpeakerOn = callService.currentCall?.isSpeakerOn ?? false
+        isSpeakerOn.toggle()
         pipeline.setSpeaker(isSpeakerOn)
         updateProximitySensor()
+        Task {
+            try? await callService.toggleSpeaker()
+        }
     }
 
     func flipCamera() {
@@ -214,7 +225,12 @@ final class CallViewModel {
     }
 
     func dismissCall() {
-        cleanupSensorsAndCamera()
+        UIDevice.current.isProximityMonitoringEnabled = false
+        UIApplication.shared.isIdleTimerDisabled = false
+        if !callState.isActive {
+            pipeline.stopVideo()
+            pipeline.stopAudio()
+        }
         shouldDismiss = true
         AppRouter.shared.dismiss()
     }
@@ -256,7 +272,27 @@ final class CallViewModel {
 
     private func handleStateChange(_ state: CallState) {
         switch state {
+        case .ringing:
+            if callService.currentCall?.isOutgoing == true {
+                pipeline.startRingbackTone()
+            }
+            updateProximitySensor()
+            updateIdleTimer()
+
+        case .incomingRinging:
+            pipeline.startIncomingRingtone()
+            updateProximitySensor()
+            updateIdleTimer()
+
+        case .connecting:
+            pipeline.stopRingbackTone()
+            pipeline.stopIncomingRingtone()
+            updateProximitySensor()
+            updateIdleTimer()
+
         case .connected:
+            pipeline.stopRingbackTone()
+            pipeline.stopIncomingRingtone()
             HapticFeedbackSafe.impact(.medium)
             startDurationTimer()
             updateProximitySensor()
@@ -271,12 +307,16 @@ final class CallViewModel {
             }
 
         case .ended:
+            pipeline.stopRingbackTone()
+            pipeline.stopIncomingRingtone()
             HapticFeedbackSafe.notification(.warning)
             stopDurationTimer()
             cleanupSensorsAndCamera()
             scheduleAutoDismiss()
 
         default:
+            pipeline.stopRingbackTone()
+            pipeline.stopIncomingRingtone()
             updateProximitySensor()
             updateIdleTimer()
         }

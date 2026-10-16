@@ -153,13 +153,7 @@ final class CallManager: NSObject, @unchecked Sendable {
             try await callController.request(transaction)
             logger.info("Started outgoing call to \(remoteName)")
         } catch {
-            logger.notice("CallKit startOutgoingCall warning: \(error.localizedDescription)")
-            #if targetEnvironment(simulator)
-            // On simulator, CallKit provider may fail; bypass error so in-app call view works seamlessly
-            logger.info("Simulator fallback: proceeding with in-app call flow")
-            #else
-            throw error
-            #endif
+            logger.notice("CallKit startOutgoingCall warning (\(error.localizedDescription)); proceeding with in-app call flow")
         }
     }
 

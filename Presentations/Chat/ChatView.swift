@@ -202,11 +202,12 @@ struct ChatView: View {
         HapticFeedbackSafe.impact(.medium)
         let targetId = viewModel.recipient?.id ?? viewModel.conversationId
         let targetName = viewModel.recipient?.username ?? "User"
+        let avatarURL = viewModel.recipient?.avatarURL
 
         if CallService.shared.currentCallState.isActive {
             if let currentCall = CallService.shared.currentCall, currentCall.remoteUserId == targetId {
                 // Same participant: reopen call screen
-                AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: currentCall.hasVideo))
+                AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, avatarURL: avatarURL, hasVideo: currentCall.hasVideo))
             } else {
                 // Different call in progress: warn user
                 ToastManager.shared.warning(L10n.Call.alreadyInCall)
@@ -214,7 +215,7 @@ struct ChatView: View {
             return
         }
 
-        AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: hasVideo))
+        AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, avatarURL: avatarURL, hasVideo: hasVideo))
     }
 
     // MARK: - Conversation Starter Banner

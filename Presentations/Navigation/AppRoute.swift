@@ -150,7 +150,7 @@ enum AppFullScreen: Identifiable {
     case createStory
     case createReel
     case creationHub(initialMode: CreationHubMode = .post)
-    case call(userId: String, userName: String, hasVideo: Bool)
+    case call(userId: String, userName: String, avatarURL: URL? = nil, hasVideo: Bool)
 
     var id: String {
         switch self {
@@ -163,7 +163,7 @@ enum AppFullScreen: Identifiable {
         case .createStory:                     return "createStory"
         case .createReel:                      return "createReel"
         case .creationHub(let mode):           return "creationHub_\(mode.rawValue)"
-        case .call(let id, _, _):              return "call_\(id)"
+        case .call(let id, _, _, _):           return "call_\(id)"
         }
     }
 }

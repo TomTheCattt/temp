@@ -95,7 +95,7 @@ final class CallAudioEngineController: @unchecked Sendable {
         try session.setCategory(
             .playAndRecord,
             mode: .voiceChat,
-            options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay, .defaultToSpeaker]
+            options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
         )
         try session.setActive(true, options: .notifyOthersOnDeactivation)
 

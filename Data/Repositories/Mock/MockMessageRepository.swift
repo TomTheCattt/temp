@@ -34,6 +34,14 @@ final class MockMessageRepository: MessageRepositoryProtocol, @unchecked Sendabl
         try await dataSource.markAsRead(conversationId: conversationId)
     }
 
+    func markAsUnread(conversationId: String) async throws {
+        try await dataSource.markAsUnread(conversationId: conversationId)
+    }
+
+    func getUnreadConversationsCount() async throws -> Int {
+        await dataSource.getUnreadConversationsCount()
+    }
+
     func deleteMessage(id: String) async throws {
         try await dataSource.deleteMessage(id: id)
     }

@@ -41,6 +41,15 @@ final class SampleBufferContainerView: UIView {
 
     /// Safely enqueues a new video CMSampleBuffer to hardware display layer.
     func enqueue(_ sampleBuffer: CMSampleBuffer) {
+        if let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: true) {
+            let dict = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
+            CFDictionarySetValue(
+                dict,
+                unsafeBitCast(kCMSampleAttachmentKey_DisplayImmediately, to: UnsafeRawPointer.self),
+                unsafeBitCast(kCFBooleanTrue, to: UnsafeRawPointer.self)
+            )
+        }
+
         if #available(iOS 17.0, *) {
             let renderer = sampleBufferLayer.sampleBufferRenderer
             if renderer.status == .failed {

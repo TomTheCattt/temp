@@ -168,6 +168,13 @@ final class DirectMessagesViewModel {
             updatedAt: current.updatedAt,
             isMuted: current.isMuted
         )
+        Task {
+            if newCount == 0 {
+                try? await messageRepository.markAsRead(conversationId: id)
+            } else {
+                try? await messageRepository.markAsUnread(conversationId: id)
+            }
+        }
     }
 
     func addOrUpdateNote(text: String) {

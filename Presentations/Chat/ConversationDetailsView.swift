@@ -166,7 +166,7 @@ struct ConversationDetailsView: View {
         if CallService.shared.currentCallState.isActive {
             if let currentCall = CallService.shared.currentCall, currentCall.remoteUserId == user.id {
                 // Same participant: reopen call screen
-                AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: currentCall.hasVideo))
+                AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, avatarURL: user.avatarURL, hasVideo: currentCall.hasVideo))
             } else {
                 // Different call in progress: warn user
                 ToastManager.shared.warning(L10n.Call.alreadyInCall)
@@ -174,7 +174,7 @@ struct ConversationDetailsView: View {
             return
         }
 
-        AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: hasVideo))
+        AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, avatarURL: user.avatarURL, hasVideo: hasVideo))
     }
 
     // MARK: - Notifications Section

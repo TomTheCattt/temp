@@ -51,12 +51,19 @@ protocol CallServiceProtocol: AnyObject, Sendable {
     var currentCall: ActiveCall? { get }
 
     func initiateCall(to userId: String, name: String, hasVideo: Bool) async throws
+    func initiateCall(to userId: String, name: String, avatarURL: URL?, hasVideo: Bool) async throws
     func acceptIncomingCall() async throws
     func rejectIncomingCall() async throws
     func hangup() async throws
     func toggleMute() async throws
     func toggleSpeaker() async throws
     func upgradeToVideo() async throws
+}
+
+extension CallServiceProtocol {
+    func initiateCall(to userId: String, name: String, hasVideo: Bool) async throws {
+        try await initiateCall(to: userId, name: name, avatarURL: nil, hasVideo: hasVideo)
+    }
 }
 
 // MARK: - ActiveCall
@@ -67,6 +74,7 @@ struct ActiveCall: Sendable {
     let uuid: UUID
     let remoteUserId: String
     let remoteName: String
+    var remoteAvatarURL: URL? = nil
     var hasVideo: Bool
     let isOutgoing: Bool
     let startedAt: Date
@@ -162,7 +170,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
     // MARK: - Outgoing Call
 
-    func initiateCall(to userId: String, name: String, hasVideo: Bool) async throws {
+    func initiateCall(to userId: String, name: String, avatarURL: URL? = nil, hasVideo: Bool) async throws {
         guard currentCallState == .idle || !currentCallState.isActive else {
             throw CallServiceError.callAlreadyInProgress
         }
@@ -175,6 +183,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             uuid: uuid,
             remoteUserId: userId,
             remoteName: name,
+            remoteAvatarURL: avatarURL,
             hasVideo: hasVideo,
             isOutgoing: true,
             startedAt: Date()
@@ -390,7 +399,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Handle Incoming Call (from WebSocket/Push)
 
     /// Called when a call signal arrives (via WebSocket or VoIP push).
-    func handleIncomingCall(signal: CallSignal, callerName: String, uuid: UUID? = nil) async {
+    func handleIncomingCall(signal: CallSignal, callerName: String, avatarURL: URL? = nil, uuid: UUID? = nil) async {
         guard currentCallState == .idle || !currentCallState.isActive else {
             // Already in an active call — send busy
             let currentUserId = SessionStore.shared.currentUserId
@@ -406,6 +415,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             uuid: callUUID,
             remoteUserId: signal.fromUserId,
             remoteName: callerName,
+            remoteAvatarURL: avatarURL,
             hasVideo: signal.callType == .video,
             isOutgoing: false,
             startedAt: Date()
@@ -442,6 +452,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             fullScreen: .call(
                 userId: signal.fromUserId,
                 userName: callerName,
+                avatarURL: avatarURL,
                 hasVideo: signal.callType == .video
             )
         )

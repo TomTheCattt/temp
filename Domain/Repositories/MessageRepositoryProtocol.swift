@@ -26,6 +26,12 @@ protocol MessageRepositoryProtocol: Sendable {
     /// Mark messages as read.
     func markAsRead(conversationId: String) async throws
 
+    /// Mark a conversation as unread.
+    func markAsUnread(conversationId: String) async throws
+
+    /// Get total number of unread conversations.
+    func getUnreadConversationsCount() async throws -> Int
+
     /// Delete a message.
     func deleteMessage(id: String) async throws
 
@@ -53,5 +59,11 @@ extension MessageRepositoryProtocol {
     func fetchNotes() async throws -> [InstagramNote] {
         return []
     }
+
+    func getUnreadConversationsCount() async throws -> Int {
+        return 0
+    }
+
+    func markAsUnread(conversationId: String) async throws {}
 }
 

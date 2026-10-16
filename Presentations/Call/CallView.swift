@@ -135,6 +135,11 @@ struct CallView: View {
         Group {
             if viewModel.hasVideo && viewModel.callState == .connected {
                 remoteVideoView(geometry: geometry)
+            } else if viewModel.hasVideo && (viewModel.callState == .initiating || viewModel.callState == .ringing || viewModel.callState == .connecting) {
+                // Show local camera stream as background preview during outgoing ringing
+                SampleBufferVideoView(sampleBufferPublisher: viewModel.localSampleBufferPublisher)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
             } else {
                 ambientAudioBackground(geometry: geometry)
             }
@@ -148,7 +153,7 @@ struct CallView: View {
             Color.black
 
             // Ambient blurred caller avatar
-            LazyImage(url: URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
+            LazyImage(url: viewModel.remoteAvatarURL ?? URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
                 if let image = state.image {
                     image.resizable()
                         .aspectRatio(contentMode: .fill)
@@ -194,7 +199,7 @@ struct CallView: View {
                 )
 
                 // Caller Avatar
-                LazyImage(url: URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
+                LazyImage(url: viewModel.remoteAvatarURL ?? URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
                     if let image = state.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
@@ -311,7 +316,7 @@ struct CallView: View {
             y: pipOffset.height + pipDragTranslation.height + pipHeight / 2
         )
         .gesture(
-            DragGesture()
+            DragGesture(minimumDistance: 10)
                 .onChanged { value in
                     pipDragTranslation = value.translation
                 }
@@ -319,16 +324,18 @@ struct CallView: View {
                     snapPipToCorner(translation: value.translation, in: geometry)
                 }
         )
-        .onTapGesture {
-            viewModel.flipCamera()
-        }
+        .highPriorityGesture(
+            TapGesture().onEnded {
+                viewModel.flipCamera()
+            }
+        )
     }
 
     private func initializePipPosition(in geometry: GeometryProxy) {
-        guard !isPipPositionInitialized else { return }
+        guard !isPipPositionInitialized, geometry.size.width > 0 else { return }
         isPipPositionInitialized = true
         // Default: Top right corner, placed below TopBar (targetY: 110) to never overlap the Flip Camera button
-        let targetX = geometry.size.width - DS.Size.pipWidth - 16
+        let targetX = max(16, geometry.size.width - DS.Size.pipWidth - 16)
         let targetY: CGFloat = 110
         pipOffset = CGSize(width: targetX, height: targetY)
     }
@@ -404,7 +411,7 @@ struct CallView: View {
                     label: L10n.Call.mute,
                     isActive: viewModel.isMuted
                 ) {
-                    Task { await viewModel.toggleMute() }
+                    viewModel.toggleMute()
                 }
 
                 // Speaker Toggle
@@ -413,7 +420,7 @@ struct CallView: View {
                     label: L10n.Call.speaker,
                     isActive: viewModel.isSpeakerOn
                 ) {
-                    Task { await viewModel.toggleSpeaker() }
+                    viewModel.toggleSpeaker()
                 }
 
                 if viewModel.hasVideo {

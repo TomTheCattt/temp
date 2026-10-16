@@ -246,6 +246,34 @@ actor MockMessageDataSource {
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
 
+    func markAsUnread(conversationId: String) async throws {
+        try await simulateDelay(seconds: 0.05)
+
+        if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
+            let existing = inMemoryConversations[index]
+            if existing.unreadCount == 0 {
+                inMemoryConversations[index] = Conversation(
+                    id: existing.id,
+                    participants: existing.participants,
+                    lastMessage: existing.lastMessage,
+                    unreadCount: 1,
+                    isGroup: existing.isGroup,
+                    groupName: existing.groupName,
+                    groupAvatarURL: existing.groupAvatarURL,
+                    updatedAt: existing.updatedAt,
+                    isMuted: existing.isMuted
+                )
+            }
+        }
+
+        updateTotalUnreadState()
+        NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+    }
+
+    func getUnreadConversationsCount() -> Int {
+        inMemoryConversations.filter { $0.unreadCount > 0 }.count
+    }
+
     func createConversation(participantIds: [String]) async throws -> Conversation {
         try await simulateDelay(seconds: 0.1)
         let participants = participantIds.compactMap { id in
@@ -519,10 +547,13 @@ actor MockMessageDataSource {
     }
 
     private func updateTotalUnreadState() {
-        let total = inMemoryConversations.reduce(0) { $0 + $1.unreadCount }
+        let unreadConversations = inMemoryConversations.filter { $0.unreadCount > 0 }.count
 
         Task { @MainActor in
-            AppState.shared.setUnreadChatCount(total)
+            AppState.shared.setUnreadChatCount(unreadConversations)
+            #if !targetEnvironment(simulator)
+            UIApplication.shared.applicationIconBadgeNumber = unreadConversations
+            #endif
         }
     }
 
