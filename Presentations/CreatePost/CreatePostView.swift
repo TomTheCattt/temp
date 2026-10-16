@@ -249,7 +249,7 @@ struct CreatePostView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, DS.Spacing.sm)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, DS.Spacing.iconGap)
                     .background(Color.black.opacity(0.6), in: Capsule())
                 }
 
@@ -304,10 +304,10 @@ struct CreatePostView: View {
                             .fontWeight(.bold)
                     }
                     .foregroundStyle(viewModel.isMultiSelectEnabled ? .white : .primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, DS.Spacing.inputVertical)
+                    .padding(.vertical, DS.Spacing.iconGap)
                     .background(
-                        viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : Color(.systemGray6),
+                        viewModel.isMultiSelectEnabled ? ColorTokens.accentPrimary : ColorTokens.buttonSecondary,
                         in: Capsule()
                     )
                 }
@@ -366,7 +366,7 @@ struct CreatePostView: View {
                     }
                 }
             }
-            .padding(.bottom, 64)
+            .padding(.bottom, DS.Size.avatarLarge)
         }
         .background(Color(.systemBackground))
     }
@@ -489,8 +489,8 @@ struct CreatePostView: View {
                                 .foregroundStyle(.white)
                         }
                     }
-                    .padding(.leading, 6)
-                    .padding(.trailing, 10)
+                    .padding(.leading, DS.Spacing.iconGap)
+                    .padding(.trailing, DS.Spacing.inputVertical)
                     .frame(height: Constants.audioPillHeight)
                     .background(Color.black.opacity(Constants.darkControlBackgroundOpacity), in: Capsule())
                     .overlay(
@@ -575,7 +575,7 @@ struct CreatePostView: View {
                             .frame(width: Constants.pageDotSize, height: Constants.pageDotSize)
                     }
                 }
-                .padding(.top, 4)
+                .padding(.top, DS.Spacing.xxs)
             }
         }
     }
@@ -1052,11 +1052,11 @@ struct AssetThumbnailCell: View {
                         Text(asset.formattedDuration)
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, DS.Spacing.xxs)
+                            .padding(.vertical, DS.Spacing.xxxs)
                             .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 3))
                     }
-                    .padding(3)
+                    .padding(DS.Spacing.xxxs)
                 }
             }
 
@@ -1081,7 +1081,7 @@ struct AssetThumbnailCell: View {
                             .frame(width: 22, height: 22)
                     }
                 }
-                .padding(4)
+                .padding(DS.Spacing.xxs)
             }
         }
         .task {

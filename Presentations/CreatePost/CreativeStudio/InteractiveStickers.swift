@@ -69,8 +69,8 @@ public struct PollStickerView: View {
                 .font(.system(size: 17, weight: .bold))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.black)
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
+                .padding(.horizontal, DS.Spacing.formGap)
+                .padding(.top, DS.Spacing.formGap)
 
             HStack(spacing: 8) {
                 // Option A
@@ -97,7 +97,7 @@ public struct PollStickerView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, DS.Spacing.formGap)
                     }
                     .frame(height: 44)
                 }
@@ -127,14 +127,14 @@ public struct PollStickerView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, DS.Spacing.formGap)
                     }
                     .frame(height: 44)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+            .padding(.horizontal, DS.Spacing.sm)
+            .padding(.bottom, DS.Spacing.sm)
         }
         .frame(width: 280)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
@@ -173,8 +173,8 @@ public struct LinkInputDialog: View {
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .padding(14)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(DS.Spacing.formGap)
+                    .background(ColorTokens.backgroundSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.large))
 
                 Spacer()
             }
@@ -240,7 +240,7 @@ public struct LocationSearchSheet: View {
                                     .foregroundStyle(.primary)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, DS.Spacing.xxs)
                     }
                 }
             }

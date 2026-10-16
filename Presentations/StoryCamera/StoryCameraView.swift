@@ -133,7 +133,7 @@ struct StoryCameraView: View {
             // Left Vertical Tool Strip (Instagram 1:1)
             HStack {
                 leftVerticalToolBar
-                    .padding(.leading, 18)
+                    .padding(.leading, DS.Spacing.md)
 
                 Spacer()
             }
@@ -274,8 +274,8 @@ struct StoryCameraView: View {
                             Text("MỚI")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundStyle(.black)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
+                                .padding(.horizontal, DS.Spacing.xxs)
+                                .padding(.vertical, DS.Spacing.hairline)
                                 .background(Color.white, in: RoundedRectangle(cornerRadius: 3))
 
                             Text("Hiệu ứng")
@@ -508,7 +508,7 @@ struct StoryCameraView: View {
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, DS.Spacing.md)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DS.Spacing.xs)
                     .background(Color.black.opacity(0.5), in: Capsule())
                     .transition(.opacity.combined(with: .scale))
             }
@@ -594,7 +594,7 @@ struct StoryCameraView: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, DS.Spacing.md)
-                .padding(.vertical, 10)
+                .padding(.vertical, DS.Spacing.inputVertical)
                 .background(Color.black.opacity(0.5), in: Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
             }
@@ -612,7 +612,7 @@ struct StoryCameraView: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, DS.Spacing.md)
-                .padding(.vertical, 10)
+                .padding(.vertical, DS.Spacing.inputVertical)
                 .background(Color.black.opacity(0.5), in: Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
             }
@@ -759,7 +759,7 @@ struct StoryCameraView: View {
                                     .fontWeight(editingFontStyle == style ? .bold : .regular)
                                     .foregroundStyle(editingFontStyle == style ? Color.black : Color.white)
                                     .padding(.horizontal, DS.Spacing.sm)
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, DS.Spacing.iconGap)
                                     .background(
                                         editingFontStyle == style ? Color.white : Color.white.opacity(0.2),
                                         in: Capsule()
@@ -788,7 +788,7 @@ struct StoryCameraView: View {
                             }
                         }
                         .padding(.horizontal, DS.Padding.horizontal)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, DS.Spacing.xxs)
                     }
                 }
                 .padding(.bottom, DS.Spacing.lg)

@@ -560,8 +560,8 @@ struct CreateCanvasView: View {
                             .lineLimit(1)
                     }
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, DS.Spacing.sm)
+                    .padding(.vertical, DS.Spacing.iconGap)
                     .background(Color.black.opacity(0.45), in: Capsule())
                 }
 
@@ -824,8 +824,8 @@ struct CreateCanvasView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, DS.Spacing.formGap)
+                    .padding(.vertical, DS.Spacing.inputVertical)
                     .background(Color.black.opacity(0.55), in: Capsule())
                 }
 
@@ -843,8 +843,8 @@ struct CreateCanvasView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, DS.Spacing.formGap)
+                    .padding(.vertical, DS.Spacing.inputVertical)
                     .background(Color.black.opacity(0.55), in: Capsule())
                 }
 
@@ -1058,7 +1058,7 @@ struct CreateCanvasView: View {
             HStack(alignment: .center, spacing: 0) {
                 verticalDrawingStrokeWidthSlider
                     .frame(width: Constants.sliderHitboxWidth)
-                    .padding(.leading, 2)
+                    .padding(.leading, DS.Spacing.xxxs)
 
                 Spacer()
             }
@@ -1327,7 +1327,7 @@ struct CreateCanvasView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.top, 2)
+            .padding(.top, DS.Spacing.xxxs)
         }
         .padding(.bottom, DS.Spacing.md)
     }
@@ -1345,8 +1345,8 @@ struct CreateCanvasView: View {
                         Text(style.rawValue)
                             .font(.system(size: 14, weight: editingFontStyle == style ? .bold : .medium))
                             .foregroundStyle(editingFontStyle == style ? Color.black : Color.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
+                            .padding(.horizontal, DS.Spacing.formGap)
+                            .padding(.vertical, DS.Spacing.xs)
                             .background(
                                 editingFontStyle == style ? Color.white : Color.black.opacity(0.45),
                                 in: Capsule()
@@ -1374,8 +1374,8 @@ struct CreateCanvasView: View {
                                 .font(.system(size: 13, weight: editingAnimation == anim ? .bold : .medium))
                         }
                         .foregroundStyle(editingAnimation == anim ? Color.black : Color.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, DS.Spacing.formGap)
+                        .padding(.vertical, DS.Spacing.xs)
                         .background(
                             editingAnimation == anim ? Color.white : Color.black.opacity(0.45),
                             in: Capsule()
@@ -1403,8 +1403,8 @@ struct CreateCanvasView: View {
                                 .font(.system(size: 13, weight: editingEffect == effect ? .bold : .medium))
                         }
                         .foregroundStyle(editingEffect == effect ? Color.black : Color.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, DS.Spacing.formGap)
+                        .padding(.vertical, DS.Spacing.xs)
                         .background(
                             editingEffect == effect ? Color.white : Color.black.opacity(0.45),
                             in: Capsule()
@@ -1438,7 +1438,7 @@ struct CreateCanvasView: View {
                 }
             }
             .padding(.horizontal, DS.Spacing.md)
-            .padding(.vertical, 2)
+            .padding(.vertical, DS.Spacing.xxxs)
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
     }

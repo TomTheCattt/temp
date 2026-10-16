@@ -203,7 +203,7 @@ struct CreateReelView: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, DS.Spacing.sm)
-                .padding(.vertical, 7)
+                .padding(.vertical, DS.Spacing.iconGap)
                 .background(Color.black.opacity(0.4), in: Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
             }
@@ -269,7 +269,7 @@ struct CreateReelView: View {
             }
         }
         .padding(.vertical, DS.Spacing.xs)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, DS.Spacing.iconGap)
         .background(Color.black.opacity(0.3), in: Capsule())
     }
 
@@ -400,8 +400,8 @@ struct CreateReelView: View {
                                 .font(.system(size: 12, weight: .bold))
                         }
                         .foregroundStyle(.black)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, DS.Spacing.formGap)
+                        .padding(.vertical, DS.Spacing.inputVertical)
                         .background(Color.white, in: Capsule())
                         .overlay(
                             // Clip count badge
@@ -511,7 +511,7 @@ struct CreateReelView: View {
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.md)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, DS.Spacing.inputVertical)
                         .background(Color.white.opacity(0.2), in: Capsule())
                         .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
                     }
@@ -530,7 +530,7 @@ struct CreateReelView: View {
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.xl)
-                        .padding(.vertical, 11)
+                        .padding(.vertical, DS.Spacing.inputVertical)
                         .background(ColorTokens.accentPrimary, in: Capsule())
                     }
                 }
@@ -586,7 +586,7 @@ struct CreateReelView: View {
                                             .font(.system(size: 20))
                                             .foregroundStyle(.white, Color.red)
                                     }
-                                    .padding(4)
+                                    .padding(DS.Spacing.xxs)
                                 }
 
                                 Text(String(format: "%.1fs", clip.duration))
@@ -669,7 +669,7 @@ struct CreateReelView: View {
                             Text("Sửa ảnh bìa")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(.vertical, 3)
+                                .padding(.vertical, DS.Spacing.xxxs)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.black.opacity(0.6))
                                 .clipShape(
@@ -750,7 +750,7 @@ struct CreateReelView: View {
                         .font(DS.Font.subheadlineBold)
                         .foregroundStyle(ColorTokens.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, DS.Spacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: DS.Radius.medium)
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
@@ -773,7 +773,7 @@ struct CreateReelView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, DS.Spacing.sm)
                     .background(ColorTokens.accentPrimary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
                 }
                 .disabled(viewModel.isPublishing)
