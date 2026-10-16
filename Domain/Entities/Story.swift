@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Story
 
-struct Story: Identifiable, Hashable, Sendable {
+nonisolated struct Story: Identifiable, Hashable, Sendable {
     let id: String
     let author: User
     let items: [StoryItem]
@@ -20,7 +20,7 @@ struct Story: Identifiable, Hashable, Sendable {
 
 // MARK: - StoryItem
 
-struct StoryItem: Identifiable, Hashable, Sendable {
+nonisolated struct StoryItem: Identifiable, Hashable, Sendable {
     let id: String
     let mediaURL: URL
     let type: MediaType
@@ -36,7 +36,7 @@ struct StoryItem: Identifiable, Hashable, Sendable {
 
 // MARK: - StoryStickerInfo
 
-struct StoryStickerInfo: Hashable, Sendable {
+nonisolated struct StoryStickerInfo: Hashable, Sendable {
     let type: StickerType
     let data: String? // JSON or text payload
 

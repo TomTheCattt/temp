@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - MessageMapper
 
-enum MessageMapper {
+nonisolated enum MessageMapper {
 
     // MARK: - Conversation
 

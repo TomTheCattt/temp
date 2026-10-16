@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - ReelMapper
 
-enum ReelMapper {
+nonisolated enum ReelMapper {
 
     static func toEntity(_ dto: ReelDTO) -> Reel {
         let audioTrack: AudioTrack?

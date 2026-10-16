@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Reel
 
-struct Reel: Identifiable, Hashable, Sendable {
+nonisolated struct Reel: Identifiable, Hashable, Sendable {
     let id: String
     let author: User
     let videoURL: URL
@@ -100,7 +100,7 @@ extension Reel {
     }
 
     /// Returns a copy overriding only the provided fields.
-    func copy(
+    nonisolated func copy(
         likesCount: Int? = nil,
         isLiked: Bool? = nil,
         isSaved: Bool? = nil
@@ -127,7 +127,7 @@ extension Reel {
 
 // MARK: - AudioTrack
 
-struct AudioTrack: Hashable, Sendable {
+nonisolated struct AudioTrack: Hashable, Sendable {
     let id: String
     let name: String
     let artistName: String

@@ -6,33 +6,29 @@
 //
 
 import Foundation
-import os
 
 // MARK: - MockNotificationStore
 
 /// In-memory store for notifications so read states and unread counts
 /// persist across screens and trigger correct UI badge updates.
-final class MockNotificationStore: @unchecked Sendable {
+actor MockNotificationStore {
 
     static let shared = MockNotificationStore()
 
-    private let lock = OSAllocatedUnfairLock()
     private var _notifications: [AppNotification] = MockData.notifications
 
     private init() {}
 
     var notifications: [AppNotification] {
-        get { lock.withLock { _notifications } }
-        set { lock.withLock { _notifications = newValue } }
+        get { _notifications }
+        set { _notifications = newValue }
     }
 
     var unreadCount: Int {
-        lock.lock(); defer { lock.unlock() }
-        return _notifications.filter { !$0.isRead }.count
+        _notifications.filter { !$0.isRead }.count
     }
 
     func markAsRead(id: String) {
-        lock.lock(); defer { lock.unlock() }
         guard let index = _notifications.firstIndex(where: { $0.id == id }) else { return }
         let n = _notifications[index]
         _notifications[index] = AppNotification(
@@ -48,7 +44,6 @@ final class MockNotificationStore: @unchecked Sendable {
     }
 
     func markAllAsRead() {
-        lock.lock(); defer { lock.unlock() }
         _notifications = _notifications.map { n in
             AppNotification(
                 id: n.id,
@@ -72,7 +67,7 @@ final class MockNotificationDataSource: @unchecked Sendable {
 
     func fetchNotifications(page: Int, perPage: Int) async throws -> [AppNotification] {
         try await simulateDelay()
-        let all = store.notifications
+        let all = await store.notifications
         let start = (page - 1) * perPage
         let end = min(start + perPage, all.count)
         guard start < end else { return [] }
@@ -81,17 +76,17 @@ final class MockNotificationDataSource: @unchecked Sendable {
 
     func markAsRead(id: String) async throws {
         try await simulateDelay(seconds: 0.1)
-        store.markAsRead(id: id)
+        await store.markAsRead(id: id)
     }
 
     func markAllAsRead() async throws {
         try await simulateDelay(seconds: 0.2)
-        store.markAllAsRead()
+        await store.markAllAsRead()
     }
 
     func fetchUnreadCount() async throws -> Int {
         try await simulateDelay(seconds: 0.1)
-        return store.unreadCount
+        return await store.unreadCount
     }
 
     // MARK: - Private

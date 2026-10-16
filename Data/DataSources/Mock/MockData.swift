@@ -10,7 +10,7 @@ import Foundation
 // MARK: - MockData
 
 /// Central fake data store for UI development and pagination testing.
-enum MockData {
+nonisolated enum MockData {
 
     // MARK: - Test Account Credentials
 

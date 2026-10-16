@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Post
 
-struct Post: Identifiable, Hashable, Sendable {
+nonisolated struct Post: Identifiable, Hashable, Sendable {
     let id: String
     let author: User
     let caption: String?
@@ -28,7 +28,7 @@ struct Post: Identifiable, Hashable, Sendable {
 extension Post {
 
     /// Returns a copy with the like state toggled and `likesCount` adjusted accordingly.
-    func withLike(_ liked: Bool) -> Post {
+    nonisolated func withLike(_ liked: Bool) -> Post {
         Post(
             id: id,
             author: author,
@@ -45,7 +45,7 @@ extension Post {
     }
 
     /// Returns a copy with the saved (bookmark) state changed.
-    func withSaved(_ saved: Bool) -> Post {
+    nonisolated func withSaved(_ saved: Bool) -> Post {
         Post(
             id: id,
             author: author,
@@ -64,7 +64,7 @@ extension Post {
 
 // MARK: - MediaItem
 
-struct MediaItem: Identifiable, Hashable, Sendable {
+nonisolated struct MediaItem: Identifiable, Hashable, Sendable {
     let id: String
     let url: URL
     let thumbnailURL: URL?
@@ -81,7 +81,7 @@ struct MediaItem: Identifiable, Hashable, Sendable {
 
 // MARK: - PostLocation
 
-struct PostLocation: Hashable, Sendable {
+nonisolated struct PostLocation: Hashable, Sendable {
     let name: String
     let latitude: Double?
     let longitude: Double?

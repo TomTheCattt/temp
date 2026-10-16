@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - PostMapper
 
-enum PostMapper {
+nonisolated enum PostMapper {
 
     static func toEntity(_ dto: PostDTO) -> Post {
         Post(

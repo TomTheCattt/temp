@@ -46,7 +46,7 @@ protocol LocalStorageProtocol: Sendable {
 /// Any domain object that can be persisted must conform to Storable.
 /// Uses `nonisolated` to avoid actor-isolation conflicts with Sendable.
 protocol Storable: Sendable {
-    var id: String { get }
+    nonisolated var id: String { get }
 }
 
 // MARK: - StoragePredicate

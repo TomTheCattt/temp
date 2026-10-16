@@ -6,44 +6,36 @@
 //
 
 import Foundation
-import os
 
 // MARK: - MockPostStore
 
 /// In-memory store so newly created, edited, liked, and deleted mock posts persist
 /// across screens for the lifetime of the app session (mirrors backend persistence).
-final class MockPostStore: @unchecked Sendable {
+actor MockPostStore {
 
     static let shared = MockPostStore()
 
-    private let lock = OSAllocatedUnfairLock()
     private var _posts: [Post] = MockData.posts
 
     private init() {}
 
     var posts: [Post] {
-        get { lock.withLock { _posts } }
-        set { lock.withLock { _posts = newValue } }
+        get { _posts }
+        set { _posts = newValue }
     }
 
     func insert(_ post: Post, at index: Int = 0) {
-        lock.withLock {
-            _posts.insert(post, at: index)
-        }
+        _posts.insert(post, at: index)
     }
 
     func update(id: String, mutate: (inout Post) -> Void) -> Post? {
-        lock.withLock {
-            guard let idx = _posts.firstIndex(where: { $0.id == id }) else { return nil }
-            mutate(&_posts[idx])
-            return _posts[idx]
-        }
+        guard let idx = _posts.firstIndex(where: { $0.id == id }) else { return nil }
+        mutate(&_posts[idx])
+        return _posts[idx]
     }
 
     func delete(id: String) {
-        lock.withLock {
-            _posts.removeAll { $0.id == id }
-        }
+        _posts.removeAll { $0.id == id }
     }
 
     @discardableResult
@@ -89,7 +81,7 @@ final class MockPostDataSource: @unchecked Sendable {
 
     func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
         try await simulateDelay()
-        let posts = store.posts
+        let posts = await store.posts
         let start = (page - 1) * perPage
         let end = min(start + perPage, posts.count)
         guard start < end else { return [] }
@@ -100,7 +92,7 @@ final class MockPostDataSource: @unchecked Sendable {
         try await simulateDelay()
         let currentUserId = SessionStore.shared.currentUserId
         let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
-        let allPosts = store.posts
+        let allPosts = await store.posts
         let userPosts = isCurrent
             ? allPosts.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
             : allPosts.filter { $0.author.id == userId }
@@ -112,7 +104,8 @@ final class MockPostDataSource: @unchecked Sendable {
 
     func fetchPost(id: String) async throws -> Post {
         try await simulateDelay(seconds: 0.3)
-        guard let post = store.posts.first(where: { $0.id == id }) else {
+        let posts = await store.posts
+        guard let post = posts.first(where: { $0.id == id }) else {
             throw APIError.notFound
         }
         return post
@@ -160,14 +153,14 @@ final class MockPostDataSource: @unchecked Sendable {
             isSponsored: false
         )
 
-        store.insert(newPost, at: 0)
-        MockUserStore.shared.incrementPostsCount()
+        await store.insert(newPost, at: 0)
+        await MockUserStore.shared.incrementPostsCount()
         return newPost
     }
 
     func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
         try await simulateDelay()
-        let posts = store.posts
+        let posts = await store.posts
         let start: Int = {
             if page == 1 {
                 return 0
@@ -184,22 +177,22 @@ final class MockPostDataSource: @unchecked Sendable {
 
     func likePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleLike(id: id, isLiked: true)
+        _ = await store.toggleLike(id: id, isLiked: true)
     }
 
     func unlikePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleLike(id: id, isLiked: false)
+        _ = await store.toggleLike(id: id, isLiked: false)
     }
 
     func savePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleSave(id: id, isSaved: true)
+        _ = await store.toggleSave(id: id, isSaved: true)
     }
 
     func unsavePost(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleSave(id: id, isSaved: false)
+        _ = await store.toggleSave(id: id, isSaved: false)
     }
 
     // MARK: - Private

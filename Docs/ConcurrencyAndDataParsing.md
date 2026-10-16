@@ -981,9 +981,9 @@ init(dep: SomeMainActorClass? = nil) {
 |------|---------|--------------|------------------------|
 | `InMemoryStorage.swift` | `actor` | `class` + `NSLock` | **`actor InMemoryStorage: LocalStorageProtocol`** (Zero lock) |
 | `FilterThumbnailGenerator.swift` | `actor` + `withTaskGroup` | `class` + `NSLock` | **`actor FilterThumbnailGenerator`** (Zero lock, sequential render) |
-| `PhotoLibraryService.swift` | `class` | `class` + `NSLock` (SafeContinuation) | **`actor PhotoLibraryService`** + `OSAllocatedUnfairLock` (SafeContinuation) |
-| `Mock*DataSource.swift` | `class` | `class` + `NSLock` | **`class` + `OSAllocatedUnfairLock`** (Zero ObjC overhead) |
-| `CameraService.swift` | `class` | `class` + `NSLock` | **`class` + `OSAllocatedUnfairLock`** (Zero micro-stalls) |
+| `PhotoLibraryService.swift` | `class` | `class` + `NSLock` (SafeContinuation) | **`actor PhotoLibraryService`** + **`actor SingleResumeContinuation`** (100% Actor, Zero Lock) |
+| `Mock*DataSource.swift` | `class` | `class` + `NSLock` | **`actor Mock*Store` / `actor Mock*DataSource`** (100% Swift Actor) |
+| `CameraService.swift` | `class` | `class` + `NSLock` | **`actor CameraService`** |
 
 ### 9.3 Static Property Concurrency Safety
 

@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - StoryMapper
 
-enum StoryMapper {
+nonisolated enum StoryMapper {
 
     static func toEntity(_ dto: StoryDTO) -> Story {
         // Determine author: from nested object or create minimal from authorId

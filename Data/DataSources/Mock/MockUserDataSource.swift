@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import os
 
 // MARK: - MockUserDataSource
 
@@ -16,16 +15,24 @@ final class MockUserDataSource: Sendable {
 
     func fetchCurrentUser() async throws -> User {
         try await simulateDelay()
-        return SessionStore.shared.currentUser ?? store.currentUser
+        if let sessionUser = SessionStore.shared.currentUser {
+            return sessionUser
+        }
+        return await store.currentUser
     }
 
     func fetchUser(id: String) async throws -> User {
         try await simulateDelay()
-        let current = SessionStore.shared.currentUser ?? store.currentUser
+        let current: User
+        if let sessionUser = SessionStore.shared.currentUser {
+            current = sessionUser
+        } else {
+            current = await store.currentUser
+        }
         if id == current.id || id == "user_current" {
             return current
         }
-        guard let user = store.user(id: id) else {
+        guard let user = await store.user(id: id) else {
             throw APIError.notFound
         }
         return user
@@ -34,8 +41,8 @@ final class MockUserDataSource: Sendable {
     func searchUsers(query: String, page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay(seconds: 0.3)
         let lowered = query.lowercased()
-        var allCandidates = store.allUsers
-        let currentUser = store.currentUser
+        var allCandidates = await store.allUsers
+        let currentUser = await store.currentUser
         if !allCandidates.contains(where: { $0.id == currentUser.id }) {
             allCandidates.insert(currentUser, at: 0)
         }
@@ -51,27 +58,27 @@ final class MockUserDataSource: Sendable {
 
     func follow(userId: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        store.toggleFollow(userId: userId, isFollowing: true)
+        await store.toggleFollow(userId: userId, isFollowing: true)
     }
 
     func unfollow(userId: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        store.toggleFollow(userId: userId, isFollowing: false)
+        await store.toggleFollow(userId: userId, isFollowing: false)
     }
 
     func block(userId: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        store.toggleBlock(userId: userId, isBlocked: true)
+        await store.toggleBlock(userId: userId, isBlocked: true)
     }
 
     func unblock(userId: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        store.toggleBlock(userId: userId, isBlocked: false)
+        await store.toggleBlock(userId: userId, isBlocked: false)
     }
 
     func fetchBlockedUsers(page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay()
-        let blocked = store.blockedUsers
+        let blocked = await store.blockedUsers
         let start = (page - 1) * perPage
         let end = min(start + perPage, blocked.count)
         guard start < end else { return [] }
@@ -80,54 +87,56 @@ final class MockUserDataSource: Sendable {
 
     func fetchSettings() async throws -> UserSettings {
         try await simulateDelay(seconds: 0.2)
-        return MockSettingsStore.shared.settings
+        return await MockSettingsStore.shared.settings
     }
 
     func updateSettings(_ patch: UserSettingsPatch) async throws -> UserSettings {
         try await simulateDelay(seconds: 0.2)
-        return MockSettingsStore.shared.apply(patch)
+        return await MockSettingsStore.shared.apply(patch)
     }
 
     func fetchCloseFriends(page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay(seconds: 0.2)
-        let ids = MockSettingsStore.shared.closeFriendIds
-        return store.allUsers.filter { ids.contains($0.id) }
+        let ids = await MockSettingsStore.shared.closeFriendIds
+        let allUsers = await store.allUsers
+        return allUsers.filter { ids.contains($0.id) }
     }
 
     func setCloseFriends(userIds: [String]) async throws -> [User] {
         try await simulateDelay(seconds: 0.2)
-        MockSettingsStore.shared.closeFriendIds = Set(userIds)
-        return store.allUsers.filter { userIds.contains($0.id) }
+        await MockSettingsStore.shared.setCloseFriendIds(Set(userIds))
+        let allUsers = await store.allUsers
+        return allUsers.filter { userIds.contains($0.id) }
     }
 
     func updateProfile(name: String?, bio: String?, website: String?) async throws -> User {
         try await simulateDelay(seconds: 0.4)
-        return store.updateProfile(name: name, bio: bio, website: website)
+        return await store.updateProfile(name: name, bio: bio, website: website)
     }
 
     func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
         try await simulateDelay(seconds: 0.2)
-        return store.setPrivateAccount(isPrivate)
+        return await store.setPrivateAccount(isPrivate)
     }
 
     func updateAvatar(imageData: Data) async throws -> User {
         try await simulateDelay(seconds: 0.5)
-        return store.updateAvatar(imageData: imageData)
+        return await store.updateAvatar(imageData: imageData)
     }
 
     func fetchFollowers(userId: String, page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay()
-        return store.followers(for: userId, page: page, perPage: perPage)
+        return await store.followers(for: userId, page: page, perPage: perPage)
     }
 
     func fetchFollowing(userId: String, page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay()
-        return store.following(for: userId, page: page, perPage: perPage)
+        return await store.following(for: userId, page: page, perPage: perPage)
     }
 
     func fetchSuggested(page: Int, perPage: Int) async throws -> [User] {
         try await simulateDelay()
-        return store.suggested(page: page, perPage: perPage)
+        return await store.suggested(page: page, perPage: perPage)
     }
 
     // MARK: - Private
@@ -141,28 +150,25 @@ final class MockUserDataSource: Sendable {
 
 /// In-memory store so mock user profile updates, follows, and blocks persist
 /// for the lifetime of the app session (mirrors backend persistence).
-final class MockUserStore: @unchecked Sendable {
+actor MockUserStore {
 
     static let shared = MockUserStore()
 
-    private let lock = OSAllocatedUnfairLock()
     private var _currentUser: User = MockData.currentUser
     private var _users: [User] = MockData.users
 
     private init() {}
 
     var currentUser: User {
-        get { lock.withLock { _currentUser } }
-        set { lock.withLock { _currentUser = newValue } }
+        get { _currentUser }
+        set { _currentUser = newValue }
     }
 
     var allUsers: [User] {
-        lock.lock(); defer { lock.unlock() }
-        return _users
+        _users
     }
 
     func user(id: String) -> User? {
-        lock.lock(); defer { lock.unlock() }
         if id == _currentUser.id || id == "user_current" {
             return _currentUser
         }
@@ -170,7 +176,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func toggleFollow(userId: String, isFollowing: Bool) {
-        lock.lock(); defer { lock.unlock() }
         guard let index = _users.firstIndex(where: { $0.id == userId }) else { return }
         let u = _users[index]
         guard u.isFollowing != isFollowing else { return }
@@ -217,7 +222,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func toggleBlock(userId: String, isBlocked: Bool) {
-        lock.lock(); defer { lock.unlock() }
         guard let index = _users.firstIndex(where: { $0.id == userId }) else { return }
         let u = _users[index]
         _users[index] = User(
@@ -242,12 +246,10 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     var blockedUsers: [User] {
-        lock.lock(); defer { lock.unlock() }
-        return _users.filter { $0.isBlocked }
+        _users.filter { $0.isBlocked }
     }
 
     func followers(for userId: String, page: Int, perPage: Int) -> [User] {
-        lock.lock(); defer { lock.unlock() }
         let isCurrent = (userId == _currentUser.id || userId == "user_current" || (userId.isEmpty && _currentUser.id == MockData.currentUser.id))
         let candidates = isCurrent ? _users.filter { $0.isFollowedBy } : _users.filter { $0.id != userId }
         let start = (page - 1) * perPage
@@ -257,7 +259,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func following(for userId: String, page: Int, perPage: Int) -> [User] {
-        lock.lock(); defer { lock.unlock() }
         let candidates = _users.filter { $0.isFollowing }
         let start = (page - 1) * perPage
         let end = min(start + perPage, candidates.count)
@@ -266,7 +267,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func suggested(page: Int, perPage: Int) -> [User] {
-        lock.lock(); defer { lock.unlock() }
         let candidates = _users.filter { !$0.isFollowing && $0.id != _currentUser.id }
         let start = (page - 1) * perPage
         let end = min(start + perPage, candidates.count)
@@ -275,7 +275,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func incrementPostsCount() {
-        lock.lock(); defer { lock.unlock() }
         _currentUser = User(
             id: _currentUser.id,
             username: _currentUser.username,
@@ -298,7 +297,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func decrementPostsCount() {
-        lock.lock(); defer { lock.unlock() }
         _currentUser = User(
             id: _currentUser.id,
             username: _currentUser.username,
@@ -321,7 +319,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func updateProfile(name: String?, bio: String?, website: String?) -> User {
-        lock.lock(); defer { lock.unlock() }
         _currentUser = User(
             id: _currentUser.id,
             username: _currentUser.username,
@@ -345,7 +342,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func updateAvatar(imageData: Data) -> User {
-        lock.lock(); defer { lock.unlock() }
         let newURL: URL?
         if imageData.isEmpty {
             newURL = nil
@@ -375,7 +371,6 @@ final class MockUserStore: @unchecked Sendable {
     }
 
     func setPrivateAccount(_ isPrivate: Bool) -> User {
-        lock.lock(); defer { lock.unlock() }
         _currentUser = User(
             id: _currentUser.id,
             username: _currentUser.username,
@@ -403,27 +398,28 @@ final class MockUserStore: @unchecked Sendable {
 
 /// In-memory store so mock settings & close-friends selections persist for the
 /// lifetime of the app session (mirrors what the backend would remember).
-final class MockSettingsStore: @unchecked Sendable {
+actor MockSettingsStore {
 
     static let shared = MockSettingsStore()
 
-    private let lock = OSAllocatedUnfairLock()
     private var _settings = UserSettings.default
     private var _closeFriendIds = Set<String>()
 
     private init() {}
 
     var settings: UserSettings {
-        lock.withLock { _settings }
+        _settings
     }
 
     var closeFriendIds: Set<String> {
-        get { lock.withLock { _closeFriendIds } }
-        set { lock.withLock { _closeFriendIds = newValue } }
+        _closeFriendIds
+    }
+
+    func setCloseFriendIds(_ ids: Set<String>) {
+        _closeFriendIds = ids
     }
 
     func apply(_ patch: UserSettingsPatch) -> UserSettings {
-        lock.lock(); defer { lock.unlock() }
         if let v = patch.pushEnabled { _settings.pushEnabled = v }
         if let v = patch.likeNotifications { _settings.likeNotifications = v }
         if let v = patch.commentNotifications { _settings.commentNotifications = v }

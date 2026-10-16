@@ -10,7 +10,7 @@ import Foundation
 // MARK: - AppNotification
 
 /// Named `AppNotification` to avoid collision with Foundation.Notification.
-struct AppNotification: Identifiable, Hashable, Sendable {
+nonisolated struct AppNotification: Identifiable, Hashable, Sendable {
     let id: String
     let type: NotificationType
     let actor: User           // who triggered the notification
@@ -23,7 +23,7 @@ struct AppNotification: Identifiable, Hashable, Sendable {
 
 // MARK: - NotificationType
 
-enum NotificationType: String, Sendable, Hashable {
+nonisolated enum NotificationType: String, Sendable, Hashable {
     case like
     case comment
     case follow

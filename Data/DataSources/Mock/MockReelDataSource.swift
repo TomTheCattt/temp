@@ -6,32 +6,28 @@
 //
 
 import Foundation
-import os
 
 // MARK: - MockReelStore
 
 /// In-memory store for reels so like and save states persist across views.
-final class MockReelStore: @unchecked Sendable {
+actor MockReelStore {
 
     static let shared = MockReelStore()
 
-    private let lock = OSAllocatedUnfairLock()
     private var _reels: [Reel] = MockData.reels
 
     private init() {}
 
     var reels: [Reel] {
-        get { lock.withLock { _reels } }
-        set { lock.withLock { _reels = newValue } }
+        get { _reels }
+        set { _reels = newValue }
     }
 
     func insert(_ reel: Reel, at index: Int = 0) {
-        lock.lock(); defer { lock.unlock() }
         _reels.insert(reel, at: index)
     }
 
     func update(id: String, mutate: (inout Reel) -> Void) -> Reel? {
-        lock.lock(); defer { lock.unlock() }
         guard let idx = _reels.firstIndex(where: { $0.id == id }) else { return nil }
         mutate(&_reels[idx])
         return _reels[idx]
@@ -66,7 +62,7 @@ final class MockReelDataSource: @unchecked Sendable {
 
     func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
         try await simulateDelay()
-        let all = store.reels
+        let all = await store.reels
         let start = (page - 1) * perPage
         let end = min(start + perPage, all.count)
         guard start < end else { return [] }
@@ -77,7 +73,7 @@ final class MockReelDataSource: @unchecked Sendable {
         try await simulateDelay()
         let currentUserId = SessionStore.shared.currentUserId
         let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
-        let all = store.reels
+        let all = await store.reels
         let userReels = isCurrent
             ? all.filter { $0.author.id == "user_current" || $0.author.id == currentUserId }
             : all.filter { $0.author.id == userId }
@@ -89,22 +85,22 @@ final class MockReelDataSource: @unchecked Sendable {
 
     func likeReel(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleLike(id: id, isLiked: true)
+        _ = await store.toggleLike(id: id, isLiked: true)
     }
 
     func unlikeReel(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleLike(id: id, isLiked: false)
+        _ = await store.toggleLike(id: id, isLiked: false)
     }
 
     func saveReel(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleSave(id: id, isSaved: true)
+        _ = await store.toggleSave(id: id, isSaved: true)
     }
 
     func unsaveReel(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        _ = store.toggleSave(id: id, isSaved: false)
+        _ = await store.toggleSave(id: id, isSaved: false)
     }
 
     // MARK: - Private

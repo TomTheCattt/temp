@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Conversation
 
-struct Conversation: Identifiable, Hashable, Sendable {
+nonisolated struct Conversation: Identifiable, Hashable, Sendable {
     let id: String
     let participants: [User]
     let lastMessage: Message?
@@ -23,7 +23,7 @@ struct Conversation: Identifiable, Hashable, Sendable {
 
 // MARK: - Message
 
-struct Message: Identifiable, Hashable, Sendable {
+nonisolated struct Message: Identifiable, Hashable, Sendable {
     let id: String
     let conversationId: String
     let sender: User
@@ -59,7 +59,7 @@ struct Message: Identifiable, Hashable, Sendable {
 
 // MARK: - MessageContent
 
-enum MessageContent: Hashable, Sendable {
+nonisolated enum MessageContent: Hashable, Sendable {
     case text(String)
     case image(URL)
     case video(URL, thumbnailURL: URL?)
@@ -72,7 +72,7 @@ enum MessageContent: Hashable, Sendable {
 
 // MARK: - MessageStatus
 
-enum MessageStatus: String, Sendable, Hashable {
+nonisolated enum MessageStatus: String, Sendable, Hashable {
     case sending
     case sent
     case delivered
@@ -82,7 +82,7 @@ enum MessageStatus: String, Sendable, Hashable {
 
 // MARK: - InstagramNote
 
-struct InstagramNote: Identifiable, Hashable, Sendable {
+nonisolated struct InstagramNote: Identifiable, Hashable, Sendable {
     let id: String
     let user: User
     let text: String

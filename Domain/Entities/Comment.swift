@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Comment
 
-struct Comment: Identifiable, Hashable, Sendable {
+nonisolated struct Comment: Identifiable, Hashable, Sendable {
     let id: String
     let postId: String
     let author: User

@@ -6,17 +6,15 @@
 //
 
 import Foundation
-import os
 
 // MARK: - MockCommentStore
 
 /// In-memory store for comments and replies so additions, deletions,
 /// and like toggles persist across screen navigations.
-final class MockCommentStore: @unchecked Sendable {
+actor MockCommentStore {
 
     static let shared = MockCommentStore()
 
-    private let lock = OSAllocatedUnfairLock()
     /// Maps postId -> list of top-level comments
     private var _commentsByPostId: [String: [Comment]] = [:]
 
@@ -29,11 +27,11 @@ final class MockCommentStore: @unchecked Sendable {
         }
     }
 
-    func comments(forPostId postId: String) -> [Comment] {
-        lock.lock(); defer { lock.unlock() }
+    func comments(forPostId postId: String) async -> [Comment] {
         let existing = _commentsByPostId[postId] ?? []
+        let posts = await MockPostStore.shared.posts
         let targetCount: Int = {
-            if let post = MockPostStore.shared.posts.first(where: { $0.id == postId }) {
+            if let post = posts.first(where: { $0.id == postId }) {
                 return min(max(post.commentsCount, existing.count), 60)
             }
             return existing.count
@@ -102,7 +100,6 @@ final class MockCommentStore: @unchecked Sendable {
     }
 
     func replies(forCommentId commentId: String) -> [Comment] {
-        lock.lock(); defer { lock.unlock() }
         for comments in _commentsByPostId.values {
             if let comment = comments.first(where: { $0.id == commentId }) {
                 return comment.replies
@@ -111,8 +108,7 @@ final class MockCommentStore: @unchecked Sendable {
         return []
     }
 
-    func addComment(postId: String, author: User, text: String, parentId: String?) -> Comment {
-        lock.lock(); defer { lock.unlock() }
+    func addComment(postId: String, author: User, text: String, parentId: String?) async -> Comment {
         let newComment = Comment(
             id: "comment_\(UUID().uuidString.prefix(8))",
             postId: postId,
@@ -149,17 +145,16 @@ final class MockCommentStore: @unchecked Sendable {
             list.insert(newComment, at: 0)
         }
         _commentsByPostId[postId] = list
-        MockPostStore.shared.adjustCommentsCount(id: postId, delta: 1)
+        await MockPostStore.shared.adjustCommentsCount(id: postId, delta: 1)
         return newComment
     }
 
-    func deleteComment(id: String) {
-        lock.lock(); defer { lock.unlock() }
+    func deleteComment(id: String) async {
         for (postId, var list) in _commentsByPostId {
             if let index = list.firstIndex(where: { $0.id == id }) {
                 list.remove(at: index)
                 _commentsByPostId[postId] = list
-                MockPostStore.shared.adjustCommentsCount(id: postId, delta: -1)
+                await MockPostStore.shared.adjustCommentsCount(id: postId, delta: -1)
                 return
             }
             // Check replies
@@ -180,7 +175,7 @@ final class MockCommentStore: @unchecked Sendable {
                         createdAt: parent.createdAt
                     )
                     _commentsByPostId[postId] = list
-                    MockPostStore.shared.adjustCommentsCount(id: postId, delta: -1)
+                    await MockPostStore.shared.adjustCommentsCount(id: postId, delta: -1)
                     return
                 }
             }
@@ -188,7 +183,6 @@ final class MockCommentStore: @unchecked Sendable {
     }
 
     func toggleLike(id: String, isLiked: Bool) {
-        lock.lock(); defer { lock.unlock() }
         for (postId, var list) in _commentsByPostId {
             if let index = list.firstIndex(where: { $0.id == id }) {
                 let c = list[index]
@@ -252,7 +246,7 @@ final class MockCommentDataSource: @unchecked Sendable {
 
     func fetchComments(postId: String, page: Int, perPage: Int) async throws -> [Comment] {
         try await simulateDelay()
-        let all = store.comments(forPostId: postId)
+        let all = await store.comments(forPostId: postId)
         let start = (page - 1) * perPage
         let end = min(start + perPage, all.count)
         guard start < end else { return [] }
@@ -261,7 +255,7 @@ final class MockCommentDataSource: @unchecked Sendable {
 
     func fetchReplies(commentId: String, page: Int, perPage: Int) async throws -> [Comment] {
         try await simulateDelay()
-        let all = store.replies(forCommentId: commentId)
+        let all = await store.replies(forCommentId: commentId)
         let start = (page - 1) * perPage
         let end = min(start + perPage, all.count)
         guard start < end else { return [] }
@@ -271,22 +265,22 @@ final class MockCommentDataSource: @unchecked Sendable {
     func addComment(postId: String, text: String, parentId: String?) async throws -> Comment {
         try await simulateDelay(seconds: 0.3)
         let currentUser = SessionStore.shared.currentUser ?? MockData.currentUser
-        return store.addComment(postId: postId, author: currentUser, text: text, parentId: parentId)
+        return await store.addComment(postId: postId, author: currentUser, text: text, parentId: parentId)
     }
 
     func deleteComment(id: String) async throws {
         try await simulateDelay(seconds: 0.2)
-        store.deleteComment(id: id)
+        await store.deleteComment(id: id)
     }
 
     func likeComment(id: String) async throws {
         try await simulateDelay(seconds: 0.1)
-        store.toggleLike(id: id, isLiked: true)
+        await store.toggleLike(id: id, isLiked: true)
     }
 
     func unlikeComment(id: String) async throws {
         try await simulateDelay(seconds: 0.1)
-        store.toggleLike(id: id, isLiked: false)
+        await store.toggleLike(id: id, isLiked: false)
     }
 
     // MARK: - Private

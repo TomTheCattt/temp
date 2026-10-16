@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - CommentMapper
 
-enum CommentMapper {
+nonisolated enum CommentMapper {
 
     static func toEntity(_ dto: CommentDTO) -> Comment {
         Comment(

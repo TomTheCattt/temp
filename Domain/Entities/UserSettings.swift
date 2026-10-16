@@ -11,7 +11,7 @@ import Foundation
 
 /// Per-account preferences persisted server-side (notifications + data usage).
 /// These follow the user across devices, unlike purely local prefs (e.g. theme).
-struct UserSettings: Hashable, Sendable {
+nonisolated struct UserSettings: Hashable, Sendable {
 
     // Notifications
     var pushEnabled: Bool
@@ -32,7 +32,7 @@ struct UserSettings: Hashable, Sendable {
 
 extension UserSettings {
     /// Sensible defaults, used before the server value loads or on failure.
-    static let `default` = UserSettings(
+    nonisolated static let `default` = UserSettings(
         pushEnabled: true,
         likeNotifications: true,
         commentNotifications: true,

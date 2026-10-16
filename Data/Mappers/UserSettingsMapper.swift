@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - UserSettingsMapper
 
-enum UserSettingsMapper {
+nonisolated enum UserSettingsMapper {
 
     static func toEntity(_ dto: UserSettingsDTO) -> UserSettings {
         let defaults = UserSettings.default

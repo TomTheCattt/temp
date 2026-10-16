@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - NotificationMapper
 
-enum NotificationMapper {
+nonisolated enum NotificationMapper {
 
     static func toEntity(_ dto: NotificationDTO) -> AppNotification {
         AppNotification(

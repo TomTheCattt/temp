@@ -32,7 +32,7 @@ final class MockPostRepository: PostRepositoryProtocol, @unchecked Sendable {
 
     func updatePost(id: String, caption: String?, location: PostLocation?) async throws -> Post {
         try await Task.sleep(nanoseconds: 500_000_000)
-        if let updated = MockPostStore.shared.update(id: id, mutate: { post in
+        if let updated = await MockPostStore.shared.update(id: id, mutate: { post in
             post = Post(
                 id: post.id,
                 author: post.author,
@@ -55,7 +55,7 @@ final class MockPostRepository: PostRepositoryProtocol, @unchecked Sendable {
 
     func deletePost(id: String) async throws {
         try await Task.sleep(nanoseconds: 300_000_000)
-        MockPostStore.shared.delete(id: id)
+        await MockPostStore.shared.delete(id: id)
     }
 
     func likePost(id: String) async throws {
