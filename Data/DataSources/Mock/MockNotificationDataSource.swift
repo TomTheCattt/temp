@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockNotificationStore
 
@@ -15,14 +16,14 @@ final class MockNotificationStore: @unchecked Sendable {
 
     static let shared = MockNotificationStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var _notifications: [AppNotification] = MockData.notifications
 
     private init() {}
 
     var notifications: [AppNotification] {
-        get { lock.lock(); defer { lock.unlock() }; return _notifications }
-        set { lock.lock(); _notifications = newValue; lock.unlock() }
+        get { lock.withLock { _notifications } }
+        set { lock.withLock { _notifications = newValue } }
     }
 
     var unreadCount: Int {

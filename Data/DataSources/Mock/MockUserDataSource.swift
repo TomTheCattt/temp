@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockUserDataSource
 
@@ -144,15 +145,15 @@ final class MockUserStore: @unchecked Sendable {
 
     static let shared = MockUserStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var _currentUser: User = MockData.currentUser
     private var _users: [User] = MockData.users
 
     private init() {}
 
     var currentUser: User {
-        get { lock.lock(); defer { lock.unlock() }; return _currentUser }
-        set { lock.lock(); _currentUser = newValue; lock.unlock() }
+        get { lock.withLock { _currentUser } }
+        set { lock.withLock { _currentUser = newValue } }
     }
 
     var allUsers: [User] {
@@ -406,20 +407,19 @@ final class MockSettingsStore: @unchecked Sendable {
 
     static let shared = MockSettingsStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var _settings = UserSettings.default
     private var _closeFriendIds = Set<String>()
 
     private init() {}
 
     var settings: UserSettings {
-        lock.lock(); defer { lock.unlock() }
-        return _settings
+        lock.withLock { _settings }
     }
 
     var closeFriendIds: Set<String> {
-        get { lock.lock(); defer { lock.unlock() }; return _closeFriendIds }
-        set { lock.lock(); _closeFriendIds = newValue; lock.unlock() }
+        get { lock.withLock { _closeFriendIds } }
+        set { lock.withLock { _closeFriendIds = newValue } }
     }
 
     func apply(_ patch: UserSettingsPatch) -> UserSettings {

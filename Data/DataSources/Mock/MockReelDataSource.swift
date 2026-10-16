@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockReelStore
 
@@ -14,14 +15,14 @@ final class MockReelStore: @unchecked Sendable {
 
     static let shared = MockReelStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var _reels: [Reel] = MockData.reels
 
     private init() {}
 
     var reels: [Reel] {
-        get { lock.lock(); defer { lock.unlock() }; return _reels }
-        set { lock.lock(); _reels = newValue; lock.unlock() }
+        get { lock.withLock { _reels } }
+        set { lock.withLock { _reels = newValue } }
     }
 
     func insert(_ reel: Reel, at index: Int = 0) {

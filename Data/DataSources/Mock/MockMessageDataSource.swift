@@ -7,12 +7,13 @@
 
 import Foundation
 import Combine
+import os
 
 // MARK: - MockMessageDataSource
 
 final class MockMessageDataSource: @unchecked Sendable {
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var inMemoryConversations: [Conversation] = []
     private var inMemoryMessages: [String: [Message]] = [:]
     private var inMemoryNotes: [InstagramNote] = []

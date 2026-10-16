@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockCommentStore
 
@@ -15,7 +16,7 @@ final class MockCommentStore: @unchecked Sendable {
 
     static let shared = MockCommentStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     /// Maps postId -> list of top-level comments
     private var _commentsByPostId: [String: [Comment]] = [:]
 

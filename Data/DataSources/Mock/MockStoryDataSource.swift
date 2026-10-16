@@ -6,13 +6,14 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockStoryDataSource
 
 final class MockStoryDataSource: @unchecked Sendable {
 
     private var stories: [Story] = MockData.stories
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
 
     func fetchStories() async throws -> [Story] {
         try await simulateDelay()

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 // MARK: - MockPostStore
 
@@ -15,31 +16,34 @@ final class MockPostStore: @unchecked Sendable {
 
     static let shared = MockPostStore()
 
-    private let lock = NSLock()
+    private let lock = OSAllocatedUnfairLock()
     private var _posts: [Post] = MockData.posts
 
     private init() {}
 
     var posts: [Post] {
-        get { lock.lock(); defer { lock.unlock() }; return _posts }
-        set { lock.lock(); _posts = newValue; lock.unlock() }
+        get { lock.withLock { _posts } }
+        set { lock.withLock { _posts = newValue } }
     }
 
     func insert(_ post: Post, at index: Int = 0) {
-        lock.lock(); defer { lock.unlock() }
-        _posts.insert(post, at: index)
+        lock.withLock {
+            _posts.insert(post, at: index)
+        }
     }
 
     func update(id: String, mutate: (inout Post) -> Void) -> Post? {
-        lock.lock(); defer { lock.unlock() }
-        guard let idx = _posts.firstIndex(where: { $0.id == id }) else { return nil }
-        mutate(&_posts[idx])
-        return _posts[idx]
+        lock.withLock {
+            guard let idx = _posts.firstIndex(where: { $0.id == id }) else { return nil }
+            mutate(&_posts[idx])
+            return _posts[idx]
+        }
     }
 
     func delete(id: String) {
-        lock.lock(); defer { lock.unlock() }
-        _posts.removeAll { $0.id == id }
+        lock.withLock {
+            _posts.removeAll { $0.id == id }
+        }
     }
 
     @discardableResult
