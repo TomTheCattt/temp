@@ -12,28 +12,36 @@ import SwiftUI
 /// Renders dynamic text with live animations (.typewriter, .reveal, .bounce)
 /// directly on the Story / Create canvas, achieving 60/120 FPS ProMotion fidelity.
 /// If animation is .none, falls back to static rendering with 0% CPU overhead.
+/// Uses continuous periodic timeline schedule so animation never pauses unexpectedly.
 struct AnimatedStoryTextView: View {
 
     let item: TextOverlayItem
 
+    @State private var startDate: Date = Date()
+
     var body: some View {
-        switch item.animation {
-        case .none:
-            staticTextView(
-                text: item.text,
-                alphaMultiplier: 1.0,
-                scaleMultiplier: 1.0,
-                yOffset: 0.0
-            )
+        Group {
+            switch item.animation {
+            case .none:
+                staticTextView(
+                    text: item.text,
+                    alphaMultiplier: 1.0,
+                    scaleMultiplier: 1.0,
+                    yOffset: 0.0
+                )
 
-        case .typewriter:
-            typewriterView
+            case .typewriter:
+                typewriterView
 
-        case .reveal:
-            revealView
+            case .reveal:
+                revealView
 
-        case .bounce:
-            bounceView
+            case .bounce:
+                bounceView
+            }
+        }
+        .onChange(of: item.animation) { _, _ in
+            startDate = Date()
         }
     }
 
@@ -78,10 +86,10 @@ struct AnimatedStoryTextView: View {
     // MARK: - Typewriter Animation
 
     private var typewriterView: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            let elapsed = context.date.timeIntervalSinceReferenceDate
+        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
+            let elapsed = max(0.0, context.date.timeIntervalSince(startDate))
             let charsPerSec = 12.0
-            let pauseDuration = 1.6
+            let pauseDuration = 1.4
             let fullTextCount = max(1, item.text.count)
             let typingDuration = Double(fullTextCount) / charsPerSec
             let totalCycleDuration = typingDuration + pauseDuration
@@ -90,8 +98,9 @@ struct AnimatedStoryTextView: View {
             let visibleCount = min(item.text.count, max(0, Int(cycleTime * charsPerSec)))
 
             let visibleSubstring = String(item.text.prefix(visibleCount))
-            let isCursorBlink = (Int(cycleTime * 3.5) % 2 == 0)
-            let cursorText = (visibleCount < item.text.count && isCursorBlink) ? " |" : ""
+            let isTyping = cycleTime < typingDuration
+            let isCursorBlink = (Int(cycleTime * 4.0) % 2 == 0)
+            let cursorText = (isTyping && isCursorBlink) ? " |" : ""
 
             staticTextView(
                 text: visibleSubstring + cursorText,
@@ -105,8 +114,8 @@ struct AnimatedStoryTextView: View {
     // MARK: - Reveal Animation
 
     private var revealView: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
-            let elapsed = context.date.timeIntervalSinceReferenceDate
+        TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { context in
+            let elapsed = max(0.0, context.date.timeIntervalSince(startDate))
             let cycleDuration = 3.0
             let revealDuration = 1.2
             let cycleTime = elapsed.truncatingRemainder(dividingBy: cycleDuration)
@@ -132,8 +141,8 @@ struct AnimatedStoryTextView: View {
     // MARK: - Bounce Animation
 
     private var bounceView: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { context in
-            let elapsed = context.date.timeIntervalSinceReferenceDate
+        TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { context in
+            let elapsed = max(0.0, context.date.timeIntervalSince(startDate))
             let bounceFreq = 1.8 // ~1.8 bounces per second
             let oscillation = abs(sin(elapsed * .pi * bounceFreq))
             let yOffset = -CGFloat(oscillation * 16.0)

@@ -429,6 +429,7 @@ struct CreateCanvasView: View {
     @State private var editingEffect: TextEffectType = .none
     @State private var activeToolTab: TypographyToolTab = .font
     @State private var isColorPickerVisible = false
+    @State private var animationPreviewTrigger: UUID = UUID()
 
     private let availableColors: [Color] = [
         .white,
@@ -485,6 +486,7 @@ struct CreateCanvasView: View {
                 ForEach($texts) { $textItem in
                     TypographyOverlayView(
                         item: $textItem,
+                        trashZoneCenter: trashZoneCenter,
                         onStartEditing: {
                             if !isDrawingMode {
                                 startEditing(item: textItem)
@@ -917,23 +919,46 @@ struct CreateCanvasView: View {
 
                     Spacer()
 
-                    // Center Live Editable Text wrapped with exact text hugging
-                    PersistentStoryTextView(
-                        text: $editingText,
-                        font: editingFontStyle.uiFont(size: editingFontSize, isItalic: false),
-                        textColor: UIColor(editingColor),
-                        textAlignment: editingAlignment.nsTextAlignment,
-                        hasBackground: editingHasBackground,
-                        badgeBackgroundColor: UIColor(editingColor.smartBadgeBackgroundColor),
-                        isEditingLocked: isEditingText,
-                        maxLayoutWidth: max(180, UIScreen.main.bounds.width - 116)
-                    )
-                    .shadow(
-                        color: editingEffect == .neon ? editingColor.opacity(0.8) : (editingEffect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(editingHasBackground ? 0.35 : 0.7)),
-                        radius: (editingEffect == .neon || editingEffect == .sparkle) ? 10 : 4,
-                        x: 0,
-                        y: 2
-                    )
+                    // Center Live Editable Text wrapped with exact text hugging or live animation preview
+                    if activeToolTab == .animation && editingAnimation != .none {
+                        AnimatedStoryTextView(
+                            item: TextOverlayItem(
+                                text: editingText.isEmpty ? "Văn bản" : editingText,
+                                color: editingColor,
+                                hasBackground: editingHasBackground,
+                                fontStyle: editingFontStyle,
+                                alignment: editingAlignment,
+                                animation: editingAnimation,
+                                effect: editingEffect,
+                                fontSize: editingFontSize
+                            )
+                        )
+                        .id("preview_\(editingAnimation.rawValue)_\(animationPreviewTrigger.uuidString)")
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            HapticFeedbackSafe.selection()
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                activeToolTab = .font
+                            }
+                        }
+                    } else {
+                        PersistentStoryTextView(
+                            text: $editingText,
+                            font: editingFontStyle.uiFont(size: editingFontSize, isItalic: false),
+                            textColor: UIColor(editingColor),
+                            textAlignment: editingAlignment.nsTextAlignment,
+                            hasBackground: editingHasBackground,
+                            badgeBackgroundColor: UIColor(editingColor.smartBadgeBackgroundColor),
+                            isEditingLocked: isEditingText,
+                            maxLayoutWidth: max(180, UIScreen.main.bounds.width - 116)
+                        )
+                        .shadow(
+                            color: editingEffect == .neon ? editingColor.opacity(0.8) : (editingEffect == .sparkle ? Color.white.opacity(0.9) : .black.opacity(editingHasBackground ? 0.35 : 0.7)),
+                            radius: (editingEffect == .neon || editingEffect == .sparkle) ? 10 : 4,
+                            x: 0,
+                            y: 2
+                        )
+                    }
 
                     Spacer()
 
@@ -1234,6 +1259,9 @@ struct CreateCanvasView: View {
                     HapticFeedbackSafe.selection()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         activeToolTab = (activeToolTab == .animation ? .font : .animation)
+                        if activeToolTab == .animation {
+                            animationPreviewTrigger = UUID()
+                        }
                     }
                 } label: {
                     Text("//A")
@@ -1368,6 +1396,7 @@ struct CreateCanvasView: View {
                     Button {
                         HapticFeedbackSafe.selection()
                         editingAnimation = anim
+                        animationPreviewTrigger = UUID()
                     } label: {
                         HStack(spacing: 6) {
                             InstagramIcon(.system(name: anim.iconName), size: 13, color: editingAnimation == anim ? Color.black : Color.white)

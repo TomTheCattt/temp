@@ -149,20 +149,26 @@ extension Color {
 struct TypographyOverlayView: View {
 
     @Binding var item: TextOverlayItem
+    var trashZoneCenter: CGPoint = .zero
     var onStartEditing: () -> Void
     var onDragChanged: ((CGPoint) -> Void)? = nil
     var onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
 
     @State private var dragOffset: CGSize = .zero
     @State private var currentScale: CGFloat = 1.0
+    @State private var suctionScale: CGFloat = 1.0
+    @State private var suctionOpacity: Double = 1.0
+    @State private var magneticOffset: CGSize = .zero
 
     init(
         item: Binding<TextOverlayItem>,
+        trashZoneCenter: CGPoint = .zero,
         onStartEditing: @escaping () -> Void,
         onDragChanged: ((CGPoint) -> Void)? = nil,
         onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
     ) {
         self._item = item
+        self.trashZoneCenter = trashZoneCenter
         self.onStartEditing = onStartEditing
         self.onDragChanged = onDragChanged
         self.onDragEnded = onDragEnded
@@ -171,12 +177,14 @@ struct TypographyOverlayView: View {
     // Backward-compatible initializer for UniversalCreativeStudioView & StoryCameraView
     init(
         item: Binding<TextOverlayItem>,
+        trashZoneCenter: CGPoint = .zero,
         onDelete: (() -> Void)? = nil,
         onEdit: (() -> Void)? = nil,
         onDragChanged: ((CGPoint) -> Void)? = nil,
         onDragEnded: ((CGPoint, CGSize) -> Void)? = nil
     ) {
         self._item = item
+        self.trashZoneCenter = trashZoneCenter
         self.onStartEditing = onEdit ?? {}
         self.onDragChanged = onDragChanged
         self.onDragEnded = { location, translation in
@@ -196,18 +204,57 @@ struct TypographyOverlayView: View {
                 HapticFeedbackSafe.impact(.light)
                 onStartEditing()
             }
-            .scaleEffect(item.scale * currentScale)
-            .offset(x: item.offset.width + dragOffset.width, y: item.offset.height + dragOffset.height)
+            .scaleEffect(item.scale * currentScale * suctionScale)
+            .opacity(suctionOpacity)
+            .offset(
+                x: item.offset.width + dragOffset.width + magneticOffset.width,
+                y: item.offset.height + dragOffset.height + magneticOffset.height
+            )
             .gesture(
                 DragGesture(minimumDistance: 3, coordinateSpace: .global)
                     .onChanged { value in
                         dragOffset = value.translation
                         onDragChanged?(value.location)
+
+                        if trashZoneCenter != .zero {
+                            let distance = hypot(value.location.x - trashZoneCenter.x, value.location.y - trashZoneCenter.y)
+                            let suctionRadius: CGFloat = 220.0
+                            if distance < suctionRadius {
+                                let progress = (suctionRadius - distance) / suctionRadius // 0.0 -> 1.0
+                                suctionScale = max(0.28, 1.0 - 0.72 * progress)
+                                suctionOpacity = max(0.65, 1.0 - 0.35 * progress)
+
+                                let pullStrength: CGFloat = progress * 14.0
+                                let dirX = (trashZoneCenter.x - value.location.x) / max(1.0, distance)
+                                let dirY = (trashZoneCenter.y - value.location.y) / max(1.0, distance)
+                                magneticOffset = CGSize(width: dirX * pullStrength, height: dirY * pullStrength)
+                            } else {
+                                suctionScale = 1.0
+                                suctionOpacity = 1.0
+                                magneticOffset = .zero
+                            }
+                        }
                     }
                     .onEnded { value in
                         let location = value.location
                         let translation = value.translation
                         dragOffset = .zero
+
+                        let isDroppedInTrash = (trashZoneCenter != .zero) && (hypot(location.x - trashZoneCenter.x, location.y - trashZoneCenter.y) <= 52.0)
+
+                        if isDroppedInTrash {
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                suctionScale = 0.05
+                                suctionOpacity = 0.0
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                suctionScale = 1.0
+                                suctionOpacity = 1.0
+                                magneticOffset = .zero
+                            }
+                        }
+
                         onDragEnded?(location, translation)
                     }
             )

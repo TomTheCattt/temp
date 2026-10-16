@@ -283,40 +283,44 @@ flowchart TD
   - Khi chạm 1 lần vào text trên canvas &rarr; kích hoạt ngay lập tức `onStartEditing()` để mở bàn phím và thanh định dạng.
   - Khi chạm vào bất kỳ vị trí trống nào trên nền canvas &rarr; kích hoạt tạo khối văn bản mới (`startEditing(item: nil)`).
 
-### B. Kéo Thả Di Chuyển & Thùng Rác Xóa Ở Đáy (Drag-to-Delete Drop Zone)
+### B. Kéo Thả Di Chuyển, Thùng Rác Xóa Ở Đáy & Hiệu Ứng Hút Thu Nhỏ (Suction Physics)
 - **Ẩn/Hiện theo trạng thái kéo**:
   - Nút thùng rác (`deleteTrashZoneView`) **chỉ xuất hiện khi người dùng đang kéo text** (`isDraggingTextItem == true`).
   - Khi thả tay hoặc không kéo, nút thùng rác tự động ẩn đi bằng hiệu ứng spring animation thu nhỏ và làm mờ (`.scale(0.6).combined(with: .opacity)`).
-- **Phát hiện va chạm Euclid tức thì**:
-  - Tọa độ trung tâm thùng rác `trashZoneCenter` được tính toán tự động qua `GeometryReader`.
-  - Khoảng cách va chạm `hitDistance = hypot(dragLocation.x - trashZoneCenter.x, dragLocation.y - trashZoneCenter.y)`.
-  - Khi `hitDistance <= 52.0pt`:
-    - Kích hoạt rung phản hồi `HapticFeedbackSafe.impact(.medium)`.
-    - Nút thùng rác phóng to từ 54pt lên 64pt (`scaleEffect`), nền chuyển từ đen mờ sang đỏ rực (`ColorTokens.destructive`).
-  - Khi thả tay trong vùng va chạm: Xóa văn bản khỏi `texts`, kích hoạt `HapticFeedbackSafe.notification(.success)`.
+- **Hiệu ứng hút trọng trường thu nhỏ vào vùng xóa (`Suction & Magnetic Pull`)**:
+  - Khi khoảng cách giữa vị trí ngón tay `dragLocation` và tâm thùng rác `trashZoneCenter` nhỏ hơn bán kính hút $R = 220\text{pt}$:
+    - Tiến độ hút: $progress = \frac{220 - distance}{220} \in [0.0, 1.0]$.
+    - **Hệ số co rút (Suction Scale)**: Text tự động co nhỏ dần đều từ $1.0\times$ xuống $0.28\times$ khi tiến sát vào miệng thùng rác, tạo cảm giác như bị phễu trọng trường hút tụ vào trong.
+    - **Lực hút nam châm (Magnetic Pull Offset)**: Text trôi nhẹ về phía tâm thùng rác nhanh hơn ngón tay một chút ($progress \times 14\text{pt}$).
+    - **Độ mờ**: Giảm nhẹ xuống $0.65$ để tạo chiều sâu thị giác.
+  - Khi thả tay trong vùng xóa ($distance \le 52\text{pt}$): Text co nhỏ về $0.05\times$ biến mất hoàn toàn vào trong thùng rác, kích hoạt rung phản hồi thành công `HapticFeedbackSafe.notification(.success)`.
+  - Khi kéo ngược ra xa hoặc thả tay ngoài vùng xóa: Text mượt mà bung to trở lại kích thước $1.0\times$ ban đầu qua spring animation tự nhiên.
 
-### C. Bộ Render Hoạt Ảnh Trực Tiếp Trên Canvas (`AnimatedStoryTextView`)
-Trước đây, các hiệu ứng chữ (`.typewriter`, `.reveal`, `.bounce`) chỉ được render trong video export bằng `CanvasVideoRenderer.swift` mà không hiển thị trực tiếp trên màn hình xem trước. `AnimatedStoryTextView` đưa toàn bộ hiệu ứng chuyển động sống động này lên giao diện trực tiếp:
-1. **Chữ đánh máy (`.typewriter`)**:
-   - Chạy trên `TimelineView(.animation(minimumInterval: 1.0 / 30.0))` (30 FPS tối ưu pin).
-   - Tốc độ gõ 12 ký tự/giây, kèm con trỏ nhấp nháy `|` với tần số 3.5Hz, tự động lặp chu kỳ mượt mà sau 1.6 giây dừng.
-2. **Hiện ra (`.reveal`)**:
-   - Chạy trên `TimelineView(.animation(minimumInterval: 1.0 / 60.0))` (60 FPS ProMotion).
-   - Trong 1.2s đầu: `opacity` tăng dần từ 0 &rarr; 1, `scale` tăng dần từ 0.85 &rarr; 1.0; giữ nguyên 1.8s trước khi lặp lại.
-3. **Nhảy (`.bounce`)**:
-   - Dao động theo hàm sin trục Y: `yOffset = -abs(sin(elapsed * .pi * 1.8)) * 16.0` kết hợp biến dạng nhẹ `scaleY`, mang lại cảm giác chữ nhún nhảy vui tươi chuẩn 1:1 Instagram.
+### C. Bộ Render Hoạt Ảnh Trực Tiếp Trên Canvas & Live Preview Trong Editor (`AnimatedStoryTextView`)
+1. **Live Preview tức thì trong Editor (`inlineTextEditorOverlay`)**:
+   - Khi người dùng ở tab `//A` và chọn bất kỳ hiệu ứng nào (`Chữ đánh máy`, `Hiện ra`, `Nhảy`), text ở giữa màn hình lập tức chuyển sang `AnimatedStoryTextView` chạy **Live Preview** tức thì từ frame 0.0s.
+   - Mỗi lần ấn nút chọn animation, `animationPreviewTrigger = UUID()` khiến preview chạy lại từ frame đầu tiên ngay trước mắt.
+   - Chạm vào text để lập tức mở lại bàn phím và chỉnh sửa tiếp.
+2. **Cơ chế đồng hồ định kỳ độc lập (`TimelineView.periodic`)**:
+   - Khắc phục triệt để lỗi tự động pause của `TimelineView.animation` khi không có system animation trong transaction.
+   - Sử dụng `TimelineView(.periodic(from: .now, by: 1.0 / 60.0))` (và `30.0` cho typewriter) đảm bảo animation luôn luôn chuyển động liên tục 100% cả trong editor preview lẫn trên canvas sau khi apply.
+   - Sử dụng `@State private var startDate = Date()`, đo thời gian trôi qua `elapsed = max(0, context.date.timeIntervalSince(startDate))` bắt đầu chuẩn xác từ `0.0s`.
+3. **Các kiểu hoạt ảnh**:
+   - **Chữ đánh máy (`.typewriter`)**: Tốc độ gõ 12 ký tự/giây, kèm con trỏ nhấp nháy `|` với tần số 4.0Hz, dừng 1.4s sau khi gõ hết rồi tự động lặp lại chu kỳ mượt mà.
+   - **Hiện ra (`.reveal`)**: Trong 1.2s đầu: `opacity` tăng dần từ 0 &rarr; 1, `scale` tăng dần từ 0.85 &rarr; 1.0; giữ nguyên 1.8s trước khi lặp lại.
+   - **Nhảy (`.bounce`)**: Dao động theo hàm sin trục Y: `yOffset = -abs(sin(elapsed * .pi * 1.8)) * 16.0` kết hợp biến dạng nhẹ `scaleY`, mang lại cảm giác chữ nhún nhảy vui tươi chuẩn 1:1 Instagram.
 4. **Zero Overhead Policy**:
    - Khi `animation == .none`, component trả về `Text(item.text)` tĩnh, hoàn toàn không tiêu tốn chu kỳ CPU nào.
 
 ### D. Kết Quả Benchmark Đo Lường Thực Tế (`ContinuousClock`)
 ```
 ================================================================
-  EMPIRICAL BENCHMARK: TEXT ANIMATION & DRAG HIT-TESTING
+  EMPIRICAL BENCHMARK: PERIODIC TEXT ANIMATION & TRASH SUCTION
 ================================================================
-1. Typewriter Math: 1.1583 µs / frame (Target < 16,000 µs for 60 FPS)
-2. Reveal Math:     0.1091 µs / frame (Target < 16,000 µs for 60 FPS)
-3. Bounce Math:     0.1324 µs / frame (Target < 16,000 µs for 60 FPS)
-4. Hit-Test Math:   100.8658 ns / call  (Target < 1,000 ns for 120 FPS Drag)
+1. Trash Suction Math: 123.9587 ns / call  (Target < 1,000 ns for 120 FPS Drag)
+2. Periodic Typewriter: 1.0030 µs / frame (Target < 16,000 µs for 60 FPS)
+3. Periodic Reveal:     0.1276 µs / frame (Target < 16,000 µs for 60 FPS)
+4. Periodic Bounce:     0.1610 µs / frame (Target < 16,000 µs for 60 FPS)
 ================================================================
 ```
 Mọi phép tính toán đều diễn ra ở cấp độ dưới microsecond, cam kết 0 ms Main Thread lag và duy trì tốc độ 60/120 FPS ProMotion tuyệt đối.
