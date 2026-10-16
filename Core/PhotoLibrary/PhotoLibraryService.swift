@@ -8,6 +8,7 @@
 import Photos
 import UIKit
 import SwiftUI
+import os
 
 // MARK: - MediaAssetItem
 
@@ -78,7 +79,7 @@ public protocol PhotoLibraryServiceProtocol: Sendable {
 
 // MARK: - PhotoLibraryService
 
-public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked Sendable {
+public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     public static let shared = PhotoLibraryService()
 
@@ -93,7 +94,7 @@ public final class PhotoLibraryService: PhotoLibraryServiceProtocol, @unchecked 
         return status == .authorized || status == .limited
     }
 
-    public func checkAuthorization() -> Bool {
+    nonisolated public func checkAuthorization() -> Bool {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         return status == .authorized || status == .limited
     }
@@ -318,22 +319,19 @@ public enum PhotoLibrarySaveError: LocalizedError {
 
 // MARK: - Thread-Safe Single-Resume Continuation Helper
 
-private final class SafeContinuation<T>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<T, Never>?
+private final class SafeContinuation<T>: Sendable {
+    private let continuationState: OSAllocatedUnfairLock<CheckedContinuation<T, Never>?>
 
     init(_ continuation: CheckedContinuation<T, Never>) {
-        self.continuation = continuation
+        self.continuationState = OSAllocatedUnfairLock(initialState: continuation)
     }
 
     func resume(returning value: T) {
-        lock.lock()
-        guard let cont = continuation else {
-            lock.unlock()
-            return
+        let cont = continuationState.withLock { cont -> CheckedContinuation<T, Never>? in
+            let current = cont
+            cont = nil
+            return current
         }
-        continuation = nil
-        lock.unlock()
-        cont.resume(returning: value)
+        cont?.resume(returning: value)
     }
 }

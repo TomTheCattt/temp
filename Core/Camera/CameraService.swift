@@ -7,6 +7,7 @@
 
 import AVFoundation
 import UIKit
+import os
 
 // MARK: - CameraServiceError
 
@@ -48,22 +49,18 @@ final class CameraService: NSObject, @unchecked Sendable {
     // Configuration work happens on sessionQueue, while SwiftUI reads these
     // values on the main actor. Keep the observable state separate from the
     // capture graph and protect it from cross-thread stale reads.
-    private let stateLock = NSLock()
+    private let stateLock = OSAllocatedUnfairLock()
     private var sessionConfigured = false
     private var frontFacing = false
     private var wantsRunning = false
     private var interrupted = false
 
     var isSessionConfigured: Bool {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        return sessionConfigured
+        stateLock.withLock { sessionConfigured }
     }
 
     var isFrontFacing: Bool {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        return frontFacing
+        stateLock.withLock { frontFacing }
     }
 
     var isRunning: Bool {
@@ -71,15 +68,11 @@ final class CameraService: NSObject, @unchecked Sendable {
     }
 
     private func setSessionConfigured(_ value: Bool) {
-        stateLock.lock()
-        sessionConfigured = value
-        stateLock.unlock()
+        stateLock.withLock { sessionConfigured = value }
     }
 
     private func setFrontFacing(_ value: Bool) {
-        stateLock.lock()
-        frontFacing = value
-        stateLock.unlock()
+        stateLock.withLock { frontFacing = value }
     }
 
     /// Whether real hardware camera is available (returns false on iOS Simulator).
@@ -132,16 +125,16 @@ final class CameraService: NSObject, @unchecked Sendable {
     }
 
     @objc private func sessionWasInterrupted(_ notification: Notification) {
-        stateLock.lock()
-        interrupted = true
-        stateLock.unlock()
+        stateLock.withLock {
+            interrupted = true
+        }
     }
 
     @objc private func sessionInterruptionEnded(_ notification: Notification) {
-        stateLock.lock()
-        interrupted = false
-        let shouldResume = wantsRunning
-        stateLock.unlock()
+        let shouldResume = stateLock.withLock {
+            interrupted = false
+            return wantsRunning
+        }
         if shouldResume { startSessionIfNeeded() }
     }
 
@@ -264,10 +257,10 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func start() {
         guard isHardwareAvailable else { return }
-        stateLock.lock()
-        wantsRunning = true
-        let isInterrupted = interrupted
-        stateLock.unlock()
+        let isInterrupted = stateLock.withLock {
+            wantsRunning = true
+            return interrupted
+        }
         guard !isInterrupted else { return }
         startSessionIfNeeded()
     }
@@ -282,9 +275,9 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func stop() {
         guard isHardwareAvailable else { return }
-        stateLock.lock()
-        wantsRunning = false
-        stateLock.unlock()
+        stateLock.withLock {
+            wantsRunning = false
+        }
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()

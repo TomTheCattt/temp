@@ -27,15 +27,13 @@ struct FilterThumbnail: Identifiable, Sendable {
 /// - Generate all thumbnails sequentially (150x150 is fast, avoids Sendable issues with CIImage)
 /// - Cache results in memory so re-opening the picker is instant
 ///
-/// Thread-safe via NSLock. Uses @unchecked Sendable instead of actor to avoid
-/// crossing-boundary warnings with non-Sendable types (CIImage, existential ImageFilter).
-final class FilterThumbnailGenerator: @unchecked Sendable {
+/// Thread-safe via Swift actor isolation — zero locks, compile-time race protection.
+actor FilterThumbnailGenerator {
 
     static let shared = FilterThumbnailGenerator()
 
     // MARK: - Cache
 
-    private let lock = NSLock()
     private var cache: [String: [FilterThumbnail]] = [:]
     private let thumbnailSize = CGSize(width: 150, height: 150)
 
@@ -47,10 +45,9 @@ final class FilterThumbnailGenerator: @unchecked Sendable {
         for sourceImage: UIImage,
         cacheKey: String = "default",
         filters: [ImageFilter] = FilterRegistry.allFilters
-    ) async -> [FilterThumbnail] {
+    ) -> [FilterThumbnail] {
         // Return cached if available
-        let cached: [FilterThumbnail]? = lock.withLock { cache[cacheKey] }
-        if let cached {
+        if let cached = cache[cacheKey] {
             return cached
         }
 
@@ -78,18 +75,16 @@ final class FilterThumbnailGenerator: @unchecked Sendable {
         }
 
         // Cache
-        lock.withLock { cache[cacheKey] = thumbnails }
+        cache[cacheKey] = thumbnails
         return thumbnails
     }
 
     /// Invalidate cached thumbnails (e.g., when switching to a different photo).
     func invalidateCache(key: String? = nil) {
-        lock.withLock {
-            if let key {
-                cache.removeValue(forKey: key)
-            } else {
-                cache.removeAll()
-            }
+        if let key {
+            cache.removeValue(forKey: key)
+        } else {
+            cache.removeAll()
         }
     }
 
