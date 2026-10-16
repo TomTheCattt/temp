@@ -33,21 +33,31 @@
 
 ---
 
-## 3. Quy Trình Tiếp Nhận, Phân Loại, Điều Tra & Phê Duyệt Kế Hoạch (Mandatory Intake, Planning & Approval Workflow)
+## 3. Quy Trình Tiếp Nhận, Lập Kế Hoạch 5 Bước & Phê Duyệt (Mandatory 5-Step Planning & Approval Workflow)
 
-> **QUY TẮC CỐT LÕI 3**: Mọi yêu cầu từ người dùng phải được phân loại và đánh giá độ phức tạp trước khi hành động. Khi có yêu cầu điều tra hoặc công việc phức tạp, **BẮT BUỘC phải lập kế hoạch để người dùng phê duyệt trước**. **NGHIÊM CẤM TỰ Ý CODE KHI CHƯA CÓ SỰ CHO PHÉP / PHÊ DUYỆT CỦA NGƯỜI DÙNG**.
+> **QUY TẮC CỐT LÕI 3**: Mọi yêu cầu kỹ thuật phải tuân thủ nghiêm ngặt **Quy trình 5 Bước Chuẩn Mực (B1 -> B5)**. Khi có yêu cầu điều tra hoặc công việc phức tạp, **BẮT BUỘC phải lập kế hoạch để người dùng phê duyệt trước**. **NGHIÊM CẤM TỰ Ý CODE KHI CHƯA CÓ SỰ CHO PHÉP / PHÊ DUYỆT CỦA NGƯỜI DÙNG**.
 
-### Quy Trình Cụ Thể:
-1. **Xác Nhận & Phân Loại Yêu Cầu**:
-   - Khi tiếp nhận yêu cầu, cần xác nhận rõ ràng:
-     - Đây là **Phát triển tính năng mới (New Feature)** hay **Sửa lỗi (Bug Fix)**.
-     - Mục tiêu cụ thể và phạm vi tác động.
-2. **Đánh Giá Độ Phức Tạp & Quyết Định Lên Kế Hoạch**:
-   - **Task Đơn Giản (Minor / Simple Task)** (ví dụ: sửa nội dung text, sửa typo, cập nhật chuỗi bản dịch localization, chỉnh một giá trị hằng số đơn lẻ): **KHÔNG CẦN LÊN KẾ HOẠCH**, tiến hành thực hiện trực tiếp và kiểm tra kết quả ngay.
-   - **Task Phức Tạp / Thay Đổi Luồng / UI Layout / Logic Nghiệp Vụ / Tương Tác**: Bắt buộc phải điều tra kỹ lưỡng nguyên nhân gốc rễ và lập kế hoạch kỹ thuật chi tiết.
-3. **Quy Tắc Phê Duyệt Trước Khi Code (Strict Approval Gate)**:
-   - Khi người dùng yêu cầu điều tra hoặc task có độ phức tạp cao: Điều tra codebase, phân tích nguyên nhân, đối chiếu hành vi chuẩn và **trình bày kế hoạch chi tiết (Implementation Plan)**.
-   - **DỪNG LẠI CHỜ NGƯỜI DÙNG PHÊ DUYỆT**. Chỉ bắt tay vào viết code khi người dùng xác nhận phê duyệt (ví dụ: "triển khai", "ok", "duyệt", "tiến hành"). Tuyệt đối không tự ý sửa code trước khi có sự đồng ý.
+### Quy Trình 5 Bước Chi Tiết:
+- **B1. Xác Định Rõ Mục Tiêu Nhiệm Vụ & Độ Phức Tạp**:
+  - Phân loại: **Sửa lỗi (Bug Fix)** hay **Phát triển tính năng mới (New Feature / Refactor)**.
+  - Đánh giá độ phức tạp:
+    - *Task Đơn Giản (Minor / Simple Task)* (sửa typo, chỉnh chuỗi dịch, đổi hằng số đơn lẻ): Thực hiện trực tiếp và kiểm tra ngay.
+    - *Task Phức Tạp / Thay Đổi Luồng / UI Layout / Logic / Design System*: Bắt buộc chuyển sang B2 và B3.
+- **B2. Điều Tra Các File Liên Quan & Luồng Kiến Trúc**:
+  - Truy vết toàn diện trong Clean Architecture (`Presentations → Domain ← Data`).
+  - Kiểm tra các file liên quan: View, ViewModel, Model, Use Case, Service, Mock Data, Asset Catalog, Design System Tokens (`DS.*`, `ColorTokens.*`).
+  - Lập danh sách file cần sửa đổi hoặc tạo mới, xác định ranh giới ảnh hưởng.
+- **B3. Lên Kế Hoạch Triển Khai & Tự Phản Biện Bản Thân (Kèm Approval Gate)**:
+  - Lập tài liệu kế hoạch kỹ thuật chi tiết (Implementation Plan Artifact).
+  - Tự phản biện qua 4 câu hỏi: *Tại sao viết như vậy? Phương án đã tối ưu hiệu năng/bộ nhớ tối đa chưa? Có bị thừa/lặp code không? Đã là phiên bản tốt nhất chưa?*
+  - **STRICT APPROVAL GATE**: **DỪNG LẠI CHỜ NGƯỜI DÙNG PHÊ DUYỆT**. Chỉ bắt tay viết code khi người dùng xác nhận đồng ý (ví dụ: "triển khai", "ok", "duyệt").
+- **B4. Xây Dựng Test Cases Cho Main & Edge Cases + Chạy Kiểm Thử Có Output Proof**:
+  - Xây dựng đầy đủ Test Cases cho **Main Cases** (luồng chính, UI chuẩn) và **Edge Cases** (nil, empty, network timeout, dark/light mode, rotation, memory pressure).
+  - Biên dịch toàn bộ dự án (`xcodebuild build` exit code 0) và chạy test runner tự động.
+  - Cung cấp **Output Proof** xác thực (lệnh shell, exit code 0, trích đoạn log pass, URI file log - tuân thủ Zero Fabrication).
+- **B5. Chạy Benchmark Đo Hiệu Suất, Hiệu Năng Có Empirical Proof**:
+  - Sử dụng `ContinuousClock` trong Swift 6.4 (hoặc `CFAbsoluteTimeGetCurrent()`) để đo thời gian thực thi định lượng và mức độ tiêu thụ tài nguyên.
+  - Cung cấp bằng chứng đo đạc thực tế (trích xuất console log thời gian thực tế `ms`, đảm bảo 0 ms Main Thread blocking, duy trì 60/120 FPS).
 
 ---
 
