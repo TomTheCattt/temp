@@ -100,12 +100,14 @@ flowchart TD
      - Xoay màn hình, gián đoạn cuộc gọi hoặc app backgrounding.
      - Bộ nhớ thấp hoặc giới hạn tài nguyên.
 2. **Biên dịch & Chạy kiểm thử thực tế**:
-   - Chạy `xcodebuild build` với destination cụ thể để đảm bảo mã nguồn biên dịch thành công (Exit code 0).
+   - Chạy `xcodebuild build` với destination cụ thể để đảm bảo mã nguồn biên dịch thành công (`Exit code 0`) **VÀ** triệt tiêu 100% compiler warnings (**Zero Warning Policy**).
+   - Task chỉ được coi là hoàn thành khi thỏa mãn đồng thời cả 2 tiêu chuẩn: `** BUILD SUCCEEDED **` và `0 warnings`. Bất kỳ warning nào phát sinh đều phải được khắc phục triệt để.
    - Chạy test suite hoặc test runner script tự động kiểm tra toàn bộ assertions.
-3. **Cung cấp Bằng Chứng Thực Tế (Verifiable Output Proof - Zero Fabrication)**:
+3. **Cung cấp Bằng Chứng Thực Tế (Verifiable Output Proof - Zero Fabrication & Zero Warning)**:
    - Câu lệnh shell chính xác đã chạy.
    - Mã thoát (`Exit code 0`).
-   - Trích đoạn output log thực tế chứng minh tất cả test cases đã pass.
+   - Trích đoạn output log thực tế chứng minh tất cả test cases đã pass (`** BUILD SUCCEEDED **`).
+   - Bằng chứng kiểm tra số lượng warnings thực tế (`0 Swift compiler warnings`).
    - Đường dẫn file log (`file://...`).
 
 ### B5. Chạy Benchmark Đo Hiệu Suất, Hiệu Năng + Proof (ContinuousClock Benchmark)

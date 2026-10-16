@@ -338,3 +338,14 @@ let repo = resolver.resolve(PostRepositoryProtocol.self)!
   - `Refactor filter engine to use single CIContext`
 - Không commit generated files (`.xcuserstate`, build products).
 - Không commit secrets (tokens, keys) — dùng xcconfig + .gitignore.
+
+---
+
+## 12. Verification & Task Completion Quality Gate
+
+Mọi task (sửa lỗi, tái cấu trúc hoặc tính năng mới) chỉ được coi là **HOÀN THÀNH** khi và chỉ khi thỏa mãn đồng thời:
+
+1. **Build Success**: Biên dịch toàn bộ dự án thành công (`Exit code 0`, `** BUILD SUCCEEDED **`).
+2. **Zero Warning Policy**: Triệt tiêu **100%** compiler warnings (`0 warnings`). Bất kỳ warning nào phát sinh đều bắt buộc phải được điều tra và xử lý triệt để trước khi nghiệm thu.
+3. **Verifiable Proof**: Cung cấp đầy đủ bằng chứng kiểm thử thực tế từ log output (Exit code, build status, số lượng warnings = 0, benchmark < 1.0 ms nếu có).
+

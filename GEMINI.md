@@ -56,25 +56,29 @@
   - **STRICT APPROVAL GATE**: **DỪNG LẠI CHỜ NGƯỜI DÙNG PHÊ DUYỆT**. Chỉ bắt tay viết code khi người dùng xác nhận đồng ý (ví dụ: "triển khai", "ok", "duyệt").
 - **B4. Xây Dựng Test Cases Cho Main & Edge Cases + Chạy Kiểm Thử Có Output Proof**:
   - Xây dựng đầy đủ Test Cases cho **Main Cases** (luồng chính, UI chuẩn) và **Edge Cases** (nil, empty, network timeout, dark/light mode, rotation, memory pressure).
-  - Biên dịch toàn bộ dự án (`xcodebuild build` exit code 0) và chạy test runner tự động.
-  - Cung cấp **Output Proof** xác thực (lệnh shell, exit code 0, trích đoạn log pass, URI file log - tuân thủ Zero Fabrication).
+  - Biên dịch toàn bộ dự án (`xcodebuild build` exit code 0 VÀ triệt tiêu 100% warnings - Zero Warning Policy) và chạy test runner tự động.
+  - Cung cấp **Output Proof** xác thực (lệnh shell, exit code 0, trích đoạn log pass, kiểm tra 0 warnings, URI file log - tuân thủ Zero Fabrication).
 - **B5. Chạy Benchmark Đo Hiệu Suất, Hiệu Năng Có Empirical Proof**:
   - Sử dụng `ContinuousClock` trong Swift 6.4 (hoặc `CFAbsoluteTimeGetCurrent()`) để đo thời gian thực thi định lượng và mức độ tiêu thụ tài nguyên.
   - Cung cấp bằng chứng đo đạc thực tế (trích xuất console log thời gian thực tế `ms`, đảm bảo 0 ms Main Thread blocking, duy trì 60/120 FPS).
 
 ---
 
-## 4. Yêu Cầu Bắt Buộc Về Bằng Chứng Kiểm Thử Thực Tế (Mandatory Verifiable Test Evidence - Zero Fabrication)
+## 4. Yêu Cầu Bắt Buộc Về Bằng Chứng Kiểm Thử Thực Tế (Mandatory Verifiable Test Evidence - Zero Fabrication & Zero Warning)
 
-> **QUY TẮC CỐT LÕI 4**: Sau khi thực thi một task phức tạp, **BẮT BUỘC PHẢI CÓ BẰNG CHỨNG KIỂM THỬ THỰC TẾ**. **NGHIÊM CẤM BỊA ĐẶT HOẶC BÁO CÁO KHỐNG KẾT QUẢ KHI CHƯA THỰC SỰ CHẠY LỆNH KIỂM TRA**.
+> **QUY TẮC CỐT LÕI 4**: Sau khi thực thi một task phức tạp, **BẮT BUỘC PHẢI CÓ BẰNG CHỨNG KIỂM THỬ THỰC TẾ**. **NGHIÊM CẤM BỊA ĐẶT HOẶC BÁO CÁO KHỐNG KẾT QUẢ KHI CHƯA THỰC SỰ CHẠY LỆNH KIỂM TRA**. Tiêu chuẩn hoàn thành bắt buộc phải thỏa mãn song song: **Build Success (Exit code 0)** VÀ **Zero Warnings (0 compiler warnings)**.
 
 ### Các Yêu Cầu Cụ Thể:
-1. **Bằng Chứng Đầu Ra Thực Tế (Verifiable Execution Proof)**:
+1. **Bằng Chứng Đầu Ra Thực Tế (Verifiable Execution Proof) & Zero Warning**:
    - Sau khi hoàn thành code, bắt buộc phải chạy lệnh kiểm thử thực tế (ví dụ: `xcodebuild`, test suite, linter).
+   - Tiêu chuẩn nghiệm thu hoàn thành task (Task Completion Definition) bắt buộc phải đạt song song cả 2 tiêu chí:
+     1. Build thành công (`Exit code 0`, `** BUILD SUCCEEDED **`).
+     2. Tuyệt đối không có compiler warning nào trong toàn bộ dự án (`0 warnings` - Zero Warning Policy). Nếu phát sinh bất kỳ warning nào, task được coi là **CHƯA HOÀN THÀNH** và phải được xử lý triệt để trước khi báo cáo kết thúc.
    - Phải cung cấp bằng chứng rõ ràng, có thể kiểm chứng được:
      - Câu lệnh shell chính xác đã thực thi.
      - Mã thoát (`Exit code 0`).
      - Trích đoạn log kết quả thực tế (ví dụ: `** BUILD SUCCEEDED **`, danh sách test case đã pass).
+     - Xác nhận số lượng compiler warnings thực tế (`0 Swift compiler warnings`).
      - Đường dẫn tệp log thực tế trên hệ thống (log file URI).
 2. **Nghiêm Cấm Tuyệt Đối Hành Vi Bịa Đặt (Strict Zero-Fabrication Policy)**:
    - Tuyệt đối không được suy đoán, giả lập, hoặc tự ý tuyên bố "đã test thành công" khi chưa chạy công cụ kiểm thử.
@@ -132,4 +136,39 @@
 4. **Code Đầu Ra Đã Là Phiên Bản Tốt Nhất Chưa? (Best Possible Quality Gate)**:
    - Tên biến, struct, protocol, function đã đạt độ trực quan, tự giải thích (self-documenting) và nhất quán cao nhất chưa?
    - Xử lý lỗi (error handling) và tất cả edge cases (nil, empty list, network timeout, cancel) đã được bao quát thanh thoát, không crash, không fail âm thầm chưa?
+   - Đã triệt tiêu 100% compiler warnings (`0 warnings` - Zero Warning Policy) để bảo đảm chất lượng mã nguồn sạch tuyệt đối chưa?
    - Code đã sẵn sàng vượt qua các bài review khắt khe nhất của các kỹ sư cấp cao (Senior / Staff iOS Engineer) chưa?
+
+---
+
+## 7. Bắt Buộc Kiểm Tra Tính Toàn Vẹn Ngữ Nghĩa & Đồng Bộ Dữ Liệu Xuyên Màn Hình (End-to-End Semantic Data Integrity & State Walkthrough)
+
+> **QUY TẮC CỐT LÕI 7**: Nghiêm cấm tuyệt đối việc dừng lại ở mức "Biên dịch thành công (Build Pass)", "Khớp kiểu dữ liệu (Type Match)" hoặc "Tối ưu hạ tầng kỹ thuật (Actor/Concurrency/Warnings)" mà bỏ qua **Tính toàn vẹn ngữ nghĩa (Semantic Integrity) và logic trải nghiệm người dùng thực tế**. Mọi luồng dữ liệu kết nối giữa các màn hình bắt buộc phải được kiểm tra đồng bộ logic 100%.
+
+### Các Yêu Cầu Cụ Thể:
+1. **End-to-End User Journey Walkthrough**:
+   - Khi điều tra, sửa lỗi hoặc phát triển bất kỳ tính năng nào, bắt buộc phải truy vết toàn diện hành trình trải nghiệm người dùng qua các màn hình liên quan:
+     - *Màn hình danh sách (Parent List View) hiển thị trạng thái X &rarr; Người dùng bấm vào xem Màn hình chi tiết (Detail View) thì dữ liệu có khớp 100% với trạng thái X hay không?*
+     - *Khi người dùng tạo mới, sửa, hoặc xóa dữ liệu ở Màn hình chi tiết, Màn hình danh sách bên ngoài có cập nhật tức thì (Real-time sync) hay không?*
+2. **Single Source of Truth Tuyệt Đối**:
+   - Nghiêm cấm việc sinh dữ liệu giả lập (mock data) rời rạc, tách biệt giữa màn hình danh sách và màn hình chi tiết.
+   - Toàn bộ dữ liệu chi tiết và tóm tắt (`lastMessage`, `unreadCount`, `likeCount`, `avatarURL`) bắt buộc phải bắt nguồn từ cùng một kho dữ liệu duy nhất (`inMemoryMessages`, `inMemoryConversations`).
+3. **Độ Nhạy Cảm Với Code Smells Khi Điều Tra**:
+   - Khi phát hiện bất kỳ đoạn mã nào gán cứng dữ liệu (`MockData.users.first`), sinh tin nhắn từ mảng tách biệt không liên quan, hoặc thiếu bước cập nhật danh sách cha khi con thay đổi, **BẮT BUỘC PHẢI CHỈ RA VÀ XỬ LÝ TRIỆT ĐỂ**, tuyệt đối không được bỏ qua chỉ vì "nó không thuộc phạm vi dòng lệnh đang sửa".
+
+---
+
+## 8. Nguyên Tắc Phản Biện Đa Chiều & Tìm Kiếm Giải Pháp Tối Ưu (Mutual Critical Thinking & Constructive Pushback)
+
+> **QUY TẮC CỐT LÕI 8**: Cả người dùng lẫn AI đều không phải lúc nào cũng luôn đúng. Bắt buộc phải duy trì tư duy **phản biện đa chiều (critical thinking)**: luôn tự phản biện các phương án của chính mình và đồng thời sẵn sàng phản biện, đặt câu hỏi, đưa ra góc nhìn khách quan đối với các yêu cầu hoặc giả định từ phía người dùng để cùng nhau tìm ra giải pháp tối ưu nhất về kỹ thuật, thẩm mỹ, UX và hiệu năng.
+
+### Các Yêu Cầu Cụ Thể:
+1. **Nghiêm Cấm Tuân Thủ Mù Quáng (No Blind Compliance)**:
+   - Khi người dùng đưa ra một định hướng hoặc yêu cầu, nếu nhận thấy phương án đó có lỗ hổng kiến trúc, rủi ro về hiệu năng (memory leak, OOM, Main Thread blocking), xung đột với HIG/Instagram chuẩn, hoặc có giải pháp thay thế vượt trội hơn, **BẮT BUỘC PHẢI NÊU RÕ VẤN ĐỀ VÀ PHẢN BIỆN MỘT CÁCH XÂY DỰNG**.
+   - Trình bày rõ ràng: *Ưu điểm, Nhược điểm, Rủi ro tiềm ẩn, và Phương án đề xuất tối ưu hơn (kèm lý do kỹ thuật thuyết phục)*.
+2. **Tự Phản Biện Bản Thân Không Khoan Nhượng (Relentless Self-Doubt & Cross-Examination)**:
+   - Trước khi đưa ra bất kỳ đề xuất hoặc kết luận nào, phải tự hỏi: *Liệu giải pháp này có sai sót ngầm nào không? Có cách nào viết đơn giản hơn, nhanh hơn, ít tốn bộ nhớ hơn không? Người dùng hoặc Senior Reviewer có thể bắt lỗi điểm nào?*
+   - Thẳng thắn thừa nhận và chỉnh sửa ngay khi phát hiện phương án của mình chưa tối ưu hoặc có sai lệch.
+3. **Mục Tiêu Tối Thượng Là Chất Lượng Sản Phẩm (Truth-Seeking Over Agreement)**:
+   - Mục đích của phản biện không phải là tranh cãi, mà là hợp tác tìm ra sự thật kỹ thuật (technical truth) và giải pháp hoàn hảo nhất cho ứng dụng Instagram.
+

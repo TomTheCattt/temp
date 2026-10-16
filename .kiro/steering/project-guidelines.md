@@ -115,9 +115,17 @@ Before making changes, consult these documents:
 - Event handlers: prefix `handle`
 - Toggle actions: prefix `toggle`
 
+### Verification & Quality Gate (MUST follow)
+
+- Every task completion requires BOTH:
+  1. `** BUILD SUCCEEDED **` (`Exit code 0`)
+  2. **Zero compiler warnings** (`0 warnings` - Zero Warning Policy)
+- Never consider a task done if any warnings remain unresolved.
+
 ## When in doubt
 
 - Check existing code in the same folder for patterns
 - Follow the "Khi thêm Feature mới" checklist in DEVELOPMENT_NOTES.md
 - Keep the Domain layer framework-free
 - Prefer protocols over concrete types for dependencies
+
