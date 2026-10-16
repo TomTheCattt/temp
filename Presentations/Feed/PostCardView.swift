@@ -19,6 +19,7 @@ struct PostCardView: View {
 
     @State private var showHeart = false
     @State private var heartHideTask: Task<Void, Never>?
+    @State private var currentMediaIndex: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -55,9 +56,11 @@ struct PostCardView: View {
                         .font(DS.Font.username)
 
                     if post.author.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(DS.Font.caption)
-                            .foregroundStyle(ColorTokens.verifiedBlue)
+                        InstagramIcon(
+                            .verifiedBadge,
+                            size: DS.Size.iconSmall,
+                            color: ColorTokens.accentPrimary
+                        )
                     }
                 }
 
@@ -79,8 +82,7 @@ struct PostCardView: View {
             Button {
                 AppRouter.shared.present(sheet: .reportPost(postId: post.id))
             } label: {
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(.primary)
+                InstagramIcon(.options, size: DS.Size.iconDefault, color: .primary)
             }
         }
         .padding(.horizontal, DS.Padding.content)
@@ -89,56 +91,22 @@ struct PostCardView: View {
 
     private var imageSection: some View {
         ZStack {
-            if let firstMedia = post.mediaItems.first {
-                switch firstMedia.type {
-                case .video:
-                    ZStack {
-                        // Video thumbnail as background (visible before video loads)
-                        VideoThumbnailView(videoURL: firstMedia.url, thumbnailURL: firstMedia.thumbnailURL)
-                            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-
-                        // Video player overlays thumbnail
-                        FeedVideoPlayer(
-                            url: firstMedia.url,
-                            id: "post_video_\(post.id)",
-                            isVisible: isVisible
-                        )
-                        .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                    }
-
-                case .image:
-                    LazyImage(url: firstMedia.url) { state in
-                        if let image = state.image {
-                            image
-                                .resizable()
-                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                        } else if state.error != nil {
-                            ColorTokens.buttonSecondary
-                                .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-                                .overlay {
-                                    Image(systemName: "photo")
-                                        .foregroundStyle(.secondary)
-                                }
-                        } else {
-                            skeletonMediaPlaceholder
-                        }
-                    }
+            PostMediaCarouselView(
+                post: post,
+                isVisible: isVisible,
+                aspectRatio: DS.Layout.postSquareAspectRatio,
+                currentMediaIndex: $currentMediaIndex,
+                onDoubleTap: {
+                    handleDoubleTap()
                 }
-            }
+            )
 
             // Double-tap heart animation
             if showHeart {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: DS.Size.avatarXLarge))
-                    .foregroundStyle(.white)
+                InstagramIcon(.like(selected: true), size: DS.Size.avatarXLarge, color: .white)
                     .shadow(radius: DS.Shadow.radius)
                     .transition(.scale.combined(with: .opacity))
             }
-        }
-        .clipped()
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            handleDoubleTap()
         }
     }
 
@@ -164,25 +132,19 @@ struct PostCardView: View {
     private var actionsSection: some View {
         HStack(spacing: DS.Spacing.md) {
             Button { onLikeTapped() } label: {
-                Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(post.isLiked ? ColorTokens.likeRed : .primary)
+                InstagramIcon(AppIcon.like(selected: post.isLiked), size: DS.Size.iconDefault, color: post.isLiked ? ColorTokens.likeRed : .primary)
             }
 
             Button {
                 AppRouter.shared.push(.comments(postId: post.id))
             } label: {
-                Image(systemName: "bubble.right")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(.primary)
+                InstagramIcon(AppIcon.comment, size: DS.Size.iconDefault, color: .primary)
             }
 
             Button {
                 AppRouter.shared.present(sheet: .sharePost(postId: post.id))
             } label: {
-                Image(systemName: "paperplane")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(.primary)
+                InstagramIcon(AppIcon.share, size: DS.Size.iconDefault, color: .primary)
             }
 
             Spacer()
@@ -190,10 +152,14 @@ struct PostCardView: View {
             Button {
                 onSaveTapped()
             } label: {
-                Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
-                    .font(DS.Font.title3)
-                    .foregroundStyle(.primary)
+                InstagramIcon(AppIcon.save(selected: post.isSaved), size: DS.Size.iconDefault, color: .primary)
             }
+        }
+        .overlay {
+            CarouselPageIndicator(
+                pageCount: post.mediaItems.count,
+                currentIndex: $currentMediaIndex
+            )
         }
         .padding(.horizontal, DS.Padding.content)
         .padding(.vertical, DS.Padding.inputBar)
@@ -247,16 +213,6 @@ struct PostCardView: View {
             .padding(.horizontal, DS.Padding.content)
             .padding(.top, DS.Spacing.xxs)
             .padding(.bottom, DS.Spacing.sm)
-    }
-
-    // MARK: - Skeleton Placeholder
-
-    private var skeletonMediaPlaceholder: some View {
-        ColorTokens.backgroundSubtler
-            .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fill)
-            .overlay {
-                ShimmerView()
-            }
     }
 }
 

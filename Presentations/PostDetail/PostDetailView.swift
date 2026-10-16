@@ -13,6 +13,7 @@ struct PostDetailView: View {
 
     @State private var viewModel: PostDetailViewModel
     @State private var commentText = ""
+    @State private var currentMediaIndex: Int = 0
 
     init(viewModel: PostDetailViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -103,49 +104,48 @@ struct PostDetailView: View {
                         Label(L10n.ReportPost.title, systemImage: "flag")
                     }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundStyle(.primary)
+                    InstagramIcon(.options, size: DS.Size.iconDefault, color: .primary)
                 }
             }
             .padding(.horizontal, DS.Padding.horizontal)
 
-            // Media (simplified: first image)
-            if let firstMedia = post.mediaItems.first {
-                AsyncImage(url: firstMedia.url) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    Rectangle()
-                        .fill(ColorTokens.backgroundSubtler)
-                        .aspectRatio(DS.Layout.postSquareAspectRatio, contentMode: .fit)
+            // Media (Multi-Media Carousel or Single Media)
+            PostMediaCarouselView(
+                post: post,
+                isVisible: true,
+                aspectRatio: DS.Layout.postSquareAspectRatio,
+                currentMediaIndex: $currentMediaIndex,
+                onDoubleTap: {
+                    Task { await viewModel.toggleLike() }
                 }
-                .frame(maxWidth: .infinity)
-            }
+            )
 
             // Actions bar
             HStack(spacing: DS.Spacing.md) {
                 Button(action: { Task { await viewModel.toggleLike() } }) {
-                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                        .foregroundStyle(post.isLiked ? ColorTokens.likeRed : .primary)
+                    InstagramIcon(AppIcon.like(selected: post.isLiked), size: DS.Size.iconDefault, color: post.isLiked ? ColorTokens.likeRed : .primary)
                 }
 
                 Button(action: {}) {
-                    Image(systemName: "bubble.right")
-                        .foregroundStyle(.primary)
+                    InstagramIcon(AppIcon.comment, size: DS.Size.iconDefault, color: .primary)
                 }
 
                 Button(action: {}) {
-                    Image(systemName: "paperplane")
-                        .foregroundStyle(.primary)
+                    InstagramIcon(AppIcon.share, size: DS.Size.iconDefault, color: .primary)
                 }
 
                 Spacer()
 
                 Button(action: {}) {
-                    Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
-                        .foregroundStyle(.primary)
+                    InstagramIcon(AppIcon.save(selected: post.isSaved), size: DS.Size.iconDefault, color: .primary)
                 }
             }
-            .font(DS.Font.title3)
+            .overlay {
+                CarouselPageIndicator(
+                    pageCount: post.mediaItems.count,
+                    currentIndex: $currentMediaIndex
+                )
+            }
             .padding(.horizontal, DS.Padding.horizontal)
 
             // Likes
@@ -253,9 +253,7 @@ struct CommentRowView: View {
             Spacer()
 
             Button(action: {}) {
-                Image(systemName: comment.isLiked ? "heart.fill" : "heart")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(comment.isLiked ? ColorTokens.likeRed : .secondary)
+                InstagramIcon(AppIcon.like(selected: comment.isLiked), size: DS.Size.iconSmall, color: comment.isLiked ? ColorTokens.likeRed : .secondary)
             }
         }
         .padding(.horizontal, DS.Padding.horizontal)
