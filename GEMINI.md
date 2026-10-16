@@ -95,3 +95,26 @@
      - *Trải nghiệm người dùng (UX) và công thái học chạm (touch ergonomics) đã đạt chuẩn chưa? Vùng tương tác ngón tay có đạt tối thiểu 44-48pt không?*
      - *Tính thẩm mỹ thị giác (Visual Polish, spacing, contrast, shadow) đã thực sự tinh tế chưa?*
      - *Hiệu năng đã được cam kết: không block Main Thread, zero memory leak, duy trì 60/120 FPS chưa?*
+
+---
+
+## 6. Tự Phản Biện Trong Quá Trình Viết Code & Tiêu Chuẩn Chất Lượng Code Cao Nhất (Mandatory Code Self-Critique & Code Excellence)
+
+> **QUY TẮC CỐT LÕI 6**: Mỗi khi triển khai viết bất kỳ dòng mã nào, **BẮT BUỘC PHẢI TỰ PHẢN BIỆN BẢN THÂN** trước khi hoàn thành tệp hoặc commit. Code đầu ra luôn phải là **phiên bản tốt nhất** (Best-in-class / Production-ready). Tuyệt đối nghiêm cấm viết code sơ sài, cẩu thả, chắp vá hoặc dừng lại ở mức "chạy được là xong".
+
+### Bộ Câu Hỏi Tự Phản Biện Bắt Buộc Khi Triển Khai Code:
+1. **Tại Sao Lại Viết Như Thế Này? (Design Intent & Architecture Rationale)**:
+   - Tại sao lại chọn cấu trúc / pattern này thay vì giải pháp khác?
+   - Mã nguồn có tuân thủ nghiêm ngặt ranh giới Clean Architecture (`Presentations → Domain ← Data`) không? Có lạm dụng `@ObservedObject` / `@State` hay logic bị rò rỉ vào tầng hiển thị không?
+   - Cách viết này có tự nhiên, thanh lịch (Idiomatic Swift 6 / SwiftUI) và dễ bảo trì lâu dài không?
+2. **Code Đã Được Tối Ưu Tối Đa Chưa? (Deep Performance & Memory Optimization)**:
+   - Có tạo object / closure / modifier dư thừa làm re-trigger SwiftUI view body hoặc re-layout không?
+   - Các tác vụ tính toán, parsing, filter, hoặc xử lý đồ họa / video đã được đưa vào background thread hoặc dùng cấu trúc dữ liệu tối ưu ($O(1)$, $O(n)$) chưa?
+   - Đã kiểm soát bộ nhớ triệt để: bọc `@autoreleasepool` khi cần, xử lý `[weak self]` tránh retain cycle, dùng buffer pool / thumbnail downsampling chưa?
+3. **Code Có Bị Thừa / Lặp Không? (Zero Duplication & DRY)**:
+   - Logic, modifier, animation, hoặc UI snippet này đã tồn tại ở đâu trong codebase chưa? Có thể tái sử dụng token (`DS.*`), atomic component (`InstagramButton`, `InstagramAvatarView`), hoặc Core Utilities không?
+   - Có bất kỳ dòng code, import không dùng, biến trung gian, modifier vô nghĩa, hay fallback thừa thãi nào không? Cắt bỏ và tinh gọn tối đa.
+4. **Code Đầu Ra Đã Là Phiên Bản Tốt Nhất Chưa? (Best Possible Quality Gate)**:
+   - Tên biến, struct, protocol, function đã đạt độ trực quan, tự giải thích (self-documenting) và nhất quán cao nhất chưa?
+   - Xử lý lỗi (error handling) và tất cả edge cases (nil, empty list, network timeout, cancel) đã được bao quát thanh thoát, không crash, không fail âm thầm chưa?
+   - Code đã sẵn sàng vượt qua các bài review khắt khe nhất của các kỹ sư cấp cao (Senior / Staff iOS Engineer) chưa?
