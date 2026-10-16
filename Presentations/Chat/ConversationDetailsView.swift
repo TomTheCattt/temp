@@ -52,9 +52,7 @@ struct ConversationDetailsView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.pop()
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundStyle(Color.primary)
+                    InstagramIcon(.chevronLeft, size: 20, color: Color.primary)
                 }
             }
         }
@@ -107,8 +105,7 @@ struct ConversationDetailsView: View {
                     }
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: "person.circle")
-                            .font(.system(size: 20))
+                        InstagramIcon(.profile(), size: 20, color: Color.primary)
                         Text("Trang cá nhân")
                             .font(DS.Font.caption2)
                     }
@@ -122,8 +119,7 @@ struct ConversationDetailsView: View {
                     ToastManager.shared.info("Tìm kiếm trong đoạn chat")
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 20))
+                        InstagramIcon(.search(), size: 20, color: Color.primary)
                         Text("Tìm kiếm")
                             .font(DS.Font.caption2)
                     }
@@ -133,14 +129,10 @@ struct ConversationDetailsView: View {
                 }
 
                 Button {
-                    HapticFeedbackSafe.impact(.medium)
-                    if let user = recipient {
-                        AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: false))
-                    }
+                    handleCallAction(hasVideo: false)
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: "phone")
-                            .font(.system(size: 20))
+                        InstagramIcon(.system(name: "phone"), size: 20, color: Color.primary)
                         Text("Âm thanh")
                             .font(DS.Font.caption2)
                     }
@@ -150,14 +142,10 @@ struct ConversationDetailsView: View {
                 }
 
                 Button {
-                    HapticFeedbackSafe.impact(.medium)
-                    if let user = recipient {
-                        AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: true))
-                    }
+                    handleCallAction(hasVideo: true)
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: "video")
-                            .font(.system(size: 20))
+                        InstagramIcon(.system(name: "video"), size: 20, color: Color.primary)
                         Text("Video")
                             .font(DS.Font.caption2)
                     }
@@ -169,6 +157,24 @@ struct ConversationDetailsView: View {
             .tint(.primary)
             .padding(.top, DS.Spacing.xs)
         }
+    }
+
+    private func handleCallAction(hasVideo: Bool) {
+        guard let user = recipient else { return }
+        HapticFeedbackSafe.impact(.medium)
+
+        if CallService.shared.currentCallState.isActive {
+            if let currentCall = CallService.shared.currentCall, currentCall.remoteUserId == user.id {
+                // Same participant: reopen call screen
+                AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: currentCall.hasVideo))
+            } else {
+                // Different call in progress: warn user
+                ToastManager.shared.warning(L10n.Call.alreadyInCall)
+            }
+            return
+        }
+
+        AppRouter.shared.present(fullScreen: .call(userId: user.id, userName: user.username, hasVideo: hasVideo))
     }
 
     // MARK: - Notifications Section
@@ -211,9 +217,7 @@ struct ConversationDetailsView: View {
                 ForEach(0..<3, id: \.self) { index in
                     ZStack {
                         ColorTokens.buttonSecondary
-                        Image(systemName: "photo")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.picture, size: 24, color: .secondary)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 100)
@@ -301,7 +305,7 @@ struct ConversationDetailsView: View {
                 }
             } label: {
                 HStack {
-                    Image(systemName: "phone.arrow.down.left")
+                    InstagramIcon(.system(name: "phone.arrow.down.left"), size: 16, color: ColorTokens.accentPrimary)
                     Text("Mô phỏng cuộc gọi thoại đến")
                     Spacer()
                 }
@@ -323,7 +327,7 @@ struct ConversationDetailsView: View {
                 }
             } label: {
                 HStack {
-                    Image(systemName: "video.badge.plus")
+                    InstagramIcon(.system(name: "video.badge.plus"), size: 16, color: ColorTokens.accentPrimary)
                     Text("Mô phỏng cuộc gọi video đến")
                     Spacer()
                 }

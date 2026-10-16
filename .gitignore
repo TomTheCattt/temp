@@ -20,3 +20,9 @@ xcuserdata/
 
 # Derived Data
 DerivedData/
+.derivedData/
+
+# Logs & Scratch
+*.log
+scratch/
+

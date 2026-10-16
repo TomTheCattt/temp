@@ -96,6 +96,7 @@ extension VoIPPushService: PKPushRegistryDelegate {
 
         // MUST report to CallKit synchronously within this callback
         Task { @MainActor in
+            defer { completion() }
             do {
                 try await CallManager.shared.reportIncomingCall(
                     uuid: uuid,
@@ -105,11 +106,11 @@ extension VoIPPushService: PKPushRegistryDelegate {
                     hasVideo: hasVideo
                 )
 
-                // Notify CallService about the incoming call
+                // Notify CallService about the incoming call with the SAME UUID
                 let signal = CallSignal(
                     callId: callId,
                     fromUserId: callerUserId,
-                    toUserId: "", // current user
+                    toUserId: SessionStore.shared.currentUserId,
                     callType: hasVideo ? .video : .audio,
                     sdp: payloadDict["sdp"] as? String,
                     iceCandidate: nil,
@@ -120,7 +121,8 @@ extension VoIPPushService: PKPushRegistryDelegate {
 
                 await CallService.shared.handleIncomingCall(
                     signal: signal,
-                    callerName: callerName
+                    callerName: callerName,
+                    uuid: uuid
                 )
             } catch {
                 // If we fail to report the call, we MUST still complete.
@@ -130,8 +132,6 @@ extension VoIPPushService: PKPushRegistryDelegate {
                 // Report and immediately end to satisfy iOS requirement
                 CallManager.shared.reportCallEnded(uuid: uuid, reason: .failed)
             }
-
-            completion()
         }
     }
 }

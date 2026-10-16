@@ -70,5 +70,21 @@ final class ServiceAssembly: Assembly {
         container.register(PhotoLibraryService.self) { _ in
             PhotoLibraryService.shared
         }.inObjectScope(.container)
+
+        // MARK: CallManager
+
+        container.register(CallManager.self) { _ in
+            CallManager.shared
+        }.inObjectScope(.container)
+
+        // MARK: CallService
+
+        container.register(CallServiceProtocol.self) { _ in
+            CallService.shared
+        }.inObjectScope(.container)
+
+        container.register(CallService.self) { _ in
+            CallService.shared
+        }.inObjectScope(.container)
     }
 }

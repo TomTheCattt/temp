@@ -6,22 +6,52 @@
 //
 
 import Foundation
-import Combine
-import os
 
 // MARK: - MockMessageDataSource
 
-final class MockMessageDataSource: @unchecked Sendable {
+actor MockMessageDataSource {
 
-    private let lock = OSAllocatedUnfairLock()
     private var inMemoryConversations: [Conversation] = []
     private var inMemoryMessages: [String: [Message]] = [:]
     private var inMemoryNotes: [InstagramNote] = []
-    private var cancellables = Set<AnyCancellable>()
 
     init() {
-        // Initialize conversations from MockData
-        self.inMemoryConversations = MockData.conversations
+        let conversations = MockData.conversations
+        self.inMemoryConversations = conversations
+
+        // Seed inMemoryMessages for all conversations so that conversation.lastMessage
+        // is guaranteed to be the newest message (index 0) in the conversation's history.
+        var seededMessages: [String: [Message]] = [:]
+        for conv in conversations {
+            let partner = conv.participants.first { $0.id != MockData.currentUser.id } ?? MockData.users.first ?? MockData.currentUser
+            var list: [Message] = []
+
+            if let last = conv.lastMessage {
+                list.append(last)
+                let baseDate = last.createdAt
+
+                // Generate preceding contextual dialogue in reverse chronological order
+                let count = 12
+                for i in 1...count {
+                    let sender = (i % 2 == 1) ? partner : MockData.currentUser
+                    let text = Self.precedingDialogue[(i - 1) % Self.precedingDialogue.count]
+                    let msgDate = baseDate.addingTimeInterval(-Double(i) * Self.messageTimeSpacing)
+                    list.append(
+                        Message(
+                            id: "msg_\(conv.id)_hist_\(i)",
+                            conversationId: conv.id,
+                            sender: sender,
+                            content: .text(text),
+                            status: .read,
+                            replyToId: nil,
+                            createdAt: msgDate
+                        )
+                    )
+                }
+            }
+            seededMessages[conv.id] = list
+        }
+        self.inMemoryMessages = seededMessages
 
         // Initialize notes
         let currentUserNote = InstagramNote(
@@ -51,37 +81,47 @@ final class MockMessageDataSource: @unchecked Sendable {
         self.inMemoryNotes = [currentUserNote] + friendNotes
 
         // Initial total unread count calculation
-        updateTotalUnreadState()
+        let initialTotal = conversations.filter { $0.unreadCount != 0 }.count
+        Task { @MainActor in
+            AppState.shared.setUnreadChatCount(initialTotal)
+        }
 
-        // Subscribe to incoming messages (e.g. from WebSocket)
-        NotificationCenter.default.publisher(for: .didUpdateMessage)
-            .sink { [weak self] notification in
+        // Subscribe to incoming messages (e.g. from WebSocket) via modern AsyncSequence
+        Task { [weak self] in
+            for await notification in NotificationCenter.default.notifications(named: .didUpdateMessage) {
                 guard let self = self,
-                      let message = notification.object as? Message else { return }
-                self.handleExternalMessage(message)
+                      let message = notification.object as? Message else { continue }
+                await self.handleExternalMessage(message)
             }
-            .store(in: &cancellables)
+        }
 
-        // Subscribe to finished calls to record call history into DM
-        NotificationCenter.default.publisher(for: .didEndCall)
-            .sink { [weak self] notification in
+        // Subscribe to finished calls to record call history into DM via modern AsyncSequence
+        Task { [weak self] in
+            for await notification in NotificationCenter.default.notifications(named: .didEndCall) {
                 guard let self = self,
                       let userInfo = notification.userInfo,
-                      let remoteUserId = userInfo["remoteUserId"] as? String else { return }
+                      let remoteUserId = userInfo["remoteUserId"] as? String else { continue }
+                let callerUserId = userInfo["callerUserId"] as? String ?? ""
+                let isOutgoing = userInfo["isOutgoing"] as? Bool ?? true
                 let hasVideo = userInfo["hasVideo"] as? Bool ?? false
                 let duration = userInfo["duration"] as? String
                 let reason = userInfo["reason"] as? String ?? ""
-                self.recordCallEndEvent(remoteUserId: remoteUserId, hasVideo: hasVideo, duration: duration, reason: reason)
+                await self.recordCallEndEvent(
+                    remoteUserId: remoteUserId,
+                    callerUserId: callerUserId,
+                    isOutgoing: isOutgoing,
+                    hasVideo: hasVideo,
+                    duration: duration,
+                    reason: reason
+                )
             }
-            .store(in: &cancellables)
+        }
     }
 
     // MARK: - Conversations
 
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
         try await simulateDelay(seconds: 0.05)
-        lock.lock()
-        defer { lock.unlock() }
         let start = (page - 1) * perPage
         let end = min(start + perPage, inMemoryConversations.count)
         guard start < end else { return [] }
@@ -91,39 +131,52 @@ final class MockMessageDataSource: @unchecked Sendable {
     func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {
         try await simulateDelay(seconds: 0.05)
 
-        lock.lock()
-        let newMessages = inMemoryMessages[conversationId] ?? []
-        lock.unlock()
-
-        guard page <= Self.maxMockPages else {
-            return page == 1 ? newMessages : []
+        // Ensure entry exists for conversationId
+        if inMemoryMessages[conversationId] == nil {
+            if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
+                inMemoryMessages[conversationId] = conv.lastMessage.map { [$0] } ?? []
+            } else {
+                inMemoryMessages[conversationId] = []
+            }
         }
 
-        let otherUser = MockData.users.first ?? MockData.currentUser
-        let pageCount = min(perPage, Self.messagesPerMockPage)
+        var currentMessages = inMemoryMessages[conversationId] ?? []
+        let start = (page - 1) * perPage
 
-        let pageBaseOffset = Double(page - 1) * Double(pageCount) * Self.messageTimeSpacing
+        // If requested page exceeds cached messages, synthesize older history if within max pages
+        if start >= currentMessages.count && page <= Self.maxMockPages {
+            let partner: User = {
+                if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
+                    return conv.participants.first { $0.id != MockData.currentUser.id } ?? MockData.currentUser
+                }
+                return MockData.users.first ?? MockData.currentUser
+            }()
 
-        let mockHistory: [Message] = (0..<pageCount).map { index in
-            let ageSteps = Double(index) + 1
-            return Message(
-                id: "msg_\(conversationId)_p\(page)_\(index)",
-                conversationId: conversationId,
-                sender: index % 3 == 0 ? MockData.currentUser : otherUser,
-                content: .text(mockMessages[(page * pageCount + index) % mockMessages.count]),
-                status: .read,
-                replyToId: nil,
-                createdAt: Date(
-                    timeIntervalSinceNow: -(pageBaseOffset + ageSteps * Self.messageTimeSpacing)
+            let oldestDate = currentMessages.last?.createdAt ?? Date()
+            var olderBatch: [Message] = []
+            for i in 1...perPage {
+                let sender = (i % 2 == 1) ? partner : MockData.currentUser
+                let text = Self.precedingDialogue[(currentMessages.count + i) % Self.precedingDialogue.count]
+                let date = oldestDate.addingTimeInterval(-Double(i) * Self.messageTimeSpacing)
+                olderBatch.append(
+                    Message(
+                        id: "msg_\(conversationId)_p\(page)_\(i)",
+                        conversationId: conversationId,
+                        sender: sender,
+                        content: .text(text),
+                        status: .read,
+                        replyToId: nil,
+                        createdAt: date
+                    )
                 )
-            )
+            }
+            currentMessages.append(contentsOf: olderBatch)
+            inMemoryMessages[conversationId] = currentMessages
         }
 
-        if page == 1 {
-            return newMessages + mockHistory
-        } else {
-            return mockHistory
-        }
+        guard start < currentMessages.count else { return [] }
+        let end = min(start + perPage, currentMessages.count)
+        return Array(currentMessages[start..<end])
     }
 
     func sendMessage(conversationId: String, content: MessageContent) async throws -> Message {
@@ -139,7 +192,6 @@ final class MockMessageDataSource: @unchecked Sendable {
             createdAt: .now
         )
 
-        lock.lock()
         // 1. Add to messages cache
         if inMemoryMessages[conversationId] != nil {
             inMemoryMessages[conversationId]?.insert(message, at: 0)
@@ -163,7 +215,6 @@ final class MockMessageDataSource: @unchecked Sendable {
             )
             inMemoryConversations.insert(updated, at: 0)
         }
-        lock.unlock()
 
         // 3. Post notifications to sync UI in DirectMessagesView & MainTabView
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -174,7 +225,6 @@ final class MockMessageDataSource: @unchecked Sendable {
     func markAsRead(conversationId: String) async throws {
         try await simulateDelay(seconds: 0.05)
 
-        lock.lock()
         if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
             let existing = inMemoryConversations[index]
             if existing.unreadCount > 0 {
@@ -191,7 +241,6 @@ final class MockMessageDataSource: @unchecked Sendable {
                 )
             }
         }
-        lock.unlock()
 
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -214,9 +263,7 @@ final class MockMessageDataSource: @unchecked Sendable {
             isMuted: false
         )
 
-        lock.lock()
         inMemoryConversations.insert(newConv, at: 0)
-        lock.unlock()
 
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
         return newConv
@@ -224,16 +271,37 @@ final class MockMessageDataSource: @unchecked Sendable {
 
     func deleteMessage(id: String) async throws {
         try await simulateDelay(seconds: 0.05)
-        lock.lock()
-        for key in inMemoryMessages.keys {
-            inMemoryMessages[key]?.removeAll { $0.id == id }
+        for (convId, msgs) in inMemoryMessages {
+            if let targetIndex = msgs.firstIndex(where: { $0.id == id }) {
+                var updatedMsgs = msgs
+                updatedMsgs.remove(at: targetIndex)
+                inMemoryMessages[convId] = updatedMsgs
+
+                // Synchronize conversation's lastMessage
+                if let convIndex = inMemoryConversations.firstIndex(where: { $0.id == convId }) {
+                    let existing = inMemoryConversations[convIndex]
+                    let newLastMessage = updatedMsgs.first
+                    let newUpdatedAt = newLastMessage?.createdAt ?? existing.updatedAt
+                    inMemoryConversations[convIndex] = Conversation(
+                        id: existing.id,
+                        participants: existing.participants,
+                        lastMessage: newLastMessage,
+                        unreadCount: existing.unreadCount,
+                        isGroup: existing.isGroup,
+                        groupName: existing.groupName,
+                        groupAvatarURL: existing.groupAvatarURL,
+                        updatedAt: newUpdatedAt,
+                        isMuted: existing.isMuted
+                    )
+                }
+                NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+                break
+            }
         }
-        lock.unlock()
     }
 
     func muteConversation(id: String, mute: Bool) async throws {
         try await simulateDelay(seconds: 0.05)
-        lock.lock()
         if let index = inMemoryConversations.firstIndex(where: { $0.id == id }) {
             let conv = inMemoryConversations[index]
             inMemoryConversations[index] = Conversation(
@@ -248,16 +316,13 @@ final class MockMessageDataSource: @unchecked Sendable {
                 isMuted: mute
             )
         }
-        lock.unlock()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
 
     func deleteConversation(id: String) async throws {
         try await simulateDelay(seconds: 0.05)
-        lock.lock()
         inMemoryConversations.removeAll { $0.id == id }
         inMemoryMessages.removeValue(forKey: id)
-        lock.unlock()
 
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -269,8 +334,6 @@ final class MockMessageDataSource: @unchecked Sendable {
 
     func fetchNotes() async throws -> [InstagramNote] {
         try await simulateDelay(seconds: 0.05)
-        lock.lock()
-        defer { lock.unlock() }
         return inMemoryNotes
     }
 
@@ -280,7 +343,6 @@ final class MockMessageDataSource: @unchecked Sendable {
         // Skip messages sent by current user as they are handled in sendMessage
         guard message.sender.id != MockData.currentUser.id else { return }
 
-        lock.lock()
         let convId = message.conversationId
         if inMemoryMessages[convId] != nil {
             if !(inMemoryMessages[convId]?.contains(where: { $0.id == message.id }) ?? false) {
@@ -319,23 +381,48 @@ final class MockMessageDataSource: @unchecked Sendable {
             )
             inMemoryConversations.insert(newConv, at: 0)
         }
-        lock.unlock()
 
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
 
-    private func recordCallEndEvent(remoteUserId: String, hasVideo: Bool, duration: String?, reason: String) {
-        lock.lock()
-        // Find conversation with this user
-        guard let convIndex = inMemoryConversations.firstIndex(where: { conv in
-            conv.participants.contains(where: { $0.id == remoteUserId })
-        }) else {
-            lock.unlock()
-            return
+    private func recordCallEndEvent(
+        remoteUserId: String,
+        callerUserId: String,
+        isOutgoing: Bool,
+        hasVideo: Bool,
+        duration: String?,
+        reason: String
+    ) {
+        // Find partner user
+        let partnerUser: User
+        if let user = MockData.users.first(where: { $0.id == remoteUserId }) {
+            partnerUser = user
+        } else if let found = inMemoryConversations.flatMap(\.participants).first(where: { $0.id == remoteUserId }) {
+            partnerUser = found
+        } else {
+            partnerUser = User(
+                id: remoteUserId,
+                username: "user_\(remoteUserId)",
+                fullName: "User \(remoteUserId)",
+                email: nil,
+                phone: nil,
+                avatarURL: URL(string: "https://i.pravatar.cc/300?u=\(remoteUserId)"),
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
         }
 
-        let conv = inMemoryConversations[convIndex]
+        let sender: User = isOutgoing ? MockData.currentUser : partnerUser
         let callTypeStr = hasVideo ? "Cuộc gọi video" : "Cuộc gọi thoại"
         let contentText: String
 
@@ -344,50 +431,95 @@ final class MockMessageDataSource: @unchecked Sendable {
         } else if reason == "rejected" || reason == "busy" {
             contentText = "\(callTypeStr) bị từ chối"
         } else if reason == "timeout" {
-            contentText = "\(callTypeStr) nhỡ"
+            if isOutgoing {
+                contentText = "\(callTypeStr) không trả lời"
+            } else {
+                contentText = "\(callTypeStr) nhỡ"
+            }
         } else {
             contentText = "\(callTypeStr) đã kết thúc"
         }
 
-        let callMessage = Message(
-            id: "call_\(UUID().uuidString)",
-            conversationId: conv.id,
-            sender: MockData.currentUser,
-            content: .text(contentText),
-            status: .read,
-            replyToId: nil,
-            createdAt: Date()
-        )
+        // Determine if conversation already exists
+        if let convIndex = inMemoryConversations.firstIndex(where: { conv in
+            conv.participants.contains(where: { $0.id == remoteUserId })
+        }) {
+            let conv = inMemoryConversations[convIndex]
+            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let newUnreadCount = isMissedIncoming ? conv.unreadCount + 1 : conv.unreadCount
 
-        if inMemoryMessages[conv.id] != nil {
-            inMemoryMessages[conv.id]?.insert(callMessage, at: 0)
+            let callMessage = Message(
+                id: "call_\(UUID().uuidString)",
+                conversationId: conv.id,
+                sender: sender,
+                content: .text(contentText),
+                status: isOutgoing ? .read : (isMissedIncoming ? .delivered : .read),
+                replyToId: nil,
+                createdAt: Date()
+            )
+
+            if inMemoryMessages[conv.id] != nil {
+                inMemoryMessages[conv.id]?.insert(callMessage, at: 0)
+            } else {
+                inMemoryMessages[conv.id] = [callMessage]
+            }
+
+            let existing = inMemoryConversations.remove(at: convIndex)
+            let updated = Conversation(
+                id: existing.id,
+                participants: existing.participants,
+                lastMessage: callMessage,
+                unreadCount: newUnreadCount,
+                isGroup: existing.isGroup,
+                groupName: existing.groupName,
+                groupAvatarURL: existing.groupAvatarURL,
+                updatedAt: Date(),
+                isMuted: existing.isMuted
+            )
+            inMemoryConversations.insert(updated, at: 0)
+
+            NotificationCenter.default.post(name: .didUpdateMessage, object: callMessage)
+            NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+            updateTotalUnreadState()
         } else {
-            inMemoryMessages[conv.id] = [callMessage]
+            // Auto-create new Conversation for remoteUserId
+            let newConvId = "conv_\(remoteUserId)"
+            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let unreadCount = isMissedIncoming ? 1 : 0
+
+            let callMessage = Message(
+                id: "call_\(UUID().uuidString)",
+                conversationId: newConvId,
+                sender: sender,
+                content: .text(contentText),
+                status: isOutgoing ? .read : (isMissedIncoming ? .delivered : .read),
+                replyToId: nil,
+                createdAt: Date()
+            )
+
+            inMemoryMessages[newConvId] = [callMessage]
+
+            let newConv = Conversation(
+                id: newConvId,
+                participants: [MockData.currentUser, partnerUser],
+                lastMessage: callMessage,
+                unreadCount: unreadCount,
+                isGroup: false,
+                groupName: nil,
+                groupAvatarURL: nil,
+                updatedAt: Date(),
+                isMuted: false
+            )
+            inMemoryConversations.insert(newConv, at: 0)
+
+            NotificationCenter.default.post(name: .didUpdateMessage, object: callMessage)
+            NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+            updateTotalUnreadState()
         }
-
-        let existing = inMemoryConversations.remove(at: convIndex)
-        let updated = Conversation(
-            id: existing.id,
-            participants: existing.participants,
-            lastMessage: callMessage,
-            unreadCount: existing.unreadCount,
-            isGroup: existing.isGroup,
-            groupName: existing.groupName,
-            groupAvatarURL: existing.groupAvatarURL,
-            updatedAt: Date(),
-            isMuted: existing.isMuted
-        )
-        inMemoryConversations.insert(updated, at: 0)
-        lock.unlock()
-
-        NotificationCenter.default.post(name: .didUpdateMessage, object: callMessage)
-        NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
 
     private func updateTotalUnreadState() {
-        lock.lock()
         let total = inMemoryConversations.reduce(0) { $0 + $1.unreadCount }
-        lock.unlock()
 
         Task { @MainActor in
             AppState.shared.setUnreadChatCount(total)
@@ -398,24 +530,21 @@ final class MockMessageDataSource: @unchecked Sendable {
 
     private static let maxMockPages = 3
     private static let messagesPerMockPage = 15
-    private static let messageTimeSpacing: Double = 300
+    private static let messageTimeSpacing: Double = 180
 
-    private let mockMessages = [
-        "Hey! What's up? 👋",
-        "Not much, just working on a new project",
-        "That sounds cool! What kind of project?",
-        "An Instagram clone 😄",
-        "No way! That's awesome",
-        "Yeah, it's been fun building it",
-        "Let me know if you need help!",
-        "Thanks! Will do 🙏",
-        "How's the weather there?",
-        "Pretty nice today, sunny ☀️",
-        "Same here! Perfect day",
-        "Want to grab coffee later?",
-        "Sure! Around 3pm?",
-        "Sounds good, see you then!",
-        "Great, see you! 👋",
+    private static let precedingDialogue = [
+        "Hey! How is everything going? 👋",
+        "Pretty good! Just wrapping up some tasks.",
+        "Did you get a chance to check out the latest design?",
+        "Yes, the UI components and color palette look amazing! 🎨",
+        "Awesome! Let me know if you need any adjustments.",
+        "Will do. Are we still meeting for lunch later? 🍜",
+        "Definitely, let's meet around 12:30 at the lobby.",
+        "Sounds like a plan! See you soon. 👍",
+        "By the way, did you see the new feature demo?",
+        "Not yet, send me the link when you can!",
+        "Sent! Let me know your thoughts after reviewing.",
+        "Got it, looking at it right now. Looks super clean! ✨"
     ]
 
     private func simulateDelay(seconds: Double = 0.5) async throws {

@@ -21,6 +21,9 @@ struct InstagramApp: App {
         // Configure image pipeline
         ImagePipelineManager.configure()
 
+        // Register for VoIP pushes early to handle background incoming calls
+        VoIPPushService.shared.registerForVoIPPushes()
+
         // Start app-wide internet connectivity monitoring (drives offline/online toasts).
         Task { @MainActor in
             NetworkMonitor.shared.start()

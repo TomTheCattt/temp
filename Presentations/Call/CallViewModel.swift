@@ -9,10 +9,11 @@ import Foundation
 import Combine
 import UIKit
 import AVFoundation
+import CoreMedia
 
 // MARK: - CallTaskCoordinator
 
-private final class CallTaskCoordinator: @unchecked Sendable {
+private nonisolated final class CallTaskCoordinator: @unchecked Sendable {
     var durationTimer: Task<Void, Never>?
     var autoDismissTask: Task<Void, Never>?
 
@@ -37,6 +38,7 @@ final class CallViewModel {
     private(set) var isSpeakerOn = false
     private(set) var callDuration = "00:00"
     private(set) var shouldDismiss = false
+    private(set) var audioLevel: Float = 0.0
     var hasVideo: Bool
     var isFrontCamera: Bool = true
     var isCameraOff: Bool = false
@@ -44,9 +46,24 @@ final class CallViewModel {
     let remoteUserId: String
     let remoteName: String
 
+    // MARK: - Publishers for View
+
+    var localSampleBufferPublisher: AnyPublisher<CMSampleBuffer, Never> {
+        pipeline.localSampleBufferPublisher
+    }
+
+    var remoteSampleBufferPublisher: AnyPublisher<CMSampleBuffer, Never> {
+        pipeline.remoteSampleBufferPublisher
+    }
+
+    var audioLevelPublisher: AnyPublisher<Float, Never> {
+        pipeline.audioLevelPublisher
+    }
+
     // MARK: - Private
 
     private let callService: CallService
+    private let pipeline: CallMediaPipelineProtocol
     private var cancellables = Set<AnyCancellable>()
     @ObservationIgnored
     private let taskCoordinator = CallTaskCoordinator()
@@ -58,25 +75,37 @@ final class CallViewModel {
         remoteUserId: String,
         remoteName: String,
         hasVideo: Bool,
-        callService: CallService? = nil
+        callService: CallService? = nil,
+        pipeline: CallMediaPipelineProtocol? = nil
     ) {
         self.remoteUserId = remoteUserId
         self.remoteName = remoteName
         self.hasVideo = hasVideo
+        // Standard Instagram video call defaults to speaker output
+        if hasVideo {
+            self.isSpeakerOn = true
+        }
+
         let service = callService ?? CallService.shared
         self.callService = service
         self.callState = service.currentCallState
 
+        let mediaPipeline = pipeline ?? DefaultCallMediaPipeline.shared
+        self.pipeline = mediaPipeline
+
         subscribeToState()
+        subscribeToMedia()
         setupSensorsAndCamera()
     }
 
     deinit {
         taskCoordinator.cancelAll()
+        let localPipeline = pipeline
         Task { @MainActor in
             UIDevice.current.isProximityMonitoringEnabled = false
             UIApplication.shared.isIdleTimerDisabled = false
-            CameraService.shared.stop()
+            localPipeline.stopVideo()
+            localPipeline.stopAudio()
         }
     }
 
@@ -96,6 +125,14 @@ final class CallViewModel {
                 name: remoteName,
                 hasVideo: hasVideo
             )
+            // Start audio & video capture for outgoing call
+            try? await pipeline.startAudio()
+            if hasVideo && !isCameraOff {
+                try? await pipeline.startVideo(isFront: isFrontCamera)
+            }
+            if isSpeakerOn {
+                pipeline.setSpeaker(true)
+            }
         } catch {
             logger.error("Failed to initiate outgoing call: \(error.localizedDescription)")
         }
@@ -106,6 +143,13 @@ final class CallViewModel {
     func accept() async {
         HapticFeedbackSafe.impact(.medium)
         try? await callService.acceptIncomingCall()
+        try? await pipeline.startAudio()
+        if hasVideo && !isCameraOff {
+            try? await pipeline.startVideo(isFront: isFrontCamera)
+        }
+        if isSpeakerOn {
+            pipeline.setSpeaker(true)
+        }
     }
 
     func reject() async {
@@ -122,12 +166,14 @@ final class CallViewModel {
         HapticFeedbackSafe.selection()
         try? await callService.toggleMute()
         isMuted = callService.currentCall?.isMuted ?? false
+        pipeline.setMuted(isMuted)
     }
 
     func toggleSpeaker() async {
         HapticFeedbackSafe.selection()
         try? await callService.toggleSpeaker()
         isSpeakerOn = callService.currentCall?.isSpeakerOn ?? false
+        pipeline.setSpeaker(isSpeakerOn)
         updateProximitySensor()
     }
 
@@ -135,7 +181,9 @@ final class CallViewModel {
         guard hasVideo else { return }
         HapticFeedbackSafe.selection()
         isFrontCamera.toggle()
-        CameraService.shared.switchCamera(isFront: isFrontCamera)
+        Task {
+            await pipeline.switchCamera(isFront: isFrontCamera)
+        }
     }
 
     func toggleCamera() {
@@ -143,9 +191,11 @@ final class CallViewModel {
         HapticFeedbackSafe.selection()
         isCameraOff.toggle()
         if isCameraOff {
-            CameraService.shared.stop()
+            pipeline.stopVideo()
         } else {
-            CameraService.shared.start()
+            Task {
+                try? await pipeline.startVideo(isFront: isFrontCamera)
+            }
         }
     }
 
@@ -153,9 +203,11 @@ final class CallViewModel {
         guard !hasVideo else { return }
         HapticFeedbackSafe.impact(.medium)
         hasVideo = true
+        isSpeakerOn = true
         Task {
-            _ = await CameraService.shared.configureSession(isFront: true)
-            CameraService.shared.start()
+            try? await callService.upgradeToVideo()
+            try? await pipeline.startVideo(isFront: true)
+            pipeline.setSpeaker(true)
         }
         updateIdleTimer()
         updateProximitySensor()
@@ -193,6 +245,15 @@ final class CallViewModel {
             .store(in: &cancellables)
     }
 
+    private func subscribeToMedia() {
+        pipeline.audioLevelPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] level in
+                self?.audioLevel = level
+            }
+            .store(in: &cancellables)
+    }
+
     private func handleStateChange(_ state: CallState) {
         switch state {
         case .connected:
@@ -200,6 +261,14 @@ final class CallViewModel {
             startDurationTimer()
             updateProximitySensor()
             updateIdleTimer()
+            Task {
+                try? await pipeline.startAudio()
+                if hasVideo && !isCameraOff {
+                    try? await pipeline.startVideo(isFront: isFrontCamera)
+                }
+                pipeline.setSpeaker(isSpeakerOn)
+                pipeline.setMuted(isMuted)
+            }
 
         case .ended:
             HapticFeedbackSafe.notification(.warning)
@@ -208,7 +277,8 @@ final class CallViewModel {
             scheduleAutoDismiss()
 
         default:
-            break
+            updateProximitySensor()
+            updateIdleTimer()
         }
     }
 
@@ -259,8 +329,7 @@ final class CallViewModel {
     private func setupSensorsAndCamera() {
         if hasVideo {
             Task {
-                _ = await CameraService.shared.configureSession(isFront: true)
-                CameraService.shared.start()
+                try? await pipeline.startVideo(isFront: true)
             }
         }
         updateProximitySensor()
@@ -270,14 +339,13 @@ final class CallViewModel {
     private func cleanupSensorsAndCamera() {
         UIDevice.current.isProximityMonitoringEnabled = false
         UIApplication.shared.isIdleTimerDisabled = false
-        if hasVideo {
-            CameraService.shared.stop()
-        }
+        pipeline.stopVideo()
+        pipeline.stopAudio()
     }
 
     private func updateProximitySensor() {
-        // Enable proximity sensor only for audio calls in non-speaker mode when connected
-        let shouldEnable = !hasVideo && !isSpeakerOn && callState == .connected
+        // Enable proximity sensor only for audio calls in non-speaker mode during active call phases
+        let shouldEnable = !hasVideo && !isSpeakerOn && (callState == .initiating || callState == .ringing || callState == .connecting || callState == .connected)
         UIDevice.current.isProximityMonitoringEnabled = shouldEnable
     }
 

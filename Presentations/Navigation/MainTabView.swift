@@ -13,6 +13,8 @@ struct MainTabView: View {
 
     @State private var router = AppRouter.shared
     @State private var appState = AppState.shared
+    @State private var currentCall: ActiveCall? = CallService.shared.currentCall
+    @State private var callState: CallState = CallService.shared.currentCallState
 
     var body: some View {
         TabView(selection: $router.selectedTab) {
@@ -76,6 +78,35 @@ struct MainTabView: View {
         .fullScreenCover(item: $router.presentedFullScreen) { fullScreen in
             fullScreenContent(fullScreen)
         }
+        .overlay(alignment: .top) {
+            if shouldShowOngoingCallBanner {
+                InAppOngoingCallBanner()
+                    .padding(.top, DS.Spacing.xs)
+                    .padding(.horizontal, DS.Spacing.md)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(100)
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: shouldShowOngoingCallBanner)
+        .onReceive(CallService.shared.currentCallPublisher) { call in
+            self.currentCall = call
+        }
+        .onReceive(CallService.shared.callStatePublisher) { state in
+            self.callState = state
+        }
+    }
+
+    // MARK: - Ongoing Call Computed Properties
+
+    private var isCallViewPresented: Bool {
+        if case .call = router.presentedFullScreen {
+            return true
+        }
+        return false
+    }
+
+    private var shouldShowOngoingCallBanner: Bool {
+        currentCall != nil && callState.isActive && !isCallViewPresented
     }
 
     // MARK: - Tab Label
@@ -83,7 +114,7 @@ struct MainTabView: View {
     @ViewBuilder
     private func tabLabel(for tab: AppTab) -> some View {
         let isSelected = router.selectedTab == tab
-        Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
+        InstagramIcon(tab.appIcon(selected: isSelected), size: DS.Size.iconDefault)
     }
 
     // MARK: - Route Destination

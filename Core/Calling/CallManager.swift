@@ -167,6 +167,12 @@ final class CallManager: NSObject, @unchecked Sendable {
 
     /// Request the system to end a call.
     func endCall(uuid: UUID) async throws {
+        let isTracked = syncOnQueue { activeCalls[uuid] != nil }
+        guard isTracked else {
+            logger.info("Call \(uuid) is not active in CallManager; skipping redundant CXEndCallAction")
+            return
+        }
+
         let endCallAction = CXEndCallAction(call: uuid)
         let transaction = CXTransaction(action: endCallAction)
         do {
@@ -185,6 +191,20 @@ final class CallManager: NSObject, @unchecked Sendable {
         provider.reportOutgoingCall(with: uuid, connectedAt: Date())
     }
 
+    /// Notify the system that the incoming call has connected (answering → connected).
+    func reportIncomingCallConnected(uuid: UUID) {
+        logger.info("Incoming call \(uuid) connected")
+    }
+
+    /// Reports call connected based on direction.
+    func reportCallConnected(uuid: UUID, isOutgoing: Bool) {
+        if isOutgoing {
+            reportOutgoingCallConnected(uuid: uuid)
+        } else {
+            reportIncomingCallConnected(uuid: uuid)
+        }
+    }
+
     /// Notify the system that the outgoing call started connecting.
     func reportOutgoingCallStartedConnecting(uuid: UUID) {
         provider.reportOutgoingCall(with: uuid, startedConnectingAt: Date())
@@ -194,8 +214,8 @@ final class CallManager: NSObject, @unchecked Sendable {
 
     /// Report that a call has ended (e.g. remote hangup).
     func reportCallEnded(uuid: UUID, reason: CXCallEndedReason) {
-        provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
         syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
+        provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
         deactivateAudioSession()
     }
 
@@ -252,8 +272,8 @@ extension CallManager: CXProviderDelegate {
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         logger.info("CXProvider: end call action")
         let uuid = action.callUUID
-        callEventSubject.send(.endCall(uuid: uuid))
         syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
+        callEventSubject.send(.endCall(uuid: uuid))
         deactivateAudioSession()
         action.fulfill()
     }
@@ -269,7 +289,12 @@ extension CallManager: CXProviderDelegate {
     }
 
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-        logger.info("Audio session activated")
+        logger.info("Audio session activated by CallKit delegate")
+        do {
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            logger.debug("Audio session setActive in didActivate non-fatal: \(error.localizedDescription)")
+        }
         callEventSubject.send(.audioSessionActivated)
     }
 
@@ -283,8 +308,14 @@ extension CallManager: CXProviderDelegate {
     private func configureAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothA2DP, .allowAirPlay])
+            try session.setCategory(
+                .playAndRecord,
+                mode: .voiceChat,
+                options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
+            )
+            #if targetEnvironment(simulator)
             try session.setActive(true, options: .notifyOthersOnDeactivation)
+            #endif
         } catch {
             logger.error("Failed to configure audio session: \(error.localizedDescription)")
         }
@@ -330,6 +361,12 @@ extension CallManager: CXProviderDelegate {
                 if options.contains(.shouldResume) {
                     logger.info("Audio session interruption ended: resuming audio")
                     configureAudioSession()
+                    do {
+                        try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+                    } catch {
+                        logger.error("Failed to reactivate audio session: \(error.localizedDescription)")
+                    }
+                    callEventSubject.send(.audioSessionActivated)
                 }
             }
         @unknown default:

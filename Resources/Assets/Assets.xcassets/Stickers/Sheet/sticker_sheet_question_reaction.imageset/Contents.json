@@ -1,0 +1,23 @@
+{
+  "images": [
+    {
+      "filename": "sticker_sheet_question_reaction.png",
+      "idiom": "universal",
+      "scale": "1x"
+    },
+    {
+      "filename": "sticker_sheet_question_reaction@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "filename": "sticker_sheet_question_reaction@3x.png",
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

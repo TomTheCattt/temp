@@ -16,7 +16,7 @@ struct CallView: View {
     @State private var viewModel: CallViewModel
 
     // Picture-in-Picture drag gesture state
-    @State private var pipOffset: CGSize = CGSize(width: 20, height: 70)
+    @State private var pipOffset: CGSize = CGSize(width: 20, height: 110)
     @State private var pipDragTranslation: CGSize = .zero
     @State private var isPipPositionInitialized = false
 
@@ -48,12 +48,15 @@ struct CallView: View {
                     controlButtonsSection
                         .padding(.bottom, DS.Spacing.xxl)
                 }
+                .frame(width: geometry.size.width, height: geometry.size.height)
 
                 // Video Call: Draggable Picture-in-Picture Local Camera Feed
                 if viewModel.hasVideo && viewModel.callState == .connected {
                     pipLocalVideoView(geometry: geometry)
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+            .clipped()
             .onAppear {
                 initializePipPosition(in: geometry)
             }
@@ -62,6 +65,11 @@ struct CallView: View {
         .statusBarHidden()
         .task {
             await viewModel.onAppear()
+        }
+        .onChange(of: viewModel.shouldDismiss) { _, shouldDismiss in
+            if shouldDismiss {
+                AppRouter.shared.dismiss()
+            }
         }
     }
 
@@ -74,9 +82,7 @@ struct CallView: View {
                 HapticFeedbackSafe.selection()
                 viewModel.dismissCall()
             } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: DS.FontSize.overlayMedium, weight: .bold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.chevronDown, size: DS.FontSize.overlayMedium, color: .white)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color.black.opacity(0.35)))
             }
@@ -108,17 +114,16 @@ struct CallView: View {
                 Button {
                     viewModel.flipCamera()
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath.camera")
-                        .font(.system(size: DS.FontSize.overlayMedium, weight: .bold))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.system(name: "arrow.triangle.2.circlepath.camera"), size: DS.FontSize.overlayMedium, color: .white)
                         .frame(width: 38, height: 38)
                         .background(Circle().fill(Color.black.opacity(0.35)))
                 }
                 .frame(minWidth: 44, minHeight: 44)
             } else {
-                Spacer().frame(width: 44)
+                Color.clear.frame(width: 44, height: 44)
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, DS.Spacing.lg)
         .padding(.top, DS.Spacing.pipTop)
     }
@@ -127,14 +132,18 @@ struct CallView: View {
 
     @ViewBuilder
     private func backgroundLayer(geometry: GeometryProxy) -> some View {
-        if viewModel.hasVideo && viewModel.callState == .connected {
-            remoteVideoView(geometry: geometry)
-        } else {
-            ambientAudioBackground
+        Group {
+            if viewModel.hasVideo && viewModel.callState == .connected {
+                remoteVideoView(geometry: geometry)
+            } else {
+                ambientAudioBackground(geometry: geometry)
+            }
         }
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .clipped()
     }
 
-    private var ambientAudioBackground: some View {
+    private func ambientAudioBackground(geometry: GeometryProxy) -> some View {
         ZStack {
             Color.black
 
@@ -151,54 +160,38 @@ struct CallView: View {
                     )
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
             .blur(radius: 50)
             .scaleEffect(1.25)
             .overlay(Color.black.opacity(0.62))
         }
+        .frame(width: geometry.size.width, height: geometry.size.height)
+        .clipped()
     }
 
     private func remoteVideoView(geometry: GeometryProxy) -> some View {
         ZStack {
             Color.black
 
-            // High-fidelity dynamic video stream simulation
-            LinearGradient(
-                colors: [Color(red: 0.1, green: 0.12, blue: 0.18), Color(red: 0.05, green: 0.06, blue: 0.09)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            // Remote partner avatar / stream canvas
-            VStack(spacing: DS.Spacing.md) {
-                LazyImage(url: URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
-                    if let image = state.image {
-                        image.resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        Circle().fill(Color(.systemGray4))
-                    }
-                }
-                .frame(width: 120, height: 120)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 2))
-                .shadow(radius: 12)
-
-                Text(viewModel.remoteName)
-                    .font(DS.Font.headline)
-                    .foregroundStyle(.white)
-            }
+            // Hardware GPU accelerated zero-copy remote video stream
+            SampleBufferVideoView(sampleBufferPublisher: viewModel.remoteSampleBufferPublisher)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
         }
     }
 
-    // MARK: - Center Caller Info & Pulse Rings (Audio Mode)
+    // MARK: - Center Caller Info & Pulse Waveform (Audio Mode)
 
     private var callerInfoSection: some View {
         VStack(spacing: DS.Spacing.md) {
             ZStack {
-                // Expanding concentric pulse rings when calling or ringing
-                if viewModel.callState == .initiating || viewModel.callState == .ringing {
-                    PulseRingsView()
-                }
+                // Expanding audio waveform aura rings reactive to microphone audio level
+                LiveAudioWaveformView(
+                    style: .rings(baseRadius: DS.Size.avatarCall),
+                    barColor: Color.white.opacity(0.8),
+                    levelPublisher: viewModel.audioLevelPublisher
+                )
 
                 // Caller Avatar
                 LazyImage(url: URL(string: "https://i.pravatar.cc/300?u=\(viewModel.remoteUserId)")) { state in
@@ -227,6 +220,7 @@ struct CallView: View {
             // Status Subtitle
             statusSubtitle
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -294,22 +288,16 @@ struct CallView: View {
                     .fill(Color(white: 0.2))
                     .overlay {
                         VStack(spacing: DS.Spacing.xxs) {
-                            Image(systemName: "video.slash.fill")
-                                .font(.system(size: 24))
-                                .foregroundStyle(.white.opacity(0.8))
-                            Text("Tắt camera")
+                            InstagramIcon(.system(name: "video.slash.fill"), size: 24, color: .white.opacity(0.8))
+                            Text(L10n.Call.cameraOff)
                                 .font(DS.Font.caption2)
                                 .foregroundStyle(.white.opacity(0.7))
                         }
                     }
             } else {
-                // Hardware / Mock AVCaptureSession Preview
-                CameraPreviewView(
-                    session: CameraService.shared.session,
-                    isHardwareAvailable: CameraService.shared.isHardwareAvailable,
-                    isFrontFacing: viewModel.isFrontCamera
-                )
-                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
+                // Hardware / Mock AVCaptureSession Preview via SampleBufferVideoView
+                SampleBufferVideoView(sampleBufferPublisher: viewModel.localSampleBufferPublisher)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
             }
         }
         .frame(width: pipWidth, height: pipHeight)
@@ -339,9 +327,9 @@ struct CallView: View {
     private func initializePipPosition(in geometry: GeometryProxy) {
         guard !isPipPositionInitialized else { return }
         isPipPositionInitialized = true
-        // Default: Top right corner
+        // Default: Top right corner, placed below TopBar (targetY: 110) to never overlap the Flip Camera button
         let targetX = geometry.size.width - DS.Size.pipWidth - 16
-        let targetY: CGFloat = 80
+        let targetY: CGFloat = 110
         pipOffset = CGSize(width: targetX, height: targetY)
     }
 
@@ -349,7 +337,7 @@ struct CallView: View {
         let pipWidth: CGFloat = DS.Size.pipWidth
         let pipHeight: CGFloat = DS.Size.pipHeight
         let margin: CGFloat = 16
-        let topSafe: CGFloat = 80
+        let topSafe: CGFloat = 110
         let bottomSafe: CGFloat = geometry.size.height - pipHeight - 160
 
         let currentX = pipOffset.width + translation.width
@@ -371,9 +359,15 @@ struct CallView: View {
         switch viewModel.callState {
         case .incomingRinging:
             incomingControls
+                .frame(maxWidth: .infinity)
+
+        case .ended:
+            // Call already finished; hide all action controls to prevent accidental taps
+            EmptyView()
 
         default:
             activeCallControls
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -397,6 +391,7 @@ struct CallView: View {
                 Task { await viewModel.accept() }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var activeCallControls: some View {
@@ -425,7 +420,7 @@ struct CallView: View {
                     // Camera Toggle (On/Off)
                     CallGlassButton(
                         icon: viewModel.isCameraOff ? "video.slash.fill" : "video.fill",
-                        label: "Camera",
+                        label: L10n.Call.camera,
                         isActive: viewModel.isCameraOff
                     ) {
                         viewModel.toggleCamera()
@@ -443,13 +438,14 @@ struct CallView: View {
                     // Upgrade Audio to Video Call
                     CallGlassButton(
                         icon: "video.fill",
-                        label: "Video",
+                        label: L10n.Call.video,
                         isActive: false
                     ) {
                         viewModel.upgradeToVideo()
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
 
             // End Call Hangup Button (Red)
             CallButton(
@@ -460,6 +456,7 @@ struct CallView: View {
                 Task { await viewModel.hangup() }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Helpers
@@ -476,33 +473,6 @@ struct CallView: View {
     }
 }
 
-// MARK: - Pulse Rings View
-
-private struct PulseRingsView: View {
-    @State private var isPulsing = false
-
-    var body: some View {
-        ZStack {
-            ForEach(0..<3) { index in
-                Circle()
-                    .stroke(Color.white.opacity(0.35), lineWidth: 1.5)
-                    .frame(width: DS.Size.avatarCall + CGFloat(index * 36), height: DS.Size.avatarCall + CGFloat(index * 36))
-                    .scaleEffect(isPulsing ? 1.35 : 0.95)
-                    .opacity(isPulsing ? 0.0 : 0.65)
-                    .animation(
-                        .easeInOut(duration: 1.8)
-                            .repeatForever(autoreverses: false)
-                            .delay(Double(index) * 0.45),
-                        value: isPulsing
-                    )
-            }
-        }
-        .onAppear {
-            isPulsing = true
-        }
-    }
-}
-
 // MARK: - CallGlassButton
 
 private struct CallGlassButton: View {
@@ -514,9 +484,7 @@ private struct CallGlassButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: DS.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: DS.FontSize.overlayCallGlyph))
-                    .foregroundStyle(isActive ? .black : .white)
+                InstagramIcon(.system(name: icon), size: DS.FontSize.overlayCallGlyph, color: isActive ? .black : .white)
                     .frame(width: 52, height: 52)
                     .background(
                         Circle().fill(isActive ? Color.white : Color.white.opacity(0.2))
@@ -542,9 +510,7 @@ struct CallButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: size * 0.38, weight: .bold))
-                .foregroundStyle(.white)
+            InstagramIcon(.system(name: icon), size: size * 0.38, color: .white)
                 .frame(width: size, height: size)
                 .background(Circle().fill(color))
                 .shadow(color: color.opacity(0.4), radius: DS.Shadow.radiusLarge, y: 3)
@@ -564,10 +530,8 @@ struct CallToggleButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: DS.Spacing.iconGap) {
-                Image(systemName: icon)
-                    .font(.system(size: DS.FontSize.overlayCallGlyph))
+                InstagramIcon(.system(name: icon), size: DS.FontSize.overlayCallGlyph, color: isActive ? .black : .white)
                     .frame(width: DS.Size.buttonLargeHeight, height: DS.Size.buttonLargeHeight)
-                    .foregroundStyle(isActive ? .black : .white)
                     .background(
                         Circle().fill(isActive ? Color.white : Color.white.opacity(0.2))
                     )

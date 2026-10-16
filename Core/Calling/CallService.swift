@@ -56,6 +56,7 @@ protocol CallServiceProtocol: AnyObject, Sendable {
     func hangup() async throws
     func toggleMute() async throws
     func toggleSpeaker() async throws
+    func upgradeToVideo() async throws
 }
 
 // MARK: - ActiveCall
@@ -66,7 +67,7 @@ struct ActiveCall: Sendable {
     let uuid: UUID
     let remoteUserId: String
     let remoteName: String
-    let hasVideo: Bool
+    var hasVideo: Bool
     let isOutgoing: Bool
     let startedAt: Date
     var isMuted: Bool = false
@@ -154,13 +155,15 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
     func configure(messageHandler: WebSocketMessageHandler) {
         self.messageHandler = messageHandler
+        cancellables.removeAll()
+        subscribeToCallKitEvents()
         subscribeToSignaling()
     }
 
     // MARK: - Outgoing Call
 
     func initiateCall(to userId: String, name: String, hasVideo: Bool) async throws {
-        guard currentCallState == .idle else {
+        guard currentCallState == .idle || !currentCallState.isActive else {
             throw CallServiceError.callAlreadyInProgress
         }
 
@@ -179,31 +182,46 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         currentCall = call
         currentCallState = .initiating
 
-        // Report to CallKit
-        try await callManager.startOutgoingCall(
-            uuid: uuid,
-            callId: callId,
-            remoteUserId: userId,
-            remoteName: name,
-            hasVideo: hasVideo
-        )
+        do {
+            // Report to CallKit
+            try await callManager.startOutgoingCall(
+                uuid: uuid,
+                callId: callId,
+                remoteUserId: userId,
+                remoteName: name,
+                hasVideo: hasVideo
+            )
 
-        // Send call_initiate via WebSocket
-        try await messageHandler?.send(
-            .callInitiate(callId: callId, toUserId: userId, callType: hasVideo ? .video : .audio)
-        )
+            // Send call_initiate via WebSocket with fromUserId
+            let currentUserId = SessionStore.shared.currentUserId
+            try await messageHandler?.send(
+                .callInitiate(
+                    callId: callId,
+                    fromUserId: currentUserId,
+                    toUserId: userId,
+                    callType: hasVideo ? .video : .audio
+                )
+            )
 
-        currentCallState = .ringing
-        callManager.reportOutgoingCallStartedConnecting(uuid: uuid)
-        startRingTimeout()
+            currentCallState = .ringing
+            callManager.reportOutgoingCallStartedConnecting(uuid: uuid)
+            startRingTimeout()
 
-        #if targetEnvironment(simulator)
-        startSimulatorAutoAnswer(uuid: uuid)
-        #else
-        if AppConfig.shared.isMockAPI {
+            #if targetEnvironment(simulator)
             startSimulatorAutoAnswer(uuid: uuid)
+            #else
+            if AppConfig.shared.isMockAPI {
+                startSimulatorAutoAnswer(uuid: uuid)
+            }
+            #endif
+        } catch {
+            logger.error("Failed to initiate call: \(error.localizedDescription)")
+            cancelRingTimeout()
+            currentCall = nil
+            currentCallState = .idle
+            try? await callManager.endCall(uuid: uuid)
+            throw error
         }
-        #endif
     }
 
     // MARK: - Simulator Auto-Answer
@@ -242,14 +260,20 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         // In production: create WebRTC peer connection, generate SDP answer
         // For now, send a placeholder answer signal
+        let currentUserId = SessionStore.shared.currentUserId
         try await messageHandler?.send(
-            .callAnswer(callId: call.id, toUserId: call.remoteUserId, sdp: "placeholder_sdp_answer")
+            .callAnswer(
+                callId: call.id,
+                fromUserId: currentUserId,
+                toUserId: call.remoteUserId,
+                sdp: "placeholder_sdp_answer"
+            )
         )
 
         // Simulate connection established
         currentCallState = .connected
         currentCall?.connectedAt = Date()
-        callManager.reportOutgoingCallConnected(uuid: call.uuid)
+        callManager.reportCallConnected(uuid: call.uuid, isOutgoing: false)
     }
 
     // MARK: - Reject Incoming Call
@@ -262,8 +286,13 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         cancelRingTimeout()
 
+        let currentUserId = SessionStore.shared.currentUserId
         try await messageHandler?.send(
-            .callReject(callId: call.id, toUserId: call.remoteUserId)
+            .callReject(
+                callId: call.id,
+                fromUserId: currentUserId,
+                toUserId: call.remoteUserId
+            )
         )
 
         callManager.reportCallEnded(uuid: call.uuid, reason: .declinedElsewhere)
@@ -280,12 +309,49 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         currentCallState = .ending
         cancelRingTimeout()
 
-        try await messageHandler?.send(
-            .callHangup(callId: call.id, toUserId: call.remoteUserId)
-        )
+        let callId = call.id
+        let uuid = call.uuid
+        let remoteUserId = call.remoteUserId
+        let currentUserId = SessionStore.shared.currentUserId
 
-        try await callManager.endCall(uuid: call.uuid)
+        // Guaranteed local hangup cleanup: do not let network send error block CallKit/Audio cleanup
+        do {
+            try await messageHandler?.send(
+                .callHangup(
+                    callId: callId,
+                    fromUserId: currentUserId,
+                    toUserId: remoteUserId
+                )
+            )
+        } catch {
+            logger.notice("Failed to send hangup signal: \(error.localizedDescription)")
+        }
+
+        try? await callManager.endCall(uuid: uuid)
         endCall(reason: .localHangup)
+    }
+
+    // MARK: - Upgrade to Video
+
+    func upgradeToVideo() async throws {
+        guard var call = currentCall, currentCallState == .connected else {
+            throw CallServiceError.noActiveCall
+        }
+        guard !call.hasVideo else { return }
+
+        call.hasVideo = true
+        currentCall = call
+
+        let currentUserId = SessionStore.shared.currentUserId
+        try? await messageHandler?.send(
+            .callOffer(
+                callId: call.id,
+                fromUserId: currentUserId,
+                toUserId: call.remoteUserId,
+                sdp: "upgrade_to_video_renegotiation"
+            )
+        )
+        logger.info("Call successfully upgraded to video for call \(call.id)")
     }
 
     // MARK: - Mute / Speaker
@@ -324,19 +390,20 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Handle Incoming Call (from WebSocket/Push)
 
     /// Called when a call signal arrives (via WebSocket or VoIP push).
-    func handleIncomingCall(signal: CallSignal, callerName: String) async {
-        guard currentCallState == .idle else {
-            // Already in a call — send busy
+    func handleIncomingCall(signal: CallSignal, callerName: String, uuid: UUID? = nil) async {
+        guard currentCallState == .idle || !currentCallState.isActive else {
+            // Already in an active call — send busy
+            let currentUserId = SessionStore.shared.currentUserId
             try? await messageHandler?.send(
-                .callBusy(callId: signal.callId, toUserId: signal.fromUserId)
+                .callBusy(callId: signal.callId, fromUserId: currentUserId, toUserId: signal.fromUserId)
             )
             return
         }
 
-        let uuid = UUID()
+        let callUUID = uuid ?? UUID()
         let call = ActiveCall(
             id: signal.callId,
-            uuid: uuid,
+            uuid: callUUID,
             remoteUserId: signal.fromUserId,
             remoteName: callerName,
             hasVideo: signal.callType == .video,
@@ -346,23 +413,29 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         currentCall = call
         currentCallState = .incomingRinging
 
-        // Show system call UI
-        do {
-            try await callManager.reportIncomingCall(
-                uuid: uuid,
-                callId: signal.callId,
-                callerName: callerName,
-                callerUserId: signal.fromUserId,
-                hasVideo: signal.callType == .video
-            )
-            // Notify remote: we are ringing
-            try await messageHandler?.send(
-                .callRinging(callId: signal.callId, toUserId: signal.fromUserId)
-            )
-        } catch {
-            logger.error("Failed to report incoming call: \(error.localizedDescription)")
-            endCall(reason: .failed(error.localizedDescription))
+        // If uuid was passed in (e.g. from VoIP push), CallKit was already reported by VoIPPushService.
+        // Only report to CallKit if uuid == nil (e.g. incoming from in-app WebSocket signal).
+        if uuid == nil {
+            do {
+                try await callManager.reportIncomingCall(
+                    uuid: callUUID,
+                    callId: signal.callId,
+                    callerName: callerName,
+                    callerUserId: signal.fromUserId,
+                    hasVideo: signal.callType == .video
+                )
+            } catch {
+                logger.error("Failed to report incoming call: \(error.localizedDescription)")
+                endCall(reason: .failed(error.localizedDescription))
+                return
+            }
         }
+
+        // Notify remote: we are ringing
+        let currentUserId = SessionStore.shared.currentUserId
+        try? await messageHandler?.send(
+            .callRinging(callId: signal.callId, fromUserId: currentUserId, toUserId: signal.fromUserId)
+        )
 
         // Present in-app call screen so user sees incoming call UI
         AppRouter.shared.present(
@@ -400,6 +473,8 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         let endedCall = currentCall
         let remoteUserId = endedCall?.remoteUserId ?? ""
+        let isOutgoing = endedCall?.isOutgoing ?? true
+        let callerUserId = isOutgoing ? SessionStore.shared.currentUserId : remoteUserId
         let hasVideo = endedCall?.hasVideo ?? false
         var durationStr = "00:00"
         if let connectedAt = endedCall?.connectedAt {
@@ -436,6 +511,8 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
                 object: nil,
                 userInfo: [
                     "remoteUserId": remoteUserId,
+                    "callerUserId": callerUserId,
+                    "isOutgoing": isOutgoing,
                     "hasVideo": hasVideo,
                     "duration": durationStr,
                     "reason": reasonString
@@ -445,11 +522,11 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         callManager.deactivateAudioSession()
 
-        // Reset to idle after a short delay (allow UI to show "ended" state)
+        // Reset to idle after UI transition, without blocking new incoming calls
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
-            if case .ended = currentCallState {
-                currentCallState = .idle
+            if case .ended = self.currentCallState {
+                self.currentCallState = .idle
             }
         }
     }
@@ -505,11 +582,11 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             currentCallSubject.send(currentCall)
 
         case .audioSessionActivated:
-            // WebRTC: activate audio track
+            // WebRTC / Audio engine: activate audio track
             break
 
         case .audioSessionDeactivated:
-            // WebRTC: deactivate audio track
+            // WebRTC / Audio engine: deactivate audio track
             break
 
         case .providerDidReset:
@@ -554,11 +631,12 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         case .callAnswer(let signal):
             // Received SDP answer — in production: set remote description
             logger.info("Received call answer for \(signal.callId)")
+            cancelRingTimeout()
             if currentCallState == .ringing || currentCallState == .connecting {
                 currentCallState = .connected
                 currentCall?.connectedAt = Date()
                 if let uuid = currentCall?.uuid {
-                    callManager.reportOutgoingCallConnected(uuid: uuid)
+                    callManager.reportCallConnected(uuid: uuid, isOutgoing: true)
                 }
             }
 
@@ -591,7 +669,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             }
 
         case .callRinging(let callId, _):
-            if currentCall?.id == callId, currentCallState == .initiating {
+            if currentCall?.id == callId, (currentCallState == .initiating || currentCallState == .ringing) {
                 currentCallState = .ringing
             }
 

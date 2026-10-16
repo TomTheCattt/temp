@@ -118,8 +118,7 @@ struct ChatView: View {
                 HapticFeedbackSafe.impact(.light)
                 AppRouter.shared.pop()
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 24, weight: .regular))
+                InstagramIcon(.chevronLeft, size: 24, color: ColorTokens.textPrimary)
                     .frame(width: 44, height: 44, alignment: .leading)
                     .contentShape(Rectangle())
             }
@@ -157,9 +156,7 @@ struct ChatView: View {
                                 .lineLimit(1)
 
                             if viewModel.recipient?.isVerified == true {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .font(DS.Font.caption2)
-                                    .foregroundStyle(ColorTokens.accentPrimary)
+                                InstagramIcon(.verifiedBadge, size: 12, color: ColorTokens.accentPrimary)
                             }
                         }
 
@@ -177,26 +174,18 @@ struct ChatView: View {
             HStack(spacing: DS.Spacing.xxs) {
                 // Audio Call (24pt, 44x44pt)
                 Button {
-                    HapticFeedbackSafe.impact(.medium)
-                    let targetId = viewModel.recipient?.id ?? viewModel.conversationId
-                    let targetName = viewModel.recipient?.username ?? "User"
-                    AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: false))
+                    handleCallAction(hasVideo: false)
                 } label: {
-                    Image(systemName: "phone")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.system(name: "phone"), size: 24, color: ColorTokens.textPrimary)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
 
                 // Video Call (24pt, 44x44pt)
                 Button {
-                    HapticFeedbackSafe.impact(.medium)
-                    let targetId = viewModel.recipient?.id ?? viewModel.conversationId
-                    let targetName = viewModel.recipient?.username ?? "User"
-                    AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: true))
+                    handleCallAction(hasVideo: true)
                 } label: {
-                    Image(systemName: "video")
-                        .font(.system(size: 24, weight: .regular))
+                    InstagramIcon(.system(name: "video"), size: 24, color: ColorTokens.textPrimary)
                         .frame(width: 44, height: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
@@ -207,6 +196,25 @@ struct ChatView: View {
         .frame(height: DS.Size.buttonDefaultHeight)
         .background(Color(UIColor.systemBackground))
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func handleCallAction(hasVideo: Bool) {
+        HapticFeedbackSafe.impact(.medium)
+        let targetId = viewModel.recipient?.id ?? viewModel.conversationId
+        let targetName = viewModel.recipient?.username ?? "User"
+
+        if CallService.shared.currentCallState.isActive {
+            if let currentCall = CallService.shared.currentCall, currentCall.remoteUserId == targetId {
+                // Same participant: reopen call screen
+                AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: currentCall.hasVideo))
+            } else {
+                // Different call in progress: warn user
+                ToastManager.shared.warning(L10n.Call.alreadyInCall)
+            }
+            return
+        }
+
+        AppRouter.shared.present(fullScreen: .call(userId: targetId, userName: targetName, hasVideo: hasVideo))
     }
 
     // MARK: - Conversation Starter Banner
@@ -325,9 +333,7 @@ struct ChatView: View {
                             HapticFeedbackSafe.impact(.medium)
                             Task { await viewModel.retryMessage(id: message.id) }
                         } label: {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(.red)
+                            InstagramIcon(.system(name: "exclamationmark.circle.fill"), size: 20, color: .red)
                         }
                     } else if message.status == .sending {
                         ProgressView()
@@ -377,9 +383,7 @@ struct ChatView: View {
 
                         // Popping Heart on Double Tap
                         if doubleTappedMessageId == message.id {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.red)
+                            InstagramIcon(.system(name: "heart.fill"), size: 48, color: .red)
                                 .shadow(radius: 4)
                                 .transition(.scale.combined(with: .opacity))
                         }
@@ -525,8 +529,7 @@ struct ChatView: View {
 
         case .audio(_, let duration):
             HStack(spacing: DS.Spacing.xs) {
-                Image(systemName: "play.fill")
-                    .font(DS.Font.caption)
+                InstagramIcon(.system(name: "play.fill"), size: 14, color: isMe ? .white : .primary)
                 RoundedRectangle(cornerRadius: DS.Spacing.xxxs)
                     .fill(isMe ? Color.white.opacity(DS.Opacity.overlay) : Color.gray.opacity(DS.Opacity.low))
                     .frame(height: DS.Stroke.thick)
@@ -555,9 +558,7 @@ struct ChatView: View {
                 } else {
                     Color.gray.opacity(DS.Opacity.low)
                 }
-                Image(systemName: "play.circle.fill")
-                    .font(DS.Font.title)
-                    .foregroundStyle(.white.opacity(DS.Opacity.high))
+                InstagramIcon(.system(name: "play.circle.fill"), size: 36, color: .white.opacity(DS.Opacity.high))
             }
             .frame(width: DS.Size.chatVideoBubbleWidth, height: DS.Size.chatVideoBubbleHeight)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
@@ -582,8 +583,7 @@ struct ChatView: View {
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: DS.Spacing.xs) {
-                    Image(systemName: icon)
-                        .font(DS.Font.caption)
+                    InstagramIcon(.system(name: icon), size: 14, color: isMe ? .white : .primary)
                     Text(title)
                         .font(DS.Font.caption)
                         .fontWeight(.semibold)
@@ -593,9 +593,7 @@ struct ChatView: View {
 
                 ZStack {
                     ColorTokens.backgroundSecondary
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.picture, size: 40, color: .secondary)
                 }
                 .frame(width: 200, height: 140)
                 .clipped()
@@ -647,9 +645,7 @@ struct ChatView: View {
 
     private func replyPreviewBar(_ replyMessage: Message) -> some View {
         HStack(spacing: DS.Spacing.xs) {
-            Image(systemName: "arrowshape.turn.up.left.fill")
-                .font(DS.Font.caption)
-                .foregroundStyle(ColorTokens.accentPrimary)
+            InstagramIcon(.system(name: "arrowshape.turn.up.left.fill"), size: 14, color: ColorTokens.accentPrimary)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Đang trả lời @\(replyMessage.sender.username)")
@@ -669,9 +665,7 @@ struct ChatView: View {
                 HapticFeedbackSafe.impact(.light)
                 viewModel.replyingToMessage = nil
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(DS.Font.subheadline)
-                    .foregroundStyle(.secondary)
+                InstagramIcon(.system(name: "xmark.circle.fill"), size: 16, color: .secondary)
             }
         }
         .padding(.horizontal, DS.Padding.content)
@@ -702,9 +696,7 @@ struct ChatView: View {
                 HapticFeedbackSafe.impact(.light)
                 AppRouter.shared.present(fullScreen: .creationHub(initialMode: .story))
             } label: {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(ColorTokens.accentPrimary)
+                InstagramIcon(.camera, size: 20, color: ColorTokens.accentPrimary)
                     .frame(width: 36, height: 36)
                     .background(ColorTokens.backgroundSecondary, in: Circle())
             }
@@ -723,17 +715,13 @@ struct ChatView: View {
                         HapticFeedbackSafe.impact(.light)
                         ToastManager.shared.info("Nhấn giữ để ghi âm tin nhắn thoại")
                     } label: {
-                        Image(systemName: "mic.fill")
-                            .font(DS.Font.subheadline)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.system(name: "mic.fill"), size: 18, color: .secondary)
                     }
                     .disabled(viewModel.isSending)
 
                     // Photo picker
                     PhotosPicker(selection: $photoPickerItem, matching: .images) {
-                        Image(systemName: "photo")
-                            .font(DS.Font.subheadline)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.picture, size: 20, color: .secondary)
                     }
                     .disabled(viewModel.isSending)
                 }
@@ -748,9 +736,7 @@ struct ChatView: View {
                     HapticFeedbackSafe.impact(.light)
                     Task { await viewModel.sendLikeReaction() }
                 } label: {
-                    Image(systemName: "heart")
-                        .font(DS.Font.title3)
-                        .foregroundStyle(.primary)
+                    InstagramIcon(.like(), size: 22, color: ColorTokens.textPrimary)
                 }
                 .disabled(viewModel.isSending)
             } else {
@@ -760,9 +746,7 @@ struct ChatView: View {
                     messageText = ""
                     Task { await viewModel.sendTextMessage(text) }
                 } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(DS.Font.title3)
-                        .foregroundStyle(ColorTokens.accentPrimary)
+                    InstagramIcon(.share2026(), size: 22, color: ColorTokens.accentPrimary)
                 }
                 .disabled(viewModel.isSending)
             }

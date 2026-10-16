@@ -958,6 +958,17 @@
     "Các tin nhắn trong cuộc trò chuyện này sẽ bị xóa khỏi hộp thư của bạn." : {
 
     },
+    "call.alreadyInCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bạn đang trong một cuộc gọi khác"
+          }
+        }
+      }
+    },
     "call.audioCall" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1005,6 +1016,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Đang gọi…"
+          }
+        }
+      }
+    },
+    "call.camera" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Camera"
+          }
+        }
+      }
+    },
+    "call.cameraOff" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tắt camera"
           }
         }
       }
@@ -1179,6 +1212,17 @@
         }
       }
     },
+    "call.ongoingCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cuộc gọi đang diễn ra"
+          }
+        }
+      }
+    },
     "call.reconnecting" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1213,6 +1257,17 @@
         }
       }
     },
+    "call.returnToCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chạm để quay lại cuộc gọi"
+          }
+        }
+      }
+    },
     "call.ringing" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1243,6 +1298,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loa ngoài"
+          }
+        }
+      }
+    },
+    "call.video" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Video"
           }
         }
       }
@@ -6593,9 +6659,6 @@
           }
         }
       }
-    },
-    "Tắt camera" : {
-
     },
     "Tắt thông báo" : {
 

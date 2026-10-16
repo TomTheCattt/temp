@@ -72,14 +72,14 @@ enum WebSocketOutgoingMessage: Sendable {
     case deleteMessage(conversationId: String, messageId: String)
 
     // Call signaling
-    case callInitiate(callId: String, toUserId: String, callType: CallSignal.CallType)
-    case callOffer(callId: String, toUserId: String, sdp: String)
-    case callAnswer(callId: String, toUserId: String, sdp: String)
-    case callIceCandidate(callId: String, toUserId: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int?)
-    case callHangup(callId: String, toUserId: String)
-    case callReject(callId: String, toUserId: String)
-    case callBusy(callId: String, toUserId: String)
-    case callRinging(callId: String, toUserId: String)
+    case callInitiate(callId: String, fromUserId: String, toUserId: String, callType: CallSignal.CallType)
+    case callOffer(callId: String, fromUserId: String, toUserId: String, sdp: String)
+    case callAnswer(callId: String, fromUserId: String, toUserId: String, sdp: String)
+    case callIceCandidate(callId: String, fromUserId: String, toUserId: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int?)
+    case callHangup(callId: String, fromUserId: String, toUserId: String)
+    case callReject(callId: String, fromUserId: String, toUserId: String)
+    case callBusy(callId: String, fromUserId: String, toUserId: String)
+    case callRinging(callId: String, fromUserId: String, toUserId: String)
 
     // Subscription
     case subscribe(channel: String)
@@ -109,30 +109,31 @@ enum WebSocketOutgoingMessage: Sendable {
             return ["type": "delete_message", "conversation_id": convId, "message_id": msgId]
 
         // Call signaling
-        case .callInitiate(let callId, let toUserId, let callType):
-            return ["type": "call_initiate", "call_id": callId, "to_user_id": toUserId, "call_type": callType.rawValue]
-        case .callOffer(let callId, let toUserId, let sdp):
-            return ["type": "call_offer", "call_id": callId, "to_user_id": toUserId, "sdp": sdp]
-        case .callAnswer(let callId, let toUserId, let sdp):
-            return ["type": "call_answer", "call_id": callId, "to_user_id": toUserId, "sdp": sdp]
-        case .callIceCandidate(let callId, let toUserId, let candidate, let sdpMid, let sdpMLineIndex):
+        case .callInitiate(let callId, let fromUserId, let toUserId, let callType):
+            return ["type": "call_initiate", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId, "call_type": callType.rawValue]
+        case .callOffer(let callId, let fromUserId, let toUserId, let sdp):
+            return ["type": "call_offer", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId, "sdp": sdp]
+        case .callAnswer(let callId, let fromUserId, let toUserId, let sdp):
+            return ["type": "call_answer", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId, "sdp": sdp]
+        case .callIceCandidate(let callId, let fromUserId, let toUserId, let candidate, let sdpMid, let sdpMLineIndex):
             var dict: [String: Any] = [
                 "type": "call_ice_candidate",
                 "call_id": callId,
+                "from_user_id": fromUserId,
                 "to_user_id": toUserId,
                 "candidate": candidate
             ]
             if let sdpMid { dict["sdp_mid"] = sdpMid }
             if let sdpMLineIndex { dict["sdp_mline_index"] = sdpMLineIndex }
             return dict
-        case .callHangup(let callId, let toUserId):
-            return ["type": "call_hangup", "call_id": callId, "to_user_id": toUserId]
-        case .callReject(let callId, let toUserId):
-            return ["type": "call_reject", "call_id": callId, "to_user_id": toUserId]
-        case .callBusy(let callId, let toUserId):
-            return ["type": "call_busy", "call_id": callId, "to_user_id": toUserId]
-        case .callRinging(let callId, let toUserId):
-            return ["type": "call_ringing", "call_id": callId, "to_user_id": toUserId]
+        case .callHangup(let callId, let fromUserId, let toUserId):
+            return ["type": "call_hangup", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId]
+        case .callReject(let callId, let fromUserId, let toUserId):
+            return ["type": "call_reject", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId]
+        case .callBusy(let callId, let fromUserId, let toUserId):
+            return ["type": "call_busy", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId]
+        case .callRinging(let callId, let fromUserId, let toUserId):
+            return ["type": "call_ringing", "call_id": callId, "from_user_id": fromUserId, "to_user_id": toUserId]
 
         // Subscription
         case .subscribe(let channel):
@@ -362,8 +363,15 @@ final class WebSocketMessageHandler: @unchecked Sendable {
     // MARK: - Call Signal Parsing
 
     private func parseCallSignal(from json: [String: Any]) -> CallSignal? {
-        guard let callId = json["call_id"] as? String,
-              let fromUserId = json["from_user_id"] as? String else {
+        guard let callId = json["call_id"] as? String else {
+            return nil
+        }
+
+        let fromUserId = (json["from_user_id"] as? String)
+            ?? (json["user_id"] as? String)
+            ?? (json["caller_id"] as? String)
+            ?? ""
+        guard !fromUserId.isEmpty else {
             return nil
         }
 
