@@ -14,9 +14,9 @@ import CoreImage.CIFilterBuiltins
 /// Protocol for all image filters. Each filter takes a CIImage and returns a modified CIImage.
 /// The output is a lazy CIImage graph — no actual rendering happens until drawn.
 protocol ImageFilter: Sendable {
-    var id: String { get }
-    var displayName: String { get }
-    func apply(to image: CIImage) -> CIImage
+    nonisolated var id: String { get }
+    nonisolated var displayName: String { get }
+    nonisolated func apply(to image: CIImage) -> CIImage
 }
 
 // MARK: - FilterCategory

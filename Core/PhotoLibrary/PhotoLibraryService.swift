@@ -8,7 +8,6 @@
 import Photos
 import UIKit
 import SwiftUI
-import os
 
 // MARK: - MediaAssetItem
 
@@ -176,7 +175,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     public func loadThumbnail(for asset: PHAsset, targetSize: CGSize = CGSize(width: 250, height: 250)) async -> UIImage? {
         await withCheckedContinuation { continuation in
-            let safeContinuation = SafeContinuation(continuation)
+            let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
@@ -193,7 +192,9 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
                 let hasError = info?[PHImageErrorKey] != nil
 
                 if !isDegraded || isCancelled || hasError {
-                    safeContinuation.resume(returning: image)
+                    Task {
+                        await singleResume.resume(returning: image)
+                    }
                 }
             }
         }
@@ -203,7 +204,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     public func loadHighQualityImage(for asset: PHAsset) async -> UIImage? {
         await withCheckedContinuation { continuation in
-            let safeContinuation = SafeContinuation(continuation)
+            let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
@@ -221,7 +222,9 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
                 let hasError = info?[PHImageErrorKey] != nil
 
                 if !isDegraded || isCancelled || hasError {
-                    safeContinuation.resume(returning: image)
+                    Task {
+                        await singleResume.resume(returning: image)
+                    }
                 }
             }
         }
@@ -231,14 +234,16 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     public func loadImageData(for asset: PHAsset) async -> Data? {
         await withCheckedContinuation { continuation in
-            let safeContinuation = SafeContinuation(continuation)
+            let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
             options.isSynchronous = false
 
             imageManager.requestImageDataAndOrientation(for: asset, options: options) { data, _, _, _ in
-                safeContinuation.resume(returning: data)
+                Task {
+                    await singleResume.resume(returning: data)
+                }
             }
         }
     }
@@ -247,16 +252,15 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     public func loadVideoURL(for asset: PHAsset) async -> URL? {
         await withCheckedContinuation { continuation in
-            let safeContinuation = SafeContinuation(continuation)
+            let singleResume = SingleResumeContinuation(continuation)
             let options = PHVideoRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
 
             imageManager.requestAVAsset(forVideo: asset, options: options) { avAsset, _, _ in
-                if let urlAsset = avAsset as? AVURLAsset {
-                    safeContinuation.resume(returning: urlAsset.url)
-                } else {
-                    safeContinuation.resume(returning: nil)
+                let url = (avAsset as? AVURLAsset)?.url
+                Task {
+                    await singleResume.resume(returning: url)
                 }
             }
         }
@@ -317,21 +321,18 @@ public enum PhotoLibrarySaveError: LocalizedError {
     }
 }
 
-// MARK: - Thread-Safe Single-Resume Continuation Helper
+// MARK: - Thread-Safe Single-Resume Continuation Actor
 
-private final class SafeContinuation<T>: Sendable {
-    private let continuationState: OSAllocatedUnfairLock<CheckedContinuation<T, Never>?>
+private actor SingleResumeContinuation<T> {
+    private var continuation: CheckedContinuation<T, Never>?
 
     init(_ continuation: CheckedContinuation<T, Never>) {
-        self.continuationState = OSAllocatedUnfairLock(initialState: continuation)
+        self.continuation = continuation
     }
 
     func resume(returning value: T) {
-        let cont = continuationState.withLock { cont -> CheckedContinuation<T, Never>? in
-            let current = cont
-            cont = nil
-            return current
-        }
-        cont?.resume(returning: value)
+        guard let cont = continuation else { return }
+        continuation = nil
+        cont.resume(returning: value)
     }
 }

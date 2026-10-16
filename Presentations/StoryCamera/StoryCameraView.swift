@@ -180,31 +180,37 @@ struct StoryCameraView: View {
                 Button {
                     viewModel.mode = (viewModel.mode == .boomerang) ? .normal : .boomerang
                 } label: {
-                    Image(systemName: "infinity")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(viewModel.mode == .boomerang ? ColorTokens.accentPrimary : .white)
-                        .frame(width: 32, height: 32)
-                        .shadow(color: .black.opacity(0.45), radius: 3)
+                    InstagramIcon(
+                        .system(name: "infinity"),
+                        size: 20,
+                        color: viewModel.mode == .boomerang ? ColorTokens.accentPrimary : .white
+                    )
+                    .frame(width: 32, height: 32)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
                 }
 
                 Button {
                     isShowingLayoutCollage = true
                 } label: {
-                    Image(systemName: "rectangle.split.2x1")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 32, height: 32)
-                        .shadow(color: .black.opacity(0.45), radius: 3)
+                    InstagramIcon(
+                        .system(name: "rectangle.split.2x1"),
+                        size: 20,
+                        color: .white
+                    )
+                    .frame(width: 32, height: 32)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
                 }
 
                 Button {
                     viewModel.currentFilterIndex = (viewModel.currentFilterIndex + 1) % StoryFilter.allFilters.count
                 } label: {
-                    Image(systemName: "circle.hexagongrid")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 32, height: 32)
-                        .shadow(color: .black.opacity(0.45), radius: 3)
+                    InstagramIcon(
+                        .filters,
+                        size: 20,
+                        color: .white
+                    )
+                    .frame(width: 32, height: 32)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
                 }
 
                 Button {
@@ -212,11 +218,13 @@ struct StoryCameraView: View {
                         isLeftMenuExpanded = true
                     }
                 } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 32, height: 32)
-                        .shadow(color: .black.opacity(0.45), radius: 3)
+                    InstagramIcon(
+                        .chevronDown,
+                        size: 16,
+                        color: .white
+                    )
+                    .frame(width: 32, height: 32)
+                    .shadow(color: .black.opacity(0.45), radius: 3)
                 }
             } else {
                 // Expanded State: Glyphs + Labels (matching media_1792049565500.png)
@@ -238,9 +246,12 @@ struct StoryCameraView: View {
                     viewModel.mode = (viewModel.mode == .boomerang) ? .normal : .boomerang
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "infinity")
-                            .font(.system(size: 20, weight: .semibold))
-                            .frame(width: 32, alignment: .center)
+                        InstagramIcon(
+                            .system(name: "infinity"),
+                            size: 20,
+                            color: viewModel.mode == .boomerang ? ColorTokens.accentPrimary : .white
+                        )
+                        .frame(width: 32, alignment: .center)
                         Text("Boomerang")
                             .font(.system(size: 14, weight: .semibold))
                     }
@@ -252,9 +263,12 @@ struct StoryCameraView: View {
                     isShowingLayoutCollage = true
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "rectangle.split.2x1")
-                            .font(.system(size: 20, weight: .medium))
-                            .frame(width: 32, alignment: .center)
+                        InstagramIcon(
+                            .system(name: "rectangle.split.2x1"),
+                            size: 20,
+                            color: .white
+                        )
+                        .frame(width: 32, alignment: .center)
                         Text("Bố cục")
                             .font(.system(size: 14, weight: .semibold))
                     }
@@ -266,9 +280,12 @@ struct StoryCameraView: View {
                     viewModel.currentFilterIndex = (viewModel.currentFilterIndex + 1) % StoryFilter.allFilters.count
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "circle.hexagongrid")
-                            .font(.system(size: 20, weight: .medium))
-                            .frame(width: 32, alignment: .center)
+                        InstagramIcon(
+                            .filters,
+                            size: 20,
+                            color: .white
+                        )
+                        .frame(width: 32, alignment: .center)
 
                         HStack(spacing: 6) {
                             Text("MỚI")
@@ -290,9 +307,12 @@ struct StoryCameraView: View {
                     viewModel.mode = (viewModel.mode == .hands_free) ? .normal : .hands_free
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "circle.inset.filled")
-                            .font(.system(size: 20, weight: .medium))
-                            .frame(width: 32, alignment: .center)
+                        InstagramIcon(
+                            .system(name: "circle.inset.filled"),
+                            size: 20,
+                            color: viewModel.mode == .hands_free ? ColorTokens.accentPrimary : .white
+                        )
+                        .frame(width: 32, alignment: .center)
                         Text("Rảnh tay")
                             .font(.system(size: 14, weight: .semibold))
                     }
@@ -306,9 +326,12 @@ struct StoryCameraView: View {
                     }
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 16, weight: .bold))
-                            .frame(width: 32, alignment: .center)
+                        InstagramIcon(
+                            .chevronUp,
+                            size: 16,
+                            color: .white
+                        )
+                        .frame(width: 32, alignment: .center)
                         Text("Đóng")
                             .font(.system(size: 14, weight: .semibold))
                     }
@@ -326,9 +349,7 @@ struct StoryCameraView: View {
     private var topCameraBar: some View {
         HStack {
             Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: 20, color: .white)
                     .frame(width: 44, height: 44)
                     .shadow(color: .black.opacity(0.45), radius: 3)
             }
@@ -336,19 +357,19 @@ struct StoryCameraView: View {
             Spacer()
 
             Button(action: { viewModel.toggleFlash() }) {
-                Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
-                    .frame(width: 44, height: 44)
-                    .shadow(color: .black.opacity(0.45), radius: 3)
+                InstagramIcon(
+                    .system(name: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash"),
+                    size: 20,
+                    color: viewModel.isFlashOn ? .yellow : .white
+                )
+                .frame(width: 44, height: 44)
+                .shadow(color: .black.opacity(0.45), radius: 3)
             }
 
             Spacer()
 
             Button(action: { /* Settings */ }) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.options, size: 20, color: .white)
                     .frame(width: 44, height: 44)
                     .shadow(color: .black.opacity(0.45), radius: 3)
             }
@@ -402,9 +423,7 @@ struct StoryCameraView: View {
                             .resizable()
                             .scaledToFill()
                     } else {
-                        Image(systemName: "photo")
-                            .font(.subheadline)
-                            .foregroundStyle(.white)
+                        InstagramIcon(.picture, size: 20, color: .white)
                     }
                 }
                 .frame(width: 40, height: 40)
@@ -429,9 +448,7 @@ struct StoryCameraView: View {
 
             // Right: Camera Rotate (Flip) Button
             Button(action: { viewModel.toggleCamera() }) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "arrow.triangle.2.circlepath"), size: 16, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.55), in: Circle())
             }
@@ -534,9 +551,7 @@ struct StoryCameraView: View {
     private var storyEditorTopBar: some View {
         HStack(spacing: DS.Spacing.md) {
             Button(action: { viewModel.retake() }) {
-                Image(systemName: "chevron.left")
-                    .font(.title3)
-                    .foregroundStyle(.white)
+                InstagramIcon(.chevronLeft, size: 20, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.35), in: Circle())
             }
@@ -544,22 +559,22 @@ struct StoryCameraView: View {
             Spacer()
 
             // Tool: Add Text (Aa)
-            editorToolIconButton(icon: "textformat") {
+            editorToolIconButton(icon: .text) {
                 startEditingText()
             }
 
             // Tool: Stickers Drawer
-            editorToolIconButton(icon: "face.smiling") {
+            editorToolIconButton(icon: .stickers) {
                 isShowingStickerDrawer = true
             }
 
             // Tool: Draw Canvas
-            editorToolIconButton(icon: "pencil.tip") {
+            editorToolIconButton(icon: .system(name: "pencil.tip")) {
                 HUDManager.shared.showInfo("Công cụ vẽ tay")
             }
 
             // Tool: Add Music
-            editorToolIconButton(icon: "music.note") {
+            editorToolIconButton(icon: .system(name: "music.note")) {
                 HUDManager.shared.showInfo("Thêm nhạc nền Story")
             }
         }
@@ -568,11 +583,9 @@ struct StoryCameraView: View {
     }
 
     @ViewBuilder
-    private func editorToolIconButton(icon: String, action: @escaping () -> Void) -> some View {
+    private func editorToolIconButton(icon: AppIcon, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.white)
+            InstagramIcon(icon, size: 20, color: .white)
                 .frame(width: 40, height: 40)
                 .background(Color.black.opacity(0.35), in: Circle())
         }
@@ -587,8 +600,7 @@ struct StoryCameraView: View {
                 Task { await viewModel.publishStory() }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "person.circle.fill")
-                        .font(.body)
+                    InstagramIcon(.system(name: "person.circle.fill"), size: 16, color: .white)
                     Text(L10n.StoryCamera.yourStory)
                         .font(DS.Font.subheadlineBold)
                 }
@@ -604,9 +616,7 @@ struct StoryCameraView: View {
                 Task { await viewModel.publishStory(isCloseFriendsOnly: true) }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "star.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(ColorTokens.success)
+                    InstagramIcon(.system(name: "star.circle.fill"), size: 16, color: ColorTokens.success)
                     Text(L10n.StoryCamera.closeFriends)
                         .font(DS.Font.subheadlineBold)
                 }
@@ -623,10 +633,7 @@ struct StoryCameraView: View {
             Button {
                 Task { await viewModel.publishStory() }
             } label: {
-                Image(systemName: "chevron.right")
-                    .font(.body)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.black)
+                InstagramIcon(.chevronRight, size: 18, color: .black)
                     .frame(width: 44, height: 44)
                     .background(Color.white, in: Circle())
             }
@@ -653,9 +660,7 @@ struct StoryCameraView: View {
     private func stickerTile(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: DS.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: icon), size: 28, color: .white)
                     .frame(width: 52, height: 52)
                     .background(color, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
 
@@ -696,9 +701,7 @@ struct StoryCameraView: View {
                         case .trailing: editingAlignment = .leading
                         }
                     } label: {
-                        Image(systemName: alignmentIconName)
-                            .font(.title3)
-                            .foregroundStyle(.white)
+                        InstagramIcon(alignmentIcon, size: 20, color: .white)
                             .frame(width: 40, height: 40)
                             .background(Color.white.opacity(0.2), in: Circle())
                     }
@@ -707,11 +710,13 @@ struct StoryCameraView: View {
                     Button {
                         editingHasBackground.toggle()
                     } label: {
-                        Image(systemName: editingHasBackground ? "character.textbox" : "textformat")
-                            .font(.title3)
-                            .foregroundStyle(editingHasBackground ? Color.black : Color.white)
-                            .frame(width: 40, height: 40)
-                            .background(editingHasBackground ? Color.white : Color.white.opacity(0.2), in: Circle())
+                        InstagramIcon(
+                            editingHasBackground ? .system(name: "character.textbox") : .text,
+                            size: 20,
+                            color: editingHasBackground ? Color.black : Color.white
+                        )
+                        .frame(width: 40, height: 40)
+                        .background(editingHasBackground ? Color.white : Color.white.opacity(0.2), in: Circle())
                     }
 
                     // Done Button
@@ -799,11 +804,11 @@ struct StoryCameraView: View {
         }
     }
 
-    private var alignmentIconName: String {
+    private var alignmentIcon: AppIcon {
         switch editingAlignment {
-        case .leading: return "text.alignleft"
-        case .center: return "text.aligncenter"
-        case .trailing: return "text.alignright"
+        case .leading: return .system(name: "text.alignleft")
+        case .center: return .system(name: "text.aligncenter")
+        case .trailing: return .system(name: "text.alignright")
         }
     }
 
@@ -873,9 +878,7 @@ struct StoryCameraView: View {
             .ignoresSafeArea()
 
             VStack(spacing: DS.Spacing.sm) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.white.opacity(0.6))
+                InstagramIcon(.camera, size: 64, color: .white.opacity(0.6))
                 Text("Story Camera Viewfinder")
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
@@ -890,9 +893,7 @@ struct StoryCameraView: View {
 
     private var permissionDeniedView: some View {
         VStack(spacing: DS.Spacing.md) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: DS.Size.iconHero))
-                .foregroundStyle(.white.opacity(DS.Opacity.overlay))
+            InstagramIcon(.camera, size: DS.Size.iconHero, color: .white.opacity(DS.Opacity.overlay))
             Text(L10n.StoryCamera.permissionTitle)
                 .font(DS.Font.headline)
                 .foregroundStyle(.white)

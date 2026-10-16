@@ -88,9 +88,7 @@ struct StoryStickerDrawer: View {
                         .foregroundStyle(ColorTokens.accentPrimary)
                         .frame(width: 48, height: 48)
 
-                    Image(systemName: "plus.square.dashed")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(ColorTokens.accentPrimary)
+                    InstagramIcon(.system(name: "plus.square.dashed"), size: 24, color: ColorTokens.accentPrimary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -117,9 +115,7 @@ struct StoryStickerDrawer: View {
                 if isProcessingPhoto {
                     ProgressView()
                 } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.tertiary)
+                    InstagramIcon(.chevronRight, size: 13, color: .secondary)
                 }
             }
             .padding(DS.Spacing.md)
@@ -154,7 +150,7 @@ struct StoryStickerDrawer: View {
         }
     }
 
-    // MARK: - Interactive Stickers Grid
+    // MARK: - Interactive Stickers Grid (18 Instagram Graphical Stickers)
 
     private var interactiveStickersGrid: some View {
         LazyVGrid(
@@ -164,82 +160,110 @@ struct StoryStickerDrawer: View {
             ],
             spacing: 12
         ) {
-            stickerButton(
-                title: "VỊ TRÍ",
-                icon: "mappin.and.ellipse",
-                color: Color.red
-            ) {
+            stickerButton(sticker: .location) {
                 isShowingLocationSearch = true
             }
 
-            stickerButton(
-                title: "NHẮC ĐẾN",
-                icon: "at",
-                color: Color.orange
-            ) {
+            stickerButton(sticker: .mention) {
                 onAddTextSticker(TextOverlayItem(text: "@banbe", hasBackground: true))
                 isPresented = false
             }
 
-            stickerButton(
-                title: "THĂM DÒ",
-                icon: "chart.bar.xaxis",
-                color: Color.purple
-            ) {
-                onAddTextSticker(TextOverlayItem(text: "📊 Có / Không?", hasBackground: true))
+            stickerButton(sticker: .addYours) {
+                onAddTextSticker(TextOverlayItem(text: "📸 Lượt bạn", hasBackground: true))
                 isPresented = false
             }
 
-            stickerButton(
-                title: "CÂU HỎI",
-                icon: "questionmark.circle",
-                color: Color.blue
-            ) {
+            stickerButton(sticker: .questions) {
                 onAddTextSticker(TextOverlayItem(text: "💬 Hãy hỏi tôi một câu", hasBackground: true))
                 isPresented = false
             }
 
-            stickerButton(
-                title: "ÂM NHẠC",
-                icon: "music.note",
-                color: Color.pink
-            ) {
+            stickerButton(sticker: .music) {
                 onAddTextSticker(TextOverlayItem(text: "🎵 Bài hát yêu thích", hasBackground: true))
                 isPresented = false
             }
 
-            stickerButton(
-                title: "LIÊN KẾT",
-                icon: "link",
-                color: Color.indigo
-            ) {
+            stickerButton(sticker: .poll) {
+                onAddTextSticker(TextOverlayItem(text: "📊 Thăm dò ý kiến", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .quiz) {
+                onAddTextSticker(TextOverlayItem(text: "💡 Câu đố", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .link) {
                 isShowingLinkDialog = true
+            }
+
+            stickerButton(sticker: .addYoursTemplates) {
+                onAddTextSticker(TextOverlayItem(text: "✨ Mẫu của bạn", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .donation) {
+                onAddTextSticker(TextOverlayItem(text: "💝 Quyên góp", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .notify) {
+                onAddTextSticker(TextOverlayItem(text: "🔔 Nhận thông báo", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .questionReaction) {
+                onAddTextSticker(TextOverlayItem(text: "🔥 Thả cảm xúc", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .avatar) {
+                onAddTextSticker(TextOverlayItem(text: "😎 Avatar", hasBackground: false))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .gif) {
+                onAddTextSticker(TextOverlayItem(text: "🎞️ GIF", hasBackground: false))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .hashtag) {
+                onAddTextSticker(TextOverlayItem(text: "#hashtag", hasBackground: true))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .heartBlue) {
+                onAddTextSticker(TextOverlayItem(text: "💙", hasBackground: false, scale: 1.5))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .heartPink) {
+                onAddTextSticker(TextOverlayItem(text: "💖", hasBackground: false, scale: 1.5))
+                isPresented = false
+            }
+
+            stickerButton(sticker: .emoji) {
+                onAddTextSticker(TextOverlayItem(text: "😍", hasBackground: false, scale: 1.5))
+                isPresented = false
             }
         }
     }
 
     @ViewBuilder
     private func stickerButton(
-        title: String,
-        icon: String,
-        color: Color,
+        sticker: AppSticker,
+        height: CGFloat = 38,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(color)
-
-                Text(title)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.primary)
-
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 16)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+        Button {
+            HapticFeedbackSafe.impact(.light)
+            action()
+        } label: {
+            InstagramStickerView(sticker, height: height)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }

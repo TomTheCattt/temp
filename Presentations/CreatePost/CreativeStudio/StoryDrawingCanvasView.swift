@@ -132,9 +132,7 @@ struct StoryDrawingCanvasView: View {
                 HapticFeedbackSafe.impact(.light)
                 canvasView.undoManager?.undo()
             } label: {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "arrow.uturn.backward"), size: 18, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.45), in: Circle())
             }
@@ -144,9 +142,7 @@ struct StoryDrawingCanvasView: View {
                 HapticFeedbackSafe.impact(.light)
                 canvasView.undoManager?.redo()
             } label: {
-                Image(systemName: "arrow.uturn.forward")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "arrow.uturn.forward"), size: 18, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.45), in: Circle())
             }
@@ -156,9 +152,7 @@ struct StoryDrawingCanvasView: View {
                 HapticFeedbackSafe.impact(.medium)
                 canvasView.drawing = PKDrawing()
             } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "trash"), size: 18, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.45), in: Circle())
             }
@@ -194,8 +188,7 @@ struct StoryDrawingCanvasView: View {
                         activeTool = tool
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: tool.iconName)
-                                .font(.system(size: 14, weight: .semibold))
+                            InstagramIcon(.system(name: tool.iconName), size: 14, color: activeTool == tool ? Color.black : Color.white)
                             Text(tool.rawValue)
                                 .font(.system(size: 13, weight: activeTool == tool ? .bold : .medium))
                         }

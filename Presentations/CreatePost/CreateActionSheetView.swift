@@ -37,7 +37,7 @@ struct CreateActionSheetView: View {
             VStack(spacing: 0) {
                 // Option 1: Bài viết (Post)
                 actionRow(
-                    icon: "square.stack.fill",
+                    icon: .grid(selected: true),
                     title: L10n.CreateMenu.post
                 ) {
                     dismiss()
@@ -52,7 +52,7 @@ struct CreateActionSheetView: View {
 
                 // Option 2: Thước phim (Reel)
                 actionRow(
-                    icon: "play.square.fill",
+                    icon: .reels(selected: true),
                     title: L10n.CreateMenu.reel
                 ) {
                     dismiss()
@@ -67,7 +67,7 @@ struct CreateActionSheetView: View {
 
                 // Option 3: Tin (Story)
                 actionRow(
-                    icon: "plus.circle.fill",
+                    icon: .camera,
                     title: L10n.CreateMenu.story
                 ) {
                     dismiss()
@@ -82,7 +82,7 @@ struct CreateActionSheetView: View {
 
                 // Option 4: Phát trực tiếp (Live)
                 actionRow(
-                    icon: "video.fill",
+                    icon: .system(name: "video.fill"),
                     title: L10n.CreateMenu.live
                 ) {
                     dismiss()
@@ -99,13 +99,11 @@ struct CreateActionSheetView: View {
     // MARK: - Action Row
 
     @ViewBuilder
-    private func actionRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
+    private func actionRow(icon: AppIcon, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: DS.Spacing.md) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
+                InstagramIcon(icon, size: 22, color: .primary)
                     .frame(width: 28, height: 28)
-                    .foregroundStyle(.primary)
 
                 Text(title)
                     .font(DS.Font.body)
@@ -114,9 +112,7 @@ struct CreateActionSheetView: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(DS.Font.caption)
-                    .foregroundStyle(.secondary)
+                InstagramIcon(.chevronRight, size: DS.Size.iconSmall, color: .secondary)
             }
             .padding(.horizontal, DS.Padding.horizontal)
             .padding(.vertical, DS.Spacing.md)

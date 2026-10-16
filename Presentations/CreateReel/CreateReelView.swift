@@ -181,9 +181,7 @@ struct CreateReelView: View {
         HStack {
             // Dismiss
             Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: 18, color: .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.35), in: Circle())
             }
@@ -195,8 +193,7 @@ struct CreateReelView: View {
                 HUDManager.shared.showInfo(L10n.CreateReel.addAudio)
             }) {
                 HStack(spacing: DS.Spacing.xxs) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 13, weight: .semibold))
+                    InstagramIcon(.system(name: "music.note"), size: 13, color: .white)
                     Text(viewModel.selectedAudioName ?? L10n.CreateReel.addAudio)
                         .font(DS.Font.captionBold)
                         .lineLimit(1)
@@ -212,9 +209,7 @@ struct CreateReelView: View {
 
             // Flash Toggle
             Button(action: { viewModel.toggleFlash() }) {
-                Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
+                InstagramIcon(.system(name: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash"), size: 18, color: viewModel.isFlashOn ? .yellow : .white)
                     .frame(width: 40, height: 40)
                     .background(Color.black.opacity(0.35), in: Circle())
             }
@@ -285,8 +280,7 @@ struct CreateReelView: View {
                     Text(title)
                         .font(.system(size: 13, weight: .bold))
                 } else if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
+                    InstagramIcon(.system(name: icon), size: 16, color: isActive ? ColorTokens.accentPrimary : .white)
                 }
             }
             .foregroundStyle(isActive ? ColorTokens.accentPrimary : .white)
@@ -324,9 +318,7 @@ struct CreateReelView: View {
                             .fill(Color.white.opacity(0.2))
                             .frame(width: 44, height: 44)
                             .overlay(
-                                Image(systemName: "photo")
-                                    .font(DS.Font.caption)
-                                    .foregroundStyle(.white)
+                                InstagramIcon(.picture, size: 18, color: .white)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: DS.Radius.thumbnailCard)
@@ -340,9 +332,7 @@ struct CreateReelView: View {
                     Button(action: {
                         viewModel.deleteLastClip()
                     }) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.system(name: "arrow.uturn.backward"), size: 14, color: .white)
                             .frame(width: 34, height: 34)
                             .background(Color.black.opacity(0.6), in: Circle())
                             .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
@@ -396,8 +386,7 @@ struct CreateReelView: View {
                         HStack(spacing: 4) {
                             Text(L10n.Common.next)
                                 .font(.system(size: 14, weight: .bold))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
+                            InstagramIcon(.chevronRight, size: 12, color: .black)
                         }
                         .foregroundStyle(.black)
                         .padding(.horizontal, DS.Spacing.formGap)
@@ -434,9 +423,7 @@ struct CreateReelView: View {
             .ignoresSafeArea()
 
             VStack(spacing: DS.Spacing.xs) {
-                Image(systemName: "video.fill")
-                    .font(.system(size: DS.Spacing.xxxl))
-                    .foregroundStyle(ColorTokens.accentPrimary.opacity(0.8))
+                InstagramIcon(.reels(selected: true), size: DS.Spacing.xxxl, color: ColorTokens.accentPrimary.opacity(0.8))
                 Text("Reel Camera (Simulator)")
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
@@ -468,9 +455,7 @@ struct CreateReelView: View {
                     Button(action: {
                         viewModel.isShowingEditor = false
                     }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.chevronLeft, size: 18, color: .white)
                             .frame(width: 40, height: 40)
                             .background(Color.black.opacity(0.4), in: Circle())
                     }
@@ -505,7 +490,7 @@ struct CreateReelView: View {
                         viewModel.isShowingTrimmer = true
                     }) {
                         HStack(spacing: DS.Spacing.xxs) {
-                            Image(systemName: "film")
+                            InstagramIcon(.reels(), size: 14, color: .white)
                             Text("Sửa các đoạn (\(viewModel.recordedClips.count))")
                                 .font(DS.Font.captionBold)
                         }
@@ -525,8 +510,7 @@ struct CreateReelView: View {
                         HStack(spacing: 6) {
                             Text(L10n.Common.next)
                                 .font(.system(size: 15, weight: .bold))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .bold))
+                            InstagramIcon(.chevronRight, size: 13, color: .white)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, DS.Spacing.xl)
@@ -543,9 +527,7 @@ struct CreateReelView: View {
 
     private func editorToolButton(icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+            InstagramIcon(.system(name: icon), size: 16, color: .white)
                 .frame(width: 38, height: 38)
                 .background(Color.black.opacity(0.4), in: Circle())
         }
@@ -582,9 +564,7 @@ struct CreateReelView: View {
                                     Button(action: {
                                         viewModel.deleteClip(at: index)
                                     }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(.white, Color.red)
+                                        InstagramIcon(.close, size: 20, color: Color.red)
                                     }
                                     .padding(DS.Spacing.xxs)
                                 }
@@ -627,9 +607,7 @@ struct CreateReelView: View {
                 Button(action: {
                     viewModel.isShowingShareDetails = false
                 }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(ColorTokens.textPrimary)
+                    InstagramIcon(.chevronLeft, size: 18, color: ColorTokens.textPrimary)
                 }
 
                 Spacer()
@@ -788,9 +766,7 @@ struct CreateReelView: View {
     private func shareOptionRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: DS.Spacing.sm) {
-                Image(systemName: icon)
-                    .font(.system(size: 17))
-                    .foregroundStyle(ColorTokens.textPrimary)
+                InstagramIcon(.system(name: icon), size: 17, color: ColorTokens.textPrimary)
                     .frame(width: 24)
 
                 Text(title)
@@ -799,9 +775,7 @@ struct CreateReelView: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                InstagramIcon(.chevronRight, size: 13, color: .secondary)
             }
             .padding(.horizontal, DS.Spacing.md)
             .padding(.vertical, DS.Spacing.md)

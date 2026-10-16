@@ -101,19 +101,13 @@ struct CreatePostView: View {
                         Button {
                             dismiss()
                         } label: {
-                            Image(systemName: "xmark")
-                                .font(.body)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
+                            InstagramIcon(.close, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         }
                     } else if viewModel.currentStep == .captionAndShare {
                         Button {
                             viewModel.goToPreviousStep()
                         } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.body)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
+                            InstagramIcon(.chevronLeft, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         }
                     }
                 }
@@ -225,9 +219,7 @@ struct CreatePostView: View {
                     .tint(.white)
             } else {
                 VStack(spacing: DS.Spacing.xs) {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.white.opacity(0.4))
+                    InstagramIcon(.picture, size: 44, color: .white.opacity(0.4))
                     Text("Chọn ảnh từ thư viện bên dưới")
                         .font(DS.Font.caption)
                         .foregroundStyle(.white.opacity(0.6))
@@ -242,7 +234,7 @@ struct CreatePostView: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "aspectratio")
+                        InstagramIcon(.system(name: "aspectratio"), size: DS.Size.iconSmall, color: .white)
                         Text(viewModel.aspectRatio.rawValue)
                     }
                     .font(DS.Font.caption2)
@@ -282,10 +274,7 @@ struct CreatePostView: View {
                         .font(DS.Font.headline)
                         .foregroundStyle(.primary)
 
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
+                    InstagramIcon(.chevronDown, size: DS.Size.iconXSmall, color: ColorTokens.textPrimary)
                 }
             }
 
@@ -297,8 +286,11 @@ struct CreatePostView: View {
                     viewModel.toggleMultiSelect()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: viewModel.isMultiSelectEnabled ? "square.on.square.fill" : "square.on.square")
-                            .font(.caption)
+                        InstagramIcon(
+                            .system(name: viewModel.isMultiSelectEnabled ? "square.on.square.fill" : "square.on.square"),
+                            size: DS.Size.iconSmall,
+                            color: viewModel.isMultiSelectEnabled ? .white : ColorTokens.textPrimary
+                        )
                         Text("CHỌN NHIỀU")
                             .font(DS.Font.caption2)
                             .fontWeight(.bold)
@@ -337,9 +329,7 @@ struct CreatePostView: View {
                             ZStack {
                                 Color(.systemGray6)
                                 VStack(spacing: 4) {
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(.primary)
+                                    InstagramIcon(.camera, size: 22, color: ColorTokens.textPrimary)
                                     Text("Máy ảnh")
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundStyle(.secondary)
@@ -420,9 +410,7 @@ struct CreatePostView: View {
             Button {
                 viewModel.goToPreviousStep()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: Constants.closeIconSize, weight: .bold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: Constants.closeIconSize, color: .white)
                     .frame(width: Constants.closeButtonSize, height: Constants.closeButtonSize)
                     .background(Color.white.opacity(Constants.darkControlBackgroundOpacity), in: Circle())
             }
@@ -438,9 +426,7 @@ struct CreatePostView: View {
                         // Album Artwork / Music Icon Thumbnail
                         ZStack {
                             Color.black.opacity(0.8)
-                            Image(systemName: "music.note")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.85))
+                            InstagramIcon(.system(name: "music.note"), size: 13, color: .white.opacity(0.85))
                         }
                         .frame(width: Constants.audioCoverSize, height: Constants.audioCoverSize)
                         .clipShape(RoundedRectangle(cornerRadius: Constants.audioCoverRadius))
@@ -448,8 +434,7 @@ struct CreatePostView: View {
                         // Song Details
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 3) {
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 9, weight: .bold))
+                                InstagramIcon(.arrowTopRight, size: 9, color: .white)
 
                                 Text(audio.title)
                                     .font(.system(size: Constants.audioTitleFontSize, weight: .semibold))
@@ -484,9 +469,7 @@ struct CreatePostView: View {
                                 .fill(Color.white.opacity(0.25))
                                 .frame(width: Constants.audioPlusButtonSize, height: Constants.audioPlusButtonSize)
 
-                            Image(systemName: "plus")
-                                .font(.system(size: Constants.audioPlusIconSize, weight: .bold))
-                                .foregroundStyle(.white)
+                            InstagramIcon(.plus, size: Constants.audioPlusIconSize, color: .white)
                         }
                     }
                     .padding(.leading, DS.Spacing.iconGap)
@@ -550,9 +533,7 @@ struct CreatePostView: View {
                         }
                         HapticFeedbackSafe.impact(.medium)
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: Constants.deleteIconSize, weight: .bold))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.close, size: Constants.deleteIconSize, color: .white)
                             .frame(width: Constants.deleteButtonSize, height: Constants.deleteButtonSize)
                             .background(Color.black.opacity(0.65), in: Circle())
                             .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 0.8))
@@ -595,9 +576,7 @@ struct CreatePostView: View {
                                 .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
                         } else {
-                            Image(systemName: tool.iconName)
-                                .font(.system(size: Constants.toolIconSize, weight: .semibold))
-                                .foregroundStyle(.white)
+                            InstagramIcon(studioToolIcon(tool), size: Constants.toolIconSize, color: .white)
                         }
 
                         Text(tool.rawValue)
@@ -616,6 +595,17 @@ struct CreatePostView: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    private func studioToolIcon(_ tool: StudioTool) -> AppIcon {
+        switch tool {
+        case .audio: return .system(name: "music.note")
+        case .text: return .text
+        case .overlay: return .system(name: "square.2.layers.3d")
+        case .filter: return .filters
+        case .edit: return .system(name: "slider.horizontal.3")
+        case .ratio: return .system(name: "aspectratio")
         }
     }
 
@@ -706,8 +696,7 @@ struct CreatePostView: View {
                             }
                         } label: {
                             VStack(spacing: 2) {
-                                Image(systemName: type.iconName)
-                                    .font(.system(size: 16))
+                                InstagramIcon(.system(name: type.iconName), size: 16, color: viewModel.activeAdjustment == type ? ColorTokens.accentPrimary : .white.opacity(0.75))
                                 Text(type.rawValue)
                                     .font(.system(size: 10))
                             }
@@ -723,8 +712,7 @@ struct CreatePostView: View {
 
     private var studioAudioQuickDrawer: some View {
         HStack(spacing: DS.Spacing.sm) {
-            Image(systemName: "music.note")
-                .foregroundStyle(ColorTokens.accentPrimary)
+            InstagramIcon(.system(name: "music.note"), size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
             Text(viewModel.currentAudioTrack?.title ?? "Chưa chọn âm thanh")
                 .font(DS.Font.subheadline)
                 .foregroundStyle(.white)
@@ -749,8 +737,7 @@ struct CreatePostView: View {
                     HapticFeedbackSafe.selection()
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: ratio == .full ? "iphone" : "aspectratio")
-                            .font(.system(size: 16))
+                        InstagramIcon(.system(name: ratio == .full ? "iphone" : "aspectratio"), size: 16, color: viewModel.aspectRatio == ratio ? ColorTokens.accentPrimary : .white.opacity(0.75))
                         Text(ratio.rawValue)
                             .font(.system(size: 11, weight: .medium))
                     }
@@ -765,8 +752,7 @@ struct CreatePostView: View {
 
     private var studioTextQuickDrawer: some View {
         HStack(spacing: DS.Spacing.sm) {
-            Image(systemName: "textformat")
-                .foregroundStyle(.white)
+            InstagramIcon(.text, size: DS.Size.iconSmall, color: .white)
             Text("Chạm vào ảnh để thêm chữ nghệ thuật")
                 .font(DS.Font.caption)
                 .foregroundStyle(.white.opacity(0.8))
@@ -778,8 +764,7 @@ struct CreatePostView: View {
 
     private var studioOverlayQuickDrawer: some View {
         HStack(spacing: DS.Spacing.sm) {
-            Image(systemName: "square.2.layers.3d")
-                .foregroundStyle(.white)
+            InstagramIcon(.system(name: "square.2.layers.3d"), size: DS.Size.iconSmall, color: .white)
             Text("Thêm lớp phủ hình ảnh hoặc nhãn dán")
                 .font(DS.Font.caption)
                 .foregroundStyle(.white.opacity(0.8))
@@ -833,9 +818,7 @@ struct CreatePostView: View {
                 ) {
                     ZStack {
                         Color(white: 0.18)
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.plus, size: 16, color: .white)
                     }
                     .frame(width: Constants.thumbnailSize, height: Constants.thumbnailSize)
                     .clipShape(RoundedRectangle(cornerRadius: Constants.thumbnailRadius))
@@ -855,8 +838,7 @@ struct CreatePostView: View {
                     Text(L10n.Common.next)
                         .font(.system(size: Constants.nextButtonFontSize, weight: .bold))
 
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: Constants.nextButtonIconSize, weight: .bold))
+                    InstagramIcon(.system(name: "arrow.right"), size: Constants.nextButtonIconSize, color: .white)
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, Constants.nextButtonHorizontalPadding)
@@ -919,15 +901,12 @@ struct CreatePostView: View {
                     HUDManager.shared.showInfo("Thêm nhạc nền vào bài viết")
                 } label: {
                     HStack {
-                        Image(systemName: "music.note")
-                            .font(.body)
+                        InstagramIcon(.system(name: "music.note"), size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 24)
                         Text("Thêm nhạc")
                             .font(DS.Font.body)
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.chevronRight, size: DS.Size.iconSmall, color: .secondary)
                     }
                     .foregroundStyle(.primary)
                 }
@@ -940,15 +919,12 @@ struct CreatePostView: View {
                     HUDManager.shared.showInfo("Chạm vào ảnh để gắn thẻ người dùng")
                 } label: {
                     HStack {
-                        Image(systemName: "person.crop.circle")
-                            .font(.body)
+                        InstagramIcon(.addUsers, size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                             .frame(width: 24)
                         Text(L10n.CreatePost.tagPeople)
                             .font(DS.Font.body)
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        InstagramIcon(.chevronRight, size: DS.Size.iconSmall, color: .secondary)
                     }
                     .foregroundStyle(.primary)
                 }
@@ -958,8 +934,7 @@ struct CreatePostView: View {
 
                 // Add Location Row
                 HStack {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.body)
+                    InstagramIcon(.system(name: "mappin.and.ellipse"), size: DS.Size.iconDefault, color: ColorTokens.textPrimary)
                         .frame(width: 24)
                     Button {
                         isShowingLocationPicker = true
@@ -975,8 +950,7 @@ struct CreatePostView: View {
                         Button {
                             viewModel.location = nil
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
+                            InstagramIcon(.system(name: "xmark.circle.fill"), size: DS.Size.iconSmall, color: .secondary)
                         }
                     }
                 }
@@ -1219,8 +1193,7 @@ struct StudioAudioPickerSheet: View {
                     HStack(spacing: DS.Spacing.sm) {
                         ZStack {
                             Color(.systemGray5)
-                            Image(systemName: "music.note")
-                                .foregroundStyle(ColorTokens.accentPrimary)
+                            InstagramIcon(.system(name: "music.note"), size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                         }
                         .frame(width: Constants.iconContainerSize, height: Constants.iconContainerSize)
                         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.small))
@@ -1249,9 +1222,7 @@ struct StudioAudioPickerSheet: View {
                         Spacer()
 
                         if selectedTrack?.id == track.id {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(ColorTokens.accentPrimary)
-                                .fontWeight(.bold)
+                            InstagramIcon(.system(name: "checkmark"), size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                         }
                     }
                     .padding(.vertical, Constants.rowVerticalPadding)

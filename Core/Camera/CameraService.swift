@@ -7,7 +7,6 @@
 
 import AVFoundation
 import UIKit
-import os
 
 // MARK: - CameraServiceError
 
@@ -46,33 +45,15 @@ final class CameraService: NSObject, @unchecked Sendable {
     private var photoContinuation: CheckedContinuation<Data, Error>?
     private var recordContinuation: CheckedContinuation<URL, Error>?
 
-    // Configuration work happens on sessionQueue, while SwiftUI reads these
-    // values on the main actor. Keep the observable state separate from the
-    // capture graph and protect it from cross-thread stale reads.
-    private let stateLock = OSAllocatedUnfairLock()
-    private var sessionConfigured = false
-    private var frontFacing = false
+    // Observable camera state is strictly MainActor isolated, protecting
+    // UI state reads and ensuring zero micro-stalls on the main thread.
+    private(set) var isSessionConfigured = false
+    private(set) var isFrontFacing = false
     private var wantsRunning = false
     private var interrupted = false
 
-    var isSessionConfigured: Bool {
-        stateLock.withLock { sessionConfigured }
-    }
-
-    var isFrontFacing: Bool {
-        stateLock.withLock { frontFacing }
-    }
-
     var isRunning: Bool {
         session.isRunning
-    }
-
-    private func setSessionConfigured(_ value: Bool) {
-        stateLock.withLock { sessionConfigured = value }
-    }
-
-    private func setFrontFacing(_ value: Bool) {
-        stateLock.withLock { frontFacing = value }
     }
 
     /// Whether real hardware camera is available (returns false on iOS Simulator).
@@ -125,17 +106,14 @@ final class CameraService: NSObject, @unchecked Sendable {
     }
 
     @objc private func sessionWasInterrupted(_ notification: Notification) {
-        stateLock.withLock {
-            interrupted = true
-        }
+        interrupted = true
     }
 
     @objc private func sessionInterruptionEnded(_ notification: Notification) {
-        let shouldResume = stateLock.withLock {
-            interrupted = false
-            return wantsRunning
+        interrupted = false
+        if wantsRunning {
+            startSessionIfNeeded()
         }
-        if shouldResume { startSessionIfNeeded() }
     }
 
     @objc private func sessionRuntimeError(_ notification: Notification) {
@@ -168,7 +146,7 @@ final class CameraService: NSObject, @unchecked Sendable {
             return true
         }
 
-        return await withCheckedContinuation { continuation in
+        let success = await withCheckedContinuation { continuation in
             sessionQueue.async { [weak self] in
                 guard let self else {
                     continuation.resume(returning: false)
@@ -186,7 +164,6 @@ final class CameraService: NSObject, @unchecked Sendable {
                            self.session.canAddInput(newInput) {
                             self.session.addInput(newInput)
                             self.videoDeviceInput = newInput
-                            self.setFrontFacing(isFront)
                         } else {
                             self.session.addInput(currentInput)
                         }
@@ -220,7 +197,6 @@ final class CameraService: NSObject, @unchecked Sendable {
                 if self.session.canAddInput(videoInput) {
                     self.session.addInput(videoInput)
                     self.videoDeviceInput = videoInput
-                    self.setFrontFacing(isFront)
                 }
 
                 // Audio input
@@ -247,21 +223,23 @@ final class CameraService: NSObject, @unchecked Sendable {
                 }
 
                 self.session.commitConfiguration()
-                self.setSessionConfigured(true)
                 continuation.resume(returning: true)
             }
         }
+
+        if success {
+            self.isSessionConfigured = true
+            self.isFrontFacing = isFront
+        }
+        return success
     }
 
     // MARK: - Session Controls
 
     func start() {
         guard isHardwareAvailable else { return }
-        let isInterrupted = stateLock.withLock {
-            wantsRunning = true
-            return interrupted
-        }
-        guard !isInterrupted else { return }
+        wantsRunning = true
+        guard !interrupted else { return }
         startSessionIfNeeded()
     }
 
@@ -275,9 +253,7 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func stop() {
         guard isHardwareAvailable else { return }
-        stateLock.withLock {
-            wantsRunning = false
-        }
+        wantsRunning = false
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
@@ -288,7 +264,7 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func switchCamera(isFront: Bool) {
         guard isHardwareAvailable else {
-            setFrontFacing(isFront)
+            self.isFrontFacing = isFront
             return
         }
 
@@ -306,7 +282,9 @@ final class CameraService: NSObject, @unchecked Sendable {
                self.session.canAddInput(newInput) {
                 self.session.addInput(newInput)
                 self.videoDeviceInput = newInput
-                self.setFrontFacing(isFront)
+                Task { @MainActor [weak self] in
+                    self?.isFrontFacing = isFront
+                }
             }
 
             self.session.commitConfiguration()
@@ -353,8 +331,6 @@ final class CameraService: NSObject, @unchecked Sendable {
                     let targetAngle: CGFloat = self.isFrontFacing ? 270 : 90
                     if connection.isVideoRotationAngleSupported(targetAngle) {
                         connection.videoRotationAngle = targetAngle
-                    } else if connection.isVideoOrientationSupported {
-                        connection.videoOrientation = .portrait
                     }
                 }
 
@@ -381,8 +357,6 @@ final class CameraService: NSObject, @unchecked Sendable {
                 let targetAngle: CGFloat = self.isFrontFacing ? 270 : 90
                 if connection.isVideoRotationAngleSupported(targetAngle) {
                     connection.videoRotationAngle = targetAngle
-                } else if connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .portrait
                 }
             }
 

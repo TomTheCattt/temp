@@ -177,9 +177,7 @@ struct MyStoryView: View {
             // Close Friends indicator
             Button(action: {}) {
                 HStack(spacing: DS.Spacing.xxs) {
-                    Image(systemName: "star.circle.fill")
-                        .font(.system(size: DS.FontSize.overlayMedium))
-                        .foregroundStyle(ColorTokens.success)
+                    InstagramIcon(.system(name: "star.circle.fill"), size: DS.FontSize.overlayMedium, color: ColorTokens.success)
                     Text(L10n.Story.closeFriends)
                         .font(.system(size: DS.FontSize.overlayBody))
                         .foregroundStyle(.white)
@@ -192,18 +190,14 @@ struct MyStoryView: View {
             Button {
                 showDeleteConfirmation = true
             } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: DS.FontSize.overlayXLarge))
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "trash"), size: DS.FontSize.overlayXLarge, color: .white)
                     .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
 
             // Share button
             Button(action: {}) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: DS.FontSize.overlayXLarge))
-                    .foregroundStyle(.white)
+                InstagramIcon(.options, size: DS.FontSize.overlayXLarge, color: .white)
                     .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
@@ -319,18 +313,14 @@ struct MyStoryView: View {
                 dismiss()
                 AppRouter.shared.present(fullScreen: .storyCamera)
             } label: {
-                Image(systemName: "camera")
-                    .font(.system(size: DS.FontSize.overlayMedium, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.camera, size: DS.FontSize.overlayMedium, color: .white)
                     .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
 
             Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: DS.FontSize.overlayLarge, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: DS.FontSize.overlayLarge, color: .white)
                     .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
                     .contentShape(Circle())
             }
@@ -363,29 +353,17 @@ struct MyStoryView: View {
     private func stickerView(_ sticker: StoryStickerInfo) -> some View {
         switch sticker.type {
         case .location:
-            HStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: "location.fill")
-                    .font(.system(size: DS.FontSize.overlayCaption))
-                Text(sticker.data ?? "")
-                    .font(.system(size: DS.FontSize.overlayBody, weight: .semibold))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, DS.Spacing.sm)
-            .padding(.vertical, DS.Spacing.xs)
-            .background(.ultraThinMaterial, in: Capsule())
+            InstagramStickerView(.location, height: 36)
 
         case .mention:
-            Text(sticker.data ?? "")
-                .font(.system(size: DS.FontSize.overlayEmphasis, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, DS.Spacing.sm)
-                .padding(.vertical, DS.Spacing.xs)
-                .background(.ultraThinMaterial, in: Capsule())
+            InstagramStickerView(.mention, height: 36)
+
+        case .link:
+            InstagramStickerView(.link, height: 36)
 
         case .music:
             HStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: "music.note")
-                    .font(.system(size: DS.FontSize.overlayCaption))
+                InstagramIcon(.system(name: "music.note"), size: DS.FontSize.overlayCaption, color: .white)
                 Text(sticker.data ?? "")
                     .font(.system(size: DS.FontSize.overlaySmall))
             }

@@ -165,10 +165,7 @@ struct PostCameraView: View {
             Button {
                 isPresented = false
             } label: {
-                Image(systemName: "xmark")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: 20, color: .white)
                     .frame(width: 44, height: 44)
                     .background(Color.black.opacity(0.4), in: Circle())
             }
@@ -179,9 +176,7 @@ struct PostCameraView: View {
             Button {
                 viewModel.toggleFlash()
             } label: {
-                Image(systemName: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash")
-                    .font(.title3)
-                    .foregroundStyle(viewModel.isFlashOn ? .yellow : .white)
+                InstagramIcon(.system(name: viewModel.isFlashOn ? "bolt.fill" : "bolt.slash"), size: 20, color: viewModel.isFlashOn ? .yellow : .white)
                     .frame(width: 44, height: 44)
                     .background(Color.black.opacity(0.4), in: Circle())
             }
@@ -203,9 +198,7 @@ struct PostCameraView: View {
                     .fill(Color.white.opacity(0.2))
                     .frame(width: 48, height: 48)
                     .overlay {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.title3)
-                            .foregroundStyle(.white)
+                        InstagramIcon(.picture, size: 24, color: .white)
                     }
                     .overlay(
                         RoundedRectangle(cornerRadius: DS.Radius.small)
@@ -236,9 +229,7 @@ struct PostCameraView: View {
             Button {
                 viewModel.toggleCamera()
             } label: {
-                Image(systemName: "camera.rotate")
-                    .font(.title3)
-                    .foregroundStyle(.white)
+                InstagramIcon(.system(name: "camera.rotate"), size: 22, color: .white)
                     .frame(width: 48, height: 48)
                     .background(Color.black.opacity(0.4), in: Circle())
             }
@@ -288,9 +279,7 @@ struct PostCameraView: View {
             .ignoresSafeArea()
 
             VStack(spacing: DS.Spacing.sm) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.white.opacity(0.6))
+                InstagramIcon(.camera, size: 64, color: .white.opacity(0.6))
 
                 Text("Simulator Camera Viewfinder")
                     .font(DS.Font.headline)

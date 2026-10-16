@@ -543,9 +543,7 @@ struct CreateCanvasView: View {
                     HapticFeedbackSafe.impact(.light)
                     isPresented = false
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.close, size: 18, color: .white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
                 }
@@ -553,8 +551,7 @@ struct CreateCanvasView: View {
                 if let track = selectedAudioTrack {
                     Spacer()
                     HStack(spacing: 6) {
-                        Image(systemName: "music.note")
-                            .font(.system(size: 12))
+                        InstagramIcon(.system(name: "music.note"), size: 12, color: .white)
                         Text(track.title)
                             .font(.system(size: 12, weight: .semibold))
                             .lineLimit(1)
@@ -598,9 +595,7 @@ struct CreateCanvasView: View {
                     HapticFeedbackSafe.impact(.light)
                     isShowingStickerDrawer = true
                 } label: {
-                    Image(systemName: "face.smiling")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.stickers, size: 20, color: .white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
                 }
@@ -649,9 +644,7 @@ struct CreateCanvasView: View {
                         isRightMenuExpanded = true
                     }
                 } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.chevronDown, size: 16, color: .white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
                 }
@@ -671,9 +664,7 @@ struct CreateCanvasView: View {
                             .foregroundStyle(.white)
                             .shadow(radius: 2)
 
-                        Image(systemName: "face.smiling")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.white)
+                        InstagramIcon(.stickers, size: 20, color: .white)
                             .frame(width: 44, height: 44)
                             .background(Color.black.opacity(0.35), in: Circle())
                     }
@@ -743,9 +734,7 @@ struct CreateCanvasView: View {
                         isRightMenuExpanded = false
                     }
                 } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.chevronUp, size: 16, color: .white)
                         .frame(width: 44, height: 44)
                         .background(Color.black.opacity(0.35), in: Circle())
                 }
@@ -759,9 +748,7 @@ struct CreateCanvasView: View {
             HapticFeedbackSafe.impact(.light)
             action()
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(.white)
+            InstagramIcon(canvasToolAppIcon(for: icon), size: 20, color: .white)
                 .frame(width: 44, height: 44)
                 .background(Color.black.opacity(0.35), in: Circle())
         }
@@ -779,12 +766,21 @@ struct CreateCanvasView: View {
                     .foregroundStyle(.white)
                     .shadow(radius: 2)
 
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(.white)
+                InstagramIcon(canvasToolAppIcon(for: icon), size: 20, color: .white)
                     .frame(width: 44, height: 44)
                     .background(Color.black.opacity(0.35), in: Circle())
             }
+        }
+    }
+
+    private func canvasToolAppIcon(for iconName: String) -> AppIcon {
+        switch iconName {
+        case "textformat": return .text
+        case "bookmark": return .save(selected: false)
+        case "at": return .threads
+        case "arrow.down.to.line": return .download
+        case "ellipsis": return .options
+        default: return .system(name: iconName)
         }
     }
 
@@ -811,12 +807,8 @@ struct CreateCanvasView: View {
                 } label: {
                     HStack(spacing: 8) {
                         ZStack(alignment: .bottomTrailing) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundStyle(.white)
-                            Image(systemName: "f.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color.blue)
+                            InstagramIcon(.system(name: "person.crop.circle.fill"), size: 24, color: .white)
+                            InstagramIcon(.system(name: "f.circle.fill"), size: 11, color: .blue)
                                 .background(Circle().fill(Color.white).padding(-1))
                         }
 
@@ -835,9 +827,7 @@ struct CreateCanvasView: View {
                     finishAndExport(destination: .closeFriends)
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "star.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(Color.green)
+                        InstagramIcon(.system(name: "star.circle.fill"), size: 22, color: .green)
 
                         Text("Bạn thân")
                             .font(.system(size: 13, weight: .semibold))
@@ -855,9 +845,7 @@ struct CreateCanvasView: View {
                     HapticFeedbackSafe.impact(.medium)
                     finishAndExport(destination: .editor)
                 } label: {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.system(name: "arrow.right"), size: 18, color: .white)
                         .frame(width: 44, height: 44)
                         .background(ColorTokens.accentPrimary, in: Circle())
                 }
@@ -1018,16 +1006,12 @@ struct CreateCanvasView: View {
                                     Circle()
                                         .fill(Color.white)
                                         .frame(width: Constants.drawingToolButtonSize, height: Constants.drawingToolButtonSize)
-                                    Image(systemName: tool.iconName)
-                                        .font(.system(size: 17, weight: .bold))
-                                        .foregroundStyle(Color.black)
+                                    InstagramIcon(.system(name: tool.iconName), size: 17, color: Color.black)
                                 } else {
                                     Circle()
                                         .fill(Color.black.opacity(0.3))
                                         .frame(width: Constants.drawingToolButtonSize, height: Constants.drawingToolButtonSize)
-                                    Image(systemName: tool.iconName)
-                                        .font(.system(size: 17, weight: .medium))
-                                        .foregroundStyle(Color.white)
+                                    InstagramIcon(.system(name: tool.iconName), size: 17, color: Color.white)
                                 }
                             }
                         }
@@ -1075,9 +1059,7 @@ struct CreateCanvasView: View {
                             .fill(Color.white)
                             .frame(width: Constants.drawingPaletteColorSize + 6, height: Constants.drawingPaletteColorSize + 6)
                             .overlay(
-                                Image(systemName: "eyedropper.halffull")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color.black)
+                                InstagramIcon(.system(name: "eyedropper.halffull"), size: 14, color: Color.black)
                             )
                             .shadow(radius: 2)
                     }
@@ -1249,9 +1231,7 @@ struct CreateCanvasView: View {
                     case .trailing: editingAlignment = .leading
                     }
                 } label: {
-                    Image(systemName: alignmentIconName)
-                        .font(.system(size: 15))
-                        .foregroundStyle(.white)
+                    InstagramIcon(.system(name: alignmentIconName), size: 15, color: .white)
                         .frame(width: 36, height: 36)
                         .background(Color.white.opacity(0.2), in: Circle())
                 }
@@ -1285,8 +1265,7 @@ struct CreateCanvasView: View {
                     HStack(spacing: 2) {
                         Text("A")
                             .font(.system(size: 13, weight: .bold))
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 10))
+                        InstagramIcon(.system(name: "sparkles"), size: 10, color: (activeToolTab == .effect || editingEffect != .none) ? Color.black : Color.white)
                     }
                     .foregroundStyle((activeToolTab == .effect || editingEffect != .none) ? Color.black : Color.white)
                     .frame(width: 36, height: 36)
@@ -1302,7 +1281,7 @@ struct CreateCanvasView: View {
                     editingText += " @"
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "at")
+                        InstagramIcon(.threads, size: 13, color: .white.opacity(0.9))
                         Text("Nhắc đến")
                     }
                     .font(.system(size: 13, weight: .semibold))
@@ -1319,7 +1298,7 @@ struct CreateCanvasView: View {
                     editingText += " 📍"
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "mappin.and.ellipse")
+                        InstagramIcon(.system(name: "mappin.and.ellipse"), size: 13, color: .white.opacity(0.9))
                         Text("Vị trí")
                     }
                     .font(.system(size: 13, weight: .semibold))
@@ -1368,8 +1347,7 @@ struct CreateCanvasView: View {
                         editingAnimation = anim
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: anim.iconName)
-                                .font(.system(size: 13, weight: .semibold))
+                            InstagramIcon(.system(name: anim.iconName), size: 13, color: editingAnimation == anim ? Color.black : Color.white)
                             Text(anim.rawValue)
                                 .font(.system(size: 13, weight: editingAnimation == anim ? .bold : .medium))
                         }
@@ -1397,8 +1375,7 @@ struct CreateCanvasView: View {
                         editingEffect = effect
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: effect.iconName)
-                                .font(.system(size: 13, weight: .semibold))
+                            InstagramIcon(.system(name: effect.iconName), size: 13, color: editingEffect == effect ? Color.black : Color.white)
                             Text(effect.rawValue)
                                 .font(.system(size: 13, weight: editingEffect == effect ? .bold : .medium))
                         }

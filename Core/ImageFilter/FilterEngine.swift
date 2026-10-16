@@ -15,7 +15,7 @@ import UIKit
 
 /// Central rendering engine for image filters.
 /// Uses a single Metal-backed CIContext for all rendering — never create multiple contexts.
-final class FilterEngine: Sendable {
+nonisolated final class FilterEngine: Sendable {
 
     static let shared = FilterEngine()
 

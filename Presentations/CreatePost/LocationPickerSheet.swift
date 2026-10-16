@@ -49,9 +49,7 @@ struct LocationPickerSheet: View {
                             select(PostLocation(name: trimmed, latitude: nil, longitude: nil))
                         } label: {
                             HStack {
-                                Image(systemName: "mappin.circle.fill")
-                                    .foregroundStyle(ColorTokens.accentPrimary)
-                                    .font(.title3)
+                                InstagramIcon(.system(name: "mappin.circle.fill"), size: DS.Size.iconDefault, color: ColorTokens.accentPrimary)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(trimmed)
                                         .font(DS.Font.body)
@@ -71,8 +69,7 @@ struct LocationPickerSheet: View {
                             select(loc)
                         } label: {
                             HStack {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .foregroundStyle(.secondary)
+                                InstagramIcon(.system(name: "mappin.and.ellipse"), size: DS.Size.iconDefault, color: .secondary)
                                     .frame(width: 24)
                                 Text(loc.name)
                                     .font(DS.Font.body)

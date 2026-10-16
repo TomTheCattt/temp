@@ -146,9 +146,7 @@ struct PhotoPIPStickerView: View {
                 // Delete Button (shown when active)
                 if isSelected {
                     Button(action: onDelete) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.white, ColorTokens.destructive)
+                        InstagramIcon(.close, size: 18, color: ColorTokens.destructive)
                             .background(Circle().fill(Color.white).padding(2))
                     }
                     .offset(x: 10, y: -10)

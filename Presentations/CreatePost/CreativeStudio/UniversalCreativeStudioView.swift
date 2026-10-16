@@ -104,8 +104,7 @@ struct UniversalCreativeStudioView: View {
                         activeTab = .filter
                     } label: {
                         VStack(spacing: DS.Spacing.xxxs) {
-                            Image(systemName: "camera.filters")
-                                .font(.title3)
+                            InstagramIcon(.filters, size: 22, color: activeTab == .filter ? ColorTokens.accentPrimary : .secondary)
                             Text(L10n.CreatePost.filter)
                                 .font(DS.Font.caption2)
                         }
@@ -118,8 +117,7 @@ struct UniversalCreativeStudioView: View {
                         matching: .images
                     ) {
                         VStack(spacing: DS.Spacing.xxxs) {
-                            Image(systemName: "photo.badge.plus")
-                                .font(.title3)
+                            InstagramIcon(.system(name: "photo.badge.plus"), size: 22, color: .secondary)
                             Text(L10n.CreatePost.addSticker)
                                 .font(DS.Font.caption2)
                         }
@@ -142,8 +140,7 @@ struct UniversalCreativeStudioView: View {
                         startEditing()
                     } label: {
                         VStack(spacing: DS.Spacing.xxxs) {
-                            Image(systemName: "textformat")
-                                .font(.title3)
+                            InstagramIcon(.text, size: 22, color: .secondary)
                             Text(L10n.CreatePost.text)
                                 .font(DS.Font.caption2)
                         }
@@ -234,9 +231,7 @@ struct UniversalCreativeStudioView: View {
                         case .trailing: editingAlignment = .leading
                         }
                     } label: {
-                        Image(systemName: alignmentIconName)
-                            .font(.title3)
-                            .foregroundStyle(.white)
+                        InstagramIcon(.system(name: alignmentIconName), size: 18, color: .white)
                             .frame(width: 40, height: 40)
                             .background(Color.white.opacity(0.2), in: Circle())
                     }
@@ -245,9 +240,7 @@ struct UniversalCreativeStudioView: View {
                     Button {
                         editingHasBackground.toggle()
                     } label: {
-                        Image(systemName: editingHasBackground ? "character.textbox" : "textformat")
-                            .font(.title3)
-                            .foregroundStyle(editingHasBackground ? Color.black : Color.white)
+                        InstagramIcon(.system(name: editingHasBackground ? "character.textbox" : "textformat"), size: 18, color: editingHasBackground ? Color.black : Color.white)
                             .frame(width: 40, height: 40)
                             .background(editingHasBackground ? Color.white : Color.white.opacity(0.2), in: Circle())
                     }

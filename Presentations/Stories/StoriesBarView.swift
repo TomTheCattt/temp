@@ -50,12 +50,20 @@ struct StoriesBarView: View {
                             Button {
                                 AppRouter.shared.present(fullScreen: .storyCamera)
                             } label: {
-                                Label("Add to Story", systemImage: "plus.circle")
+                                Label {
+                                    Text("Add to Story")
+                                } icon: {
+                                    InstagramIcon(.plus, size: 16)
+                                }
                             }
                             Button {
                                 AppRouter.shared.present(fullScreen: .myStory)
                             } label: {
-                                Label("View Story", systemImage: "eye")
+                                Label {
+                                    Text("View Story")
+                                } icon: {
+                                    InstagramIcon(.system(name: "eye"), size: 16)
+                                }
                             }
                         }
                     }
@@ -143,9 +151,7 @@ struct MyStoryCircleView: View {
                     .clipShape(Circle())
                     
                     // Plus badge
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: DS.Size.iconSmall))
-                        .foregroundStyle(ColorTokens.accentPrimary)
+                    InstagramIcon(.system(name: "plus.circle.fill"), size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                         .background(Circle().fill(Color(.systemBackground)).frame(width: DS.Spacing.lg, height: DS.Spacing.lg))
                 }
             }

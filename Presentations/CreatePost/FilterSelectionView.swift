@@ -83,9 +83,7 @@ struct FilterSelectionView: View {
 
     private var intensitySlider: some View {
         HStack(spacing: DS.Spacing.sm) {
-            Image(systemName: "circle.lefthalf.filled")
-                .font(DS.Font.caption)
-                .foregroundStyle(.secondary)
+            InstagramIcon(.system(name: "circle.lefthalf.filled"), size: DS.Size.iconSmall, color: .secondary)
 
             Slider(value: Binding(
                 get: { Double(filterIntensity) },

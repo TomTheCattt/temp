@@ -253,9 +253,7 @@ struct StoryViewerView: View {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white)
+                InstagramIcon(.close, size: 18, color: .white)
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }
@@ -298,48 +296,32 @@ struct StoryViewerView: View {
                 )
 
             Button(action: {}) {
-                Image(systemName: "heart")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.white)
+                InstagramIcon(.like(), size: 24, color: .white)
             }
 
             Button(action: {}) {
-                Image(systemName: "paperplane")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.white)
+                InstagramIcon(.share2026(), size: 22, color: .white)
             }
         }
     }
 
     // MARK: - Sticker
-
+ 
     @ViewBuilder
     private func stickerView(_ sticker: StoryStickerInfo) -> some View {
         switch sticker.type {
         case .location:
-            HStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: "location.fill")
-                    .font(.system(size: 11))
-                Text(sticker.data ?? "")
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, DS.Spacing.sm)
-            .padding(.vertical, DS.Spacing.xs)
-            .background(.ultraThinMaterial, in: Capsule())
+            InstagramStickerView(.location, height: 36)
 
         case .mention:
-            Text(sticker.data ?? "")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, DS.Spacing.sm)
-                .padding(.vertical, DS.Spacing.xs)
-                .background(.ultraThinMaterial, in: Capsule())
+            InstagramStickerView(.mention, height: 36)
+
+        case .link:
+            InstagramStickerView(.link, height: 36)
 
         case .music:
             HStack(spacing: DS.Spacing.xxs) {
-                Image(systemName: "music.note")
-                    .font(.system(size: 11))
+                InstagramIcon(.system(name: "music.note"), size: 11, color: .white)
                 Text(sticker.data ?? "")
                     .font(.system(size: 12))
             }

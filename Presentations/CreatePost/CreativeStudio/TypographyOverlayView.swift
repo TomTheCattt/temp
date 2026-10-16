@@ -194,9 +194,7 @@ struct TypographyOverlayView: View {
             if isSelected {
                 // Delete button (top-trailing)
                 Button(action: onDelete) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(.white, ColorTokens.destructive)
+                    InstagramIcon(.close, size: 18, color: ColorTokens.destructive)
                         .background(Circle().fill(Color.white).padding(2))
                 }
                 .offset(x: 12, y: -12)
@@ -204,9 +202,7 @@ struct TypographyOverlayView: View {
                 // Edit button (top-leading)
                 if let onEdit {
                     Button(action: onEdit) {
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(.white, ColorTokens.accentPrimary)
+                        InstagramIcon(.system(name: "pencil.circle.fill"), size: 18, color: ColorTokens.accentPrimary)
                             .background(Circle().fill(Color.white).padding(2))
                     }
                     .offset(x: -12, y: -12)

@@ -160,9 +160,7 @@ struct LayoutCollageView: View {
                     .clipped()
             } else {
                 VStack(spacing: DS.Spacing.xxs) {
-                    Image(systemName: "plus.circle")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                    InstagramIcon(.plus, size: DS.Size.iconDefault, color: .secondary)
                     Text("Ô \(index + 1)")
                         .font(DS.Font.caption2)
                         .foregroundStyle(.secondary)

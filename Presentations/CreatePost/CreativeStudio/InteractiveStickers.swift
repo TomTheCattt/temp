@@ -230,9 +230,7 @@ public struct LocationSearchSheet: View {
                         isPresented = false
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.system(size: 22))
-                                .foregroundStyle(Color.red)
+                            InstagramIcon(.system(name: "mappin.circle.fill"), size: 22, color: Color.red)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(place)
