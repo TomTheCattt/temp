@@ -77,14 +77,43 @@ final class ServiceAssembly: Assembly {
             CallManager.shared
         }.inObjectScope(.container)
 
-        // MARK: CallService
+        // MARK: CallMediaPipelineProtocol
 
-        container.register(CallServiceProtocol.self) { _ in
-            CallService.shared
+        container.register(CallMediaPipelineProtocol.self) { _ in
+            DefaultCallMediaPipeline.shared
         }.inObjectScope(.container)
 
-        container.register(CallService.self) { _ in
-            CallService.shared
+        // MARK: CallSignalingHandlerProtocol
+
+        container.register(CallSignalingHandlerProtocol.self) { resolver in
+            switch AppConfig.shared.callBackendMode {
+            case .mock:
+                return MockCallSignalingHandler.shared
+            case .firebase:
+                return FirebaseCallSignalingHandler.shared
+            case .webSocket:
+                let wsHandler = resolver.resolve(WebSocketMessageHandler.self)
+                    ?? WebSocketMessageHandler(webSocketService: resolver.resolve(WebSocketServiceProtocol.self) ?? WebSocketService())
+                return WebSocketCallSignalingHandler(messageHandler: wsHandler)
+            }
+        }.inObjectScope(.container)
+
+        // MARK: CallService
+
+        container.register(CallServiceProtocol.self) { resolver in
+            let service = CallService.shared
+            if let handler = resolver.resolve(CallSignalingHandlerProtocol.self) {
+                service.configure(signalingHandler: handler)
+            }
+            return service
+        }.inObjectScope(.container)
+
+        container.register(CallService.self) { resolver in
+            let service = CallService.shared
+            if let handler = resolver.resolve(CallSignalingHandlerProtocol.self) {
+                service.configure(signalingHandler: handler)
+            }
+            return service
         }.inObjectScope(.container)
     }
 }

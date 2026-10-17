@@ -128,6 +128,29 @@ struct AppConfig {
     var isDebug: Bool { environment.isDebugLoggingEnabled || useLocalBackend }
     var isMockAPI: Bool { apiMode == .mock }
 
+    // MARK: - CallBackendMode
+
+    enum CallBackendMode: String {
+        case mock
+        case firebase
+        case webSocket
+    }
+
+    var callBackendMode: CallBackendMode {
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment["CALL_BACKEND_MODE"]?.lowercased(),
+           let mode = CallBackendMode(rawValue: envValue) {
+            return mode
+        }
+        // Priority 2: Info.plist
+        if let raw = (Bundle.main.infoDictionary?["CALL_BACKEND_MODE"] as? String)?.lowercased(),
+           let mode = CallBackendMode(rawValue: raw) {
+            return mode
+        }
+        // Default: Mock if isMockAPI, otherwise Firebase
+        return isMockAPI ? .mock : .firebase
+    }
+
     var timeoutInterval: TimeInterval { 30 }
 
     /// App Store product URL used by the force-update screen ("Update now").

@@ -27,10 +27,10 @@ enum WebSocketIncomingMessage: Sendable {
     case notification(AppNotification)
 
     // Call signaling
-    case callIncoming(CallSignal)
-    case callOffer(CallSignal)
-    case callAnswer(CallSignal)
-    case callIceCandidate(CallSignal)
+    case callIncoming(CallSignalPayload)
+    case callOffer(CallSignalPayload)
+    case callAnswer(CallSignalPayload)
+    case callIceCandidate(CallSignalPayload)
     case callHangup(callId: String, userId: String)
     case callReject(callId: String, userId: String)
     case callBusy(callId: String, userId: String)
@@ -40,10 +40,10 @@ enum WebSocketIncomingMessage: Sendable {
     case unknown(String)
 }
 
-// MARK: - CallSignal
+// MARK: - CallSignalPayload
 
 /// WebRTC signaling data exchanged via WebSocket.
-struct CallSignal: Sendable {
+struct CallSignalPayload: Sendable {
     let callId: String
     let fromUserId: String
     let toUserId: String
@@ -53,11 +53,6 @@ struct CallSignal: Sendable {
     let iceSdpMid: String?
     let iceSdpMLineIndex: Int?
     let timestamp: Date
-
-    enum CallType: String, Sendable {
-        case audio
-        case video
-    }
 }
 
 // MARK: - WebSocketOutgoingMessage
@@ -72,7 +67,7 @@ enum WebSocketOutgoingMessage: Sendable {
     case deleteMessage(conversationId: String, messageId: String)
 
     // Call signaling
-    case callInitiate(callId: String, fromUserId: String, toUserId: String, callType: CallSignal.CallType)
+    case callInitiate(callId: String, fromUserId: String, toUserId: String, callType: CallType)
     case callOffer(callId: String, fromUserId: String, toUserId: String, sdp: String)
     case callAnswer(callId: String, fromUserId: String, toUserId: String, sdp: String)
     case callIceCandidate(callId: String, fromUserId: String, toUserId: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int?)
@@ -177,6 +172,56 @@ final class WebSocketMessageHandler: @unchecked Sendable {
                     return true
                 default:
                     return false
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+
+    /// Filtered and mapped stream of domain CallSignal events.
+    var callSignalPublisher: AnyPublisher<CallSignal, Never> {
+        callSignaling
+            .compactMap { message -> CallSignal? in
+                switch message {
+                case .callIncoming(let p):
+                    return .callIncoming(
+                        callId: p.callId,
+                        fromUserId: p.fromUserId,
+                        toUserId: p.toUserId,
+                        callType: p.callType
+                    )
+                case .callOffer(let p):
+                    return .callOffer(
+                        callId: p.callId,
+                        fromUserId: p.fromUserId,
+                        toUserId: p.toUserId,
+                        sdp: p.sdp ?? ""
+                    )
+                case .callAnswer(let p):
+                    return .callAnswer(
+                        callId: p.callId,
+                        fromUserId: p.fromUserId,
+                        toUserId: p.toUserId,
+                        sdp: p.sdp ?? ""
+                    )
+                case .callIceCandidate(let p):
+                    return .callIceCandidate(
+                        callId: p.callId,
+                        fromUserId: p.fromUserId,
+                        toUserId: p.toUserId,
+                        candidate: p.iceCandidate ?? "",
+                        sdpMid: p.iceSdpMid,
+                        sdpMLineIndex: p.iceSdpMLineIndex
+                    )
+                case .callHangup(let callId, let userId):
+                    return .callHangup(callId: callId, fromUserId: userId, toUserId: "")
+                case .callReject(let callId, let userId):
+                    return .callReject(callId: callId, fromUserId: userId, toUserId: "")
+                case .callBusy(let callId, let userId):
+                    return .callBusy(callId: callId, fromUserId: userId, toUserId: "")
+                case .callRinging(let callId, let userId):
+                    return .callRinging(callId: callId, fromUserId: userId, toUserId: "")
+                default:
+                    return nil
                 }
             }
             .eraseToAnyPublisher()
@@ -362,7 +407,7 @@ final class WebSocketMessageHandler: @unchecked Sendable {
 
     // MARK: - Call Signal Parsing
 
-    private func parseCallSignal(from json: [String: Any]) -> CallSignal? {
+    private func parseCallSignal(from json: [String: Any]) -> CallSignalPayload? {
         guard let callId = json["call_id"] as? String else {
             return nil
         }
@@ -377,9 +422,9 @@ final class WebSocketMessageHandler: @unchecked Sendable {
 
         let toUserId = json["to_user_id"] as? String ?? ""
         let callTypeRaw = json["call_type"] as? String ?? "audio"
-        let callType = CallSignal.CallType(rawValue: callTypeRaw) ?? .audio
+        let callType = CallType(rawValue: callTypeRaw) ?? .audio
 
-        return CallSignal(
+        return CallSignalPayload(
             callId: callId,
             fromUserId: fromUserId,
             toUserId: toUserId,
