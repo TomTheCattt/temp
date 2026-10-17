@@ -507,5 +507,7 @@ enum L10n {
         static let ongoingCall = String(localized: "call.ongoingCall", defaultValue: "Cuộc gọi đang diễn ra")
         static let returnToCall = String(localized: "call.returnToCall", defaultValue: "Chạm để quay lại cuộc gọi")
         static let alreadyInCall = String(localized: "call.alreadyInCall", defaultValue: "Bạn đang trong một cuộc gọi khác")
+        static let incomingVideoCall = String(localized: "call.incomingVideoCall", defaultValue: "Cuộc gọi video đến...")
+        static let incomingAudioCall = String(localized: "call.incomingAudioCall", defaultValue: "Cuộc gọi thoại đến...")
     }
 }
