@@ -21,6 +21,7 @@ xcuserdata/
 # Derived Data
 DerivedData/
 .derivedData/
+DerivedDataDevice/
 
 # Logs & Scratch
 *.log
