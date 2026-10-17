@@ -1178,6 +1178,28 @@
         }
       }
     },
+    "call.incomingAudioCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cuộc gọi thoại đến..."
+          }
+        }
+      }
+    },
+    "call.incomingVideoCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cuộc gọi video đến..."
+          }
+        }
+      }
+    },
     "call.mute" : {
       "extractionState" : "manual",
       "localizations" : {

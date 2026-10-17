@@ -175,7 +175,7 @@ final class CallManager: NSObject, @unchecked Sendable {
             logger.notice("CallKit endCall request warning: \(error.localizedDescription)")
         }
         syncOnQueue { _ = activeCalls.removeValue(forKey: uuid) }
-        deactivateAudioSession()
+        await deactivateAudioSessionAsync()
     }
 
     // MARK: - Report Call Connected
@@ -284,12 +284,9 @@ extension CallManager: CXProviderDelegate {
 
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
         logger.info("Audio session activated by CallKit delegate")
-        do {
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            logger.debug("Audio session setActive in didActivate non-fatal: \(error.localizedDescription)")
+        activateAudioSession(session: audioSession) { [weak self] _ in
+            self?.callEventSubject.send(.audioSessionActivated)
         }
-        callEventSubject.send(.audioSessionActivated)
     }
 
     func provider(_ provider: CXProvider, didDeactivate audioSession: AVAudioSession) {
@@ -308,20 +305,79 @@ extension CallManager: CXProviderDelegate {
                 options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
             )
             #if targetEnvironment(simulator)
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            activateAudioSession(session: session)
             #endif
         } catch {
             logger.error("Failed to configure audio session: \(error.localizedDescription)")
         }
     }
 
-    func deactivateAudioSession() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setActive(false, options: .notifyOthersOnDeactivation)
-            logger.info("Audio session cleanly deactivated")
-        } catch {
-            logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
+    /// Activates the audio session asynchronously to prevent main-thread blocking and UI unresponsiveness.
+    func activateAudioSession(session: AVAudioSession = .sharedInstance(), completion: (@Sendable (Bool) -> Void)? = nil) {
+        if #available(iOS 27.0, *) {
+            session.activate(options: []) { [weak self] success, error in
+                if let error {
+                    self?.logger.error("Failed to activate audio session: \(error.localizedDescription)")
+                } else if success {
+                    self?.logger.info("Audio session cleanly activated")
+                }
+                completion?(success)
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                do {
+                    try session.setActive(true, options: .notifyOthersOnDeactivation)
+                    self?.logger.info("Audio session cleanly activated")
+                    completion?(true)
+                } catch {
+                    self?.logger.error("Failed to activate audio session: \(error.localizedDescription)")
+                    completion?(false)
+                }
+            }
+        }
+    }
+
+    /// Asynchronously activates the audio session using Swift concurrency.
+    @discardableResult
+    func activateAudioSessionAsync(session: AVAudioSession = .sharedInstance()) async -> Bool {
+        await withCheckedContinuation { continuation in
+            activateAudioSession(session: session) { success in
+                continuation.resume(returning: success)
+            }
+        }
+    }
+
+    /// Deactivates the audio session asynchronously to prevent main-thread blocking and UI unresponsiveness.
+    func deactivateAudioSession(session: AVAudioSession = .sharedInstance(), completion: (@Sendable (Bool) -> Void)? = nil) {
+        if #available(iOS 27.0, *) {
+            session.deactivate(options: .notifyOthersOnDeactivation) { [weak self] success, error in
+                if let error {
+                    self?.logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
+                } else if success {
+                    self?.logger.info("Audio session cleanly deactivated")
+                }
+                completion?(success)
+            }
+        } else {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                do {
+                    try session.setActive(false, options: .notifyOthersOnDeactivation)
+                    self?.logger.info("Audio session cleanly deactivated")
+                    completion?(true)
+                } catch {
+                    self?.logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
+                    completion?(false)
+                }
+            }
+        }
+    }
+
+    /// Asynchronously deactivates the audio session using Swift concurrency.
+    func deactivateAudioSessionAsync(session: AVAudioSession = .sharedInstance()) async {
+        await withCheckedContinuation { continuation in
+            deactivateAudioSession(session: session) { _ in
+                continuation.resume()
+            }
         }
     }
 
@@ -355,12 +411,11 @@ extension CallManager: CXProviderDelegate {
                 if options.contains(.shouldResume) {
                     logger.info("Audio session interruption ended: resuming audio")
                     configureAudioSession()
-                    do {
-                        try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
-                    } catch {
-                        logger.error("Failed to reactivate audio session: \(error.localizedDescription)")
+                    activateAudioSession { [weak self] success in
+                        if success {
+                            self?.callEventSubject.send(.audioSessionActivated)
+                        }
                     }
-                    callEventSubject.send(.audioSessionActivated)
                 }
             }
         @unknown default:

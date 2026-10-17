@@ -43,10 +43,12 @@ struct InAppOngoingCallBanner: View {
     // MARK: - Body
 
     var body: some View {
-        if let call = currentActiveCall, currentActiveCallState.isActive {
+        if let call = currentActiveCall, currentActiveCallState.isActive, currentActiveCallState != .incomingRinging {
             bannerContent(call: call)
                 .onAppear {
-                    startDurationTimer(for: call)
+                    if currentActiveCallState == .connected {
+                        startDurationTimer(for: call)
+                    }
                 }
                 .onDisappear {
                     durationTask?.cancel()
@@ -54,13 +56,15 @@ struct InAppOngoingCallBanner: View {
                 }
                 .onReceive(CallService.shared.currentCallPublisher) { newCall in
                     self.fallbackCall = newCall
-                    if let newCall {
+                    if let newCall, currentActiveCallState == .connected {
                         startDurationTimer(for: newCall)
                     }
                 }
                 .onReceive(CallService.shared.callStatePublisher) { state in
                     self.fallbackCallState = state
-                    if !state.isActive {
+                    if state == .connected, let call = currentActiveCall {
+                        startDurationTimer(for: call)
+                    } else if !state.isActive || state != .connected {
                         durationTask?.cancel()
                         durationTask = nil
                     }

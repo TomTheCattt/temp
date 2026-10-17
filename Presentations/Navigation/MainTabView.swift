@@ -79,15 +79,23 @@ struct MainTabView: View {
             fullScreenContent(fullScreen)
         }
         .overlay(alignment: .top) {
-            if let call = currentCall, callState.isActive, !isCallViewPresented {
-                InAppOngoingCallBanner(call: call, callState: callState)
-                    .padding(.horizontal, DS.Spacing.md)
-                    .safeAreaPadding(.top)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(100)
+            if let call = currentCall, !isCallViewPresented {
+                if callState == .incomingRinging {
+                    InAppIncomingCallBanner(call: call)
+                        .padding(.horizontal, DS.Spacing.md)
+                        .safeAreaPadding(.top)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(999)
+                } else if callState.isActive {
+                    InAppOngoingCallBanner(call: call, callState: callState)
+                        .padding(.horizontal, DS.Spacing.md)
+                        .safeAreaPadding(.top)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(999)
+                }
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: shouldShowOngoingCallBanner)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: callBannerDisplayState)
         .task {
             await loadInitialUnreadBadge()
         }
@@ -99,7 +107,7 @@ struct MainTabView: View {
         }
     }
 
-    // MARK: - Ongoing Call Computed Properties
+    // MARK: - Ongoing / Incoming Call Computed Properties
 
     private var isCallViewPresented: Bool {
         if case .call = router.presentedFullScreen {
@@ -108,8 +116,14 @@ struct MainTabView: View {
         return false
     }
 
-    private var shouldShowOngoingCallBanner: Bool {
-        currentCall != nil && callState.isActive && !isCallViewPresented
+    private var callBannerDisplayState: String {
+        guard let call = currentCall, !isCallViewPresented else { return "none" }
+        if callState == .incomingRinging {
+            return "incoming_\(call.id)"
+        } else if callState.isActive {
+            return "ongoing_\(call.id)_\(callState)"
+        }
+        return "none"
     }
 
     // MARK: - Tab Label
