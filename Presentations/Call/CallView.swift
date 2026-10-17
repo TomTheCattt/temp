@@ -37,9 +37,11 @@ struct CallView: View {
 
                     Spacer()
 
-                    // Center: Caller Info & Status (Audio mode only)
-                    if !viewModel.hasVideo || viewModel.callState != .connected {
+                    // Center: Caller Info & Status (Audio mode only, or Video pre-connect overlay)
+                    if !viewModel.hasVideo {
                         callerInfoSection
+                    } else if viewModel.callState != .connected {
+                        videoPreConnectInfoSection
                     }
 
                     Spacer()
@@ -110,7 +112,7 @@ struct CallView: View {
             Spacer()
 
             // Video Mode: Quick Flip Camera Button in Top Right
-            if viewModel.hasVideo && viewModel.callState == .connected {
+            if viewModel.hasVideo && viewModel.callState.isActive {
                 Button {
                     viewModel.flipCamera()
                 } label: {
@@ -136,10 +138,14 @@ struct CallView: View {
             if viewModel.hasVideo && viewModel.callState == .connected {
                 remoteVideoView(geometry: geometry)
             } else if viewModel.hasVideo && (viewModel.callState == .initiating || viewModel.callState == .ringing || viewModel.callState == .connecting) {
-                // Show local camera stream as background preview during outgoing ringing
-                SampleBufferVideoView(sampleBufferPublisher: viewModel.localSampleBufferPublisher)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
+                // Show local camera stream as full-screen preview during outgoing ringing/connecting
+                if viewModel.isCameraOff {
+                    ambientAudioBackground(geometry: geometry)
+                } else {
+                    SampleBufferVideoView(sampleBufferPublisher: viewModel.localSampleBufferPublisher)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                }
             } else {
                 ambientAudioBackground(geometry: geometry)
             }
@@ -316,7 +322,7 @@ struct CallView: View {
             y: pipOffset.height + pipDragTranslation.height + pipHeight / 2
         )
         .gesture(
-            DragGesture(minimumDistance: 10)
+            DragGesture(minimumDistance: 8)
                 .onChanged { value in
                     pipDragTranslation = value.translation
                 }
@@ -324,11 +330,9 @@ struct CallView: View {
                     snapPipToCorner(translation: value.translation, in: geometry)
                 }
         )
-        .highPriorityGesture(
-            TapGesture().onEnded {
-                viewModel.flipCamera()
-            }
-        )
+        .onTapGesture {
+            viewModel.flipCamera()
+        }
     }
 
     private func initializePipPosition(in geometry: GeometryProxy) {
@@ -345,18 +349,41 @@ struct CallView: View {
         let pipHeight: CGFloat = DS.Size.pipHeight
         let margin: CGFloat = 16
         let topSafe: CGFloat = 110
-        let bottomSafe: CGFloat = geometry.size.height - pipHeight - 160
+        let bottomSafe: CGFloat = max(topSafe, geometry.size.height - pipHeight - 160)
 
-        let currentX = pipOffset.width + translation.width
-        let currentY = pipOffset.height + translation.height
+        let currentCenterX = pipOffset.width + translation.width + pipWidth / 2
+        let currentCenterY = pipOffset.height + translation.height + pipHeight / 2
 
-        let targetX: CGFloat = (currentX + pipWidth / 2 < geometry.size.width / 2) ? margin : (geometry.size.width - pipWidth - margin)
-        let targetY: CGFloat = min(max(currentY, topSafe), bottomSafe)
+        let isLeft = currentCenterX < (geometry.size.width / 2)
+        let isTop = currentCenterY < (geometry.size.height / 2)
+
+        let targetX: CGFloat = isLeft ? margin : (geometry.size.width - pipWidth - margin)
+        let targetY: CGFloat = isTop ? topSafe : bottomSafe
 
         withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             pipOffset = CGSize(width: targetX, height: targetY)
             pipDragTranslation = .zero
         }
+    }
+
+    // MARK: - Video Pre-Connect Info Section
+
+    private var videoPreConnectInfoSection: some View {
+        VStack(spacing: DS.Spacing.xs) {
+            Text(viewModel.remoteName)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(.white)
+                .shadow(color: Color.black.opacity(0.6), radius: 6, x: 0, y: 2)
+
+            statusSubtitle
+                .shadow(color: Color.black.opacity(0.6), radius: 4, x: 0, y: 2)
+        }
+        .padding(.horizontal, DS.Spacing.lg)
+        .padding(.vertical, DS.Spacing.sm)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.35))
+        )
     }
 
     // MARK: - Control Buttons Section

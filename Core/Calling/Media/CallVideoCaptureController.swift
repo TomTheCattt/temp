@@ -30,8 +30,21 @@ final class CallVideoCaptureController: @unchecked Sendable {
     // MARK: - Publishers
 
     /// Emits local camera or simulator CMSampleBuffers for Picture-in-Picture preview.
+    /// Automatically replays the last captured frame to new subscribers (e.g. PiP remounting) to prevent black flicker.
     nonisolated var localSampleBufferPublisher: AnyPublisher<CMSampleBuffer, Never> {
-        localSampleBufferSubject.eraseToAnyPublisher()
+        Deferred { [weak self] () -> AnyPublisher<CMSampleBuffer, Never> in
+            guard let self else {
+                return Empty().eraseToAnyPublisher()
+            }
+            if let last = self.lastSampleBuffer {
+                return self.localSampleBufferSubject
+                    .prepend(last)
+                    .eraseToAnyPublisher()
+            } else {
+                return self.localSampleBufferSubject.eraseToAnyPublisher()
+            }
+        }
+        .eraseToAnyPublisher()
     }
 
     /// Emits remote partner or synthetic loopback CMSampleBuffers for full-screen view.
@@ -41,6 +54,14 @@ final class CallVideoCaptureController: @unchecked Sendable {
 
     private nonisolated let localSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
     private nonisolated let remoteSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
+    private nonisolated(unsafe) var lastSampleBuffer: CMSampleBuffer?
+
+    /// Replays the last captured frame to local subscribers if available.
+    nonisolated func replayLastSampleBuffer() {
+        if let last = lastSampleBuffer {
+            localSampleBufferSubject.send(last)
+        }
+    }
 
     // MARK: - Hardware Capture Properties
 
@@ -88,6 +109,18 @@ final class CallVideoCaptureController: @unchecked Sendable {
         startSyntheticGenerator(isFront: isFront)
         isRunning = true
         #else
+        // Check Camera permission
+        let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        if authStatus != .authorized {
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            if !granted {
+                AppLogger.general.notice("Camera access not granted, falling back to synthetic generator")
+                startSyntheticGenerator(isFront: isFront)
+                isRunning = true
+                return
+            }
+        }
+
         // Check hardware camera availability
         if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: isFront ? .front : .back) {
             do {
@@ -217,6 +250,14 @@ final class CallVideoCaptureController: @unchecked Sendable {
 
     private nonisolated func handleHardwareVideoFrame(_ sampleBuffer: CMSampleBuffer) {
         autoreleasepool {
+            lastSampleBuffer = sampleBuffer
+            localSampleBufferSubject.send(sampleBuffer)
+        }
+    }
+
+    private nonisolated func dispatchSyntheticLocalFrame(_ sampleBuffer: CMSampleBuffer) {
+        autoreleasepool {
+            lastSampleBuffer = sampleBuffer
             localSampleBufferSubject.send(sampleBuffer)
         }
     }
@@ -228,11 +269,10 @@ final class CallVideoCaptureController: @unchecked Sendable {
         syntheticGenerator.updateCameraFacing(isFront: isFront)
         syntheticLoopTask?.cancel()
 
-        let localSubject = self.localSampleBufferSubject
         let remoteSubject = self.remoteSampleBufferSubject
         let generator = self.syntheticGenerator
 
-        syntheticLoopTask = Task.detached(priority: .userInitiated) {
+        syntheticLoopTask = Task.detached(priority: .userInitiated) { [weak self] in
             let clock = ContinuousClock()
             var nextTick = clock.now
             let frameInterval = Duration.milliseconds(33) // 30 FPS
@@ -240,7 +280,9 @@ final class CallVideoCaptureController: @unchecked Sendable {
             while !Task.isCancelled {
                 autoreleasepool {
                     generator.renderAndDispatchSyntheticFrames(
-                        localSubject: localSubject,
+                        onLocalFrame: { [weak self] sample in
+                            self?.dispatchSyntheticLocalFrame(sample)
+                        },
                         remoteSubject: remoteSubject
                     )
                 }
@@ -321,7 +363,7 @@ private final class SyntheticFrameGenerator: @unchecked Sendable {
     }
 
     nonisolated func renderAndDispatchSyntheticFrames(
-        localSubject: PassthroughSubject<CMSampleBuffer, Never>,
+        onLocalFrame: (CMSampleBuffer) -> Void,
         remoteSubject: PassthroughSubject<CMSampleBuffer, Never>
     ) {
         guard let pool = pixelBufferPool else { return }
@@ -338,7 +380,7 @@ private final class SyntheticFrameGenerator: @unchecked Sendable {
             isFront: isFront,
             frameIndex: currentFrame
         ) {
-            localSubject.send(localSample)
+            onLocalFrame(localSample)
         }
 
         if let remoteSample = generateCanvasSampleBuffer(

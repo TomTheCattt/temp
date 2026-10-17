@@ -65,6 +65,15 @@ protocol CallMediaPipelineProtocol: AnyObject, Sendable {
 
     /// Stops incoming call ringtone chime.
     func stopIncomingRingtone()
+
+    /// Replays the last captured frame to local subscribers if available.
+    func replayLastSampleBuffer()
+}
+
+// MARK: - Default Protocol Extensions
+
+extension CallMediaPipelineProtocol {
+    func replayLastSampleBuffer() {}
 }
 
 // MARK: - Default Protocol Extensions
@@ -147,6 +156,10 @@ final class DefaultCallMediaPipeline: CallMediaPipelineProtocol, @unchecked Send
 
     func switchCamera(isFront: Bool) async {
         await videoController.switchCamera(isFront: isFront)
+    }
+
+    func replayLastSampleBuffer() {
+        videoController.replayLastSampleBuffer()
     }
 
     // MARK: - Publishers

@@ -8,11 +8,13 @@
 import SwiftUI
 import AVFoundation
 import CoreMedia
+import CoreImage
 import Combine
 
 // MARK: - SampleBufferContainerView
 
-/// High-performance UIView hosting an AVSampleBufferDisplayLayer directly on GPU.
+/// High-performance Hybrid GPU video view hosting an AVSampleBufferDisplayLayer on hardware
+/// and falling back seamlessly to direct CGImage GPU rendering on Simulator or if decoding fails.
 final class SampleBufferContainerView: UIView {
 
     override class var layerClass: AnyClass {
@@ -22,6 +24,13 @@ final class SampleBufferContainerView: UIView {
     var sampleBufferLayer: AVSampleBufferDisplayLayer {
         layer as! AVSampleBufferDisplayLayer
     }
+
+    private let imageLayer: CALayer = {
+        let layer = CALayer()
+        layer.masksToBounds = true
+        layer.contentsGravity = .resizeAspectFill
+        return layer
+    }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -35,12 +44,36 @@ final class SampleBufferContainerView: UIView {
 
     private func setupLayer() {
         backgroundColor = .black
+        layer.masksToBounds = true
         sampleBufferLayer.videoGravity = .resizeAspectFill
         sampleBufferLayer.preventsDisplaySleepDuringVideoPlayback = true
+        imageLayer.frame = bounds
+        layer.addSublayer(imageLayer)
     }
 
-    /// Safely enqueues a new video CMSampleBuffer to hardware display layer.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        imageLayer.frame = bounds
+        CATransaction.commit()
+    }
+
+    /// Updates videoGravity for both hardware display layer and fallback image layer.
+    func updateGravity(_ videoGravity: AVLayerVideoGravity) {
+        if sampleBufferLayer.videoGravity != videoGravity {
+            sampleBufferLayer.videoGravity = videoGravity
+        }
+        let gravity: CALayerContentsGravity = (videoGravity == .resizeAspect) ? .resizeAspect : (videoGravity == .resize ? .resize : .resizeAspectFill)
+        layer.contentsGravity = gravity
+        imageLayer.contentsGravity = gravity
+    }
+
+    /// Safely enqueues a new video CMSampleBuffer using Hybrid GPU rendering.
     func enqueue(_ sampleBuffer: CMSampleBuffer) {
+        #if targetEnvironment(simulator)
+        renderViaCGImage(sampleBuffer)
+        #else
         if let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: true) {
             let dict = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
             CFDictionarySetValue(
@@ -54,27 +87,54 @@ final class SampleBufferContainerView: UIView {
             let renderer = sampleBufferLayer.sampleBufferRenderer
             if renderer.status == .failed {
                 renderer.flush()
-            }
-            if renderer.isReadyForMoreMediaData {
+                renderViaCGImage(sampleBuffer)
+            } else if renderer.isReadyForMoreMediaData {
                 renderer.enqueue(sampleBuffer)
+            } else {
+                renderViaCGImage(sampleBuffer)
             }
         } else {
             if sampleBufferLayer.status == .failed {
                 sampleBufferLayer.flush()
-            }
-            if sampleBufferLayer.isReadyForMoreMediaData {
+                renderViaCGImage(sampleBuffer)
+            } else if sampleBufferLayer.isReadyForMoreMediaData {
                 sampleBufferLayer.enqueue(sampleBuffer)
+            } else {
+                renderViaCGImage(sampleBuffer)
             }
+        }
+        #endif
+    }
+
+    /// Fallback GPU direct rendering: converts CVPixelBuffer into CGImage via CIContext and assigns directly to layer.contents.
+    private func renderViaCGImage(_ sampleBuffer: CMSampleBuffer) {
+        autoreleasepool {
+            guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+            guard let cgImage = FilterEngine.shared.ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            layer.contents = cgImage
+            imageLayer.contents = cgImage
+            CATransaction.commit()
         }
     }
 
     /// Clears any queued image frames immediately.
     func flush() {
+        #if !targetEnvironment(simulator)
         if #available(iOS 17.0, *) {
             sampleBufferLayer.sampleBufferRenderer.flush()
         } else {
             sampleBufferLayer.flushAndRemoveImage()
         }
+        #endif
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.contents = nil
+        imageLayer.contents = nil
+        CATransaction.commit()
     }
 }
 
@@ -108,15 +168,13 @@ struct SampleBufferVideoView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SampleBufferContainerView {
         let view = SampleBufferContainerView()
-        view.sampleBufferLayer.videoGravity = videoGravity
+        view.updateGravity(videoGravity)
         context.coordinator.subscribe(to: publisher, view: view)
         return view
     }
 
     func updateUIView(_ uiView: SampleBufferContainerView, context: Context) {
-        if uiView.sampleBufferLayer.videoGravity != videoGravity {
-            uiView.sampleBufferLayer.videoGravity = videoGravity
-        }
+        uiView.updateGravity(videoGravity)
     }
 
     static func dismantleUIView(_ uiView: SampleBufferContainerView, coordinator: Coordinator) {

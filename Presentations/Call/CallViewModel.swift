@@ -92,6 +92,11 @@ final class CallViewModel {
         let service = callService ?? CallService.shared
         self.callService = service
         self.callState = service.currentCallState
+        if let call = service.currentCall {
+            self.isMuted = call.isMuted
+            self.isSpeakerOn = call.isSpeakerOn
+            self.hasVideo = call.hasVideo
+        }
 
         let mediaPipeline = pipeline ?? DefaultCallMediaPipeline.shared
         self.pipeline = mediaPipeline
@@ -103,15 +108,9 @@ final class CallViewModel {
 
     deinit {
         taskCoordinator.cancelAll()
-        let localPipeline = pipeline
-        let localCallService = callService
         Task { @MainActor in
             UIDevice.current.isProximityMonitoringEnabled = false
             UIApplication.shared.isIdleTimerDisabled = false
-            if !localCallService.currentCallState.isActive {
-                localPipeline.stopVideo()
-                localPipeline.stopAudio()
-            }
         }
     }
 
@@ -227,12 +226,13 @@ final class CallViewModel {
     func dismissCall() {
         UIDevice.current.isProximityMonitoringEnabled = false
         UIApplication.shared.isIdleTimerDisabled = false
-        if !callState.isActive {
-            pipeline.stopVideo()
-            pipeline.stopAudio()
-        }
         shouldDismiss = true
         AppRouter.shared.dismiss()
+    }
+
+    /// Replays the last sample buffer to refresh local PiP if needed.
+    func replayLastSampleBuffer() {
+        pipeline.replayLastSampleBuffer()
     }
 
     // MARK: - Private: Subscriptions
@@ -256,6 +256,9 @@ final class CallViewModel {
                 if let call {
                     self.isMuted = call.isMuted
                     self.isSpeakerOn = call.isSpeakerOn
+                    if call.hasVideo != self.hasVideo {
+                        self.hasVideo = call.hasVideo
+                    }
                 }
             }
             .store(in: &cancellables)
