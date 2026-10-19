@@ -24,11 +24,12 @@ Module hiển thị danh sách tất cả conversations (hội thoại) của us
 - **Instagram Notes Carousel**: Thanh ngang danh sách "Ghi chú" (Notes) 24h trên cùng với bubble suy nghĩ (tối đa 60 ký tự), hỗ trợ thêm/sửa ghi chú của bản thân và xem ghi chú của bạn bè.
 - **Search Bar Capsule**: Ô tìm kiếm bo tròn tìm nhanh bạn bè và hội thoại với hiệu ứng clear text và animation mượt mà.
 - **Danh sách hội thoại (Conversations List)**:
-  - Avatar đối phương kèm chấm xanh Online Activity Status.
-  - Username in đậm kèm huy hiệu xác minh (Verified badge).
-  - Tin nhắn cuối (Last message preview) phân loại theo text, media, chia sẻ post/story/reel, hoặc ❤️.
+  - Avatar đối phương hoặc Avatar nhóm (Group Avatar) chuẩn 1:1 Instagram.
+  - Username hoặc Tên nhóm (Group Name) in đậm kèm huy hiệu xác minh (Verified badge).
+  - Tin nhắn cuối (Last message preview) phân loại theo text, media, chia sẻ post/story/reel, hoặc ❤️. Tự động hiển thị tên người gửi đối với nhóm chat (`username: ...`) và `Bạn: ...` đối với tin nhắn của bản thân.
   - Trạng thái tin nhắn ("Đã gửi", "Đã xem", hoặc thời gian nhận).
   - Quick Camera action button nằm ở đuôi mỗi hàng để mở camera chụp gửi nhanh.
+  - **Single Source of Truth**: Đồng bộ 100% với chi tiết phòng chat qua `MockData.conversations` và `MockData.seededMessages`. Trạng thái chưa đọc `unreadCount > 0` chỉ xuất hiện khi đối phương là người gửi tin cuối cùng với trạng thái `.delivered`.
 - **Long-Press Context Menu**:
   - Tắt thông báo (`bell.slash` / `bell`).
   - Đánh dấu chưa đọc / đã đọc (`envelope.badge` / `envelope.open`).

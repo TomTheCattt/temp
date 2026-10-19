@@ -17,72 +17,12 @@ actor MockMessageDataSource {
     private var inMemoryNotes: [InstagramNote] = []
 
     init() {
-        let conversations = MockData.conversations
-        self.inMemoryConversations = conversations
-
-        // Seed inMemoryMessages for all conversations so that conversation.lastMessage
-        // is guaranteed to be the newest message (index 0) in the conversation's history.
-        var seededMessages: [String: [Message]] = [:]
-        for conv in conversations {
-            let partner = conv.participants.first { $0.id != MockData.currentUser.id } ?? MockData.users.first ?? MockData.currentUser
-            var list: [Message] = []
-
-            if let last = conv.lastMessage {
-                list.append(last)
-                let baseDate = last.createdAt
-
-                // Generate preceding contextual dialogue in reverse chronological order
-                let count = 12
-                for i in 1...count {
-                    let sender = (i % 2 == 1) ? partner : MockData.currentUser
-                    let text = Self.precedingDialogue[(i - 1) % Self.precedingDialogue.count]
-                    let msgDate = baseDate.addingTimeInterval(-Double(i) * Self.messageTimeSpacing)
-                    list.append(
-                        Message(
-                            id: "msg_\(conv.id)_hist_\(i)",
-                            conversationId: conv.id,
-                            sender: sender,
-                            content: .text(text),
-                            status: .read,
-                            replyToId: nil,
-                            createdAt: msgDate
-                        )
-                    )
-                }
-            }
-            seededMessages[conv.id] = list
-        }
-        self.inMemoryMessages = seededMessages
-
-        // Initialize notes
-        let currentUserNote = InstagramNote(
-            id: "note_current",
-            user: MockData.currentUser,
-            text: "Đang code Instagram 💻",
-            createdAt: .now,
-            isCurrentUser: true
-        )
-        let friendNotes = MockData.users.prefix(6).enumerated().map { index, user in
-            let notesPool = [
-                "Coffee vibes ☕️",
-                "Cháy deadline 🔥",
-                "Chill cuối tuần 🎶",
-                "On the way ✈️",
-                "Gym time 💪",
-                "Working remotely 🌴"
-            ]
-            return InstagramNote(
-                id: "note_\(user.id)",
-                user: user,
-                text: notesPool[index % notesPool.count],
-                createdAt: Date(timeIntervalSinceNow: -Double(index * 3600)),
-                isCurrentUser: false
-            )
-        }
-        self.inMemoryNotes = [currentUserNote] + friendNotes
+        self.inMemoryConversations = MockData.conversations
+        self.inMemoryMessages = MockData.seededMessages
+        self.inMemoryNotes = MockData.seededNotes
 
         // Initial total unread count calculation
-        let initialTotal = conversations.filter { $0.unreadCount != 0 }.count
+        let initialTotal = inMemoryConversations.filter { $0.unreadCount != 0 }.count
         Task { @MainActor in
             AppState.shared.setUnreadChatCount(initialTotal)
         }
@@ -154,23 +94,13 @@ actor MockMessageDataSource {
             }()
 
             let oldestDate = currentMessages.last?.createdAt ?? Date()
-            var olderBatch: [Message] = []
-            for i in 1...perPage {
-                let sender = (i % 2 == 1) ? partner : MockData.currentUser
-                let text = Self.precedingDialogue[(currentMessages.count + i) % Self.precedingDialogue.count]
-                let date = oldestDate.addingTimeInterval(-Double(i) * Self.messageTimeSpacing)
-                olderBatch.append(
-                    Message(
-                        id: "msg_\(conversationId)_p\(page)_\(i)",
-                        conversationId: conversationId,
-                        sender: sender,
-                        content: .text(text),
-                        status: .read,
-                        replyToId: nil,
-                        createdAt: date
-                    )
-                )
-            }
+            let olderBatch = MockData.generateOlderMessages(
+                conversationId: conversationId,
+                page: page,
+                perPage: perPage,
+                oldestDate: oldestDate,
+                partner: partner
+            )
             currentMessages.append(contentsOf: olderBatch)
             inMemoryMessages[conversationId] = currentMessages
         }
@@ -562,22 +492,6 @@ actor MockMessageDataSource {
 
     private static let maxMockPages = 3
     private static let messagesPerMockPage = 15
-    private static let messageTimeSpacing: Double = 180
-
-    private static let precedingDialogue = [
-        "Hey! How is everything going? 👋",
-        "Pretty good! Just wrapping up some tasks.",
-        "Did you get a chance to check out the latest design?",
-        "Yes, the UI components and color palette look amazing! 🎨",
-        "Awesome! Let me know if you need any adjustments.",
-        "Will do. Are we still meeting for lunch later? 🍜",
-        "Definitely, let's meet around 12:30 at the lobby.",
-        "Sounds like a plan! See you soon. 👍",
-        "By the way, did you see the new feature demo?",
-        "Not yet, send me the link when you can!",
-        "Sent! Let me know your thoughts after reviewing.",
-        "Got it, looking at it right now. Looks super clean! ✨"
-    ]
 
     private func simulateDelay(seconds: Double = 0.5) async throws {
         try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))

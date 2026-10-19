@@ -539,42 +539,454 @@ nonisolated enum MockData {
         )
     }
 
-    // MARK: - Conversations (35 Conversations for Multi-Page DM Paging)
+    // MARK: - Conversations & Seeded Messages (35 Conversations for Multi-Page DM Paging)
 
-    static let conversations: [Conversation] = users.prefix(35).enumerated().map { index, user in
-        let messageContent: MessageContent = {
-            switch index % 4 {
-            case 0:
-                return .text(mockMessageTexts[index % mockMessageTexts.count])
-            case 1:
-                return .image(URL(string: "https://picsum.photos/seed/chat_\(index)/600/800")!)
-            case 2:
-                return .audio(URL(string: "https://example.com/audio_\(index).m4a")!, duration: 4.2)
-            default:
-                return .like
-            }
-        }()
-
-        return Conversation(
-            id: "conv_\(index)",
-            participants: [currentUser, user],
-            lastMessage: Message(
-                id: "msg_last_\(index)",
-                conversationId: "conv_\(index)",
-                sender: index % 2 == 0 ? user : currentUser,
-                content: messageContent,
-                status: .read,
-                replyToId: nil,
-                createdAt: Date(timeIntervalSinceNow: -Double(index) * 3600)
-            ),
-            unreadCount: index < 4 ? Int.random(in: 1...4) : 0,
-            isGroup: false,
-            groupName: nil,
-            groupAvatarURL: nil,
-            updatedAt: Date(timeIntervalSinceNow: -Double(index) * 3600),
-            isMuted: index == 4 || index == 18
-        )
+    private struct SeedConversationData {
+        let conversation: Conversation
+        let history: [Message] // Stored in newest-first order (history[0] == conversation.lastMessage)
     }
+
+    private struct DialogueStep {
+        let isFromCurrentUser: Bool
+        let senderUser: User?
+        let content: MessageContent
+        let replySnippet: String?
+        let reactions: [String: String]
+
+        init(
+            isMe: Bool,
+            sender: User? = nil,
+            content: MessageContent,
+            reply: String? = nil,
+            reactions: [String: String] = [:]
+        ) {
+            self.isFromCurrentUser = isMe
+            self.senderUser = sender
+            self.content = content
+            self.replySnippet = reply
+            self.reactions = reactions
+        }
+    }
+
+    private static func buildConversationData(
+        id: String,
+        participants: [User],
+        steps: [DialogueStep],
+        baseDate: Date,
+        unreadCount: Int,
+        isGroup: Bool = false,
+        groupName: String? = nil,
+        groupAvatarURL: URL? = nil,
+        isMuted: Bool = false,
+        stepSpacing: TimeInterval = 180
+    ) -> SeedConversationData {
+        guard !steps.isEmpty else {
+            fatalError("Steps cannot be empty for conversation \(id)")
+        }
+
+        let total = steps.count
+        var history: [Message] = []
+
+        // In steps array: index 0 is oldest (opener), index total - 1 is newest (lastMessage).
+        for (idx, step) in steps.enumerated() {
+            let offset = Double(total - 1 - idx) * stepSpacing
+            let msgDate = baseDate.addingTimeInterval(-offset)
+            let isLast = (idx == total - 1)
+
+            let sender: User = {
+                if let s = step.senderUser { return s }
+                if step.isFromCurrentUser { return currentUser }
+                return participants.first { $0.id != currentUser.id } ?? participants.first ?? currentUser
+            }()
+
+            let status: MessageStatus = {
+                if isLast && unreadCount > 0 && sender.id != currentUser.id {
+                    return .delivered
+                }
+                return .read
+            }()
+
+            let msg = Message(
+                id: "msg_\(id)_\(idx)",
+                conversationId: id,
+                sender: sender,
+                content: step.content,
+                status: status,
+                replyToId: nil,
+                replyToSnippet: step.replySnippet,
+                reactions: step.reactions,
+                createdAt: msgDate
+            )
+            history.append(msg)
+        }
+
+        // Reverse history so index 0 is the newest message (lastMessage)
+        let reversedHistory = Array(history.reversed())
+        let lastMessage = reversedHistory.first
+
+        let conv = Conversation(
+            id: id,
+            participants: participants,
+            lastMessage: lastMessage,
+            unreadCount: unreadCount,
+            isGroup: isGroup,
+            groupName: groupName,
+            groupAvatarURL: groupAvatarURL,
+            updatedAt: lastMessage?.createdAt ?? baseDate,
+            isMuted: isMuted
+        )
+
+        return SeedConversationData(conversation: conv, history: reversedHistory)
+    }
+
+    private static let seedData: [SeedConversationData] = buildSeedConversations()
+
+    /// All 35 pre-seeded conversations matching parent inbox and detail chat 1:1.
+    static let conversations: [Conversation] = seedData.map(\.conversation)
+
+    /// Pre-seeded messages for all conversations, guaranteed newest-first with matching lastMessage.
+    static let seededMessages: [String: [Message]] = Dictionary(
+        uniqueKeysWithValues: seedData.map { ($0.conversation.id, $0.history) }
+    )
+
+    /// Centralized Instagram Notes pool.
+    static let seededNotes: [InstagramNote] = {
+        let currentUserNote = InstagramNote(
+            id: "note_current",
+            user: currentUser,
+            text: "Đang code Instagram 💻",
+            createdAt: .now,
+            isCurrentUser: true
+        )
+        let notesPool = [
+            "Coffee vibes ☕️",
+            "Cháy deadline 🔥",
+            "Chill cuối tuần 🎶",
+            "On the way ✈️",
+            "Gym time 💪",
+            "Working remotely 🌴"
+        ]
+        let friendNotes = users.prefix(6).enumerated().map { index, user in
+            InstagramNote(
+                id: "note_\(user.id)",
+                user: user,
+                text: notesPool[index % notesPool.count],
+                createdAt: Date(timeIntervalSinceNow: -Double(index * 3600)),
+                isCurrentUser: false
+            )
+        }
+        return [currentUserNote] + friendNotes
+    }()
+
+    private static let olderHistoryTemplates = [
+        "Cậu có tài liệu dự án tuần trước gửi lại giúp mình nhé?",
+        "Đây là link Google Drive tổng hợp toàn bộ files nè.",
+        "Cảm ơn cậu nhiều! Để tối nay mình xem qua.",
+        "Có điểm nào cần chỉnh sửa cứ nhắn mình nha.",
+        "Mọi thứ nhìn chỉn chu lắm, xuất sắc!",
+        "Thứ Hai tuần tới mình vẫn họp review thiết kế đúng không?",
+        "Đúng rồi, 10h sáng ở phòng họp tầng 3 nhé.",
+        "Đã note vào lịch rồi. Hẹn gặp cậu đầu tuần!",
+        "Chúc cậu cuối tuần vui vẻ nhé! 🌟",
+        "Cảm ơn cậu, cuối tuần nhiều năng lượng nha! ✨"
+    ]
+
+    /// Generates authentic preceding messages when user scrolls up to load more pages.
+    static func generateOlderMessages(
+        conversationId: String,
+        page: Int,
+        perPage: Int,
+        oldestDate: Date,
+        partner: User
+    ) -> [Message] {
+        var olderBatch: [Message] = []
+        let spacing: Double = 300 // 5 minutes apart
+        for i in 1...perPage {
+            let sender = (i % 2 == 1) ? partner : currentUser
+            let text = olderHistoryTemplates[((page - 1) * perPage + i) % olderHistoryTemplates.count]
+            let date = oldestDate.addingTimeInterval(-Double(i) * spacing)
+            olderBatch.append(
+                Message(
+                    id: "msg_\(conversationId)_p\(page)_\(i)",
+                    conversationId: conversationId,
+                    sender: sender,
+                    content: .text(text),
+                    status: .read,
+                    replyToId: nil,
+                    createdAt: date
+                )
+            )
+        }
+        return olderBatch
+    }
+
+    private static func buildSeedConversations() -> [SeedConversationData] {
+        var list: [SeedConversationData] = []
+
+        // 1. conv_0: Jane Doe (Photography & Lightroom presets)
+        let jane = users[0]
+        list.append(
+            buildConversationData(
+                id: "conv_0",
+                participants: [currentUser, jane],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Chào Tom! Bộ ảnh chụp hoàng hôn sông Sài Gòn hôm trước màu lên đẹp quá 📸")),
+                    DialogueStep(isMe: true, content: .text("Cảm ơn Jane nha! Mình chụp bằng lens 35mm f/1.4 lúc 5h chiều ấy.")),
+                    DialogueStep(isMe: false, content: .text("Màu trong trẻo thật sự. Cậu có dùng filter CPL không?")),
+                    DialogueStep(isMe: true, content: .text("Có chứ, mình dùng filter CPL để giảm phản xạ mặt nước ✨")),
+                    DialogueStep(isMe: false, content: .text("Chuẩn bài luôn! Chiều nay mình vừa đi săn góc mới ở Thủ Thiêm nè.")),
+                    DialogueStep(isMe: false, content: .image(URL(string: "https://picsum.photos/seed/sunset_jane/600/800")!)),
+                    DialogueStep(isMe: true, content: .text("Góc này đỉnh quá! Tone màu pastel nhìn êm mắt thật sự 😍"), reply: "Hình ảnh"),
+                    DialogueStep(isMe: false, content: .text("Mai rảnh không, cà phê góc Nhà hát Thành phố rồi trao đổi preset Lightroom nhé? ☕️"), reactions: ["user_current": "❤️"]),
+                    DialogueStep(isMe: true, content: .text("Mai 9h sáng quán Okkio Tự Do nhé! Hẹn gặp cậu.")),
+                    DialogueStep(isMe: false, content: .like, reactions: ["user_current": "❤️"]),
+                    DialogueStep(isMe: false, content: .text("Hẹn gặp mai nhé! See you tomorrow 👋"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -15 * 60),
+                unreadCount: 0
+            )
+        )
+
+        // 2. conv_1: John Smith (Food & Travel - Unread: 2)
+        let john = users[1]
+        list.append(
+            buildConversationData(
+                id: "conv_1",
+                participants: [currentUser, john],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Hey Tom! Are you still working around District 1 today?")),
+                    DialogueStep(isMe: true, content: .text("Hey John! Yes, I'm at the workspace near Ben Thanh market.")),
+                    DialogueStep(isMe: false, content: .text("Awesome! I just discovered this incredible specialty coffee spot nearby.")),
+                    DialogueStep(isMe: false, content: .post(postId: "post_1"), reactions: ["user_current": "🔥"]),
+                    DialogueStep(isMe: true, content: .text("That espresso bar looks insane! Have you tried their Ethiopian pour-over?")),
+                    DialogueStep(isMe: false, content: .audio(URL(string: "https://example.com/audio_john.m4a")!, duration: 4.2)),
+                    DialogueStep(isMe: true, content: .text("Sounds super delicious! Let's definitely grab a cup after work.")),
+                    DialogueStep(isMe: false, content: .text("Great! What time do you wrap up your sprint today?")),
+                    DialogueStep(isMe: false, content: .text("Let's meet at 5:30 PM if you're free! ☕️"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -35 * 60),
+                unreadCount: 2
+            )
+        )
+
+        // 3. conv_2: Sara Design (Design System & Motion Gesture)
+        let sara = users[2]
+        list.append(
+            buildConversationData(
+                id: "conv_2",
+                participants: [currentUser, sara],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Hi Tom! Mình vừa push bộ Design System Tokens mới lên Figma nè ✨")),
+                    DialogueStep(isMe: true, content: .text("Tuyệt vời Sara ơi! Để mình kéo file về mapping qua Struct Tokens trong Swift.")),
+                    DialogueStep(isMe: false, content: .text("Cậu kiểm tra xem spacing 4pt/8pt và màu Semantic Dark Mode đã chuẩn chưa nhé.")),
+                    DialogueStep(isMe: true, content: .text("Khớp 100% rồi! Bản cập nhật mới mượt mà lắm, test trên ProMotion 120Hz nhìn thích mắt cực.")),
+                    DialogueStep(isMe: false, content: .reel(reelId: "reel_1"), reactions: ["user_current": "👏"]),
+                    DialogueStep(isMe: false, content: .text("Hiệu ứng interactive gesture mới làm mẫu nè, cậu thấy thế nào?"), reply: "Instagram Reel"),
+                    DialogueStep(isMe: true, content: .text("Animations spring damping 0.7 chuẩn IG gốc luôn! Team engineering sẽ implement ngay chiều nay 🚀")),
+                    DialogueStep(isMe: true, content: .like)
+                ],
+                baseDate: Date(timeIntervalSinceNow: -75 * 60),
+                unreadCount: 0
+            )
+        )
+
+        // 4. conv_3: Mike Developer (Swift Concurrency & PR review - Unread: 1)
+        let mike = users[3]
+        list.append(
+            buildConversationData(
+                id: "conv_3",
+                participants: [currentUser, mike],
+                steps: [
+                    DialogueStep(isMe: true, content: .text("Mike ơi, cái crash memory spike khi render video 60 FPS đã fix triệt để chưa?")),
+                    DialogueStep(isMe: false, content: .text("Đã fix xong rồi Tom! Mình bọc @autoreleasepool và tái sử dụng CVPixelBufferPool.")),
+                    DialogueStep(isMe: true, content: .text("Tuyệt vời, RAM giảm được bao nhiêu % vậy cậu?")),
+                    DialogueStep(isMe: false, content: .text("Từ hơn 380MB tụt xuống đều đặn dưới 65MB, 60 FPS mượt mà không rớt frame nào.")),
+                    DialogueStep(isMe: true, content: .text("Đỉnh chóp! PR đã merge vào nhánh main chưa?")),
+                    DialogueStep(isMe: false, content: .text("Mình vừa mở PR #142 nè, cậu review và approve giúp mình nhé! 🚀"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -2 * 3600),
+                unreadCount: 1
+            )
+        )
+
+        // 5. conv_4: Group Chat Mobile Saigon Devs 🚀
+        list.append(
+            buildConversationData(
+                id: "conv_4",
+                participants: [currentUser, jane, mike, john],
+                steps: [
+                    DialogueStep(isMe: false, sender: jane, content: .text("Hello cả team Mobile! Chiều nay ai rảnh đi meetup iOS không?")),
+                    DialogueStep(isMe: false, sender: mike, content: .text("Meetup ở đâu thế Jane? Mấy giờ bắt đầu?")),
+                    DialogueStep(isMe: false, sender: jane, content: .text("Ở Innovation Hub Q3, chủ đề Swift 6 Strict Concurrency lúc 6h30 tối.")),
+                    DialogueStep(isMe: false, sender: john, content: .text("Nghe hấp dẫn đó, lát mình xong việc ở cty sẽ chạy qua luôn.")),
+                    DialogueStep(isMe: true, content: .text("Mình cũng đăng ký vé rồi, lát gặp mọi người ở đó nhé! 🍻"), reactions: ["user_1": "❤️", "user_4": "🔥"]),
+                    DialogueStep(isMe: false, sender: mike, content: .text("Chốt kèo nha cả nhà! 👍"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -3.5 * 3600),
+                unreadCount: 0,
+                isGroup: true,
+                groupName: "Mobile Saigon Devs 🚀",
+                groupAvatarURL: URL(string: "https://picsum.photos/seed/groupsaigon/400/400"),
+                isMuted: true
+            )
+        )
+
+        // 6. conv_5: Lisa Art (Digital Artist)
+        let lisa = users[4]
+        list.append(
+            buildConversationData(
+                id: "conv_5",
+                participants: [currentUser, lisa],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Tom ơi, tranh minh họa phong cảnh Sài Gòn mình vừa vẽ xong đây nè 🎨")),
+                    DialogueStep(isMe: false, content: .image(URL(string: "https://picsum.photos/seed/lisa_art/600/800")!)),
+                    DialogueStep(isMe: true, content: .text("Đẹp xuất sắc luôn Lisa! Nét vẽ ánh sáng phản chiếu mặt đường nhìn có hồn quá."), reactions: ["user_5": "🥰"]),
+                    DialogueStep(isMe: false, content: .text("Cảm ơn Tom nhiều nha! Mình vẽ trên iPad Pro bằng Procreate mất gần 8 tiếng đó.")),
+                    DialogueStep(isMe: true, content: .audio(URL(string: "https://example.com/audio_lisa.m4a")!, duration: 3.5)),
+                    DialogueStep(isMe: false, content: .like)
+                ],
+                baseDate: Date(timeIntervalSinceNow: -5 * 3600),
+                unreadCount: 0
+            )
+        )
+
+        // 7. conv_6: Lê Hoàng An (Kiến trúc & Nội thất)
+        let an = users[5]
+        list.append(
+            buildConversationData(
+                id: "conv_6",
+                participants: [currentUser, an],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Chào Tom! Bản concept thiết kế văn phòng mới theo phong cách Industrial hoàn thiện rồi nè.")),
+                    DialogueStep(isMe: false, content: .image(URL(string: "https://picsum.photos/seed/interior_an/600/800")!)),
+                    DialogueStep(isMe: true, content: .text("Không gian thoáng và nhiều ánh sáng tự nhiên quá An ơi! Tone xi măng với gỗ nhìn hiện đại.")),
+                    DialogueStep(isMe: false, content: .text("Bản render 3D chi tiết mình gửi qua email cậu rồi nhé! 🏛️"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -7 * 3600),
+                unreadCount: 0
+            )
+        )
+
+        // 8. conv_7: Trần Minh Trí (Tech Reviewer - Unread: 1)
+        let tri = users[6]
+        list.append(
+            buildConversationData(
+                id: "conv_7",
+                participants: [currentUser, tri],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Hôm nay mình vừa unbox chiếc máy ảnh Fujifilm X-T5, màu phim classic chrome chụp mê thật.")),
+                    DialogueStep(isMe: true, content: .text("X-T5 chụp đường phố thì hết nước chấm rồi Trí. Cậu ghép với lens 27mm f/2.8 pancake à?")),
+                    DialogueStep(isMe: false, content: .text("Chuẩn luôn! Nhỏ gọn đút túi áo khoác đi dạo tiện cực kỳ.")),
+                    DialogueStep(isMe: false, content: .text("Cậu lên iOS 18.1 chưa, pin dùng ổn không?"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -10 * 3600),
+                unreadCount: 1
+            )
+        )
+
+        // 9. conv_8: Nguyễn Lan Hương (Fashion)
+        let huong = users[7]
+        list.append(
+            buildConversationData(
+                id: "conv_8",
+                participants: [currentUser, huong],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Tom ơi, bộ sưu tập áo dài mùa thu Hà Nội của bên mình vừa lên kệ nè 👗")),
+                    DialogueStep(isMe: false, content: .story(storyId: "story_1")),
+                    DialogueStep(isMe: true, content: .text("Chất liệu lụa tơ tằm nhìn sang trọng và tinh tế quá Hương ơi!")),
+                    DialogueStep(isMe: true, content: .text("Chúc buổi shooting chiều nay thành công rực rỡ nhé! ✨"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -14 * 3600),
+                unreadCount: 0
+            )
+        )
+
+        // 10. conv_9: Alex Walker (Outdoor & Trekking)
+        let alex = users[8]
+        list.append(
+            buildConversationData(
+                id: "conv_9",
+                participants: [currentUser, alex],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Hey Tom! Are you ready for the Bidoup mountain trek next month?")),
+                    DialogueStep(isMe: true, content: .text("Excited for it! I just got my new trekking boots and 50L backpack.")),
+                    DialogueStep(isMe: false, content: .text("Awesome! The weather forecast looks crisp and clear up on the ridge.")),
+                    DialogueStep(isMe: false, content: .text("Cuối tuần sau lên đường nha! 🏔️"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -20 * 3600),
+                unreadCount: 0
+            )
+        )
+
+        // 11. conv_10: Emma Cook (Plant-based & Sourdough)
+        let emma = users[9]
+        list.append(
+            buildConversationData(
+                id: "conv_10",
+                participants: [currentUser, emma],
+                steps: [
+                    DialogueStep(isMe: false, content: .text("Hi Tom! Mình vừa ra lò mẻ bánh mì sourdough men tự nhiên 72 giờ nè.")),
+                    DialogueStep(isMe: false, content: .image(URL(string: "https://picsum.photos/seed/sourdough_emma/600/800")!)),
+                    DialogueStep(isMe: true, content: .text("Vỏ bánh giòn rụm lỗ khí đẹp mê ly luôn Emma! Mùi bơ thơm phức.")),
+                    DialogueStep(isMe: false, content: .text("Bánh nở đẹp lắm, lát mình gửi cậu thử! 🥐"))
+                ],
+                baseDate: Date(timeIntervalSinceNow: -26 * 3600),
+                unreadCount: 0
+            )
+        )
+
+        // 12 -> 35: Users 10 to 33 (Tailored rich topics, strict chronological order)
+        let additionalTopics = [
+            ("Quốc Bảo", "Mobile Engineer", "Bản cập nhật Swift Package Manager trên Xcode 16 tối ưu thời gian build đáng kể.", "Mình cũng thấy clean build giảm được gần 35% thời gian luôn! 🚀", false),
+            ("Thủy Tiên", "Ceramics Artist", "Bộ sưu tập ly gốm mộc vuốt tay mẻ mới men tro củi nung xong rồi nè.", "Màu men mộc mạc và vân rạn tự nhiên nhìn nghệ thuật lắm Tiên ơi! 🏺", false),
+            ("David Chen", "Music Producer", "Track Lo-fi beat mới mix xong với sample tiếng mưa Sài Gòn nè.", "Giai điệu chill và bass ấm áp nghe vào buổi tối thư thái cực kỳ 🎧", false),
+            ("Mai Anh", "Book Reviewer", "Cuốn sách về tâm lý học hành vi người dùng trong app cậu giới thiệu đọc cuốn thật sự.", "Đoạn phân tích micro-interactions tạo dopamine đọc thấm thía cậu nhỉ? 📚", true), // Unread: 1
+            ("Hoàng Long", "Calisthenics", "Sáng nay set tập xà đơn 5 hiệp kết hợp muscle up cảm giác cơ bắp kích hoạt tốt lắm.", "Form chuẩn đét luôn Long ơi, kiên trì tập luyện nhìn phong độ hẳn! 💪", false),
+            ("Thu Hà", "Coffee Roaster", "Hạt Geisha sơ chế yếm khí từ Cầu Đất hương hoa nhài và vị ngọt hậu sâu lắm.", "Cuối tuần mình ghé quán trải nghiệm ly pour-over nhé Hà ơi! ☕️", false),
+            ("Tuấn Anh", "Film Director", "Thước phim 35mm quay bối cảnh chợ hoa Đầm Sen tráng scan ra màu hoài niệm ghê.", "Chất phim Kodak Portra 400 da người lên màu ấm áp không lẫn vào đâu được 🎞️", false),
+            ("Bảo Ngọc", "Yoga Instructor", "Bài tập thở Pranayama sáng nay giúp giải tỏa stress và căng cơ hiệu quả lắm.", "Cảm ơn bài hướng dẫn của Ngọc nhé, tập xong thấy đầu óc nhẹ nhõm hẳn 🧘‍♀️", false),
+            ("Quang Huy", "UI Designer", "Cậu thấy style Bento Grid layout ứng dụng vào màn hình Profile thế nào?", "Style này phân cấp thông tin rõ ràng và hiện đại, rất hợp xu hướng! 🎨", false),
+            ("Phương Thảo", "Content Creator", "Video reel chia sẻ tips học Swift concurrency của cậu lên xu hướng 100k views rồi nè!", "Woa cảm ơn Thảo đã chia sẻ nha, động lực làm thêm nhiều clip hữu ích nữa! ✨", false),
+            ("Văn Hùng", "Backend Dev", "API streaming tin nhắn qua WebSocket đã triển khai heartbeat keep-alive ổn định rồi.", "Tuyệt vời, latency round-trip đo được dưới 18ms, kết nối realtime mượt mà! ⚡️", false),
+            ("Thanh Trúc", "Illustrator", "Sticker pack chú mèo máy mình vẽ tặng cộng đồng iOS dev vừa duyệt xong nè.", "Sticker cute xỉu Trúc ơi, team mình add vào xài liền đây! 🐱", false),
+            ("Đức Minh", "Product Manager", "Sprint retrospective tuần này team mình hoàn thành 100% story points đề ra.", "Cảm ơn Minh đã lead sprint mượt mà và clear hết mọi blockers cho anh em! 🎯", false),
+            ("Khánh Linh", "Travel Blogger", "Chuyến đi săn mây ở đỉnh Tà Xùa bình minh đẹp tựa chốn bồng lai tiên cảnh.", "Nhìn ảnh mà mê quá Linh ơi, nhất định mùa đông này mình phải đi một chuyến! ☁️", false)
+        ]
+
+        let startIndex = 10
+        for i in 0..<24 {
+            let userIndex = startIndex + (i % (users.count - startIndex))
+            let user = users[userIndex]
+            let topicIndex = i % additionalTopics.count
+            let topic = additionalTopics[topicIndex]
+            let isUnread = topic.4 && (i == 3) // Only index 14 is unread from Mai Anh
+            let baseHours = Double(30 + i * 4)
+            let baseDate = Date(timeIntervalSinceNow: -baseHours * 3600)
+
+            let steps: [DialogueStep] = [
+                DialogueStep(isMe: false, content: .text("Chào Tom! Hôm nay công việc bên cậu tiến triển thế nào rồi?")),
+                DialogueStep(isMe: true, content: .text("Chào \(user.fullName.components(separatedBy: " ").last ?? user.username)! Mình đang tập trung hoàn thiện dự án.")),
+                DialogueStep(isMe: false, content: .text(topic.2)),
+                DialogueStep(isMe: true, content: .text(topic.3)),
+                DialogueStep(isMe: isUnread ? false : (i % 2 == 0), content: isUnread ? .text("Cậu có thời gian thì xem qua rồi góp ý thêm cho mình nha!") : (i % 2 == 0 ? .like : .text("Hẹn sớm gặp lại cậu nhé! 👍")))
+            ]
+
+            let convId = "conv_\(startIndex + 1 + i)"
+            list.append(
+                buildConversationData(
+                    id: convId,
+                    participants: [currentUser, user],
+                    steps: steps,
+                    baseDate: baseDate,
+                    unreadCount: isUnread ? 1 : 0,
+                    isMuted: (i == 7)
+                )
+            )
+        }
+
+        return list
+    }
+
 
     // MARK: - Private: Mock text arrays
 

@@ -60,7 +60,9 @@ struct DirectMessagesView: View {
                     } else {
                         LazyVStack(spacing: 0) {
                             ForEach(viewModel.filteredConversations) { conversation in
-                                let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
+                                let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
+                                    ?? conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
+                                    ?? conversation.participants.first
 
                                 ConversationRow(conversation: conversation)
                                     .onTapGesture {
@@ -290,12 +292,39 @@ struct DirectMessagesView: View {
 private struct ConversationRow: View {
     let conversation: Conversation
 
+    private var otherUser: User? {
+        let currentId = SessionStore.shared.currentUserId
+        return conversation.participants.first { $0.id != currentId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
+            ?? conversation.participants.first { $0.id != currentId }
+            ?? conversation.participants.first
+    }
+
+    private var avatarURL: URL? {
+        if conversation.isGroup {
+            return conversation.groupAvatarURL ?? otherUser?.avatarURL
+        }
+        return otherUser?.avatarURL
+    }
+
+    private var displayName: String {
+        if conversation.isGroup {
+            return conversation.groupName ?? "Nhóm"
+        }
+        return otherUser?.username ?? "Unknown"
+    }
+
+    private var isMessageFromCurrentUser: Bool {
+        guard let message = conversation.lastMessage else { return false }
+        let currentId = SessionStore.shared.currentUserId
+        return message.sender.id == currentId ||
+               message.sender.id == MockData.currentUser.id ||
+               message.sender.id == "user_current"
+    }
+
     var body: some View {
         HStack(spacing: DS.Spacing.sm) {
             // Avatar
-            let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
-
-            LazyImage(url: otherUser?.avatarURL) { state in
+            LazyImage(url: avatarURL) { state in
                 if let image = state.image {
                     image.resizable().scaledToFill()
                 } else {
@@ -308,11 +337,11 @@ private struct ConversationRow: View {
             // Content
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: DS.Spacing.xxs) {
-                    Text(conversation.groupName ?? otherUser?.username ?? "Unknown")
+                    Text(displayName)
                         .font(DS.Font.subheadline)
                         .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
 
-                    if otherUser?.isVerified == true {
+                    if !conversation.isGroup && otherUser?.isVerified == true {
                         InstagramIcon(
                             .verifiedBadge,
                             size: DS.Size.iconSmall,
@@ -375,8 +404,17 @@ private struct ConversationRow: View {
             return Text(L10n.DirectMessages.noMessages)
         }
 
-        let isMine = message.sender.id == SessionStore.shared.currentUserId
-        let prefix = isMine ? L10n.DirectMessages.you : ""
+        let isMine = isMessageFromCurrentUser
+        let prefix: String = {
+            if isMine {
+                return L10n.DirectMessages.you
+            } else if conversation.isGroup {
+                let senderName = message.sender.username.isEmpty ? "Thành viên" : message.sender.username
+                return "\(senderName): "
+            } else {
+                return ""
+            }
+        }()
 
         switch message.content {
         case .text(let text):
@@ -400,9 +438,7 @@ private struct ConversationRow: View {
 
     /// Returns status text for the last message only if it was sent by the current user.
     private var lastMessageStatusText: String? {
-        guard let message = conversation.lastMessage else { return nil }
-        let isMine = message.sender.id == SessionStore.shared.currentUserId
-        guard isMine else { return nil }
+        guard let message = conversation.lastMessage, isMessageFromCurrentUser else { return nil }
 
         switch message.status {
         case .sent, .delivered:
