@@ -57,7 +57,7 @@ final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
                 try await authManager.refreshToken()
                 await completionBox.call(.retry)
             } catch {
-                await logger.error("Token refresh failed: \(error.localizedDescription)")
+                logger.error("Token refresh failed: \(error.localizedDescription)")
                 // logout() IS @MainActor — switch explicitly
                 await MainActor.run { authManager.logout(reason: .sessionExpired) }
                 await completionBox.call(.doNotRetryWithError(APIError.unauthorized))

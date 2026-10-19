@@ -8,21 +8,21 @@
 import Foundation
 import OSLog
 
-struct AppLogger {
+struct AppLogger: Sendable {
 
-    private static let subsystem = Bundle.main.bundleIdentifier ?? AppConstants.App.bundleID
+    nonisolated private static let subsystem = "com.tomthecat.InstagramClone"
 
     let logger: Logger
 
     // MARK: - Categories
 
-    static let general = AppLogger(category: "General")
-    static let network = AppLogger(category: "Network")
-    static let storage = AppLogger(category: "Storage")
-    static let auth = AppLogger(category: "Auth")
-    static let ui = AppLogger(category: "UI")
+    nonisolated static let general = AppLogger(category: "General")
+    nonisolated static let network = AppLogger(category: "Network")
+    nonisolated static let storage = AppLogger(category: "Storage")
+    nonisolated static let auth = AppLogger(category: "Auth")
+    nonisolated static let ui = AppLogger(category: "UI")
 
-    private init(category: String) {
+    nonisolated private init(category: String) {
         self.logger = Logger(
             subsystem: Self.subsystem,
             category: category
@@ -31,7 +31,7 @@ struct AppLogger {
 
     // MARK: - Public APIs
 
-    func debug(
+    nonisolated func debug(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
         function: String = #function,
@@ -46,7 +46,7 @@ struct AppLogger {
         )
     }
 
-    func info(
+    nonisolated func info(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
         function: String = #function,
@@ -61,7 +61,7 @@ struct AppLogger {
         )
     }
 
-    func notice(
+    nonisolated func notice(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
         function: String = #function,
@@ -76,7 +76,7 @@ struct AppLogger {
         )
     }
 
-    func error(
+    nonisolated func error(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
         function: String = #function,
@@ -91,7 +91,7 @@ struct AppLogger {
         )
     }
 
-    func fault(
+    nonisolated func fault(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
         function: String = #function,
@@ -108,7 +108,7 @@ struct AppLogger {
 
     // MARK: - Private
 
-    private func log(
+    nonisolated private func log(
         _ message: String,
         level: OSLogType,
         file: String,
