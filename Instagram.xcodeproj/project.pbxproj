@@ -23,6 +23,7 @@
 		80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61230223402002DFE74 /* FirebaseCore */; };
 		80DAA61530223402002DFE74 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61430223402002DFE74 /* FirebaseMessaging */; };
 		80DAA61730223402002DFE74 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61630223402002DFE74 /* FirebaseStorage */; };
+		80DAA61930223402002DFE74 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61830223402002DFE74 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -113,6 +114,7 @@
 				80DAA61730223402002DFE74 /* FirebaseStorage in Frameworks */,
 				80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */,
 				80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */,
+				80DAA61930223402002DFE74 /* FirebaseFirestore in Frameworks */,
 				807D4F283015C78500E953EC /* CombineExt in Frameworks */,
 				807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */,
 				807D4F2E3015C97100E953EC /* Nuke in Frameworks */,
@@ -187,6 +189,7 @@
 				80DAA61230223402002DFE74 /* FirebaseCore */,
 				80DAA61430223402002DFE74 /* FirebaseMessaging */,
 				80DAA61630223402002DFE74 /* FirebaseStorage */,
+				80DAA61830223402002DFE74 /* FirebaseFirestore */,
 			);
 			productName = Instagram;
 			productReference = FB272021301B3AA600CE68FE /* Instagram.app */;
@@ -644,6 +647,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 80DAA60F30223402002DFE74 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		80DAA61830223402002DFE74 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 80DAA60F30223402002DFE74 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -22,12 +22,16 @@ final class RepositoryAssembly: Assembly {
     func assemble(container: Container) {
 
         let useMock = AppConfig.shared.isMockAPI
+        let useFirebase = AppConfig.shared.isFirebaseAPI
 
         // MARK: AuthRepository
 
         container.register(AuthRepositoryProtocol.self) { resolver in
             if useMock {
                 return MockAuthRepository()
+            }
+            if useFirebase {
+                return FirebaseAuthRepository()
             }
             return AuthRepository(
                 remoteDataSource: RemoteAuthDataSource(
@@ -42,6 +46,9 @@ final class RepositoryAssembly: Assembly {
             if useMock {
                 return MockUserRepository()
             }
+            if useFirebase {
+                return FirebaseUserRepository()
+            }
             return UserRepository(
                 remoteDataSource: RemoteUserDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -55,6 +62,9 @@ final class RepositoryAssembly: Assembly {
             if useMock {
                 return MockPostRepository()
             }
+            if useFirebase {
+                return FirebasePostRepository()
+            }
             return PostRepository(
                 remoteDataSource: RemotePostDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -67,6 +77,9 @@ final class RepositoryAssembly: Assembly {
         container.register(StoryRepositoryProtocol.self) { resolver in
             if useMock {
                 return MockStoryRepository()
+            }
+            if useFirebase {
+                return FirebaseStoryRepository()
             }
             return StoryRepository(
                 remoteDataSource: RemoteStoryDataSource(
@@ -82,6 +95,9 @@ final class RepositoryAssembly: Assembly {
             if useMock {
                 return MockNotificationRepository()
             }
+            if useFirebase {
+                return FirebaseNotificationRepository()
+            }
             return NotificationRepository(
                 remoteDataSource: RemoteNotificationDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -94,6 +110,9 @@ final class RepositoryAssembly: Assembly {
         container.register(MessageRepositoryProtocol.self) { resolver in
             if useMock {
                 return MockMessageRepository()
+            }
+            if useFirebase {
+                return FirebaseMessageRepository()
             }
             return MessageRepository(
                 remoteDataSource: RemoteMessageDataSource(
@@ -108,6 +127,9 @@ final class RepositoryAssembly: Assembly {
             if useMock {
                 return MockCommentRepository()
             }
+            if useFirebase {
+                return FirebaseCommentRepository()
+            }
             return CommentRepository(
                 remoteDataSource: RemoteCommentDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -120,6 +142,9 @@ final class RepositoryAssembly: Assembly {
         container.register(ReelRepositoryProtocol.self) { resolver in
             if useMock {
                 return MockReelRepository()
+            }
+            if useFirebase {
+                return FirebaseReelRepository()
             }
             return ReelRepository(
                 remoteDataSource: RemoteReelDataSource(

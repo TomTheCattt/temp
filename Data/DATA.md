@@ -8,10 +8,13 @@ Layer triển khai data access — chuyển đổi dữ liệu từ API/local st
 Data/
 ├── DTOs/               # Data Transfer Objects (API response models)
 ├── DataSources/
+│   ├── Firebase/       # Firestore & Storage actors (Swift 6)
 │   ├── Mock/           # Mock data cho development/testing
 │   └── Remote/         # Remote API data sources
 ├── Mappers/            # DTO → Entity converters
 └── Repositories/       # Concrete repository implementations
+    ├── Firebase/       # Firebase repositories (Firestore integration)
+    └── Mock/           # Mock repositories
 ```
 
 ---
@@ -79,6 +82,18 @@ Data sources trả về dữ liệu giả lập, không cần network. Dùng cho
 | `MockNotificationDataSource` | `MockNotificationStore` | Thread-safe (`OSAllocatedUnfairLock`). 50 thông báo phân bố theo các nhóm thời gian ("Hôm nay", "Hôm qua", "7 ngày qua", "Trước đó"). Hỗ trợ `markAsRead`, `markAllAsRead`. |
 | `MockReelDataSource` | `MockReelStore` | Thread-safe (`OSAllocatedUnfairLock`). Hỗ trợ phân trang 50 video Reels qua 5 trang (`pageSize = 10`), cắt lát `fetchUserReels` chuẩn xác, bảo toàn cơ chế fallback video 2 lớp. |
 
+### Firebase/
+
+Data sources tương tác trực tiếp với Firebase Firestore & Firebase Storage, hiện thực dưới dạng Swift 6 `actor` bảo vệ thread-safety tuyệt đối, kết hợp in-memory cache tự động cập nhật:
+
+| File | Firestore Path / Storage | Chức năng |
+|------|--------------------------|-----------|
+| `FirebasePostDataSource` | `posts` | Feed, user posts, detail, create (upload ảnh/video qua Storage), update, delete, like/unlike, save/unsave, explore |
+| `FirebaseStoryDataSource` | `stories` | Active stories (24h filter), user stories, create story (upload qua Storage), markViewed, delete |
+| `FirebaseReelDataSource` | `reels` | Reels feed, user reels, create reel (upload video qua Storage), like/unlike, save/unsave, delete |
+| `FirebaseCommentDataSource` | `posts/{postId}/comments` | Comments & replies (cây phân cấp), add comment (cập nhật đếm post), like/unlike, delete |
+| `FirebaseNotificationDataSource` | `notifications` | Danh sách thông báo theo recipientId, markAsRead, markAllAsRead, fetchUnreadCount |
+
 ---
 
 ## Mappers/
@@ -133,11 +148,26 @@ Mock implementations dùng cho scheme `Instagram (Mock)`. Conform trực tiếp 
 | `MockNotificationRepository` | `NotificationRepositoryProtocol` |
 | `MockReelRepository` | `ReelRepositoryProtocol` |
 
+### Repositories/Firebase/
+
+Firebase implementations dùng cho scheme `Instagram (Firebase)` (`API_MODE=firebase`). Swift 6 Sendable, giao tiếp qua Firebase SDK (Firestore + Storage), có bộ nhớ cache in-memory đồng bộ:
+
+| File | Protocol | DataSource tương ứng |
+|------|----------|----------------------|
+| `FirebasePostRepository` | `PostRepositoryProtocol` | `FirebasePostDataSource` (collection `posts`) |
+| `FirebaseStoryRepository` | `StoryRepositoryProtocol` | `FirebaseStoryDataSource` (collection `stories`) |
+| `FirebaseReelRepository` | `ReelRepositoryProtocol` | `FirebaseReelDataSource` (collection `reels`) |
+| `FirebaseCommentRepository` | `CommentRepositoryProtocol` | `FirebaseCommentDataSource` (subcollection `posts/{id}/comments`) |
+| `FirebaseNotificationRepository` | `NotificationRepositoryProtocol` | `FirebaseNotificationDataSource` (collection `notifications`) |
+
 **Pattern (DI-level switching in RepositoryAssembly):**
 ```swift
 container.register(PostRepositoryProtocol.self) { resolver in
     if AppConfig.shared.isMockAPI {
         return MockPostRepository()
+    }
+    if AppConfig.shared.isFirebaseAPI {
+        return FirebasePostRepository()
     }
     return PostRepository(
         remoteDataSource: RemotePostDataSource(
