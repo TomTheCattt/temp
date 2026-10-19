@@ -27,3 +27,5 @@ DerivedDataDevice/
 *.log
 scratch/
 
+# Node
+node_modules/

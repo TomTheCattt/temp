@@ -69,7 +69,7 @@ final class CallVideoCaptureController: @unchecked Sendable {
     private nonisolated(unsafe) let videoOutput = AVCaptureVideoDataOutput()
     private let videoQueue = DispatchQueue(label: "com.instagram.call.videoQueue", qos: .userInteractive)
     private let sessionQueue = DispatchQueue(label: "com.instagram.call.videoSessionQueue")
-    private var currentVideoInput: AVCaptureDeviceInput?
+    private nonisolated(unsafe) var currentVideoInput: AVCaptureDeviceInput?
     private var isFrontFacing: Bool = true
 
     // Delegate bridge
@@ -174,22 +174,29 @@ final class CallVideoCaptureController: @unchecked Sendable {
             return
         }
 
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            self.captureSession.beginConfiguration()
-            defer { self.captureSession.commitConfiguration() }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            sessionQueue.async { [weak self] in
+                defer { continuation.resume() }
+                guard let self else { return }
+                self.captureSession.beginConfiguration()
+                defer { self.captureSession.commitConfiguration() }
 
-            if let currentInput = self.currentVideoInput {
-                self.captureSession.removeInput(currentInput)
-                self.currentVideoInput = nil
-            }
+                guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: isFront ? .front : .back),
+                      let newInput = try? AVCaptureDeviceInput(device: device) else {
+                    return
+                }
 
-            if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: isFront ? .front : .back),
-               let newInput = try? AVCaptureDeviceInput(device: device),
-               self.captureSession.canAddInput(newInput) {
-                self.captureSession.addInput(newInput)
-                self.currentVideoInput = newInput
-                self.updateVideoConnection(isFront: isFront)
+                if let currentInput = self.currentVideoInput {
+                    self.captureSession.removeInput(currentInput)
+                }
+
+                if self.captureSession.canAddInput(newInput) {
+                    self.captureSession.addInput(newInput)
+                    self.currentVideoInput = newInput
+                    self.updateVideoConnection(isFront: isFront)
+                } else if let currentInput = self.currentVideoInput, self.captureSession.canAddInput(currentInput) {
+                    self.captureSession.addInput(currentInput)
+                }
             }
         }
         #endif
@@ -229,7 +236,7 @@ final class CallVideoCaptureController: @unchecked Sendable {
         updateVideoConnection(isFront: isFront)
     }
 
-    private func updateVideoConnection(isFront: Bool) {
+    private nonisolated func updateVideoConnection(isFront: Bool) {
         guard let connection = videoOutput.connection(with: .video) else { return }
 
         if #available(iOS 17.0, *) {

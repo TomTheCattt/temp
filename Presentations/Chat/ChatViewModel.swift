@@ -153,7 +153,9 @@ final class ChatViewModel {
 
             // Resolve recipient if not provided
             if recipient == nil {
-                if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
+                if let otherUser = messages.first(where: { $0.sender.id != currentUserId && $0.sender.id != MockData.currentUser.id && $0.sender.id != "user_current" })?.sender {
+                    recipient = otherUser
+                } else if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
                     recipient = otherUser
                 }
             }

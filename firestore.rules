@@ -1,0 +1,712 @@
+rules_version = '2';
+
+/**
+ * ============================================================================
+ * Cloud Firestore Security Rules - Instagram Application Prototype
+ * ============================================================================
+ *
+ * ASSUMED DATA MODELS AND SCHEMA DEFINITIONS:
+ *
+ * 1. users/{userId}
+ *    - id / uid          : string (matches document userId)
+ *    - username         : string (3-30 chars, required)
+ *    - displayName      : string (1-50 chars, optional)
+ *    - email            : string (5-100 chars, optional)
+ *    - bio              : string (0-150 chars, optional)
+ *    - profileImageUrl  : string (0-500 chars, optional)
+ *    - followersCount   : int (>= 0, default 0)
+ *    - followingCount   : int (>= 0, default 0)
+ *    - postsCount       : int (>= 0, default 0)
+ *    - isPrivate        : bool (optional)
+ *    - isVerified       : bool (optional, immutable by regular user)
+ *    - fcmToken         : string (0-255 chars, optional)
+ *    - createdAt        : timestamp (required on create)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 2. posts/{postId}
+ *    - id               : string (postId, optional)
+ *    - authorId         : string (matches request.auth.uid, immutable)
+ *    - authorUsername   : string (1-50 chars, optional)
+ *    - authorPhotoUrl   : string (0-500 chars, optional)
+ *    - caption          : string (0-2200 chars, optional)
+ *    - mediaUrls        : list of strings (1-10 items, each <= 1000 chars)
+ *    - mediaUrl         : string (0-1000 chars, optional)
+ *    - mediaType        : string (0-30 chars, e.g., 'image'|'video'|'carousel', optional)
+ *    - likesCount       : int (>= 0, default 0)
+ *    - commentsCount    : int (>= 0, default 0)
+ *    - likes / likedBy  : list of strings (user IDs, max 10000, optional)
+ *    - savedBy          : list of strings (user IDs, max 10000, optional)
+ *    - location         : string (0-100 chars, optional)
+ *    - tags             : list of strings (max 30 items, optional)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 3. posts/{postId}/comments/{commentId} & nested replies/{replyId}
+ *    - id               : string (commentId, optional)
+ *    - postId           : string (optional)
+ *    - authorId         : string (matches request.auth.uid, immutable)
+ *    - authorUsername   : string (1-50 chars, optional)
+ *    - authorPhotoUrl   : string (0-500 chars, optional)
+ *    - text / content   : string (1-1000 chars, required)
+ *    - parentId         : string (0-100 chars, optional for replies)
+ *    - likesCount       : int (>= 0, default 0)
+ *    - likedBy / likes  : list of strings (user IDs, max 5000, optional)
+ *    - replyCount       : int (>= 0, optional)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 4. stories/{storyId}
+ *    - id               : string (storyId, optional)
+ *    - authorId         : string (matches request.auth.uid, immutable)
+ *    - authorUsername   : string (1-50 chars, optional)
+ *    - authorPhotoUrl   : string (0-500 chars, optional)
+ *    - mediaUrl         : string (1-1000 chars, required)
+ *    - mediaType        : string (1-30 chars, required, 'image'|'video')
+ *    - caption          : string (0-500 chars, optional)
+ *    - viewedBy / views : list of strings (user IDs, max 5000, optional)
+ *    - viewersCount     : int (>= 0, optional)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - expiresAt        : timestamp (required on create, > createdAt)
+ *
+ * 5. reels/{reelId}
+ *    - id               : string (reelId, optional)
+ *    - authorId         : string (matches request.auth.uid, immutable)
+ *    - authorUsername   : string (1-50 chars, optional)
+ *    - authorPhotoUrl   : string (0-500 chars, optional)
+ *    - videoUrl         : string (1-1000 chars, required)
+ *    - thumbnailUrl     : string (0-1000 chars, optional)
+ *    - caption          : string (0-2200 chars, optional)
+ *    - audioTrack       : string (0-200 chars, optional)
+ *    - likesCount       : int (>= 0, default 0)
+ *    - commentsCount    : int (>= 0, default 0)
+ *    - viewsCount       : int (>= 0, optional)
+ *    - likes / likedBy  : list of strings (user IDs, max 10000, optional)
+ *    - savedBy          : list of strings (user IDs, max 10000, optional)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 6. notifications/{notifId}
+ *    - id               : string (notifId, optional)
+ *    - recipientId      : string (required, recipient user ID)
+ *    - senderId/actorId : string (required, sender user ID, matches auth.uid)
+ *    - senderUsername   : string (0-50 chars, optional)
+ *    - senderPhotoUrl   : string (0-500 chars, optional)
+ *    - type             : string (1-50 chars, required)
+ *    - postId           : string (0-100 chars, optional)
+ *    - commentId        : string (0-100 chars, optional)
+ *    - message / text   : string (0-500 chars, optional)
+ *    - isRead / read    : bool (optional, default false)
+ *    - createdAt        : timestamp (required on create)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 7. conversations/{convId}
+ *    - id               : string (convId, optional)
+ *    - participantIds   : list of strings (2-100 items, required, includes auth.uid)
+ *    - lastMessage      : map or string (optional)
+ *    - lastMessageText  : string (0-1000 chars, optional)
+ *    - lastMessageSenderId : string (0-128 chars, optional)
+ *    - lastMessageTimestamp : timestamp (optional)
+ *    - unreadCounts     : map (optional)
+ *    - createdAt        : timestamp (optional)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 8. conversations/{convId}/messages/{msgId}
+ *    - id               : string (msgId, optional)
+ *    - conversationId   : string (optional)
+ *    - senderId         : string (matches request.auth.uid, immutable)
+ *    - text / content   : string (0-5000 chars, optional)
+ *    - mediaUrl         : string (0-1000 chars, optional)
+ *    - mediaType        : string (0-50 chars, optional)
+ *    - isRead / read    : bool (optional)
+ *    - readBy           : list of strings (max 100 items, optional)
+ *    - reactions        : map (optional)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 9. notes/{noteId}
+ *    - id               : string (noteId, optional)
+ *    - authorId/userId  : string (matches request.auth.uid, immutable)
+ *    - authorUsername   : string (0-50 chars, optional)
+ *    - authorPhotoUrl   : string (0-500 chars, optional)
+ *    - text             : string (1-60 chars, required, Instagram note limit)
+ *    - createdAt        : timestamp (required on create, immutable)
+ *    - expiresAt        : timestamp (optional, expiresAt > request.time)
+ *    - updatedAt        : timestamp (optional)
+ *
+ * 10. calls/{callId} & calls/{callId}/signals/{signalId}
+ *     calls/{callId}:
+ *     - callerId / fromUserId : string (matches auth.uid on create)
+ *     - calleeId / toUserId   : string (target user ID)
+ *     - status                : string (0-30 chars, e.g., 'ringing'|'connected'|'ended')
+ *     - createdAt             : timestamp (required on create)
+ *     - updatedAt             : timestamp (optional)
+ *
+ *     calls/{callId}/signals/{signalId}:
+ *     - fromUserId            : string (matches request.auth.uid on create)
+ *     - toUserId              : string (target user ID)
+ *     - type                  : string (1-30 chars, 'offer'|'answer'|'candidate')
+ *     - sdp / candidate       : string or map (max 10000 chars, required)
+ *     - createdAt             : timestamp (required on create)
+ * ============================================================================
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Firestore mặc định đã deny mọi thứ không được match -> bỏ rule /{document=**} cũ.
+
+    // -------------------------------------------------------------------------
+    // Helpers dùng chung
+    // -------------------------------------------------------------------------
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Field tuỳ chọn: nếu có thì phải đúng kiểu/độ dài
+    function optStr(d, k, mn, mx) {
+      return !(k in d) || (d[k] is string && d[k].size() >= mn && d[k].size() <= mx);
+    }
+
+    // Field bắt buộc
+    function reqStr(d, k, mn, mx) {
+      return k in d && optStr(d, k, mn, mx);
+    }
+
+    function optList(d, k, mx) {
+      return !(k in d) || (d[k] is list && d[k].size() <= mx);
+    }
+
+    function optCount(d, k) {
+      return !(k in d) || (d[k] is int && d[k] >= 0);
+    }
+
+    function optTime(d, k) {
+      return !(k in d) || d[k] is timestamp;
+    }
+
+    function changedKeys(r, o) {
+      return r.diff(o).affectedKeys();
+    }
+
+    // Bộ đếm chỉ được đổi tối đa +1 / -1 mỗi lần ghi (chống set số bậy)
+    function stepOk(r, o, k) {
+      let n = r.get(k, 0);
+      let p = o.get(k, 0);
+      return n is int && n >= 0 && (n - p) in [-1, 0, 1];
+    }
+
+    // Danh sách like/save/view: user chỉ được thêm/bớt CHÍNH MÌNH
+    function toggleSelf(r, o, k, mx) {
+      let a = r.get(k, []);
+      let b = o.get(k, []);
+      return a is list && a.size() <= mx
+        && a.toSet().difference(b.toSet()).hasOnly([request.auth.uid])
+        && b.toSet().difference(a.toSet()).hasOnly([request.auth.uid]);
+    }
+
+    // Dùng cho ĐỌC. Có độ trễ 10 phút vì query của client lọc theo giờ máy client
+    // (expiresAt > Timestamp.now()), luôn lệch nhẹ so với request.time của server;
+    // nếu so sánh chính xác, Firestore không chứng minh được query thoả rule -> permission denied.
+    function notExpired(d) {
+      return !('expiresAt' in d) || d.expiresAt > request.time - duration.value(10, 'm');
+    }
+
+    // Doc mới tạo không được "gian" số liệu ban đầu
+    function isFreshInteractions(d) {
+      return d.get('likesCount', 0) == 0
+        && d.get('commentsCount', 0) == 0
+        && d.get('replyCount', 0) == 0
+        && d.get('likes', []).size() == 0
+        && d.get('likedBy', []).size() == 0
+        && d.get('savedBy', []).size() == 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // 1. users/{userId}
+    // -------------------------------------------------------------------------
+    function isValidUser(d, userId) {
+      return reqStr(d, 'username', 3, 30)
+        && (!('id' in d) || d.id == userId)
+        && (!('uid' in d) || d.uid == userId)
+        && optStr(d, 'displayName', 0, 50)
+        && optStr(d, 'fullName', 0, 50)
+        && optStr(d, 'email', 3, 100)
+        && optStr(d, 'bio', 0, 150)
+        && optStr(d, 'profileImageUrl', 0, 500)
+        && optStr(d, 'photoUrl', 0, 500)
+        && optStr(d, 'fcmToken', 0, 255)
+        && optCount(d, 'followersCount')
+        && optCount(d, 'followingCount')
+        && optCount(d, 'postsCount')
+        && (!('isPrivate' in d) || d.isPrivate is bool)
+        && optTime(d, 'createdAt');
+    }
+
+    function isValidUserOwnerUpdate(r, o, userId) {
+      return isValidUser(r, userId)
+        && (!('createdAt' in o) || r.get('createdAt', null) == o.createdAt)
+        // Không tự cấp / tự gỡ tick xanh
+        && r.get('isVerified', false) == o.get('isVerified', false)
+        && stepOk(r, o, 'followersCount')
+        && stepOk(r, o, 'followingCount')
+        && stepOk(r, o, 'postsCount');
+    }
+
+    // Người khác chỉ được follow/unfollow: đổi followersCount ±1 và thêm/bớt uid của chính họ
+    function isFollowerUpdate(r, o) {
+      return changedKeys(r, o).hasOnly(['followersCount', 'followers', 'updatedAt'])
+        && stepOk(r, o, 'followersCount')
+        && toggleSelf(r, o, 'followers', 10000);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isOwner(userId)
+        && isValidUser(request.resource.data, userId)
+        && request.resource.data.get('isVerified', false) == false
+        && request.resource.data.get('followersCount', 0) == 0
+        && request.resource.data.get('followingCount', 0) == 0
+        && request.resource.data.get('postsCount', 0) == 0;
+
+      allow update: if (isOwner(userId)
+          && isValidUserOwnerUpdate(request.resource.data, resource.data, userId))
+        || (isAuthenticated()
+          && isFollowerUpdate(request.resource.data, resource.data));
+
+      allow delete: if isOwner(userId);
+
+      // followers, following, saved_posts, ...
+      match /{subcollection=**} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. posts/{postId}
+    // -------------------------------------------------------------------------
+    function isValidPost(d) {
+      return reqStr(d, 'authorId', 1, 128)
+        && optStr(d, 'caption', 0, 2200)
+        && optStr(d, 'authorUsername', 0, 50)
+        && optStr(d, 'authorPhotoUrl', 0, 500)
+        && optStr(d, 'location', 0, 100)
+        && optStr(d, 'mediaUrl', 0, 1000)
+        && optStr(d, 'mediaType', 0, 30)
+        && (!('mediaUrls' in d) || (d.mediaUrls is list && d.mediaUrls.size() <= 10))
+        && optList(d, 'tags', 30)
+        && optList(d, 'likes', 10000)
+        && optList(d, 'likedBy', 10000)
+        && optList(d, 'savedBy', 10000)
+        && optCount(d, 'likesCount')
+        && optCount(d, 'commentsCount')
+        && optTime(d, 'createdAt');
+    }
+
+    // Chủ bài: sửa nội dung, KHÔNG đụng vào số liệu tương tác (đã có đường interaction bên dưới)
+    function isPostOwnerUpdate(r, o) {
+      return isValidPost(r)
+        && !changedKeys(r, o).hasAny([
+          'id', 'authorId', 'createdAt',
+          'likes', 'likedBy', 'likesCount', 'savedBy', 'commentsCount', 'sharesCount'
+        ]);
+    }
+
+    // Bất kỳ user nào: like / save / tăng giảm counter. Các field khác bị khoá bởi hasOnly.
+    function isPostInteraction(r, o) {
+      return changedKeys(r, o).hasOnly([
+          'likes', 'likedBy', 'likesCount', 'savedBy', 'commentsCount', 'sharesCount', 'updatedAt'
+        ])
+        && toggleSelf(r, o, 'likes', 10000)
+        && toggleSelf(r, o, 'likedBy', 10000)
+        && toggleSelf(r, o, 'savedBy', 10000)
+        && stepOk(r, o, 'likesCount')
+        && stepOk(r, o, 'commentsCount')
+        && stepOk(r, o, 'sharesCount');
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && isValidPost(request.resource.data)
+        && isFreshInteractions(request.resource.data);
+
+      allow update: if (isOwner(resource.data.authorId)
+          && isPostOwnerUpdate(request.resource.data, resource.data))
+        || (isAuthenticated()
+          && isPostInteraction(request.resource.data, resource.data));
+
+      allow delete: if isOwner(resource.data.authorId);
+
+      // ---------------------------------------------------------------------
+      // 3. Comments + replies (một block cho mọi độ sâu: comments/{id}/replies/{id})
+      // ---------------------------------------------------------------------
+      match /comments/{commentPath=**} {
+        allow read: if isAuthenticated();
+
+        allow create: if isAuthenticated()
+          && request.resource.data.authorId == request.auth.uid
+          && isValidComment(request.resource.data)
+          && isFreshInteractions(request.resource.data);
+
+        allow update: if (isOwner(resource.data.authorId)
+            && isCommentOwnerUpdate(request.resource.data, resource.data))
+          || (isAuthenticated()
+            && isCommentInteraction(request.resource.data, resource.data));
+
+        // Tác giả comment hoặc chủ bài được xoá (get() chỉ chạy khi vế đầu false)
+        allow delete: if isAuthenticated() && (
+          resource.data.authorId == request.auth.uid
+          || get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid
+        );
+      }
+    }
+
+    function isValidComment(d) {
+      return reqStr(d, 'authorId', 1, 128)
+        && (('text' in d && optStr(d, 'text', 1, 1000))
+          || ('content' in d && optStr(d, 'content', 1, 1000)))
+        && optStr(d, 'authorUsername', 0, 50)
+        && optStr(d, 'authorPhotoUrl', 0, 500)
+        && optStr(d, 'parentId', 0, 100)
+        && optList(d, 'likes', 5000)
+        && optList(d, 'likedBy', 5000)
+        && optCount(d, 'likesCount')
+        && optCount(d, 'replyCount')
+        && optTime(d, 'createdAt');
+    }
+
+    function isCommentOwnerUpdate(r, o) {
+      return isValidComment(r)
+        && !changedKeys(r, o).hasAny([
+          'id', 'postId', 'authorId', 'createdAt',
+          'likes', 'likedBy', 'likesCount', 'replyCount'
+        ]);
+    }
+
+    function isCommentInteraction(r, o) {
+      return changedKeys(r, o).hasOnly(['likes', 'likedBy', 'likesCount', 'replyCount', 'updatedAt'])
+        && toggleSelf(r, o, 'likes', 5000)
+        && toggleSelf(r, o, 'likedBy', 5000)
+        && stepOk(r, o, 'likesCount')
+        && stepOk(r, o, 'replyCount');
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. stories/{storyId}
+    // -------------------------------------------------------------------------
+    function isValidStory(d) {
+      return reqStr(d, 'authorId', 1, 128)
+        && reqStr(d, 'mediaUrl', 1, 1000)
+        && reqStr(d, 'mediaType', 1, 30)
+        && d.mediaType in ['image', 'video']
+        && optStr(d, 'caption', 0, 500)
+        && optStr(d, 'authorUsername', 0, 50)
+        && optStr(d, 'authorPhotoUrl', 0, 500)
+        && optList(d, 'viewedBy', 5000)
+        && optList(d, 'viewerIds', 5000)
+        && optList(d, 'views', 5000)
+        && optCount(d, 'viewersCount')
+        && d.get('createdAt', null) is timestamp
+        && d.get('expiresAt', null) is timestamp
+        && d.expiresAt > d.createdAt;
+    }
+
+    function isStoryViewUpdate(r, o) {
+      return changedKeys(r, o).hasOnly(['viewedBy', 'viewerIds', 'views', 'viewersCount', 'updatedAt'])
+        && toggleSelf(r, o, 'viewedBy', 5000)
+        && toggleSelf(r, o, 'viewerIds', 5000)
+        && toggleSelf(r, o, 'views', 5000)
+        && stepOk(r, o, 'viewersCount');
+    }
+
+    match /stories/{storyId} {
+      allow read: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || notExpired(resource.data));
+
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && isValidStory(request.resource.data);
+
+      allow update: if (isOwner(resource.data.authorId)
+          && isValidStory(request.resource.data)
+          && !changedKeys(request.resource.data, resource.data).hasAny(['authorId', 'createdAt']))
+        || (isAuthenticated()
+          && isStoryViewUpdate(request.resource.data, resource.data));
+
+      allow delete: if isOwner(resource.data.authorId);
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. reels/{reelId}
+    // -------------------------------------------------------------------------
+    function isValidReel(d) {
+      return reqStr(d, 'authorId', 1, 128)
+        && reqStr(d, 'videoUrl', 1, 1000)
+        && optStr(d, 'thumbnailUrl', 0, 1000)
+        && optStr(d, 'caption', 0, 2200)
+        && optStr(d, 'authorUsername', 0, 50)
+        && optStr(d, 'authorPhotoUrl', 0, 500)
+        && optStr(d, 'audioTrack', 0, 200)
+        && optStr(d, 'audioTitle', 0, 200)
+        && optList(d, 'likes', 10000)
+        && optList(d, 'likedBy', 10000)
+        && optList(d, 'savedBy', 10000)
+        && optCount(d, 'likesCount')
+        && optCount(d, 'commentsCount')
+        && optCount(d, 'viewsCount')
+        && optTime(d, 'createdAt');
+    }
+
+    function isReelOwnerUpdate(r, o) {
+      return isValidReel(r)
+        && !changedKeys(r, o).hasAny([
+          'id', 'authorId', 'createdAt',
+          'likes', 'likedBy', 'likesCount', 'savedBy', 'commentsCount', 'viewsCount'
+        ]);
+    }
+
+    function isReelInteraction(r, o) {
+      return changedKeys(r, o).hasOnly([
+          'likes', 'likedBy', 'likesCount', 'savedBy', 'commentsCount', 'viewsCount', 'updatedAt'
+        ])
+        && toggleSelf(r, o, 'likes', 10000)
+        && toggleSelf(r, o, 'likedBy', 10000)
+        && toggleSelf(r, o, 'savedBy', 10000)
+        && stepOk(r, o, 'likesCount')
+        && stepOk(r, o, 'commentsCount')
+        && stepOk(r, o, 'viewsCount');
+    }
+
+    match /reels/{reelId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && isValidReel(request.resource.data)
+        && isFreshInteractions(request.resource.data)
+        && request.resource.data.get('viewsCount', 0) == 0;
+
+      allow update: if (isOwner(resource.data.authorId)
+          && isReelOwnerUpdate(request.resource.data, resource.data))
+        || (isAuthenticated()
+          && isReelInteraction(request.resource.data, resource.data));
+
+      allow delete: if isOwner(resource.data.authorId);
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. notifications/{notifId}
+    // -------------------------------------------------------------------------
+    function isValidNotification(d) {
+      return reqStr(d, 'recipientId', 1, 128)
+        && (('senderId' in d && optStr(d, 'senderId', 1, 128))
+          || ('actorId' in d && optStr(d, 'actorId', 1, 128)))
+        && reqStr(d, 'type', 1, 50)
+        && optStr(d, 'senderUsername', 0, 50)
+        && optStr(d, 'senderPhotoUrl', 0, 500)
+        && optStr(d, 'postId', 0, 100)
+        && optStr(d, 'commentId', 0, 100)
+        && optStr(d, 'message', 0, 500)
+        && optStr(d, 'text', 0, 500)
+        && (!('isRead' in d) || d.isRead is bool)
+        && (!('read' in d) || d.read is bool)
+        && optTime(d, 'createdAt');
+    }
+
+    match /notifications/{notifId} {
+      allow read, delete: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid;
+
+      // Mọi field sender/actor có mặt đều phải là chính mình (sửa lỗ hổng OR cũ)
+      allow create: if isAuthenticated()
+        && isValidNotification(request.resource.data)
+        && (!('senderId' in request.resource.data) || request.resource.data.senderId == request.auth.uid)
+        && (!('actorId' in request.resource.data) || request.resource.data.actorId == request.auth.uid);
+
+      allow update: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid
+        && changedKeys(request.resource.data, resource.data).hasOnly(['isRead', 'read', 'updatedAt']);
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. conversations/{convId}
+    // -------------------------------------------------------------------------
+    function isValidConversation(d) {
+      return d.get('participantIds', null) is list
+        && d.participantIds.size() >= 2
+        && d.participantIds.size() <= 100
+        && optStr(d, 'lastMessageText', 0, 1000)
+        && optStr(d, 'lastMessageSenderId', 0, 128)
+        && optTime(d, 'lastMessageTimestamp')
+        && (!('unreadCounts' in d) || d.unreadCounts is map)
+        && optTime(d, 'createdAt')
+        && optTime(d, 'updatedAt');
+    }
+
+    function isConversationMember(d) {
+      return isAuthenticated() && request.auth.uid in d.participantIds;
+    }
+
+    match /conversations/{convId} {
+      allow read, delete: if isConversationMember(resource.data);
+
+      allow create: if isAuthenticated()
+        && request.auth.uid in request.resource.data.participantIds
+        && isValidConversation(request.resource.data);
+
+      // participantIds bất biến: không ai tự thêm/đá người khác ra khỏi hội thoại
+      allow update: if isConversationMember(resource.data)
+        && isValidConversation(request.resource.data)
+        && request.resource.data.participantIds == resource.data.participantIds;
+
+      // -----------------------------------------------------------------------
+      // 8. messages
+      // -----------------------------------------------------------------------
+      function isMemberOf(cId) {
+        return isAuthenticated()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cId)).data.participantIds;
+      }
+
+      function isValidMessage(d) {
+        return reqStr(d, 'senderId', 1, 128)
+          && optStr(d, 'conversationId', 0, 128)
+          && optStr(d, 'text', 0, 5000)
+          && optStr(d, 'content', 0, 5000)
+          && optStr(d, 'mediaUrl', 0, 1000)
+          && optStr(d, 'mediaType', 0, 50)
+          && (!('isRead' in d) || d.isRead is bool)
+          && (!('read' in d) || d.read is bool)
+          && optList(d, 'readBy', 100)
+          && (!('reactions' in d) || d.reactions is map)
+          && optTime(d, 'createdAt');
+      }
+
+      match /messages/{msgId} {
+        allow read: if isMemberOf(convId);
+
+        allow create: if isMemberOf(convId)
+          && request.resource.data.senderId == request.auth.uid
+          && isValidMessage(request.resource.data);
+
+        allow update: if isMemberOf(convId) && (
+          // Người gửi sửa nội dung
+          (resource.data.senderId == request.auth.uid
+            && isValidMessage(request.resource.data)
+            && !changedKeys(request.resource.data, resource.data)
+                 .hasAny(['senderId', 'createdAt', 'conversationId']))
+          // Thành viên khác: chỉ đánh dấu đã đọc / thả reaction
+          || (changedKeys(request.resource.data, resource.data)
+                .hasOnly(['isRead', 'read', 'readBy', 'reactions', 'updatedAt'])
+              && optList(request.resource.data, 'readBy', 100)
+              && (!('reactions' in request.resource.data) || request.resource.data.reactions is map))
+        );
+
+        allow delete: if isMemberOf(convId) && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. notes/{noteId}
+    // -------------------------------------------------------------------------
+    function noteAuthorId(d) {
+      return d.get('authorId', d.get('userId', null));
+    }
+
+    function isNoteAuthor(d) {
+      return isAuthenticated() && noteAuthorId(d) == request.auth.uid;
+    }
+
+    function isValidNote(d) {
+      return noteAuthorId(d) is string
+        && reqStr(d, 'text', 1, 60)
+        && optStr(d, 'authorUsername', 0, 50)
+        && optStr(d, 'authorPhotoUrl', 0, 500)
+        && optTime(d, 'expiresAt')
+        && optTime(d, 'createdAt');
+    }
+
+    match /notes/{noteId} {
+      allow read: if isAuthenticated()
+        && (isNoteAuthor(resource.data) || notExpired(resource.data));
+
+      allow create: if isNoteAuthor(request.resource.data)
+        && isValidNote(request.resource.data)
+        && (!('expiresAt' in request.resource.data) || request.resource.data.expiresAt > request.time);
+
+      allow update: if isNoteAuthor(resource.data)
+        && isNoteAuthor(request.resource.data)
+        && isValidNote(request.resource.data)
+        && !changedKeys(request.resource.data, resource.data).hasAny(['createdAt']);
+
+      allow delete: if isNoteAuthor(resource.data);
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. calls/{callId} & signals (WebRTC)
+    // -------------------------------------------------------------------------
+    function callerOf(d) {
+      return d.get('callerId', d.get('fromUserId', null));
+    }
+
+    function calleeOf(d) {
+      return d.get('calleeId', d.get('toUserId', null));
+    }
+
+    function isCallParty(d) {
+      return isAuthenticated()
+        && (callerOf(d) == request.auth.uid || calleeOf(d) == request.auth.uid);
+    }
+
+    function isValidCall(d) {
+      return callerOf(d) is string && calleeOf(d) is string
+        && optStr(d, 'status', 1, 30)
+        && optStr(d, 'channelId', 0, 100)
+        && optStr(d, 'callType', 0, 30)
+        && optTime(d, 'createdAt');
+    }
+
+    match /calls/{callId} {
+      allow read, delete: if isCallParty(resource.data);
+
+      allow create: if isAuthenticated()
+        && callerOf(request.resource.data) == request.auth.uid
+        && isValidCall(request.resource.data);
+
+      // Chỉ đổi trạng thái; không được đổi caller/callee. Cần field khác (vd endedAt) thì thêm vào list.
+      allow update: if isCallParty(resource.data)
+        && changedKeys(request.resource.data, resource.data).hasOnly(['status', 'updatedAt'])
+        && optStr(request.resource.data, 'status', 1, 30);
+
+      function isValidSignal(d) {
+        return reqStr(d, 'fromUserId', 1, 128)
+          && reqStr(d, 'toUserId', 1, 128)
+          && d.get('type', '') in ['offer', 'answer', 'candidate']
+          && ('sdp' in d || 'candidate' in d)
+          && optStr(d, 'sdp', 0, 10000)
+          && (!('candidate' in d) || d.candidate is map || optStr(d, 'candidate', 0, 10000))
+          && optTime(d, 'createdAt');
+      }
+
+      match /signals/{signalId} {
+        allow read, delete: if isAuthenticated()
+          && (resource.data.fromUserId == request.auth.uid || resource.data.toUserId == request.auth.uid);
+
+        allow create: if isAuthenticated()
+          && request.resource.data.fromUserId == request.auth.uid
+          && isValidSignal(request.resource.data);
+
+        // Signal bất biến
+        allow update: if false;
+      }
+    }
+
+  }
+}

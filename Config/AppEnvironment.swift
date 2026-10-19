@@ -54,6 +54,7 @@ enum AppEnvironment: String {
 enum APIMode: String {
     case live
     case mock
+    case firebase
 
     /// Resolves API mode from:
     /// 1. Process environment variable (set via Xcode scheme) — highest priority
@@ -127,6 +128,7 @@ struct AppConfig {
     }
     var isDebug: Bool { environment.isDebugLoggingEnabled || useLocalBackend }
     var isMockAPI: Bool { apiMode == .mock }
+    var isFirebaseAPI: Bool { apiMode == .firebase }
 
     // MARK: - CallBackendMode
 

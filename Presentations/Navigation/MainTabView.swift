@@ -421,7 +421,7 @@ struct MainTabView: View {
             await MainActor.run {
                 appState.setUnreadChatCount(count)
                 #if !targetEnvironment(simulator)
-                UIApplication.shared.applicationIconBadgeNumber = count
+                UNUserNotificationCenter.current().setBadgeCount(count)
                 #endif
             }
         }
