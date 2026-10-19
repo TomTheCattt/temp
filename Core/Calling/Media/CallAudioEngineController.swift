@@ -35,6 +35,9 @@ final class CallAudioEngineController: @unchecked Sendable {
     private let tonePlayerNode = AVAudioPlayerNode()
     private let remotePlayerNode = AVAudioPlayerNode()
 
+    /// Guaranteed valid stereo 44.1kHz tone format matching synthesized ringback and chime buffers.
+    private static let standardToneFormat = AVAudioFormat(standardFormatWithSampleRate: 44100.0, channels: 2)!
+
     // MARK: - State
 
     private var isTapInstalled = false
@@ -76,10 +79,14 @@ final class CallAudioEngineController: @unchecked Sendable {
         engine.attach(remotePlayerNode)
 
         let mainMixer = engine.mainMixerNode
-        let format = mainMixer.outputFormat(forBus: 0)
+        let mixerFormat = mainMixer.outputFormat(forBus: 0)
+        let remoteFormat = (mixerFormat.sampleRate > 0 && mixerFormat.channelCount > 0)
+            ? mixerFormat
+            : Self.standardToneFormat
 
-        engine.connect(tonePlayerNode, to: mainMixer, format: format)
-        engine.connect(remotePlayerNode, to: mainMixer, format: format)
+        // Connect tonePlayerNode with guaranteed valid stereo toneFormat matching synthesized tone buffers
+        engine.connect(tonePlayerNode, to: mainMixer, format: Self.standardToneFormat)
+        engine.connect(remotePlayerNode, to: mainMixer, format: remoteFormat)
     }
 
     // MARK: - Public Audio Control
@@ -210,15 +217,23 @@ final class CallAudioEngineController: @unchecked Sendable {
     private func installMicrophoneTapIfNeeded(inputNode: AVAudioInputNode) {
         guard !isTapInstalled else { return }
 
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0 && inputFormat.channelCount > 0 else {
-            AppLogger.general.notice("Input format invalid for tap: \(inputFormat)")
+        #if targetEnvironment(simulator)
+        AppLogger.general.notice("Simulator environment detected: skipping hardware microphone tap")
+        return
+        #else
+        let bus = 0
+        let hwFormat = inputNode.inputFormat(forBus: bus)
+        let tapFormat = inputNode.outputFormat(forBus: bus)
+
+        guard hwFormat.sampleRate > 0 && hwFormat.channelCount > 0,
+              tapFormat.sampleRate > 0 && tapFormat.channelCount > 0 else {
+            AppLogger.general.notice("Microphone input format invalid for tap (hw: \(hwFormat), tap: \(tapFormat))")
             return
         }
 
         let bufferSize: AVAudioFrameCount = 1024
 
-        inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: inputFormat) { [weak self] buffer, _ in
+        inputNode.installTap(onBus: bus, bufferSize: bufferSize, format: tapFormat) { [weak self] buffer, _ in
             guard let self else { return }
 
             guard !self.isMuted else {
@@ -251,6 +266,7 @@ final class CallAudioEngineController: @unchecked Sendable {
         }
 
         isTapInstalled = true
+        #endif
     }
 
     // MARK: - Private Tone Playback Helper
@@ -283,20 +299,20 @@ final class CallAudioEngineController: @unchecked Sendable {
 
     // MARK: - Tone Synthesis Generators
 
-    /// Synthesizes standard 440Hz + 480Hz dual-frequency ringback tone with 2s ON / 4s OFF cadence.
+    /// Synthesizes standard 440Hz + 480Hz dual-frequency ringback tone with 2s ON / 4s OFF cadence in stereo.
     private static func generateRingbackToneBuffer() -> AVAudioPCMBuffer? {
         let sampleRate: Double = 44100.0
         let totalDuration: Double = 6.0
         let onDuration: Double = 2.0
         let frameCount = AVAudioFrameCount(sampleRate * totalDuration)
 
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
-              let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+        guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: standardToneFormat, frameCapacity: frameCount) else {
             return nil
         }
 
         pcmBuffer.frameLength = frameCount
-        guard let channelData = pcmBuffer.floatChannelData?[0] else { return nil }
+        guard let leftChannel = pcmBuffer.floatChannelData?[0],
+              let rightChannel = pcmBuffer.floatChannelData?[1] else { return nil }
 
         let onFrames = Int(sampleRate * onDuration)
         let fadeFrames = Int(sampleRate * 0.02) // 20ms fade in/out to avoid clicks
@@ -316,28 +332,31 @@ final class CallAudioEngineController: @unchecked Sendable {
                     envelope = 1.0
                 }
 
-                channelData[frame] = Float(wave * envelope)
+                let sampleValue = Float(wave * envelope)
+                leftChannel[frame] = sampleValue
+                rightChannel[frame] = sampleValue
             } else {
-                channelData[frame] = 0.0
+                leftChannel[frame] = 0.0
+                rightChannel[frame] = 0.0
             }
         }
 
         return pcmBuffer
     }
 
-    /// Synthesizes high-fidelity multi-harmonic melodic chime pattern for incoming calls.
+    /// Synthesizes high-fidelity multi-harmonic melodic chime pattern for incoming calls in stereo.
     private static func generateIncomingRingtoneBuffer() -> AVAudioPCMBuffer? {
         let sampleRate: Double = 44100.0
         let totalDuration: Double = 3.0
         let frameCount = AVAudioFrameCount(sampleRate * totalDuration)
 
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
-              let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+        guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: standardToneFormat, frameCapacity: frameCount) else {
             return nil
         }
 
         pcmBuffer.frameLength = frameCount
-        guard let channelData = pcmBuffer.floatChannelData?[0] else { return nil }
+        guard let leftChannel = pcmBuffer.floatChannelData?[0],
+              let rightChannel = pcmBuffer.floatChannelData?[1] else { return nil }
 
         // Melodic notes sequence: (Frequency, StartTime, Duration)
         let notes: [(Double, Double, Double)] = [
@@ -366,7 +385,9 @@ final class CallAudioEngineController: @unchecked Sendable {
                 }
             }
 
-            channelData[frame] = Float(max(-1.0, min(1.0, sample)))
+            let sampleValue = Float(max(-1.0, min(1.0, sample)))
+            leftChannel[frame] = sampleValue
+            rightChannel[frame] = sampleValue
         }
 
         return pcmBuffer
