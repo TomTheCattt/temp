@@ -318,7 +318,26 @@ actor FirebaseDataSeeder: Sendable {
             }
         }
 
-        // 6. Mark seed as complete under user subcollection (permitted by user subcollection rule)
+        // 6. Seed Instagram Notes
+        for note in MockData.seededNotes {
+            let noteDoc: [String: Any] = [
+                "id": note.id,
+                "userId": note.isCurrentUser ? currentUid : note.user.id,
+                "text": note.text,
+                "isCurrentUser": note.isCurrentUser,
+                "user": [
+                    "id": note.isCurrentUser ? currentUid : note.user.id,
+                    "username": note.user.username,
+                    "fullName": note.user.fullName,
+                    "avatarURL": note.user.avatarURL?.absoluteString ?? "",
+                    "isVerified": note.user.isVerified
+                ],
+                "createdAt": Timestamp(date: note.createdAt)
+            ]
+            try? await db.collection("notes").document(note.id).setData(noteDoc, merge: true)
+        }
+
+        // 7. Mark seed as complete under user subcollection (permitted by user subcollection rule)
         let statusPayload: [String: Any] = [
             "is_seeded": true,
             "seeded_at": Timestamp(date: Date()),

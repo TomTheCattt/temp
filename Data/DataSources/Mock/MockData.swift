@@ -600,7 +600,7 @@ nonisolated enum MockData {
             }()
 
             let status: MessageStatus = {
-                if isLast && unreadCount > 0 && sender.id != currentUser.id {
+                if unreadCount > 0 && sender.id != currentUser.id && idx >= (total - unreadCount) {
                     return .delivered
                 }
                 return .read
@@ -935,40 +935,56 @@ nonisolated enum MockData {
             )
         )
 
-        // 12 -> 35: Users 10 to 33 (Tailored rich topics, strict chronological order)
-        let additionalTopics = [
-            ("Quốc Bảo", "Mobile Engineer", "Bản cập nhật Swift Package Manager trên Xcode 16 tối ưu thời gian build đáng kể.", "Mình cũng thấy clean build giảm được gần 35% thời gian luôn! 🚀", false),
-            ("Thủy Tiên", "Ceramics Artist", "Bộ sưu tập ly gốm mộc vuốt tay mẻ mới men tro củi nung xong rồi nè.", "Màu men mộc mạc và vân rạn tự nhiên nhìn nghệ thuật lắm Tiên ơi! 🏺", false),
-            ("David Chen", "Music Producer", "Track Lo-fi beat mới mix xong với sample tiếng mưa Sài Gòn nè.", "Giai điệu chill và bass ấm áp nghe vào buổi tối thư thái cực kỳ 🎧", false),
-            ("Mai Anh", "Book Reviewer", "Cuốn sách về tâm lý học hành vi người dùng trong app cậu giới thiệu đọc cuốn thật sự.", "Đoạn phân tích micro-interactions tạo dopamine đọc thấm thía cậu nhỉ? 📚", true), // Unread: 1
-            ("Hoàng Long", "Calisthenics", "Sáng nay set tập xà đơn 5 hiệp kết hợp muscle up cảm giác cơ bắp kích hoạt tốt lắm.", "Form chuẩn đét luôn Long ơi, kiên trì tập luyện nhìn phong độ hẳn! 💪", false),
-            ("Thu Hà", "Coffee Roaster", "Hạt Geisha sơ chế yếm khí từ Cầu Đất hương hoa nhài và vị ngọt hậu sâu lắm.", "Cuối tuần mình ghé quán trải nghiệm ly pour-over nhé Hà ơi! ☕️", false),
-            ("Tuấn Anh", "Film Director", "Thước phim 35mm quay bối cảnh chợ hoa Đầm Sen tráng scan ra màu hoài niệm ghê.", "Chất phim Kodak Portra 400 da người lên màu ấm áp không lẫn vào đâu được 🎞️", false),
-            ("Bảo Ngọc", "Yoga Instructor", "Bài tập thở Pranayama sáng nay giúp giải tỏa stress và căng cơ hiệu quả lắm.", "Cảm ơn bài hướng dẫn của Ngọc nhé, tập xong thấy đầu óc nhẹ nhõm hẳn 🧘‍♀️", false),
-            ("Quang Huy", "UI Designer", "Cậu thấy style Bento Grid layout ứng dụng vào màn hình Profile thế nào?", "Style này phân cấp thông tin rõ ràng và hiện đại, rất hợp xu hướng! 🎨", false),
-            ("Phương Thảo", "Content Creator", "Video reel chia sẻ tips học Swift concurrency của cậu lên xu hướng 100k views rồi nè!", "Woa cảm ơn Thảo đã chia sẻ nha, động lực làm thêm nhiều clip hữu ích nữa! ✨", false),
-            ("Văn Hùng", "Backend Dev", "API streaming tin nhắn qua WebSocket đã triển khai heartbeat keep-alive ổn định rồi.", "Tuyệt vời, latency round-trip đo được dưới 18ms, kết nối realtime mượt mà! ⚡️", false),
-            ("Thanh Trúc", "Illustrator", "Sticker pack chú mèo máy mình vẽ tặng cộng đồng iOS dev vừa duyệt xong nè.", "Sticker cute xỉu Trúc ơi, team mình add vào xài liền đây! 🐱", false),
-            ("Đức Minh", "Product Manager", "Sprint retrospective tuần này team mình hoàn thành 100% story points đề ra.", "Cảm ơn Minh đã lead sprint mượt mà và clear hết mọi blockers cho anh em! 🎯", false),
-            ("Khánh Linh", "Travel Blogger", "Chuyến đi săn mây ở đỉnh Tà Xùa bình minh đẹp tựa chốn bồng lai tiên cảnh.", "Nhìn ảnh mà mê quá Linh ơi, nhất định mùa đông này mình phải đi một chuyến! ☁️", false)
+        // 12 -> 35: Users 10 to 33 (Tailored rich topics matching each user's exact persona & bio)
+        let tailoredUserTopics: [(userText: String, replyText: String, isUnread: Bool)] = [
+            ("Bản cập nhật Swift Package Manager trên Xcode 16 tối ưu thời gian build đáng kể.", "Mình cũng thấy clean build giảm được gần 35% thời gian luôn Bảo ơi! 🚀", false), // 10: Phạm Quốc Bảo (Mobile Eng)
+            ("Bộ sưu tập ly gốm mộc vuốt tay mẻ mới men tro củi nung xong rồi nè.", "Màu men mộc mạc và vân rạn tự nhiên nhìn nghệ thuật lắm Tiên ơi! 🏺", false), // 11: Đặng Thủy Tiên (Ceramics)
+            ("Track Lo-fi beat mới mix xong với sample tiếng mưa Sài Gòn nè.", "Giai điệu chill và bass ấm áp nghe vào buổi tối thư thái cực kỳ David 🎧", false), // 12: David Chen (Music Producer)
+            ("Cuốn sách về tâm lý học hành vi người dùng trong app cậu giới thiệu đọc cuốn thật sự.", "Đoạn phân tích micro-interactions tạo dopamine đọc thấm thía Mai Anh nhỉ? 📚", true), // 13: Vũ Mai Anh (Book Reviewer - Unread: 1)
+            ("Hôm qua mình vừa lang thang chụp phố cổ Chợ Lớn với cuộn phim Kodak Tri-X 400 đen trắng.", "Độ tương phản và hạt grain đen trắng lên chất hoài niệm đỉnh quá Nam ơi! 🎞️", false), // 14: Ngô Hoàng Nam (Street Photo)
+            ("Bài tập giãn cơ lưng và cột sống sau khi ngồi code cả ngày hiệu quả lắm Tom.", "Cảm ơn Chloe nhé, tập xong thấy vai gáy nhẹ nhõm và thư giãn hẳn! 🧘‍♀️", false), // 15: Chloe Nguyen (Fitness & Yoga)
+            ("Mẻ cà phê Ethiopia Yirgacheffe sơ chế yếm khí hương hoa nhài và cam bergamot vừa về.", "Cuối tuần mình ghé quán trải nghiệm ly pour-over thủ công nhé Kiệt ơi! ☕️", false), // 16: Lý Tuấn Kiệt (Coffee Roaster)
+            ("Mẻ bánh croissant bơ Pháp ngàn lớp vừa ra lò thơm phức đây nè Tom.", "Vỏ bánh giòn xốp và ruột tổ ong đều tăm tắp đẹp xuất sắc Sophia ơi! 🥐", false), // 17: Sophia Miller (Artisan Bakery)
+            ("Bộ icon vector 24px vẽ nét mảnh 1.5pt cho Design System mới hoàn thiện rồi nè.", "Nét bo góc và optical alignment cân đối thị giác rất chuẩn chỉ Huy ơi! 📐", false), // 18: Bùi Đức Huy (Product Designer)
+            ("Chuyến đi săn mây ở đỉnh Tà Xùa bình minh đẹp tựa chốn bồng lai tiên cảnh.", "Nhìn ảnh mây trôi bồng bềnh mà mê quá Hà ơi, nhất định mình phải đi một chuyến! ☁️", false), // 19: Hoàng Ngọc Hà (Travel Blogger)
+            ("Lookbook bộ sưu tập thời trang Thu Đông tối giản vừa chụp xong nè.", "Tone màu beige và chất dạ len nhìn thanh lịch quý phái quá Thảo ơi! ✨", false), // 20: Đỗ Phương Thảo (Fashion Stylist)
+            ("Teaser phim ngắn tài liệu về nghệ nhân đàn tranh Sài Gòn render xong rồi.", "Màu phim ấm và ánh sáng tự nhiên có chiều sâu nghệ thuật lắm Việt Anh! 🎬", false), // 21: Vũ Việt Anh (Filmmaker)
+            ("Mẫu bánh macaron nhân trà xanh matcha Shizuoka mới làm thử nghiệm nè.", "Chân bánh nở đều và lớp vỏ bóng mịn nhìn hấp dẫn quá Ngọc ơi! 🍰", false), // 22: Trần Bảo Ngọc (Pastry Chef)
+            ("Video podcast chia sẻ phương pháp phản xạ tiếng Anh tự nhiên vừa lên sóng.", "Cách tiếp cận immersion thực tế và cuốn hút người nghe lắm Vy ơi! 🎙️", false), // 23: Lê Khánh Vy (IELTS Instructor)
+            ("Bản prototype game pixel art 2D chạy mượt 60 FPS trên iPad rồi nè.", "Hiệu ứng ánh sáng retro và gameplay điều khiển nhạy lắm Tùng ơi! 🕹️", false), // 24: Nguyễn Thanh Tùng (Indie Game Dev)
+            ("Bó hoa cưới phối hoa hồng gai và cành khuynh diệp sấy mộc mạc nè.", "Cách phối màu pastel trang nhã và tinh tế vô cùng Hằng ơi! 🌸", false), // 25: Đinh Minh Hằng (Florist)
+            ("Bản vẽ mặt cắt biệt thự nghỉ dưỡng ven biển tối ưu thông gió tự nhiên nè.", "Giải pháp lam chắn nắng và giếng trời đón gió thông minh quá Huy ơi! 🏛️", false), // 26: Hoàng Quang Huy (Architect)
+            ("Báo cáo chiến dịch truyền thông tuần qua đạt tỷ lệ chuyển đổi tăng 45% nè.", "Chỉ số ROI và retention rate ấn tượng vượt mong đợi luôn Ngân ơi! 📊", false), // 27: Phan Kim Ngân (Digital Marketing)
+            ("Chiếc bàn phím cơ custom vỏ nhôm CNC anodized switch silent gõ êm ru nè.", "Âm thanh thocky ấm áp gõ code đêm không sợ phiền ai Hiếu ơi! ⌨️", false), // 28: Lưu Văn Hiếu (Keyboard Enthusiast)
+            ("Mô hình phân loại rác hữu cơ ủ phân compost tại nhà hoạt động hiệu quả ghê.", "Giải pháp xanh bền vững và thân thiện với môi trường lắm Trà My ơi! 🌿", false), // 29: Võ Trà My (Eco-lifestyle)
+            ("Công thức pha Aeropress đảo ngược giữ trọn vị ngọt caramel tự nhiên nè.", "Body mượt mà và hậu vị ngọt thanh kéo dài thích mê Đạt ơi! ☕️", false), // 30: Trần Tiến Đạt (Barista)
+            ("Đoạn clip biểu diễn múa đương đại kết hợp nhạc cụ dân tộc vừa diễn tối qua.", "Chuyển động cơ thể dẻo dai và biểu cảm giàu cảm xúc lắm Giang ơi! 🩰", false), // 31: Nguyễn Hương Giang (Dancer)
+            ("Đánh giá chi tiết chiếc xe điện mới về khả năng tăng tốc và hệ thống treo.", "Phân tích kỹ thuật khách quan và trực quan từng góc máy Khôi ơi! 🏎️", false), // 32: Lê Đình Khôi (Car Reviewer)
+            ("Bức tranh màu nước phong cảnh vịnh Hạ Long buổi hoàng hôn vừa vẽ xong nè.", "Kỹ thuật loang màu nước và vệt sáng phản chiếu lung linh quá Linh ơi! 🎨", false)  // 33: Bùi Phương Linh (Watercolor)
         ]
 
         let startIndex = 10
-        for i in 0..<24 {
-            let userIndex = startIndex + (i % (users.count - startIndex))
+        for i in 0..<tailoredUserTopics.count {
+            let userIndex = startIndex + i
+            guard userIndex < users.count else { break }
             let user = users[userIndex]
-            let topicIndex = i % additionalTopics.count
-            let topic = additionalTopics[topicIndex]
-            let isUnread = topic.4 && (i == 3) // Only index 14 is unread from Mai Anh
+            let topic = tailoredUserTopics[i]
+            let isUnread = topic.isUnread
             let baseHours = Double(30 + i * 4)
             let baseDate = Date(timeIntervalSinceNow: -baseHours * 3600)
+            let firstName = user.fullName.components(separatedBy: " ").last ?? user.username
 
             let steps: [DialogueStep] = [
                 DialogueStep(isMe: false, content: .text("Chào Tom! Hôm nay công việc bên cậu tiến triển thế nào rồi?")),
-                DialogueStep(isMe: true, content: .text("Chào \(user.fullName.components(separatedBy: " ").last ?? user.username)! Mình đang tập trung hoàn thiện dự án.")),
-                DialogueStep(isMe: false, content: .text(topic.2)),
-                DialogueStep(isMe: true, content: .text(topic.3)),
-                DialogueStep(isMe: isUnread ? false : (i % 2 == 0), content: isUnread ? .text("Cậu có thời gian thì xem qua rồi góp ý thêm cho mình nha!") : (i % 2 == 0 ? .like : .text("Hẹn sớm gặp lại cậu nhé! 👍")))
+                DialogueStep(isMe: true, content: .text("Chào \(firstName)! Mình đang tập trung hoàn thiện dự án.")),
+                DialogueStep(isMe: false, content: .text(topic.userText)),
+                DialogueStep(isMe: true, content: .text(topic.replyText)),
+                DialogueStep(
+                    isMe: isUnread ? false : (i % 2 == 0),
+                    content: isUnread
+                        ? .text("Cậu có thời gian thì xem qua rồi góp ý thêm cho mình nha!")
+                        : (i % 2 == 0 ? .like : .text("Hẹn sớm gặp lại cậu nhé! 👍"))
+                )
             ]
 
             let convId = "conv_\(startIndex + 1 + i)"
