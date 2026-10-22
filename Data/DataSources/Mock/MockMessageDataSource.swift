@@ -404,7 +404,8 @@ actor MockMessageDataSource {
             conv.participants.contains(where: { $0.id == remoteUserId })
         }) {
             let conv = inMemoryConversations[convIndex]
-            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let isRejectedOrBusy = (reason == "rejected" || reason == "busy")
+            let isMissedIncoming = !isOutgoing && !isRejectedOrBusy && (reason == "timeout" || duration == nil || duration == "00:00")
             let newUnreadCount = isMissedIncoming ? conv.unreadCount + 1 : conv.unreadCount
 
             let callMessage = Message(
@@ -443,7 +444,8 @@ actor MockMessageDataSource {
         } else {
             // Auto-create new Conversation for remoteUserId
             let newConvId = "conv_\(remoteUserId)"
-            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let isRejectedOrBusy = (reason == "rejected" || reason == "busy")
+            let isMissedIncoming = !isOutgoing && !isRejectedOrBusy && (reason == "timeout" || duration == nil || duration == "00:00")
             let unreadCount = isMissedIncoming ? 1 : 0
 
             let callMessage = Message(
