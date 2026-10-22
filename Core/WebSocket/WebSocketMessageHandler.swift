@@ -31,10 +31,10 @@ enum WebSocketIncomingMessage: Sendable {
     case callOffer(CallSignalPayload)
     case callAnswer(CallSignalPayload)
     case callIceCandidate(CallSignalPayload)
-    case callHangup(callId: String, userId: String)
-    case callReject(callId: String, userId: String)
-    case callBusy(callId: String, userId: String)
-    case callRinging(callId: String, userId: String)
+    case callHangup(callId: String, fromUserId: String, toUserId: String)
+    case callReject(callId: String, fromUserId: String, toUserId: String)
+    case callBusy(callId: String, fromUserId: String, toUserId: String)
+    case callRinging(callId: String, fromUserId: String, toUserId: String)
 
     // Fallback
     case unknown(String)
@@ -212,14 +212,14 @@ final class WebSocketMessageHandler: @unchecked Sendable {
                         sdpMid: p.iceSdpMid,
                         sdpMLineIndex: p.iceSdpMLineIndex
                     )
-                case .callHangup(let callId, let userId):
-                    return .callHangup(callId: callId, fromUserId: userId, toUserId: "")
-                case .callReject(let callId, let userId):
-                    return .callReject(callId: callId, fromUserId: userId, toUserId: "")
-                case .callBusy(let callId, let userId):
-                    return .callBusy(callId: callId, fromUserId: userId, toUserId: "")
-                case .callRinging(let callId, let userId):
-                    return .callRinging(callId: callId, fromUserId: userId, toUserId: "")
+                case .callHangup(let callId, let fromUserId, let toUserId):
+                    return .callHangup(callId: callId, fromUserId: fromUserId, toUserId: toUserId)
+                case .callReject(let callId, let fromUserId, let toUserId):
+                    return .callReject(callId: callId, fromUserId: fromUserId, toUserId: toUserId)
+                case .callBusy(let callId, let fromUserId, let toUserId):
+                    return .callBusy(callId: callId, fromUserId: fromUserId, toUserId: toUserId)
+                case .callRinging(let callId, let fromUserId, let toUserId):
+                    return .callRinging(callId: callId, fromUserId: fromUserId, toUserId: toUserId)
                 default:
                     return nil
                 }
@@ -379,25 +379,29 @@ final class WebSocketMessageHandler: @unchecked Sendable {
         case "call_hangup":
             if let callId = json["call_id"] as? String,
                let userId = json["from_user_id"] as? String ?? json["user_id"] as? String {
-                incomingSubject.send(.callHangup(callId: callId, userId: userId))
+                let toUserId = json["to_user_id"] as? String ?? ""
+                incomingSubject.send(.callHangup(callId: callId, fromUserId: userId, toUserId: toUserId))
             }
 
         case "call_reject":
             if let callId = json["call_id"] as? String,
                let userId = json["from_user_id"] as? String ?? json["user_id"] as? String {
-                incomingSubject.send(.callReject(callId: callId, userId: userId))
+                let toUserId = json["to_user_id"] as? String ?? ""
+                incomingSubject.send(.callReject(callId: callId, fromUserId: userId, toUserId: toUserId))
             }
 
         case "call_busy":
             if let callId = json["call_id"] as? String,
                let userId = json["from_user_id"] as? String ?? json["user_id"] as? String {
-                incomingSubject.send(.callBusy(callId: callId, userId: userId))
+                let toUserId = json["to_user_id"] as? String ?? ""
+                incomingSubject.send(.callBusy(callId: callId, fromUserId: userId, toUserId: toUserId))
             }
 
         case "call_ringing":
             if let callId = json["call_id"] as? String,
                let userId = json["from_user_id"] as? String ?? json["user_id"] as? String {
-                incomingSubject.send(.callRinging(callId: callId, userId: userId))
+                let toUserId = json["to_user_id"] as? String ?? ""
+                incomingSubject.send(.callRinging(callId: callId, fromUserId: userId, toUserId: toUserId))
             }
 
         default:

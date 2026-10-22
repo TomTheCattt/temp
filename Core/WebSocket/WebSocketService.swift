@@ -98,6 +98,8 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
     private var lastHeaders: [String: String] = [:]
     private var shouldReconnect = false
     private var reconnectAttempt = 0
+    private var connectionGeneration: UInt64 = 0
+    private var lastPongReceivedAt: Date = Date()
 
     // MARK: - Configuration
 
@@ -135,6 +137,9 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
                 // Tear down existing connection
                 self.tearDown()
 
+                self.connectionGeneration &+= 1
+                let currentGeneration = self.connectionGeneration
+                self.lastPongReceivedAt = Date()
                 self.lastURL = url
                 self.lastHeaders = headers
                 self.shouldReconnect = true
@@ -166,9 +171,9 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
                 self.webSocketTask = task
                 task.resume()
 
-                self.logger.info("WebSocket connecting to: \(url.absoluteString)")
-                self.startReceiving()
-                self.startPingTimer()
+                self.logger.info("WebSocket connecting to: \(url.absoluteString) [generation: \(currentGeneration)]")
+                self.startReceiving(generation: currentGeneration)
+                self.startPingTimer(generation: currentGeneration)
 
                 continuation.resume()
             }
@@ -219,10 +224,14 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
     func ping() async {
         guard let task = queue.sync(execute: { webSocketTask }) else { return }
         task.sendPing { [weak self] error in
-            if let error {
-                self?.logger.error("WebSocket ping failed: \(error.localizedDescription)")
-            } else {
-                self?.eventSubject.send(.pong)
+            guard let self else { return }
+            self.queue.async {
+                if let error {
+                    self.logger.error("WebSocket ping failed: \(error.localizedDescription)")
+                } else {
+                    self.lastPongReceivedAt = Date()
+                    self.eventSubject.send(.pong)
+                }
             }
         }
     }
@@ -248,16 +257,22 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
 
     // MARK: - Private: Receive Loop
 
-    /// Must be called on `queue`.
-    private func startReceiving() {
+    /// Must be called on `queue`. Guarantees exactly one receive loop per connection generation (Cẩm Nang §5.3).
+    private func startReceiving(generation: UInt64) {
         guard let task = webSocketTask else { return }
 
         task.receive { [weak self] result in
             guard let self else { return }
 
             // Already on `queue` because delegateQueue uses our serial queue
+            guard self.connectionGeneration == generation else {
+                self.logger.info("Discarding WebSocket receive loop from stale generation \(generation) (current: \(self.connectionGeneration))")
+                return
+            }
+
             switch result {
             case .success(let message):
+                self.lastPongReceivedAt = Date()
                 switch message {
                 case .string(let text):
                     self.eventSubject.send(.message(.text(text)))
@@ -266,8 +281,8 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
                 @unknown default:
                     break
                 }
-                // Continue receiving
-                self.startReceiving()
+                // Continue receiving on same generation
+                self.startReceiving(generation: generation)
 
             case .failure(let error):
                 guard self._connectionState == .connected || self._connectionState == .connecting else { return }
@@ -281,14 +296,27 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
 
     // MARK: - Private: Ping Timer
 
-    /// Must be called on `queue`.
-    private func startPingTimer() {
+    /// Must be called on `queue`. Includes watchdog timeout detection for half-open sockets (Cẩm Nang §3.3).
+    private func startPingTimer(generation: UInt64) {
         stopPingTimer()
 
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + pingInterval, repeating: pingInterval)
         timer.setEventHandler { [weak self] in
             guard let self else { return }
+            guard self.connectionGeneration == generation else { return }
+
+            // Watchdog check: If no message or pong received in 2x pingInterval, mark as dead/half-open
+            let silenceDuration = Date().timeIntervalSince(self.lastPongReceivedAt)
+            if silenceDuration > (self.pingInterval * 2.2) {
+                self.logger.notice("WebSocket half-open connection detected (silence for \(String(format: "%.1f", silenceDuration))s); scheduling reconnect")
+                self.updateState(.disconnected)
+                self.eventSubject.send(.disconnected(WebSocketError.timeout))
+                self.tearDown()
+                self.scheduleReconnect()
+                return
+            }
+
             Task { [weak self] in
                 await self?.ping()
             }
