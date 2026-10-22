@@ -135,9 +135,6 @@ struct DirectMessagesView: View {
                 await viewModel.loadConversations()
             }
         }
-        .onAppear {
-            viewModel.refreshFromLocal()
-        }
     }
 
     // MARK: - Chat Navigation Bar (2 buttons: 1 center, 1 trailing)

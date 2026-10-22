@@ -28,12 +28,9 @@ final class DirectMessagesViewModel {
         let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return conversations }
 
-        let clock = ContinuousClock()
-        let startTime = clock.now
-
         let lower = trimmed.lowercased()
         let currentUserId = SessionStore.shared.currentUserId
-        let result = conversations.filter { conv in
+        return conversations.filter { conv in
             let otherUser = conv.participants.first { $0.id != currentUserId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
                 ?? conv.participants.first { $0.id != currentUserId }
                 ?? conv.participants.first
@@ -42,10 +39,6 @@ final class DirectMessagesViewModel {
             let groupMatch = conv.groupName?.lowercased().contains(lower) ?? false
             return usernameMatch || fullNameMatch || groupMatch
         }
-
-        let elapsed = clock.now - startTime
-        print("[Benchmark] DirectMessagesViewModel.filteredConversations: \(elapsed) for \(result.count) items")
-        return result
     }
 
     // MARK: - Dependencies
@@ -62,6 +55,7 @@ final class DirectMessagesViewModel {
 
     private func subscribeToSyncUpdates() {
         NotificationCenter.default.publisher(for: .didUpdateConversations)
+            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.refreshFromLocal()
@@ -69,9 +63,14 @@ final class DirectMessagesViewModel {
             .store(in: &cancellables)
     }
 
+    private var refreshTask: Task<Void, Never>?
+
     func refreshFromLocal() {
-        Task {
-            if let convs = try? await messageRepository.fetchConversations(page: 1, perPage: 30) {
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let convs = try? await self.messageRepository.fetchConversations(page: 1, perPage: 30) {
+                guard !Task.isCancelled else { return }
                 self.conversations = convs
             }
         }

@@ -35,7 +35,10 @@ final class ChatViewModel {
     /// Resolved current user id. Falls back to the shared session store when the
     /// injected value is empty so bubbles don't all render as incoming.
     var currentUserId: String {
-        injectedCurrentUserId.isEmpty ? SessionStore.shared.currentUserId : injectedCurrentUserId
+        let storeId = SessionStore.shared.currentUserId
+        if !storeId.isEmpty { return storeId }
+        if !injectedCurrentUserId.isEmpty { return injectedCurrentUserId }
+        return MockData.currentUser.id
     }
 
     private let injectedCurrentUserId: String
@@ -403,6 +406,7 @@ final class ChatViewModel {
         messages.remove(at: index)
         Task {
             try? await messageRepository.deleteMessage(id: id)
+            NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
         }
     }
 
@@ -410,13 +414,44 @@ final class ChatViewModel {
         guard !isSending else { return }
         isSending = true
 
+        let tempId = "temp_img_\(UUID().uuidString.prefix(8))"
+        let currentUser = SessionStore.shared.currentUser ?? MockData.currentUser
+        let pendingMessage = Message(
+            id: tempId,
+            conversationId: conversationId,
+            sender: currentUser,
+            content: .image(url),
+            status: .sending,
+            replyToId: nil,
+            replyToSnippet: nil,
+            reactions: [:],
+            createdAt: .now
+        )
+        messages.insert(pendingMessage, at: 0)
+
         do {
             let message = try await sendMessageUseCase.execute(
                 SendMessageInput(conversationId: conversationId, content: .image(url))
             )
-            messages.insert(message, at: 0)
-            simulateReadReceipt(for: message.id)
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                messages[index] = message
+                simulateReadReceipt(for: message.id)
+            }
         } catch {
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                let current = messages[index]
+                messages[index] = Message(
+                    id: current.id,
+                    conversationId: current.conversationId,
+                    sender: current.sender,
+                    content: current.content,
+                    status: .failed,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet,
+                    reactions: current.reactions,
+                    createdAt: current.createdAt
+                )
+            }
             ToastManager.shared.error(error.userMessage)
         }
 
@@ -427,13 +462,31 @@ final class ChatViewModel {
         guard !isSending else { return }
         isSending = true
 
+        let tempId = "temp_like_\(UUID().uuidString.prefix(8))"
+        let currentUser = SessionStore.shared.currentUser ?? MockData.currentUser
+        let pendingMessage = Message(
+            id: tempId,
+            conversationId: conversationId,
+            sender: currentUser,
+            content: .like,
+            status: .sending,
+            replyToId: nil,
+            replyToSnippet: nil,
+            reactions: [:],
+            createdAt: .now
+        )
+        messages.insert(pendingMessage, at: 0)
+
         do {
             let message = try await sendMessageUseCase.execute(
                 SendMessageInput(conversationId: conversationId, content: .like)
             )
-            messages.insert(message, at: 0)
-            simulateReadReceipt(for: message.id)
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                messages[index] = message
+                simulateReadReceipt(for: message.id)
+            }
         } catch {
+            messages.removeAll { $0.id == tempId }
             ToastManager.shared.error(error.userMessage)
         }
 

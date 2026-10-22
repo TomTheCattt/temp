@@ -397,7 +397,8 @@ struct ChatView: View {
                             doubleTappedMessageId = message.id
                         }
                         viewModel.addReaction(to: message.id, emoji: "❤️")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 800_000_000)
                             withAnimation(.easeOut(duration: 0.2)) {
                                 if doubleTappedMessageId == message.id {
                                     doubleTappedMessageId = nil
