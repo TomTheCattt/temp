@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Instagram iOS Firebase REST Seeder
-Seeds rich production-ready data into Firebase Authentication & Cloud Firestore
-via official Google REST APIs, 100% compliant with firestore.rules (Zero Permission Denied).
+Instagram iOS Firebase REST Seeder - 1xx Scale Edition
+Seeds 100+ documents per table on Cloud Firestore via official REST APIs.
+Maintains 100% Relational Matrix Integrity and Zero Permission Denied compliance.
 """
 
 import sys
@@ -74,7 +74,6 @@ def http_post(url, data_dict, headers=None, method="POST"):
 
 def ensure_auth_user(email, display_name):
     """Signs in user or creates account if not exists, returning (uid, idToken)"""
-    # 1. Try sign in
     try:
         res = http_post(AUTH_SIGNIN_URL, {
             "email": email,
@@ -82,11 +81,9 @@ def ensure_auth_user(email, display_name):
             "returnSecureToken": True
         })
         return res["localId"], res["idToken"]
-    except RuntimeError as e:
-        if "EMAIL_NOT_FOUND" not in str(e) and "INVALID_LOGIN_CREDENTIALS" not in str(e):
-            pass
+    except RuntimeError:
+        pass
 
-    # 2. Try sign up
     try:
         res = http_post(AUTH_SIGNUP_URL, {
             "email": email,
@@ -94,8 +91,7 @@ def ensure_auth_user(email, display_name):
             "returnSecureToken": True
         })
         return res["localId"], res["idToken"]
-    except RuntimeError as e:
-        # If email exists but wrong password or other error, retry sign in
+    except RuntimeError:
         res = http_post(AUTH_SIGNIN_URL, {
             "email": email,
             "password": PASSWORD,
@@ -103,81 +99,131 @@ def ensure_auth_user(email, display_name):
         })
         return res["localId"], res["idToken"]
 
-def write_document(path, fields_dict, token):
+def write_document(path, fields_dict, token, skip_if_exists=True):
     url = f"{FS_BASE_URL}/{path}"
-    # If doc already exists, preserve its original createdAt to satisfy immutable rule
-    try:
-        req_get = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-        with urllib.request.urlopen(req_get, timeout=5) as resp:
-            existing = json.loads(resp.read().decode("utf-8"))
-            if "fields" in existing and "createdAt" in existing["fields"]:
-                fields_dict["createdAt"] = existing["fields"]["createdAt"]["timestampValue"]
-    except Exception:
-        pass
+    if skip_if_exists:
+        try:
+            req_get = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+            with urllib.request.urlopen(req_get, timeout=5) as resp:
+                if resp.status == 200:
+                    return {"name": path, "skipped": True}
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                pass
+        except Exception:
+            pass
 
     fs_body = {"fields": {k: to_fs(v) for k, v in fields_dict.items()}}
     return http_post(url, fs_body, headers={"Authorization": f"Bearer {token}"}, method="PATCH")
 
 # ---------------------------------------------------------------------------
-# Data Definitions
+# Dynamic 105 User Pool Generator
 # ---------------------------------------------------------------------------
 
-USER_DEFS = [
-    ("jane@example.com", "jane_doe", "Jane Doe", "Travel photographer 📸 Living between Tokyo & Da Nang", True),
-    ("alex@example.com", "alex_nguyen", "Alex Nguyen", "Hanoi • Street food • 35mm film photos 🎞️", False),
-    ("user_1@example.com", "jane_doe_photo", "Jane Doe Photography", "Photographer 📸 | Canon EOS R5", False),
-    ("user_2@example.com", "john_smith", "John Smith", "Travel 🌍 | Food 🍕 | Nomadic lifestyle", True),
-    ("user_3@example.com", "sara_design", "Sara Design", "UI/UX Designer ✨ | Design systems & motion", False),
-    ("user_4@example.com", "mike_dev", "Mike Developer", "SwiftUI | Kotlin | Rust enthusiast 💻", False),
-    ("user_5@example.com", "lisa_art", "Lisa Art", "Digital Artist 🎨 | Procreate illustrations", True),
-    ("user_6@example.com", "an_le", "Lê Hoàng An", "Architecture & Interior 🏛️ Saigon based", False),
-    ("user_7@example.com", "minh_tri", "Trần Minh Trí", "Coffee addict ☕️ • Tech reviewer 📱", False),
-    ("user_8@example.com", "lan_huong", "Nguyễn Lan Hương", "Fashion & Lifestyle 👗 Hanoi", True),
-    ("user_9@example.com", "alex_walker", "Alex Walker", "Outdoor adventures 🏔️ Trekking & Camping", False),
-    ("user_10@example.com", "emma_chef", "Emma Cook", "Plant-based recipes 🌱 Healthy sourdough & matcha", True),
-    ("user_11@example.com", "quoc_bao", "Phạm Quốc Bảo", "Mobile Engineer 🚀 Building iOS & macOS apps", False),
-    ("user_12@example.com", "thuy_tien", "Đặng Thủy Tiên", "Ceramics & Handmade Pottery 🏺 Da Nang workshop", False),
-    ("user_13@example.com", "david_music", "David Chen", "Music Producer 🎧 Lo-fi beats & vinyl collector", True),
-    ("user_14@example.com", "mai_anh", "Vũ Mai Anh", "Book reviewer 📚 | Cat mom 🐱 | Cozy corner", False),
-    ("user_15@example.com", "hoang_nam", "Ngô Hoàng Nam", "Street photography 🎞️ 35mm film only", False),
-    ("user_16@example.com", "chloe_fit", "Chloe Nguyen", "Fitness & Yoga Coach 🧘‍♀️ Mindful body & soul", True),
-    ("user_17@example.com", "tuan_kien", "Lý Tuấn Kiệt", "Specialty Coffee Roaster ☕️ Origin stories", False),
-    ("user_18@example.com", "sophia_baker", "Sophia Miller", "Artisan Bakery 🥐 French pastries & tarts", False),
-    ("user_19@example.com", "duc_huy", "Bùi Đức Huy", "Product Designer 📐 Figma & Design systems", False),
-    ("user_20@example.com", "huyen_my", "Trương Huyền My", "Watercolor & Gouache 🖌️ Nature painter", True),
-    ("user_21@example.com", "thanh_tung", "Vũ Thanh Tùng", "Landscape Photographer 🌄 Chasing golden hour", False),
-    ("user_22@example.com", "ngoc_anh", "Đoàn Ngọc Ánh", "Pastry Chef & Baker 🍰 Sweet creations", False),
-    ("user_23@example.com", "viet_dung", "Lê Việt Dũng", "Coffee Shop Owner ☕ Specialty brews & beans", False),
-    ("user_24@example.com", "phuong_linh", "Trần Phương Linh", "Fashion Designer & Stylist ✨ Modern vintage", True),
-    ("user_25@example.com", "hoang_long", "Nguyễn Hoàng Long", "Indie Game Developer 🎮 Pixels & chiptunes", False),
-    ("user_26@example.com", "thu_ha", "Phạm Thu Hà", "Yoga & Mindfulness Coach 🧘 Mind & breath", False),
-    ("user_27@example.com", "quang_huy", "Đinh Quang Huy", "Architect & Urban Sketcher 🏛️ Saigon lines", True),
-    ("user_28@example.com", "kim_ngan", "Võ Kim Ngân", "Ceramicist & Clay Artist 🏺 Wheel throwing", False),
-    ("user_29@example.com", "duc_thang", "Trịnh Đức Thắng", "Triathlete & Marathon Runner 🏃 Sub-3 goal", False),
-    ("user_30@example.com", "ha_my", "Lâm Hà My", "Botanist & Plant Collector 🌿 Monstera lover", False),
-    ("user_31@example.com", "minh_quan", "Đỗ Minh Quân", "Sound Engineer & Podcaster 🎙️ Voice & beats", False),
-    ("user_32@example.com", "thanh_thao", "Bùi Thanh Thảo", "Handmade Leather Craftsman 🧵 Bespoke bags", False),
-    ("user_33@example.com", "tan_phat", "Ngô Tấn Phát", "Drone Pilot & Cinematographer 🚁 4K skies", True),
-    ("user_34@example.com", "khanh_vy", "Hoàng Khánh Vy", "Language Tutor & Translator 📖 EN / FR / VI", False),
+OCCUPATIONS = [
+    ("Photographer 📸 | 35mm film & Canon EOS", "photography"),
+    ("Specialty Coffee Roaster ☕️ | Origin stories", "coffee"),
+    ("UI/UX Designer ✨ | Design systems & motion", "design"),
+    ("Mobile Engineer 📱 | Swift 6 & iOS architecture", "tech"),
+    ("Ceramics & Pottery Artist 🏺 | Wheel throwing", "craft"),
+    ("Digital Artist 🎨 | Procreate & conceptual art", "art"),
+    ("Travel Blogger 🌍 | Living between Da Nang & Tokyo", "travel"),
+    ("Pastry Chef 🥐 | French patisserie & sourdough", "culinary"),
+    ("Yoga & Mindfulness Coach 🧘‍♀️ | Breath & body", "fitness"),
+    ("Sound Engineer & Producer 🎧 | Chill lo-fi beats", "music"),
+    ("Fashion Stylist 👗 | Modern vintage aesthetics", "fashion"),
+    ("Architecture & Urban Sketcher 🏛️ | Saigon lines", "architecture"),
+    ("Botanist & Plant Collector 🌿 | Rare aroids", "nature"),
+    ("Marathon Runner 🏃‍♂️ | Sub-3 training & endurance", "sports"),
+    ("Drone Pilot & Cinematographer 🚁 | 4K aerials", "video"),
+    ("Independent Book Reviewer 📚 | Literature addict", "books"),
+    ("Indie Game Developer 🎮 | Pixel art & chiptunes", "gaming"),
+]
+
+FIRST_NAMES_ASCII = [
+    "minh", "hoang", "quoc", "phuong", "thu", "lan", "thao", "huong",
+    "bao", "tuan", "duc", "tri", "ngoc", "huyen", "khanh", "thanh",
+    "viet", "anh", "quang", "duy", "huy", "nam", "mai", "tien"
+]
+
+FIRST_NAMES = [
+    "Minh", "Hoàng", "Quốc", "Phương", "Thu", "Lan", "Thảo", "Hương",
+    "Bảo", "Tuấn", "Đức", "Trí", "Ngọc", "Huyền", "Khánh", "Thanh",
+    "Việt", "Anh", "Quang", "Duy", "Huy", "Nam", "Mai", "Tiên"
+]
+
+LAST_NAMES = [
+    "Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ",
+    "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương", "Lý"
+]
+
+VIDEO_URLS = [
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+]
+
+LOCATIONS = [
+    "Da Nang, Vietnam",
+    "Hanoi Old Quarter, Vietnam",
+    "District 1, Ho Chi Minh City",
+    "Bà Nà Hills, Da Nang",
+    "Hồ Hoàn Kiếm, Hanoi",
+    "Phố cổ Hội An, Quang Nam",
+    "Shinjuku, Tokyo, Japan",
+    "Da Lat, Lam Dong",
+    "Phú Quốc Island, Kien Giang",
+    "Sa Pa, Lao Cai"
 ]
 
 SAMPLE_DIALOGUES = [
-    ("Chào bạn, khi nào rảnh ghé quán thử mẻ cà phê mới nhé!", "Chắc chắn rồi, cuối tuần này mình qua nha!"),
-    ("Bộ ảnh chụp ở Đà Nẵng đẹp quá bạn ơi!", "Cảm ơn bạn, hôm nào cùng đi chụp nhé."),
+    ("Chào bạn, khi nào rảnh ghé quán thử mẻ cà phê mới rang nhé!", "Chắc chắn rồi, cuối tuần này mình qua nha!"),
+    ("Bộ ảnh chụp ở Đà Nẵng đẹp quá bạn ơi!", "Cảm ơn bạn, hôm nào cùng đi chụp ảnh nhé."),
     ("Tài liệu kiến trúc hệ thống bạn gửi đọc rất dễ hiểu.", "Cảm ơn bạn, có thắc mắc gì cứ hỏi mình nhé."),
     ("Dự án iOS đợt này chạy mượt mà trên ProMotion 120 FPS luôn.", "Tuyệt vời, chúc mừng team nhé!"),
     ("Workshop làm gốm tuần tới còn chỗ không bạn?", "Còn bạn nhé, bạn đăng ký qua link ở bio nha."),
     ("Track nhạc mới nghe chill thực sự 🎧", "Cảm ơn bạn đã lắng nghe và ủng hộ nha!"),
     ("Mẫu thiết kế UI mới trông rất hiện đại và tinh tế.", "Cảm ơn góp ý của bạn, mình vừa cập nhật component."),
     ("Hôm nào cà phê chia sẻ về kinh nghiệm làm mobile app nhé!", "Sẵn sàng luôn, hẹn bạn chiều thứ Bảy."),
+    ("Bài viết mới của bạn trên feed hay lắm!", "Cảm ơn bạn nhiều, mình đang viết phần 2."),
+    ("Góc chụp này ánh sáng tự nhiên đẹp tuyệt cú mèo!", "Đúng rồi, mình căn đúng khung giờ vàng golden hour đấy."),
 ]
 
+def generate_user_definitions():
+    users = [
+        ("jane@example.com", "jane_doe", "Jane Doe", "Travel photographer 📸 Living between Tokyo & Da Nang", True),
+        ("alex@example.com", "alex_nguyen", "Alex Nguyen", "Hanoi • Street food • 35mm film photos 🎞️", False),
+    ]
+    for i in range(1, 103):
+        fn = FIRST_NAMES[i % len(FIRST_NAMES)]
+        fn_ascii = FIRST_NAMES_ASCII[i % len(FIRST_NAMES_ASCII)]
+        ln = LAST_NAMES[(i * 3) % len(LAST_NAMES)]
+        occ, tag = OCCUPATIONS[i % len(OCCUPATIONS)]
+        uname = f"{tag}_{fn_ascii}_{i}"
+        full_name = f"{ln} {fn}"
+        email = f"user_{i}@example.com"
+        is_verified = (i % 7 == 0)
+        users.append((email, uname, full_name, occ, is_verified))
+    return users
+
+# ---------------------------------------------------------------------------
+# Main Execution
+# ---------------------------------------------------------------------------
+
 def main():
-    print("🚀 [1/6] Authenticating Primary Admin User (tom@example.com)...")
+    print("=================================================================")
+    print("🚀 INSTAGRAM FIREBASE SEEDER (1xx SCALE PRODUCTION DATA MATRIX)")
+    print(f"Target: Project {PROJECT_ID} | 100+ documents per collection")
+    print("=================================================================\n")
+
+    # 1. Admin Authentication (Tom The Cat)
+    print("📦 [1/7] Authenticating & Verifying Primary Admin User (tom@example.com)...")
     tom_uid, tom_token = ensure_auth_user("tom@example.com", "Tom The Cat")
     print(f"    ✓ Tom authenticated: UID={tom_uid}")
 
-    # Tom's user document
     write_document(f"users/{tom_uid}", {
         "id": tom_uid,
         "uid": tom_uid,
@@ -194,22 +240,25 @@ def main():
         "isPrivate": False,
         "followersCount": 1234,
         "followingCount": 567,
-        "postsCount": 34,
-        "createdAt": iso_ts(seconds_ago=86400 * 30),
+        "postsCount": 15,
+        "createdAt": iso_ts(seconds_ago=86400 * 60),
     }, tom_token)
 
-    print("🚀 [2/6] Authenticating & Seeding 36 Partner Accounts...")
-    user_map = {} # email -> {uid, token, username, fullName, avatar, isVerified}
-    user_map["tom@example.com"] = {
-        "uid": tom_uid,
-        "token": tom_token,
-        "username": "tomthecat",
-        "fullName": "Tom The Cat",
-        "avatar": "https://i.pravatar.cc/300?u=tomthecat",
-        "isVerified": True
+    # 2. 104 Partner Accounts Authentication & Seeding
+    print("\n📦 [2/7] Authenticating & Seeding 104 Partner Accounts...")
+    user_defs = generate_user_definitions()
+    user_map = {
+        "tom@example.com": {
+            "uid": tom_uid,
+            "token": tom_token,
+            "username": "tomthecat",
+            "fullName": "Tom The Cat",
+            "avatar": "https://i.pravatar.cc/300?u=tomthecat",
+            "isVerified": True
+        }
     }
 
-    def seed_user(u_def):
+    def seed_single_user(u_def):
         email, username, fullName, bio, isVerified = u_def
         uid, token = ensure_auth_user(email, fullName)
         avatar = f"https://i.pravatar.cc/300?u={username}"
@@ -226,10 +275,10 @@ def main():
             "profileImageUrl": avatar,
             "isVerified": isVerified,
             "isPrivate": False,
-            "followersCount": 200 + (len(username) * 37) % 500,
-            "followingCount": 100 + (len(username) * 19) % 250,
-            "postsCount": 3 + (len(username) % 10),
-            "createdAt": iso_ts(seconds_ago=86400 * 20),
+            "followersCount": 200 + (len(username) * 31) % 600,
+            "followingCount": 100 + (len(username) * 17) % 300,
+            "postsCount": 1 + (len(username) % 4),
+            "createdAt": iso_ts(seconds_ago=86400 * 45),
         }, token)
         return email, {
             "uid": uid,
@@ -240,226 +289,281 @@ def main():
             "isVerified": isVerified
         }
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(seed_user, u) for u in USER_DEFS]
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(seed_single_user, u) for u in user_defs]
+        count = 0
         for f in as_completed(futures):
             email, data = f.result()
             user_map[email] = data
-            sys.stdout.write(f"\r    ✓ Seeded user: {data['username']} ({data['uid']})")
-            sys.stdout.flush()
-    print("\n    ✓ All 37 users authenticated & profiles created.")
+            count += 1
+            if count % 15 == 0 or count == len(user_defs):
+                sys.stdout.write(f"\r    ✓ Progress: {count}/{len(user_defs)} partner accounts seeded.")
+                sys.stdout.flush()
+    print(f"\n    ✓ User Pool Total: {len(user_map)} active authenticated profiles.")
 
-    jane = user_map["jane@example.com"]
-    alex = user_map["alex@example.com"]
+    partners = sorted([u for u in user_map.values() if u["uid"] != tom_uid], key=lambda u: u["username"])
+    all_users = [user_map["tom@example.com"]] + partners
 
-    # -----------------------------------------------------------------------
-    # 3. Seed Posts & Comments
-    # -----------------------------------------------------------------------
-    print("🚀 [3/6] Seeding Posts, Comments & Replies...")
-    sample_posts = [
-        (tom_token, tom_uid, "post_1", "Coding Instagram clone with Firebase BaaS integration! 🚀💻 #ios #swift #cleanarchitecture", [jane["uid"], alex["uid"]], 86400 * 3),
-        (jane["token"], jane["uid"], "post_2", "Morning coffee in Tokyo ☕️🇯🇵 Loving the autumn breeze! #travel #coffee #japan", [tom_uid], 86400 * 2),
-        (alex["token"], alex["uid"], "post_3", "Hanoi weekend vibes 🌆 Autumn is definitely here. #hanoi #film #35mm", [tom_uid, jane["uid"]], 86400 * 1),
-        (user_map["user_1@example.com"]["token"], user_map["user_1@example.com"]["uid"], "post_4", "Canon EOS R5 test shots at golden hour 📸🌅 #photography #goldenhour", [tom_uid], 86400 * 4),
-        (user_map["user_2@example.com"]["token"], user_map["user_2@example.com"]["uid"], "post_5", "Best pizza slice in town 🍕 Nomadic life in Da Nang! #foodie #vietnam", [tom_uid], 86400 * 5),
-        (user_map["user_3@example.com"]["token"], user_map["user_3@example.com"]["uid"], "post_6", "Design systems & atomic components in Figma ✨ #ui #design #figma", [tom_uid], 86400 * 2),
-        (user_map["user_5@example.com"]["token"], user_map["user_5@example.com"]["uid"], "post_7", "New digital artwork finished on iPad Pro & Procreate 🎨✨ #digitalart #procreate", [tom_uid], 86400 * 3),
-        (user_map["user_6@example.com"]["token"], user_map["user_6@example.com"]["uid"], "post_8", "Minimalist concrete architecture in District 2 🏛️ #architecture #saigon", [tom_uid], 86400 * 6),
-        (user_map["user_8@example.com"]["token"], user_map["user_8@example.com"]["uid"], "post_9", "Autumn street style collection 👗✨ #fashion #style #ootd", [tom_uid], 86400 * 4),
-        (user_map["user_10@example.com"]["token"], user_map["user_10@example.com"]["uid"], "post_10", "Fresh sourdough loaf out of the oven! 🥖 Homemade matcha latte 🍵 #baking #sourdough", [tom_uid], 86400 * 1),
-        (user_map["user_11@example.com"]["token"], user_map["user_11@example.com"]["uid"], "post_11", "Testing Swift 6 concurrency & non-blocking UI 📱⚡️ #swift6 #iosdev", [tom_uid], 86400 * 2),
-        (user_map["user_12@example.com"]["token"], user_map["user_12@example.com"]["uid"], "post_12", "Handmade ceramic mugs fresh out of the kiln 🏺 #pottery #ceramics", [tom_uid], 86400 * 3),
+    # 3. Posts Matrix (105 Posts)
+    print("\n📦 [3/7] Seeding 105 Posts (Single Image, Carousel & Video) + Comments Matrix...")
+    posts_data = []
+
+    # 15 Posts for Tom
+    tom_captions = [
+        "Coding Instagram clone with Firebase BaaS integration! 🚀💻 #ios #swift #cleanarchitecture",
+        "Coffee and Swift 6 concurrency on a rainy morning ☕️⚡️ #swift6 #coffeelover",
+        "Exploring Da Nang coastal road with my vintage camera 📸🌊 #danang #vietnam",
+        "New UI component library running smooth at 120 FPS ProMotion ✨📱 #swiftui",
+        "Sunday afternoon reading Clean Architecture by Uncle Bob 📖☕️ #softwareengineering",
+        "Testing AVAssetWriter and CVPixelBufferPool for 4K video rendering 🎬⚡️ #iosdev",
+        "Sunset view from Ba Na Hills! Absolutely magical 🌄✨ #travel #sunset",
+        "Specialty pour-over coffee: Ethiopia Yirgacheffe notes of jasmine & peach ☕️🍑",
+        "Building offline-first realtime sync with Cloud Firestore ☁️🔥 #firebase",
+        "Hanoi Old Quarter walk during autumn season 🍂🏮 #hanoi #autumn",
+        "Zero memory leak achieved with strict autoreleasepool wrapping 🛡️🚀 #performance",
+        "Figma design tokens transformed into type-safe Swift enums 🎨💻 #designsystem",
+        "A peaceful morning in Hội An ancient town 🏮🛶 #hoian #vietnam",
+        "Refactoring ViewModel state with Swift 6 actors for thread safety 🛡️⚡️",
+        "Milestone reached: 100+ unit tests passing with zero compiler warnings! 🎯💯"
     ]
+    for idx, caption in enumerate(tom_captions, 1):
+        posts_data.append((tom_token, tom_uid, f"post_tom_{idx}", caption, LOCATIONS[idx % len(LOCATIONS)], 86400 * (idx * 2)))
 
-    for token, uid, pid, caption, likes, ago in sample_posts:
+    # 90 Posts for Partners
+    partner_post_templates = [
+        "Golden hour photography session at the beach 🌅📸 #photography #goldenhour",
+        "Fresh batch of artisan sourdough bread out of the hearth oven 🥖🔥 #baking #artisan",
+        "Morning yoga flow and mindful breathing practice 🧘‍♀️🌿 #yoga #mindfulness",
+        "Ceramic mugs handmade on the pottery wheel 🏺✨ #ceramics #craft",
+        "New UI layout design for our mobile application 📱🎨 #figma #uiux",
+        "Weekend cycling trip across the countryside 🚴‍♂️🌾 #cycling #outdoors",
+        "Pouring fresh latte art at our neighborhood cafe ☕️🎨 #latteart #barista",
+        "A quiet evening sketching Saigon's historical architecture 🏛️✏️ #sketching",
+        "Testing our new drone camera over the mountains 🚁🏔️ #drone #4k",
+        "Reading a classic novel under the shade of a banyan tree 📚🌿 #bookworm",
+    ]
+    for idx in range(1, 91):
+        partner = partners[(idx - 1) % len(partners)]
+        caption = f"{partner_post_templates[idx % len(partner_post_templates)]} · Session #{idx}"
+        pid = f"post_{partner['uid'][:8]}_{idx}"
+        posts_data.append((partner["token"], partner["uid"], pid, caption, LOCATIONS[idx % len(LOCATIONS)], 86400 * (idx % 30 + 1)))
+
+    def seed_single_post(item):
+        token, uid, pid, caption, loc, ago = item
+        uinfo = [u for u in all_users if u["uid"] == uid][0]
         media_url = f"https://picsum.photos/seed/{pid}/1080/1080"
-        author_info = user_map.get([e for e, u in user_map.items() if u["uid"] == uid][0])
-        write_document(f"posts/{pid}", {
-            "id": pid,
-            "authorId": uid,
-            "authorUsername": author_info["username"],
-            "authorPhotoUrl": author_info["avatar"],
-            "caption": caption,
-            "mediaUrl": media_url,
-            "mediaUrls": [media_url],
-            "mediaType": "image",
-            "mediaItems": [{
-                "id": f"{pid}_m1",
-                "url": media_url,
+        is_carousel = (hash(pid) % 5 == 0)
+
+        media_items = [{
+            "id": f"{pid}_m1",
+            "url": media_url,
+            "type": "IMAGE",
+            "width": 1080,
+            "height": 1080
+        }]
+        if is_carousel:
+            media_items.append({
+                "id": f"{pid}_m2",
+                "url": f"https://picsum.photos/seed/{pid}_b/1080/1080",
                 "type": "IMAGE",
                 "width": 1080,
                 "height": 1080
-            }],
-            "location": "Da Nang, Vietnam",
+            })
+
+        # Create post complying with isFreshInteractions
+        write_document(f"posts/{pid}", {
+            "id": pid,
+            "authorId": uid,
+            "authorUsername": uinfo["username"],
+            "authorPhotoUrl": uinfo["avatar"],
+            "caption": caption,
+            "mediaUrl": media_url,
+            "mediaUrls": [m["url"] for m in media_items],
+            "mediaType": "carousel" if is_carousel else "image",
+            "mediaItems": media_items,
+            "location": loc,
             "likesCount": 0,
+            "commentsCount": 0,
+            "replyCount": 0,
+            "likes": [],
             "likedBy": [],
             "savedBy": [],
+            "createdAt": iso_ts(seconds_ago=ago),
+        }, token)
+
+        # Seed 1 comment from another user
+        c_author = partners[(hash(pid) + 3) % len(partners)]
+        cid = f"{pid}_c_{c_author['uid'][:8]}"
+        write_document(f"posts/{pid}/comments/{cid}", {
+            "id": cid,
+            "postId": pid,
+            "authorId": c_author["uid"],
+            "authorUsername": c_author["username"],
+            "authorPhotoUrl": c_author["avatar"],
+            "text": "Bức ảnh này màu sắc và góc nhìn đẹp quá bạn ơi! 🔥✨",
+            "likesCount": 0,
             "commentsCount": 0,
-            "createdAt": iso_ts(seconds_ago=ago),
-        }, token)
-
-        # Comments
-        write_document(f"posts/{pid}/comments/{pid}_c1", {
-            "id": f"{pid}_c1",
-            "postId": pid,
-            "authorId": jane["uid"],
-            "authorUsername": jane["username"],
-            "authorPhotoUrl": jane["avatar"],
-            "text": "Bức ảnh đẹp quá bạn ơi! 🔥",
-            "likesCount": 0,
             "replyCount": 0,
+            "likes": [],
             "likedBy": [],
+            "savedBy": [],
             "createdAt": iso_ts(seconds_ago=ago - 600),
-        }, jane["token"])
+        }, c_author["token"])
 
-        # Reply by Tom
-        write_document(f"posts/{pid}/comments/{pid}_c1/replies/{pid}_r1", {
-            "id": f"{pid}_r1",
-            "postId": pid,
-            "parentId": f"{pid}_c1",
-            "authorId": tom_uid,
-            "authorUsername": "tomthecat",
-            "authorPhotoUrl": "https://i.pravatar.cc/300?u=tomthecat",
-            "text": "Cảm ơn Jane nhiều nhé! 🙏",
-            "likesCount": 0,
-            "replyCount": 0,
-            "likedBy": [],
-            "createdAt": iso_ts(seconds_ago=ago - 1200),
-        }, tom_token)
+        return pid
 
-    print("    ✓ Seeded 12 rich posts with media items, comments & replies.")
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(seed_single_post, p) for p in posts_data]
+        count = 0
+        for f in as_completed(futures):
+            f.result()
+            count += 1
+            if count % 20 == 0 or count == len(posts_data):
+                sys.stdout.write(f"\r    ✓ Progress: {count}/{len(posts_data)} posts + comments created.")
+                sys.stdout.flush()
+    print(f"\n    ✓ Posts Matrix Total: {len(posts_data)} posts (15 by Tom, 90 by partners).")
 
-    # -----------------------------------------------------------------------
-    # 4. Seed Reels & Stories
-    # -----------------------------------------------------------------------
-    print("🚀 [4/6] Seeding Stories & Reels...")
-    # Stories (valid for 48 hours)
-    story_users = [
-        (tom_token, tom_uid, "story_1", 3600 * 2),
-        (jane["token"], jane["uid"], "story_2", 3600 * 3),
-        (alex["token"], alex["uid"], "story_3", 3600 * 4),
-        (user_map["user_1@example.com"]["token"], user_map["user_1@example.com"]["uid"], "story_4", 3600 * 5),
-        (user_map["user_5@example.com"]["token"], user_map["user_5@example.com"]["uid"], "story_5", 3600 * 6),
-        (user_map["user_8@example.com"]["token"], user_map["user_8@example.com"]["uid"], "story_6", 3600 * 1),
+    # 4. Reels Matrix (100 Reels)
+    print("\n📦 [4/7] Seeding 100 Video Reels (9:16 vertical stream)...")
+    reels_data = []
+    reel_captions = [
+        "Swift 6 Concurrency & Task cancellation in 15 seconds ⚡️📱 #swift #ios",
+        "Tokyo Shinjuku night walk in 4K HDR 🌃🇯🇵 #tokyo #travel",
+        "Making authentic Vietnamese Egg Coffee step-by-step ☕️🥚 #eggcoffee",
+        "Speed painting timelapse on iPad Pro with Procreate 🎨✨ #digitalart",
+        "Artisan sourdough scoring technique & oven spring 🥖🔥 #baking",
+        "Behind the scenes: Producing a chill lo-fi beat in Logic Pro 🎧🎹",
+        "10-minute core workout routine for morning energy 🧘‍♀️💪 #fitness",
+        "Handmade ceramic trimming on the pottery wheel 🏺✨ #ceramics",
+        "Flying through misty mountain peaks at sunrise 🚁🌄 #drone #cinematography",
+        "Street photography candid portrait tricks with 35mm lens 📸🎞️ #photography"
     ]
-    for token, uid, sid, ago in story_users:
-        write_document(f"stories/{sid}", {
-            "id": sid,
-            "authorId": uid,
-            "authorUsername": [u["username"] for u in user_map.values() if u["uid"] == uid][0],
-            "authorPhotoUrl": [u["avatar"] for u in user_map.values() if u["uid"] == uid][0],
-            "mediaUrl": f"https://picsum.photos/seed/{sid}/1080/1920",
-            "mediaType": "image",
-            "caption": "Story moment ✨",
-            "viewedBy": [],
-            "viewersCount": 0,
-            "createdAt": iso_ts(seconds_ago=ago),
-            "expiresAt": iso_ts(seconds_ahead=3600 * 48),
-        }, token)
+    for idx in range(1, 101):
+        creator = partners[(idx * 2) % len(partners)]
+        caption = f"{reel_captions[idx % len(reel_captions)]} · Reel #{idx}"
+        rid = f"reel_{creator['uid'][:8]}_{idx}"
+        reels_data.append((creator["token"], creator["uid"], rid, caption, idx))
 
-    # Reels
-    sample_reels = [
-        (tom_token, tom_uid, "reel_1", "Swift 6 Concurrency & Task cancellation in 15 seconds ⚡️", 3600 * 12),
-        (jane["token"], jane["uid"], "reel_2", "Tokyo Shinjuku night walk in 4K 🌃 #tokyo #japan", 3600 * 24),
-        (alex["token"], alex["uid"], "reel_3", "Making authentic Egg Coffee in Hanoi Old Quarter ☕️", 3600 * 18),
-        (user_map["user_5@example.com"]["token"], user_map["user_5@example.com"]["uid"], "reel_4", "Speed drawing timelapse in Procreate 🎨✨", 3600 * 30),
-        (user_map["user_10@example.com"]["token"], user_map["user_10@example.com"]["uid"], "reel_5", "Sourdough scoring technique & oven spring 🥖🔥", 3600 * 8),
-        (user_map["user_13@example.com"]["token"], user_map["user_13@example.com"]["uid"], "reel_6", "Cooking up a new chill lo-fi beat 🎧🎹", 3600 * 15),
-    ]
-    for token, uid, rid, caption, ago in sample_reels:
+    def seed_single_reel(item):
+        token, uid, rid, caption, idx = item
+        uinfo = [u for u in all_users if u["uid"] == uid][0]
+        video_url = VIDEO_URLS[idx % len(VIDEO_URLS)]
+        thumb_url = f"https://picsum.photos/seed/{rid}/720/1280"
+
         write_document(f"reels/{rid}", {
             "id": rid,
             "authorId": uid,
-            "authorUsername": [u["username"] for u in user_map.values() if u["uid"] == uid][0],
-            "authorPhotoUrl": [u["avatar"] for u in user_map.values() if u["uid"] == uid][0],
-            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            "thumbnailUrl": f"https://picsum.photos/seed/{rid}/720/1280",
-            "caption": caption,
-            "audioTrack": "Original Audio",
-            "likesCount": 0,
-            "commentsCount": 0,
-            "viewsCount": 0,
-            "likedBy": [],
-            "savedBy": [],
-            "createdAt": iso_ts(seconds_ago=ago),
-        }, token)
-    print("    ✓ Seeded 6 active stories and 6 video reels.")
-
-    # -----------------------------------------------------------------------
-    # 5. Seed Notes & Notifications
-    # -----------------------------------------------------------------------
-    print("🚀 [5/6] Seeding Notes & Notifications...")
-    notes = [
-        (tom_token, tom_uid, "Coding all night ☕️"),
-        (jane["token"], jane["uid"], "Tokyo trip soon ✈️"),
-        (alex["token"], alex["uid"], "Chilling in Hanoi Old Quarter ☕️"),
-        (user_map["user_1@example.com"]["token"], user_map["user_1@example.com"]["uid"], "Golden hour shoot 📸"),
-        (user_map["user_5@example.com"]["token"], user_map["user_5@example.com"]["uid"], "New art dropping today 🎨"),
-    ]
-    for token, uid, text in notes:
-        uinfo = [u for u in user_map.values() if u["uid"] == uid][0]
-        write_document(f"notes/{uid}", {
-            "id": uid,
-            "authorId": uid,
-            "userId": uid,
             "authorUsername": uinfo["username"],
             "authorPhotoUrl": uinfo["avatar"],
-            "text": text,
-            "createdAt": iso_ts(seconds_ago=3600),
-            "expiresAt": iso_ts(seconds_ahead=3600 * 48),
+            "videoUrl": video_url,
+            "thumbnailUrl": thumb_url,
+            "caption": caption,
+            "audioTrack": "Original Audio",
+            "audioTitle": "Original Audio",
+            "likesCount": 0,
+            "commentsCount": 0,
+            "replyCount": 0,
+            "viewsCount": 0,
+            "likes": [],
+            "likedBy": [],
+            "savedBy": [],
+            "createdAt": iso_ts(seconds_ago=3600 * (idx * 2)),
         }, token)
+        return rid
 
-    # Notifications for Tom
-    write_document("notifications/notif_1", {
-        "id": "notif_1",
-        "recipientId": tom_uid,
-        "senderId": jane["uid"],
-        "senderUsername": jane["username"],
-        "senderPhotoUrl": jane["avatar"],
-        "type": "like",
-        "postId": "post_1",
-        "message": "đã thích bài viết của bạn.",
-        "isRead": False,
-        "createdAt": iso_ts(seconds_ago=1800),
-    }, jane["token"])
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(seed_single_reel, r) for r in reels_data]
+        count = 0
+        for f in as_completed(futures):
+            f.result()
+            count += 1
+            if count % 20 == 0 or count == len(reels_data):
+                sys.stdout.write(f"\r    ✓ Progress: {count}/{len(reels_data)} reels created.")
+                sys.stdout.flush()
+    print(f"\n    ✓ Reels Total: {len(reels_data)} vertical videos seeded.")
 
-    write_document("notifications/notif_2", {
-        "id": "notif_2",
-        "recipientId": tom_uid,
-        "senderId": alex["uid"],
-        "senderUsername": alex["username"],
-        "senderPhotoUrl": alex["avatar"],
-        "type": "comment",
-        "postId": "post_1",
-        "message": "đã bình luận: Tuyệt vời quá! 😄",
-        "isRead": False,
-        "createdAt": iso_ts(seconds_ago=3600),
-    }, alex["token"])
-    print("    ✓ Seeded notes and activity notifications.")
+    # 5. Stories Matrix (100 Stories)
+    print("\n📦 [5/7] Seeding 100 Active Stories (48h-120h validity)...")
+    stories_data = []
+    for idx in range(1, 101):
+        creator = all_users[idx % len(all_users)]
+        sid = f"story_{creator['uid'][:8]}_{idx}"
+        stories_data.append((creator["token"], creator["uid"], sid, idx))
 
-    # -----------------------------------------------------------------------
-    # 6. Seed Conversations & Real-Time Messages (35 Conversations)
-    # -----------------------------------------------------------------------
-    print("🚀 [6/6] Seeding 35 Two-Way Conversations with Direct Messages...")
-    partner_emails = [e for e in user_map.keys() if e != "tom@example.com"]
+    def seed_single_story(item):
+        token, uid, sid, idx = item
+        uinfo = [u for u in all_users if u["uid"] == uid][0]
+        write_document(f"stories/{sid}", {
+            "id": sid,
+            "authorId": uid,
+            "authorUsername": uinfo["username"],
+            "authorPhotoUrl": uinfo["avatar"],
+            "mediaUrl": f"https://picsum.photos/seed/{sid}/1080/1920",
+            "mediaType": "image",
+            "caption": f"Story moment #{idx} ✨",
+            "viewedBy": [],
+            "viewerIds": [],
+            "views": [],
+            "viewersCount": 0,
+            "createdAt": iso_ts(seconds_ago=1800 * idx),
+            "expiresAt": iso_ts(seconds_ahead=3600 * 96), # 4 days ahead
+        }, token)
+        return sid
 
-    def seed_conversation(idx, partner_email):
-        partner = user_map[partner_email]
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(seed_single_story, s) for s in stories_data]
+        count = 0
+        for f in as_completed(futures):
+            f.result()
+            count += 1
+            if count % 20 == 0 or count == len(stories_data):
+                sys.stdout.write(f"\r    ✓ Progress: {count}/{len(stories_data)} stories created.")
+                sys.stdout.flush()
+    print(f"\n    ✓ Stories Total: {len(stories_data)} active stories seeded.")
+
+    # 6. Notes Matrix (60 Notes)
+    print("\n📦 [6/7] Seeding 60 Notes for Direct Messages top bar...")
+    notes_data = [
+        "Coding all night ☕️", "Chilling in Da Nang 🌊", "Tokyo trip soon ✈️",
+        "New art dropping today 🎨", "Sourdough fresh out of oven 🥐",
+        "Swift 6 rocks 🚀", "Golden hour photography 📸", "Film photo lab day 🎞️",
+        "Morning yoga routine 🧘‍♀️", "Lo-fi beats in progress 🎧"
+    ]
+    active_note_users = all_users[:60]
+    for idx, user in enumerate(active_note_users):
+        note_text = notes_data[idx % len(notes_data)]
+        write_document(f"notes/{user['uid']}", {
+            "id": user["uid"],
+            "authorId": user["uid"],
+            "userId": user["uid"],
+            "authorUsername": user["username"],
+            "authorPhotoUrl": user["avatar"],
+            "text": note_text,
+            "createdAt": iso_ts(seconds_ago=1800),
+            "expiresAt": iso_ts(seconds_ahead=3600 * 72),
+        }, user["token"])
+    print(f"    ✓ Notes Total: {len(active_note_users)} notes active.")
+
+    # 7. Direct Messages & Notifications Matrix (100 Conversations & 100 Notifications)
+    print("\n📦 [7/7] Seeding 100 Conversations (2-Way Dialogue) & 100 Notifications for Tom...")
+    target_partners = partners[:100]
+
+    def seed_single_conversation(idx, partner):
         conv_id = f"conv_{tom_uid}_{partner['uid']}"
         participant_ids = [tom_uid, partner["uid"]]
         participant_ids.sort()
 
         dialogue = SAMPLE_DIALOGUES[idx % len(SAMPLE_DIALOGUES)]
-        has_unread = idx < 3
+        has_unread = (idx < 10) # 10 first convs have unread badge
         unread_count = 1 if has_unread else 0
-        ago_partner = (idx + 1) * 900
-        ago_tom = ago_partner + 600
+        ago_partner = (idx + 1) * 600
+        ago_tom = ago_partner + 300
 
-        # Create Conversation Document with Tom's Token
         last_msg_time = iso_ts(seconds_ago=ago_partner if has_unread else ago_tom)
         last_sender = partner if has_unread else user_map["tom@example.com"]
         last_text = dialogue[0] if has_unread else dialogue[1]
 
+        # 1. Conversation Document
         write_document(f"conversations/{conv_id}", {
             "id": conv_id,
             "participantIds": participant_ids,
@@ -509,7 +613,8 @@ def main():
             "updatedAt": last_msg_time,
         }, tom_token)
 
-        # Message 1 (Tom to Partner)
+        # 2. Messages Subcollection
+        # Message 1 from Tom
         write_document(f"conversations/{conv_id}/messages/{conv_id}_m1", {
             "id": f"{conv_id}_m1",
             "conversationId": conv_id,
@@ -527,7 +632,7 @@ def main():
             "createdAt": iso_ts(seconds_ago=ago_tom),
         }, tom_token)
 
-        # Message 2 (Partner to Tom)
+        # Message 2 from Partner
         write_document(f"conversations/{conv_id}/messages/{conv_id}_m2", {
             "id": f"{conv_id}_m2",
             "conversationId": conv_id,
@@ -545,24 +650,51 @@ def main():
             "createdAt": last_msg_time,
         }, partner["token"])
 
+        # 3. Notification for Tom (from this partner)
+        notif_id = f"notif_{partner['uid'][:8]}_{idx + 1}"
+        notif_types = ["like", "comment", "follow"]
+        n_type = notif_types[idx % 3]
+        target_post = f"post_tom_{(idx % 15) + 1}"
+        n_msg = "đã thích bài viết của bạn." if n_type == "like" else ("đã bình luận trên bài viết của bạn." if n_type == "comment" else "đã bắt đầu theo dõi bạn.")
+
+        write_document(f"notifications/{notif_id}", {
+            "id": notif_id,
+            "recipientId": tom_uid,
+            "senderId": partner["uid"],
+            "senderUsername": partner["username"],
+            "senderPhotoUrl": partner["avatar"],
+            "type": n_type,
+            "postId": target_post if n_type != "follow" else "",
+            "message": n_msg,
+            "isRead": False,
+            "createdAt": iso_ts(seconds_ago=ago_partner),
+        }, partner["token"])
+
         return conv_id
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        futures = [executor.submit(seed_conversation, idx, p_email) for idx, p_email in enumerate(partner_emails)]
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(seed_single_conversation, idx, p) for idx, p in enumerate(target_partners)]
+        count = 0
         for f in as_completed(futures):
-            conv_id = f.result()
-            sys.stdout.write(f"\r    ✓ Seeded conversation: {conv_id}")
-            sys.stdout.flush()
-    print("\n    ✓ Seeded all 35 conversations and 2-way message streams.")
+            f.result()
+            count += 1
+            if count % 20 == 0 or count == len(target_partners):
+                sys.stdout.write(f"\r    ✓ Progress: {count}/{len(target_partners)} convs + messages + notifs seeded.")
+                sys.stdout.flush()
+    print(f"\n    ✓ Convs & Notifications Total: {len(target_partners)} convs and {len(target_partners)} notifications seeded.")
 
-    print("\n=======================================================")
-    print("🎉 FIREBASE SEED COMPLETED SUCCESSFULLY!")
+    print("\n=================================================================")
+    print("🎉 ALL 1XX PRODUCTION DATA MATRIX SEEDED SUCCESSFULLY ON FIREBASE!")
     print(f"Project ID: {PROJECT_ID}")
     print(f"Admin User: tom@example.com / {PASSWORD} (UID: {tom_uid})")
-    print(f"Total Users: {len(user_map)}")
-    print(f"Total Posts: {len(sample_posts)}")
-    print(f"Total Conversations: {len(partner_emails)}")
-    print("=======================================================")
+    print(f"Total Users: {len(all_users)}")
+    print(f"Total Posts: {len(posts_data)}")
+    print(f"Total Reels: {len(reels_data)}")
+    print(f"Total Stories: {len(stories_data)}")
+    print(f"Total Notes: {len(active_note_users)}")
+    print(f"Total Conversations: {len(target_partners)}")
+    print(f"Total Notifications: {len(target_partners)}")
+    print("=================================================================\n")
 
 if __name__ == "__main__":
     main()
