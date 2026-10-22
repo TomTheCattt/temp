@@ -75,7 +75,8 @@ final class FirebaseCallSignalingHandler: CallSignalingHandlerProtocol, @uncheck
     private func resetConnectionState() {
         lock.lock()
         isConnected = true
-        connectTimestamp = Date().timeIntervalSince1970 - 5.0
+        // Allow a modest 0.5s network transit skew rather than 5s stale window (Cẩm Nang §3.7)
+        connectTimestamp = Date().timeIntervalSince1970 - 0.5
         signalingListener?.remove()
         signalingListener = nil
         lock.unlock()
@@ -184,6 +185,10 @@ final class FirebaseCallSignalingHandler: CallSignalingHandlerProtocol, @uncheck
 
             if let signal = Self.dictToSignal(data) {
                 receiveRemoteSignal(signal)
+                // Cleanup processed document asynchronously to prevent unbounded collection accumulation (CALL-04)
+                Task {
+                    try? await doc.reference.delete()
+                }
             }
         }
     }
