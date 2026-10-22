@@ -591,7 +591,6 @@ nonisolated enum MockData {
         for (idx, step) in steps.enumerated() {
             let offset = Double(total - 1 - idx) * stepSpacing
             let msgDate = baseDate.addingTimeInterval(-offset)
-            let isLast = (idx == total - 1)
 
             let sender: User = {
                 if let s = step.senderUser { return s }

@@ -308,9 +308,9 @@ actor MockMessageDataSource {
 
     // MARK: - Real-time Incoming Message Handling
 
-    private func handleExternalMessage(_ message: Message) {
+    private func handleExternalMessage(_ message: Message) async {
         // Skip messages sent by current user as they are handled in sendMessage
-        let currentUserId = SessionStore.shared.currentUserId
+        let currentUserId = await MainActor.run { SessionStore.shared.currentUserId }
         guard message.sender.id != MockData.currentUser.id &&
               message.sender.id != "user_current" &&
               (currentUserId.isEmpty || message.sender.id != currentUserId) else { return }
