@@ -30,7 +30,7 @@ public final class ChatAudioPlayer: ObservableObject {
 
     private init() {}
 
-    deinit {
+    isolated deinit {
         removeTimeObserver()
     }
 

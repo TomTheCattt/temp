@@ -87,7 +87,7 @@ public actor AudioRecordingService: AudioRecordingServiceProtocol {
         // Configure Audio Session
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             throw AudioRecordingError.recordingFailed("Không thể cấu hình Audio Session: \(error.localizedDescription)")
