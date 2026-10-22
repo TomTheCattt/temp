@@ -58,6 +58,8 @@ final class StoryViewerViewModel {
     // MARK: - Dependencies
 
     private let fetchStoriesUseCase: FetchStoriesUseCaseProtocol
+    private let markStoryViewedUseCase: MarkStoryViewedUseCaseProtocol
+    private let deleteStoryUseCase: DeleteStoryUseCaseProtocol
     private let targetUserId: String?
 
     // MARK: - Init
@@ -66,29 +68,45 @@ final class StoryViewerViewModel {
         stories: [Story] = [],
         initialIndex: Int = 0,
         targetUserId: String? = nil,
-        fetchStoriesUseCase: FetchStoriesUseCaseProtocol
+        fetchStoriesUseCase: FetchStoriesUseCaseProtocol? = nil,
+        markStoryViewedUseCase: MarkStoryViewedUseCaseProtocol? = nil,
+        deleteStoryUseCase: DeleteStoryUseCaseProtocol? = nil
     ) {
         self.stories = stories
         self.currentStoryIndex = initialIndex
         self.targetUserId = targetUserId
-        self.fetchStoriesUseCase = fetchStoriesUseCase
+        self.fetchStoriesUseCase = fetchStoriesUseCase ?? DIContainer.shared.resolve(FetchStoriesUseCaseProtocol.self)
+        self.markStoryViewedUseCase = markStoryViewedUseCase ?? DIContainer.shared.resolve(MarkStoryViewedUseCaseProtocol.self)
+        self.deleteStoryUseCase = deleteStoryUseCase ?? DIContainer.shared.resolve(DeleteStoryUseCaseProtocol.self)
     }
 
     // MARK: - Actions
 
     func loadStories() async {
-        guard stories.isEmpty else { return }
+        guard stories.isEmpty else {
+            markCurrentStoryViewedIfNeeded()
+            return
+        }
         isLoading = true
 
         do {
-            stories = try await fetchStoriesUseCase.execute()
+            let fetched = try await fetchStoriesUseCase.execute()
+            let currentUserId = SessionStore.shared.currentUserId
+            // Order: current user's story first, then friends' stories (Single Source of Truth with StoriesBarView)
+            let myStories = fetched.filter { $0.author.id == currentUserId }
+            let otherStories = fetched.filter { $0.author.id != currentUserId }
+            stories = myStories + otherStories
+
             // Jump to target user's story if specified
             if let userId = targetUserId,
                let index = stories.firstIndex(where: { $0.author.id == userId }) {
                 currentStoryIndex = index
+            } else {
+                currentStoryIndex = 0
             }
+            markCurrentStoryViewedIfNeeded()
         } catch {
-            // Silent fail
+            AppLogger.general.error("StoryViewerViewModel.loadStories error: \(error.localizedDescription)")
         }
 
         isLoading = false
@@ -107,6 +125,7 @@ final class StoryViewerViewModel {
             currentStoryIndex += 1
             currentItemIndex = 0
             itemProgress = 0
+            markCurrentStoryViewedIfNeeded()
         }
         // else: reached the end — dismiss handled by view
     }
@@ -122,6 +141,7 @@ final class StoryViewerViewModel {
             currentStoryIndex -= 1
             currentItemIndex = 0
             itemProgress = 0
+            markCurrentStoryViewedIfNeeded()
         }
     }
 
@@ -131,6 +151,66 @@ final class StoryViewerViewModel {
         currentStoryIndex = index
         currentItemIndex = 0
         itemProgress = 0
+        markCurrentStoryViewedIfNeeded()
+    }
+
+    /// Mark the currently active story as viewed immediately in-memory and asynchronously persist to backend.
+    func markCurrentStoryViewedIfNeeded() {
+        guard let story = currentStory, !story.isViewed else { return }
+
+        // 1. Immediately update local in-memory entity for instant UI feedback
+        let updatedStory = Story(
+            id: story.id,
+            author: story.author,
+            items: story.items,
+            isViewed: true,
+            createdAt: story.createdAt,
+            expiresAt: story.expiresAt
+        )
+        if stories.indices.contains(currentStoryIndex) {
+            stories[currentStoryIndex] = updatedStory
+        }
+
+        // 2. Broadcast event to StoriesBarView so circle rings transition from gradient to gray
+        NotificationCenter.default.post(name: .didUpdateStoryViewed, object: story.id)
+
+        // 3. Persist to Firestore / backend via UseCase
+        let storyId = story.id
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.markStoryViewedUseCase.execute(storyId: storyId)
+            } catch {
+                AppLogger.network.error("Failed to mark story as viewed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Delete the currently active story.
+    /// Returns `true` if the entire stories list is now empty and the viewer should dismiss.
+    func deleteCurrentStory() async -> Bool {
+        guard let story = currentStory else { return false }
+        let storyId = story.id
+        do {
+            try await deleteStoryUseCase.execute(storyId: storyId)
+            stories.removeAll { $0.id == storyId }
+            NotificationCenter.default.post(name: .didCreateStory, object: nil)
+
+            if stories.isEmpty {
+                return true
+            }
+
+            if currentStoryIndex >= stories.count {
+                currentStoryIndex = max(0, stories.count - 1)
+            }
+            currentItemIndex = 0
+            itemProgress = 0
+            markCurrentStoryViewedIfNeeded()
+            return false
+        } catch {
+            AppLogger.general.error("Failed to delete story: \(error.localizedDescription)")
+            return false
+        }
     }
 
     func pause() {

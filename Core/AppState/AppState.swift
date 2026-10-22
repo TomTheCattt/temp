@@ -34,10 +34,23 @@ final class AppState {
     /// Total unread direct messages across all conversations.
     var unreadChatCount = 0
 
+    /// Total unread notifications for the current user.
+    var unreadNotificationCount = 0
+
+    /// Whether the current user has any unread notifications.
+    var hasUnreadNotifications: Bool {
+        unreadNotificationCount > 0
+    }
+
     private init() {}
 
     /// Updates the unread chat count safely.
     func setUnreadChatCount(_ count: Int) {
         unreadChatCount = max(0, count)
+    }
+
+    /// Updates the unread notification count safely.
+    func setUnreadNotificationCount(_ count: Int) {
+        unreadNotificationCount = max(0, count)
     }
 }

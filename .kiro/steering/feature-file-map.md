@@ -172,7 +172,9 @@ When developing a feature, read ONLY the relevant files listed below. Do NOT sca
 
 - #[[file:Common/Errors/APIErrors.swift]] (APIError.userMessage + Error.userMessage)
 - #[[file:Core/AppState/AppState.swift]] (maintenance / force-update flags)
-- #[[file:Core/Networking/NetworkMonitor.swift]] (offline/online toast)
+- #[[file:Core/Networking/NetworkMonitor.swift]] (offline/online state & banner presentation status)
+- #[[file:Resources/DesignSystem/Banner/OfflineBannerView.swift]] (Instagram-style floating connectivity banner)
+- #[[file:Resources/DesignSystem/Banner/OfflineBannerModifier.swift]] (.withOfflineBanner modifier)
 - #[[file:Resources/DesignSystem/Toast/ToastManager.swift]]
 - #[[file:Resources/DesignSystem/HUD/HUDManager.swift]]
 - #[[file:Presentations/Common/ContentStateView.swift]] (ErrorStateView + EmptyStateView)

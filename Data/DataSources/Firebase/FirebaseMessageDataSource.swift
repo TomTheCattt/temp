@@ -251,7 +251,18 @@ actor FirebaseMessageDataSource: Sendable {
         attachMessageListenerIfNeeded(for: conversationId)
 
         if inMemoryMessages[conversationId] == nil {
-            if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
+            let db = Firestore.firestore()
+            let snapshot = try? await db.collection("conversations")
+                .document(conversationId)
+                .collection("messages")
+                .order(by: "createdAt", descending: true)
+                .limit(to: 50)
+                .getDocuments()
+
+            if let docs = snapshot?.documents, !docs.isEmpty {
+                let msgs = docs.compactMap { Self.dictToMessage($0.data(), docId: $0.documentID) }
+                inMemoryMessages[conversationId] = msgs.sorted { $0.createdAt > $1.createdAt }
+            } else if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
                 inMemoryMessages[conversationId] = conv.lastMessage.map { [$0] } ?? []
             } else {
                 inMemoryMessages[conversationId] = []
@@ -556,7 +567,57 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     func fetchNotes() async throws -> [InstagramNote] {
-        return inMemoryNotes
+        if inMemoryNotes.isEmpty {
+            let db = Firestore.firestore()
+            let snapshot = try? await db.collection("notes").limit(to: 25).getDocuments()
+            if let docs = snapshot?.documents, !docs.isEmpty {
+                mergeFirestoreNotes(docs)
+            }
+        }
+        return inMemoryNotes.filter { $0.createdAt.addingTimeInterval(86400) > Date() }
+    }
+
+    func saveNote(text: String) async throws -> InstagramNote {
+        let currentUserId = resolvedCurrentUserId()
+        let currentUser = resolvedCurrentUser()
+        let noteId = "note_\(currentUserId)"
+        let now = Date()
+        let expiresAt = now.addingTimeInterval(86400)
+
+        var dict: [String: Any] = [
+            "id": noteId,
+            "authorId": currentUserId,
+            "userId": currentUserId,
+            "authorUsername": currentUser.username,
+            "username": currentUser.username,
+            "text": text,
+            "createdAt": Timestamp(date: now),
+            "expiresAt": Timestamp(date: expiresAt)
+        ]
+        if let avatar = currentUser.avatarURL?.absoluteString {
+            dict["authorPhotoUrl"] = avatar
+            dict["avatarURL"] = avatar
+        }
+
+        let db = Firestore.firestore()
+        try await db.collection("notes").document(noteId).setData(dict, merge: true)
+
+        let note = InstagramNote(
+            id: noteId,
+            user: currentUser,
+            text: text,
+            createdAt: now,
+            isCurrentUser: true
+        )
+
+        if let idx = inMemoryNotes.firstIndex(where: { $0.id == noteId || $0.isCurrentUser }) {
+            inMemoryNotes[idx] = note
+        } else {
+            inMemoryNotes.insert(note, at: 0)
+        }
+
+        NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+        return note
     }
 
     // MARK: - Firestore Parsing & Merging
@@ -828,15 +889,77 @@ actor FirebaseMessageDataSource: Sendable {
 
     // MARK: - Firestore Background Persistence
 
+    private func resolveMediaURLsForRemotePersistence(content: MessageContent, conversationId: String) async -> MessageContent {
+        switch content {
+        case .image(let url):
+            guard url.isFileURL, let data = try? Data(contentsOf: url) else { return content }
+            let path = "chat_media/\(conversationId)/img_\(UUID().uuidString).jpg"
+            if let remoteURL = try? await FirebaseStorageService.shared.uploadImage(data: data, path: path) {
+                return .image(remoteURL)
+            }
+            return content
+
+        case .video(let url, let thumbURL):
+            var remoteVideoURL = url
+            var remoteThumbURL = thumbURL
+
+            if url.isFileURL, let data = try? Data(contentsOf: url) {
+                let path = "chat_media/\(conversationId)/vid_\(UUID().uuidString).mp4"
+                if let uploaded = try? await FirebaseStorageService.shared.uploadVideo(data: data, path: path) {
+                    remoteVideoURL = uploaded
+                }
+            }
+
+            if let thumb = thumbURL, thumb.isFileURL, let thumbData = try? Data(contentsOf: thumb) {
+                let thumbPath = "chat_media/\(conversationId)/thumb_\(UUID().uuidString).jpg"
+                if let uploadedThumb = try? await FirebaseStorageService.shared.uploadImage(data: thumbData, path: thumbPath) {
+                    remoteThumbURL = uploadedThumb
+                }
+            }
+
+            return .video(remoteVideoURL, thumbnailURL: remoteThumbURL)
+
+        case .audio(let url, let duration):
+            guard url.isFileURL, let data = try? Data(contentsOf: url) else { return content }
+            let path = "chat_media/\(conversationId)/aud_\(UUID().uuidString).m4a"
+            if let remoteURL = try? await FirebaseStorageService.shared.uploadAudio(data: data, path: path) {
+                return .audio(remoteURL, duration: duration)
+            }
+            return content
+
+        default:
+            return content
+        }
+    }
+
     private func persistMessageToFirestore(message: Message, conversationId: String) async {
+        // 1. Resolve local file URLs by uploading to Firebase Storage in background
+        let remoteContent = await resolveMediaURLsForRemotePersistence(content: message.content, conversationId: conversationId)
+        let resolvedMessage = Message(
+            id: message.id,
+            conversationId: message.conversationId,
+            sender: message.sender,
+            content: remoteContent,
+            status: message.status,
+            replyToId: message.replyToId,
+            replyToSnippet: message.replyToSnippet,
+            reactions: message.reactions,
+            createdAt: message.createdAt
+        )
+
+        // 2. Update in-memory message cache with resolved remote content
+        if let idx = inMemoryMessages[conversationId]?.firstIndex(where: { $0.id == message.id }) {
+            inMemoryMessages[conversationId]?[idx] = resolvedMessage
+        }
+
         let db = Firestore.firestore()
-        let dict = Self.messageToDict(message)
+        let dict = Self.messageToDict(resolvedMessage)
 
         // Write message document
         try? await db.collection("conversations")
             .document(conversationId)
             .collection("messages")
-            .document(message.id)
+            .document(resolvedMessage.id)
             .setData(dict)
 
         // Update conversation summary
@@ -919,10 +1042,11 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     static func dictToUser(_ dict: [String: Any]) -> User? {
-        guard let id = dict["id"] as? String,
-              let username = dict["username"] as? String else { return nil }
-        let fullName = dict["fullName"] as? String ?? username
-        let avatarURL = (dict["avatarURL"] as? String).flatMap { URL(string: $0) }
+        guard let id = dict["id"] as? String ?? dict["uid"] as? String ?? dict["userId"] as? String ?? dict["authorId"] as? String,
+              let username = dict["username"] as? String ?? dict["authorUsername"] as? String ?? dict["displayName"] as? String ?? dict["name"] as? String else { return nil }
+        let fullName = dict["fullName"] as? String ?? dict["authorFullName"] as? String ?? dict["authorDisplayName"] as? String ?? username
+        let avatarStr = dict["avatarURL"] as? String ?? dict["avatarUrl"] as? String ?? dict["authorPhotoUrl"] as? String ?? dict["photoUrl"] as? String ?? dict["profileImageUrl"] as? String
+        let avatarURL = avatarStr.flatMap { URL(string: $0) }
         let isVerified = dict["isVerified"] as? Bool ?? false
 
         return User(
@@ -997,10 +1121,40 @@ actor FirebaseMessageDataSource: Sendable {
     static func dictToMessage(_ dict: [String: Any], docId: String) -> Message? {
         let id = (dict["id"] as? String) ?? docId
         let convId = dict["conversationId"] as? String ?? ""
-        guard let senderDict = dict["sender"] as? [String: Any],
-              let sender = dictToUser(senderDict) else {
+
+        // Resolve sender defensively (nested dict or flat fields)
+        let sender: User
+        if let senderDict = dict["sender"] as? [String: Any],
+           let parsed = dictToUser(senderDict) {
+            sender = parsed
+        } else if let senderId = dict["senderId"] as? String ?? dict["sender_id"] as? String ?? dict["authorId"] as? String ?? dict["userId"] as? String {
+            let username = dict["senderUsername"] as? String ?? dict["username"] as? String ?? "user"
+            let fullName = dict["senderFullName"] as? String ?? dict["fullName"] as? String ?? username
+            let avatarStr = dict["senderAvatarURL"] as? String ?? dict["senderAvatarUrl"] as? String ?? dict["avatarURL"] as? String ?? dict["photoUrl"] as? String
+            let avatarURL = avatarStr.flatMap { URL(string: $0) }
+            sender = User(
+                id: senderId,
+                username: username,
+                fullName: fullName,
+                email: nil,
+                phone: nil,
+                avatarURL: avatarURL,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+        } else {
             return nil
         }
+
         let statusStr = dict["status"] as? String ?? "sent"
         let status = MessageStatus(rawValue: statusStr) ?? .sent
         let replyToId = dict["replyToId"] as? String
@@ -1012,6 +1166,8 @@ actor FirebaseMessageDataSource: Sendable {
             createdAt = timestamp.dateValue()
         } else if let interval = dict["createdAt"] as? TimeInterval {
             createdAt = Date(timeIntervalSince1970: interval)
+        } else if let dateStr = dict["createdAt"] as? String {
+            createdAt = DateMapper.toDate(dateStr)
         } else {
             createdAt = Date()
         }
@@ -1035,34 +1191,43 @@ actor FirebaseMessageDataSource: Sendable {
         let type = dict["type"] as? String ?? "text"
         switch type {
         case "text":
-            return .text(dict["text"] as? String ?? "")
+            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? ""
+            return .text(text)
         case "image":
-            if let urlStr = dict["mediaURL"] as? String, let url = URL(string: urlStr) {
+            let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["imageUrl"] as? String ?? dict["url"] as? String
+            if let urlStr, let url = URL(string: urlStr) {
                 return .image(url)
             }
             return .text("[Hình ảnh]")
         case "video":
-            if let urlStr = dict["mediaURL"] as? String, let url = URL(string: urlStr) {
-                let thumb = (dict["thumbnailURL"] as? String).flatMap { URL(string: $0) }
+            let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["videoUrl"] as? String ?? dict["url"] as? String
+            if let urlStr, let url = URL(string: urlStr) {
+                let thumbStr = dict["thumbnailURL"] as? String ?? dict["thumbnailUrl"] as? String
+                let thumb = thumbStr.flatMap { URL(string: $0) }
                 return .video(url, thumbnailURL: thumb)
             }
             return .text("[Video]")
         case "audio":
-            if let urlStr = dict["mediaURL"] as? String, let url = URL(string: urlStr) {
+            let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["audioUrl"] as? String ?? dict["url"] as? String
+            if let urlStr, let url = URL(string: urlStr) {
                 let duration = dict["duration"] as? Double ?? 0
                 return .audio(url, duration: duration)
             }
             return .text("[Tin nhắn thoại]")
         case "post":
-            return .post(postId: dict["referenceId"] as? String ?? "")
+            let postId = dict["referenceId"] as? String ?? dict["postId"] as? String ?? ""
+            return .post(postId: postId)
         case "story":
-            return .story(storyId: dict["referenceId"] as? String ?? "")
+            let storyId = dict["referenceId"] as? String ?? dict["storyId"] as? String ?? ""
+            return .story(storyId: storyId)
         case "reel":
-            return .reel(reelId: dict["referenceId"] as? String ?? "")
+            let reelId = dict["referenceId"] as? String ?? dict["reelId"] as? String ?? ""
+            return .reel(reelId: reelId)
         case "like":
             return .like
         default:
-            return .text(dict["text"] as? String ?? "")
+            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? ""
+            return .text(text)
         }
     }
 
@@ -1111,6 +1276,8 @@ actor FirebaseMessageDataSource: Sendable {
             updatedAt = timestamp.dateValue()
         } else if let interval = dict["updatedAt"] as? TimeInterval {
             updatedAt = Date(timeIntervalSince1970: interval)
+        } else if let dateStr = dict["updatedAt"] as? String {
+            updatedAt = DateMapper.toDate(dateStr)
         } else {
             updatedAt = lastMessage?.createdAt ?? Date()
         }
@@ -1132,30 +1299,64 @@ actor FirebaseMessageDataSource: Sendable {
 
     static func dictToNote(_ dict: [String: Any], docId: String, currentUserId: String) -> InstagramNote? {
         let id = (dict["id"] as? String) ?? docId
-        guard let text = dict["text"] as? String else { return nil }
+        guard let text = dict["text"] as? String ?? dict["content"] as? String,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+
+        let createdAt: Date
+        if let timestamp = dict["createdAt"] as? Timestamp {
+            createdAt = timestamp.dateValue()
+        } else if let interval = dict["createdAt"] as? TimeInterval {
+            createdAt = Date(timeIntervalSince1970: interval)
+        } else if let dateStr = dict["createdAt"] as? String {
+            createdAt = DateMapper.toDate(dateStr)
+        } else {
+            createdAt = Date()
+        }
+
+        let expiresAt: Date?
+        if let timestamp = dict["expiresAt"] as? Timestamp {
+            expiresAt = timestamp.dateValue()
+        } else if let interval = dict["expiresAt"] as? TimeInterval {
+            expiresAt = Date(timeIntervalSince1970: interval)
+        } else if let dateStr = dict["expiresAt"] as? String {
+            expiresAt = DateMapper.toDate(dateStr)
+        } else {
+            expiresAt = nil
+        }
+
+        // Filter expired notes (24h TTL)
+        if let expiresAt, expiresAt < Date() {
+            return nil
+        }
+        if Date().timeIntervalSince(createdAt) > 86400 {
+            return nil
+        }
 
         let user: User
         if let userDict = dict["user"] as? [String: Any], let parsedUser = dictToUser(userDict) {
             user = parsedUser
         } else {
-            let userId = dict["userId"] as? String ?? "user_\(id)"
-            let username = dict["username"] as? String ?? "user"
-            let fullName = dict["fullName"] as? String ?? username
+            let userId = dict["authorId"] as? String ?? dict["userId"] as? String ?? dict["uid"] as? String ?? "user_\(id)"
+            let username = dict["authorUsername"] as? String ?? dict["username"] as? String ?? dict["displayName"] as? String ?? "user"
+            let fullName = dict["fullName"] as? String ?? dict["authorFullName"] as? String ?? dict["authorDisplayName"] as? String ?? username
+            let avatarStr = dict["authorPhotoUrl"] as? String ?? dict["authorAvatarUrl"] as? String ?? dict["avatarURL"] as? String ?? dict["avatarUrl"] as? String ?? dict["photoUrl"] as? String ?? dict["profileImageUrl"] as? String
+            let avatarURL = avatarStr.flatMap { URL(string: $0) }
+
             user = User(
                 id: userId,
                 username: username,
                 fullName: fullName,
                 email: nil,
                 phone: nil,
-                avatarURL: nil,
+                avatarURL: avatarURL,
                 bio: nil,
                 website: nil,
-                isVerified: false,
+                isVerified: dict["isVerified"] as? Bool ?? false,
                 isPrivate: false,
                 followersCount: 0,
                 followingCount: 0,
                 postsCount: 0,
-                createdAt: .now,
+                createdAt: createdAt,
                 isFollowing: false,
                 isFollowedBy: false,
                 isBlocked: false
@@ -1163,14 +1364,6 @@ actor FirebaseMessageDataSource: Sendable {
         }
 
         let isCurrentUser = (user.id == currentUserId) || (dict["isCurrentUser"] as? Bool ?? false)
-        let createdAt: Date
-        if let timestamp = dict["createdAt"] as? Timestamp {
-            createdAt = timestamp.dateValue()
-        } else if let interval = dict["createdAt"] as? TimeInterval {
-            createdAt = Date(timeIntervalSince1970: interval)
-        } else {
-            createdAt = Date()
-        }
 
         return InstagramNote(
             id: id,

@@ -17,10 +17,17 @@ struct StoryViewerView: View {
 
     @State private var timer: Timer?
     @State private var videoPlayerKey: String = UUID().uuidString
+    @State private var showDeleteConfirmation: Bool = false
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging: Bool = false
 
-    private let contentCornerRadius: CGFloat = 12
+    private let contentCornerRadius: CGFloat = DS.Radius.large
+
+    // MARK: - Ownership Check
+    private var isCurrentStoryMine: Bool {
+        guard let story = viewModel.currentStory else { return false }
+        return story.author.id == SessionStore.shared.currentUserId
+    }
 
     // MARK: - Drag to Dismiss Computations
 
@@ -85,9 +92,17 @@ struct StoryViewerView: View {
                     }
                     .padding(.horizontal, DS.Spacing.xxxs)
 
-                    // MARK: Reply Bar (below content, on black background)
-                    replyBar
-                        .padding(.horizontal, DS.Padding.horizontal)
+                    // MARK: Dynamic Bottom Bar (adapts whether viewing own story or other user's story)
+                    Group {
+                        if isCurrentStoryMine {
+                            myStoryBottomBar
+                        } else {
+                            replyBar
+                        }
+                    }
+                    .padding(.horizontal, DS.Padding.horizontal)
+                    .padding(.top, DS.Spacing.sm)
+                    .animation(.easeInOut(duration: 0.2), value: isCurrentStoryMine)
                 }
                 .offset(y: max(0, dragOffset.height))
                 .scaleEffect(cardScale)
@@ -131,6 +146,26 @@ struct StoryViewerView: View {
                 viewModel.pause()
                 stopTimer()
             @unknown default: break
+            }
+        }
+        .confirmationDialog(L10n.Story.deleteTitle, isPresented: $showDeleteConfirmation) {
+            Button(L10n.Common.delete, role: .destructive) {
+                Task {
+                    let shouldDismiss = await viewModel.deleteCurrentStory()
+                    if shouldDismiss {
+                        dismiss()
+                    }
+                }
+            }
+            Button(L10n.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(L10n.Story.deleteMessage)
+        }
+        .onChange(of: showDeleteConfirmation) { _, isShowing in
+            if isShowing {
+                viewModel.pause()
+            } else {
+                viewModel.resume()
             }
         }
     }
@@ -221,43 +256,90 @@ struct StoryViewerView: View {
     private var storyHeader: some View {
         HStack(spacing: DS.Spacing.xs) {
             if let story = viewModel.currentStory {
-                // Avatar with gradient ring
-                AsyncImage(url: story.author.avatarURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Circle().fill(Color.gray.opacity(0.4))
-                }
-                .frame(width: 32, height: 32)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1))
-                .onTapGesture {
-                    viewModel.pause()
-                    dismiss()
-                    AppRouter.shared.push(.userProfile(userId: story.author.id))
-                }
+                if isCurrentStoryMine {
+                    // Current User's Own Story Header
+                    AsyncImage(url: story.author.avatarURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Circle().fill(Color.gray.opacity(DS.Opacity.muted))
+                    }
+                    .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(DS.Opacity.medium), lineWidth: DS.Stroke.thin))
 
-                Text(story.author.username)
-                    .font(DS.Font.username)
-                    .foregroundStyle(.white)
+                    Text(L10n.Story.yourStory)
+                        .font(DS.Font.username)
+                        .foregroundStyle(.white)
 
-                if let item = viewModel.currentItem {
-                    Text(item.createdAt, style: .relative)
-                        .font(DS.Font.caption2)
-                        .foregroundStyle(.white.opacity(0.6))
+                    if let item = viewModel.currentItem {
+                        Text(item.createdAt, style: .relative)
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(.white.opacity(DS.Opacity.medium))
+                    }
+
+                    Spacer()
+
+                    // Add story (Camera) button
+                    Button {
+                        viewModel.pause()
+                        dismiss()
+                        AppRouter.shared.present(fullScreen: .storyCamera)
+                    } label: {
+                        InstagramIcon(.camera, size: DS.FontSize.overlayMedium, color: .white)
+                            .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    // Close button
+                    Button { dismiss() } label: {
+                        InstagramIcon(.close, size: DS.FontSize.overlayLarge, color: .white)
+                            .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Other User's Story Header
+                    AsyncImage(url: story.author.avatarURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Circle().fill(Color.gray.opacity(DS.Opacity.muted))
+                    }
+                    .frame(width: DS.Size.avatarCompact, height: DS.Size.avatarCompact)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(DS.Opacity.medium), lineWidth: DS.Stroke.thin))
+                    .onTapGesture {
+                        viewModel.pause()
+                        dismiss()
+                        AppRouter.shared.push(.userProfile(userId: story.author.id))
+                    }
+
+                    Text(story.author.username)
+                        .font(DS.Font.username)
+                        .foregroundStyle(.white)
+                        .onTapGesture {
+                            viewModel.pause()
+                            dismiss()
+                            AppRouter.shared.push(.userProfile(userId: story.author.id))
+                        }
+
+                    if let item = viewModel.currentItem {
+                        Text(item.createdAt, style: .relative)
+                            .font(DS.Font.caption2)
+                            .foregroundStyle(.white.opacity(DS.Opacity.medium))
+                    }
+
+                    Spacer()
+
+                    // Close button
+                    Button { dismiss() } label: {
+                        InstagramIcon(.close, size: DS.FontSize.overlayLarge, color: .white)
+                            .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-
-            Spacer()
-
-            // Close button — large tap area
-            Button {
-                dismiss()
-            } label: {
-                InstagramIcon(.close, size: 18, color: .white)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
         }
     }
 
@@ -280,8 +362,65 @@ struct StoryViewerView: View {
         }
     }
 
+    // MARK: - My Story Bottom Bar
+
+    @ViewBuilder
+    private var myStoryBottomBar: some View {
+        HStack(spacing: DS.Spacing.md) {
+            // Viewers info (left side)
+            Button(action: {}) {
+                HStack(spacing: DS.Spacing.xs) {
+                    // Stacked viewer avatars
+                    ZStack {
+                        Circle()
+                            .fill(Color(.systemGray4))
+                            .frame(width: DS.Size.viewerAvatar, height: DS.Size.viewerAvatar)
+                        Circle()
+                            .fill(Color(.systemGray3))
+                            .frame(width: DS.Size.viewerAvatar, height: DS.Size.viewerAvatar)
+                            .offset(x: DS.Size.iconXSmall)
+                    }
+                    .frame(width: DS.Size.viewerAvatarCluster)
+
+                    Text(L10n.Story.viewers)
+                        .font(.system(size: DS.FontSize.overlayBody))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            // Close Friends indicator
+            Button(action: {}) {
+                HStack(spacing: DS.Spacing.xxs) {
+                    InstagramIcon(.system(name: "star.circle.fill"), size: DS.FontSize.overlayMedium, color: ColorTokens.success)
+                    Text(L10n.Story.closeFriends)
+                        .font(.system(size: DS.FontSize.overlayBody))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            Spacer()
+
+            // Delete button
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                InstagramIcon(.system(name: "trash"), size: DS.FontSize.overlayXLarge, color: .white)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                    .contentShape(Circle())
+            }
+
+            // Options button
+            Button(action: {}) {
+                InstagramIcon(.options, size: DS.FontSize.overlayXLarge, color: .white)
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight)
+                    .contentShape(Circle())
+            }
+        }
+    }
+
     // MARK: - Reply Bar
 
+    @ViewBuilder
     private var replyBar: some View {
         HStack(spacing: DS.Spacing.sm) {
             TextField("Send message", text: .constant(""))

@@ -41,8 +41,7 @@ struct PostMediaCarouselView: View {
             // Page count badge (e.g., 1/4) in top right
             if post.mediaItems.count > 1 && isBadgeVisible {
                 Text("\(currentMediaIndex + 1)/\(post.mediaItems.count)")
-                    .font(DS.Font.caption2)
-                    .fontWeight(.semibold)
+                    .font(DS.Font.caption2Bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, DS.Spacing.xs)
                     .padding(.vertical, DS.Spacing.xxs)

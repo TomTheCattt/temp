@@ -90,23 +90,24 @@ struct CommentsView: View {
             VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
                 // Username + text
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {
-                    Text(comment.author.username).fontWeight(.semibold) +
+                    Text(comment.author.username)
+                        .font(DS.Font.bodyBold)
+                    +
                     Text(" \(comment.text)")
+                        .font(DS.Font.body)
                 }
-                .font(DS.Font.commentText)
 
                 // Meta row
                 HStack(spacing: DS.Spacing.sm) {
                     Text(comment.createdAt, style: .relative)
                     if comment.likesCount > 0 {
                         Text(L10n.Comments.likesCount(comment.likesCount))
-                            .fontWeight(.medium)
+                            .font(DS.Font.captionBold)
                     }
                     Button(L10n.Common.reply) {
                         viewModel.handleReply(to: comment)
                         isInputFocused = true
                     }
-                    .fontWeight(.medium)
                 }
                 .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
@@ -157,10 +158,12 @@ struct CommentsView: View {
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {
-                    Text(reply.author.username).fontWeight(.semibold) +
+                    Text(reply.author.username)
+                        .font(DS.Font.captionBold)
+                    +
                     Text(" \(reply.text)")
+                        .font(DS.Font.caption)
                 }
-                .font(DS.Font.caption)
 
                 HStack(spacing: DS.Spacing.xs) {
                     Text(reply.createdAt, style: .relative)

@@ -63,8 +63,7 @@ struct LocationView: View {
             HStack(spacing: DS.Spacing.sm) {
                 Button(action: {}) {
                     Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond")
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.medium)
+                        .font(DS.Font.subheadlineBold)
                         .padding(.horizontal, DS.Spacing.md)
                         .padding(.vertical, DS.Spacing.xs)
                         .background(ColorTokens.buttonSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
@@ -72,8 +71,7 @@ struct LocationView: View {
 
                 Button(action: {}) {
                     Label("Save", systemImage: "bookmark")
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.medium)
+                        .font(DS.Font.subheadlineBold)
                         .padding(.horizontal, DS.Spacing.md)
                         .padding(.vertical, DS.Spacing.xs)
                         .background(ColorTokens.buttonSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))

@@ -121,8 +121,7 @@ struct InAppOngoingCallBanner: View {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: DS.Spacing.xs) {
                             Text(call.remoteName)
-                                .font(DS.Font.subheadline)
-                                .fontWeight(.semibold)
+                                .font(DS.Font.subheadlineBold)
                                 .foregroundStyle(ColorTokens.textPrimary)
                                 .lineLimit(1)
 

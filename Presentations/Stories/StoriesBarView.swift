@@ -87,11 +87,21 @@ struct StoriesBarView: View {
                 await loadStories()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .didUpdateStoryViewed)) { notification in
+            guard let storyId = notification.object as? String else { return }
+            if let index = stories.firstIndex(where: { $0.id == storyId }) {
+                stories[index].isViewed = true
+            }
+        }
     }
 
     private func loadStories() async {
         do {
-            stories = try await fetchStoriesUseCase.execute()
+            let fetched = try await fetchStoriesUseCase.execute()
+            let currentUserId = SessionStore.shared.currentUserId
+            let myStories = fetched.filter { $0.author.id == currentUserId }
+            let otherStories = fetched.filter { $0.author.id != currentUserId }
+            stories = myStories + otherStories
         } catch {
             stories = []
         }

@@ -40,7 +40,6 @@ struct DirectMessagesView: View {
                     HStack {
                         Text("Tin nhắn")
                             .font(DS.Font.headline)
-                            .fontWeight(.bold)
                         Spacer()
                     }
                     .padding(.horizontal, DS.Padding.horizontal)
@@ -153,7 +152,6 @@ struct DirectMessagesView: View {
                     HStack(spacing: DS.Spacing.xxs) {
                         Text(SessionStore.shared.currentUser?.username ?? L10n.Tab.chat)
                             .font(DS.Font.title3)
-                            .fontWeight(.bold)
                         InstagramIcon(.chevronDown, size: 12, color: .primary)
                     }
                     .foregroundStyle(Color.primary)
@@ -331,8 +329,7 @@ private struct ConversationRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: DS.Spacing.xxs) {
                     Text(displayName)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
+                        .font(conversation.unreadCount > 0 ? DS.Font.subheadlineBold : DS.Font.subheadline)
 
                     if !conversation.isGroup && otherUser?.isVerified == true {
                         InstagramIcon(

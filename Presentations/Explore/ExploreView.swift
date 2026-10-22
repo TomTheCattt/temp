@@ -328,8 +328,7 @@ private struct SearchResultRow: View {
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 HStack(spacing: DS.Spacing.xxs) {
                     Text(user.username)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.semibold)
+                        .font(DS.Font.subheadlineBold)
 
                     if user.isVerified {
                         InstagramIcon(.verifiedBadge, size: DS.Size.iconXSmall, color: ColorTokens.accentPrimary)

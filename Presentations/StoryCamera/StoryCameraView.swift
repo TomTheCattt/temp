@@ -665,8 +665,7 @@ struct StoryCameraView: View {
                     .background(color, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
 
                 Text(title)
-                    .font(DS.Font.caption2)
-                    .fontWeight(.bold)
+                    .font(DS.Font.caption2Bold)
                     .foregroundStyle(.primary)
             }
         }

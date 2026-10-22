@@ -138,11 +138,12 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func routeDestination(_ route: AppRoute) -> some View {
-        switch route {
-        case .userProfile(let userId):
-            ProfileView(userId: userId)
+        Group {
+            switch route {
+            case .userProfile(let userId):
+                ProfileView(userId: userId)
 
-        case .followers(let userId):
+            case .followers(let userId):
             FollowListView(
                 viewModel: FollowListViewModel(
                     userId: userId,
@@ -282,6 +283,8 @@ struct MainTabView: View {
             OpenSourceLicensesView()
         }
     }
+    .toolbar(.hidden, for: .tabBar)
+}
 
     // MARK: - Sheet Content
 
@@ -364,6 +367,9 @@ struct MainTabView: View {
         case .mediaViewer(let url):
             MediaViewerView(url: url)
 
+        case .chatMediaDetail(let message, let mediaURL, let isVideo):
+            ChatMediaDetailView(message: message, mediaURL: mediaURL, isVideo: isVideo)
+
         case .storyCamera:
             StoryCameraView(
                 viewModel: StoryCameraViewModel(
@@ -423,6 +429,13 @@ struct MainTabView: View {
                 #if !targetEnvironment(simulator)
                 UNUserNotificationCenter.current().setBadgeCount(count)
                 #endif
+            }
+        }
+
+        let notifUseCase = DIContainer.shared.resolve(FetchUnreadNotificationCountUseCaseProtocol.self)
+        if let notifCount = try? await notifUseCase.execute() {
+            await MainActor.run {
+                appState.setUnreadNotificationCount(notifCount)
             }
         }
     }

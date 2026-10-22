@@ -135,8 +135,7 @@ struct BlockedAccountsView: View {
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 Text(user.username)
-                    .font(DS.Font.subheadline)
-                    .fontWeight(.semibold)
+                    .font(DS.Font.subheadlineBold)
                 Text(user.fullName)
                     .font(DS.Font.caption)
                     .foregroundStyle(.secondary)
@@ -151,8 +150,7 @@ struct BlockedAccountsView: View {
                     ProgressView()
                 } else {
                     Text(L10n.Settings.unblock)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.semibold)
+                        .font(DS.Font.subheadlineBold)
                 }
             }
             .buttonStyle(.borderless)

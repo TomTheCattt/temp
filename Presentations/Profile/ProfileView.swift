@@ -161,8 +161,7 @@ struct ProfileView: View {
     private func statItem(count: Int, label: String) -> some View {
         VStack(spacing: DS.Spacing.xxxs) {
             Text(formatCount(count))
-                .font(DS.Font.subheadline)
-                .fontWeight(.bold)
+                .font(DS.Font.subheadlineBold)
             Text(label)
                 .font(DS.Font.caption)
                 .foregroundStyle(.secondary)
@@ -175,8 +174,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
             HStack(spacing: DS.Spacing.xxs) {
                 Text(user.fullName)
-                    .font(DS.Font.subheadline)
-                    .fontWeight(.semibold)
+                    .font(DS.Font.subheadlineBold)
                 if user.isVerified {
                     InstagramIcon(.verifiedBadge, size: DS.Size.iconSmall, color: ColorTokens.accentPrimary)
                 }
@@ -194,8 +192,7 @@ struct ProfileView: View {
                 let destinationURL = URL(string: website.contains("://") ? website : "https://\(website)")
                 if let destinationURL {
                     Link(displayURL, destination: destinationURL)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.medium)
+                        .font(DS.Font.subheadlineBold)
                 }
             }
         }
@@ -218,8 +215,7 @@ struct ProfileView: View {
                     Task { await viewModel.toggleFollow() }
                 } label: {
                     Text(user.isFollowing ? L10n.Common.following : L10n.Common.follow)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.semibold)
+                        .font(DS.Font.subheadlineBold)
                         .frame(maxWidth: .infinity)
                         .frame(height: DS.Size.avatarCompact)
                         .foregroundStyle(user.isFollowing ? Color.primary : .white)
@@ -246,8 +242,7 @@ struct ProfileView: View {
             message: Text(user.fullName)
         ) {
             Text(L10n.Profile.shareProfile)
-                .font(DS.Font.subheadline)
-                .fontWeight(.semibold)
+                .font(DS.Font.subheadlineBold)
                 .frame(maxWidth: .infinity)
                 .frame(height: DS.Size.avatarCompact)
                 .background(
@@ -261,8 +256,7 @@ struct ProfileView: View {
     private func profileButton(title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(DS.Font.subheadline)
-                .fontWeight(.semibold)
+                .font(DS.Font.subheadlineBold)
                 .frame(maxWidth: .infinity)
                 .frame(height: DS.Size.avatarCompact)
                 .background(
@@ -442,7 +436,6 @@ struct MyProfileNavigationBar: View {
                         let username = viewModel.user?.username ?? SessionStore.shared.currentUser?.username ?? ""
                         Text(username)
                             .font(DS.Font.headline)
-                            .fontWeight(.bold)
                     }
                 }
             }
@@ -519,7 +512,6 @@ struct UserProfileNavigationBar: View {
                 
                 Text(viewModel.user?.username ?? L10n.Profile.unknownUser)
                     .font(DS.Font.headline)
-                    .fontWeight(.bold)
             }
             
             Spacer()

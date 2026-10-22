@@ -68,9 +68,12 @@ final class DirectMessagesViewModel {
         refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            if let convs = try? await self.messageRepository.fetchConversations(page: 1, perPage: 30) {
+            async let convsTask = self.messageRepository.fetchConversations(page: 1, perPage: 30)
+            async let notesTask = self.messageRepository.fetchNotes()
+            if let (convs, fetchedNotes) = try? await (convsTask, notesTask) {
                 guard !Task.isCancelled else { return }
                 self.conversations = convs
+                self.notes = fetchedNotes
             }
         }
     }
@@ -211,6 +214,16 @@ final class DirectMessagesViewModel {
             notes[index] = newNote
         } else {
             notes.insert(newNote, at: 0)
+        }
+
+        // Asynchronously persist note to Firestore
+        Task { [weak self] in
+            guard let self else { return }
+            if let saved = try? await self.messageRepository.saveNote(text: trimmed) {
+                if let index = self.notes.firstIndex(where: { $0.isCurrentUser }) {
+                    self.notes[index] = saved
+                }
+            }
         }
     }
 }

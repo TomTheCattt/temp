@@ -14,7 +14,7 @@ struct NotificationsView: View {
 
     @State private var viewModel = NotificationsViewModel(
         fetchNotificationsUseCase: DIContainer.shared.resolve(FetchNotificationsUseCaseProtocol.self),
-        notificationRepository: DIContainer.shared.resolve(NotificationRepositoryProtocol.self)
+        markNotificationsAsReadUseCase: DIContainer.shared.resolve(MarkNotificationsAsReadUseCaseProtocol.self)
     )
 
     var body: some View {
@@ -37,6 +37,7 @@ struct NotificationsView: View {
             if viewModel.notifications.isEmpty {
                 await viewModel.loadNotifications()
             }
+            await viewModel.markAllAsRead()
         }
     }
 
@@ -83,7 +84,6 @@ private struct NotificationRow: View {
             // Content
             VStack(alignment: .leading, spacing: DS.Spacing.xxxs) {
                 notificationText
-                    .font(DS.Font.subheadline)
                     .lineLimit(2)
 
                 Text(notification.createdAt.timeAgoDisplay())
@@ -125,26 +125,26 @@ private struct NotificationRow: View {
     // MARK: - Notification Text
 
     private var notificationText: Text {
-        let username = Text(notification.actor.username).fontWeight(.semibold)
+        let username = Text(notification.actor.username).font(DS.Font.subheadlineBold)
 
         switch notification.type {
         case .like:
-            return username + Text(L10n.Notifications.likedPost)
+            return username + Text(L10n.Notifications.likedPost).font(DS.Font.subheadline)
         case .comment:
             let comment = notification.commentText ?? ""
-            return username + Text(L10n.Notifications.commented(comment))
+            return username + Text(L10n.Notifications.commented(comment)).font(DS.Font.subheadline)
         case .follow:
-            return username + Text(L10n.Notifications.startedFollowing)
+            return username + Text(L10n.Notifications.startedFollowing).font(DS.Font.subheadline)
         case .followRequest:
-            return username + Text(L10n.Notifications.followRequest)
+            return username + Text(L10n.Notifications.followRequest).font(DS.Font.subheadline)
         case .mention:
-            return username + Text(L10n.Notifications.mentionedInPost)
+            return username + Text(L10n.Notifications.mentionedInPost).font(DS.Font.subheadline)
         case .taggedInPost:
-            return username + Text(L10n.Notifications.taggedInPost)
+            return username + Text(L10n.Notifications.taggedInPost).font(DS.Font.subheadline)
         case .storyMention:
-            return username + Text(L10n.Notifications.mentionedInStory)
+            return username + Text(L10n.Notifications.mentionedInStory).font(DS.Font.subheadline)
         case .liveVideo:
-            return username + Text(L10n.Notifications.liveVideo)
+            return username + Text(L10n.Notifications.liveVideo).font(DS.Font.subheadline)
         }
     }
 
@@ -153,8 +153,7 @@ private struct NotificationRow: View {
             // Follow back
         } label: {
             Text(L10n.Common.follow)
-                .font(DS.Font.caption)
-                .fontWeight(.semibold)
+                .font(DS.Font.captionBold)
                 .padding(.horizontal, DS.Padding.horizontal)
                 .padding(.vertical, DS.Spacing.iconGap)
                 .foregroundStyle(.white)

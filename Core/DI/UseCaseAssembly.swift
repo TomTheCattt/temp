@@ -75,6 +75,18 @@ final class UseCaseAssembly: Assembly {
             )
         }
 
+        container.register(MarkStoryViewedUseCaseProtocol.self) { resolver in
+            MarkStoryViewedUseCase(
+                storyRepository: resolver.resolve(StoryRepositoryProtocol.self)!
+            )
+        }
+
+        container.register(DeleteStoryUseCaseProtocol.self) { resolver in
+            DeleteStoryUseCase(
+                storyRepository: resolver.resolve(StoryRepositoryProtocol.self)!
+            )
+        }
+
         // MARK: Search
 
         container.register(SearchUsersUseCaseProtocol.self) { resolver in
@@ -87,6 +99,18 @@ final class UseCaseAssembly: Assembly {
 
         container.register(FetchNotificationsUseCaseProtocol.self) { resolver in
             FetchNotificationsUseCase(
+                notificationRepository: resolver.resolve(NotificationRepositoryProtocol.self)!
+            )
+        }
+
+        container.register(FetchUnreadNotificationCountUseCaseProtocol.self) { resolver in
+            FetchUnreadNotificationCountUseCase(
+                notificationRepository: resolver.resolve(NotificationRepositoryProtocol.self)!
+            )
+        }
+
+        container.register(MarkNotificationsAsReadUseCaseProtocol.self) { resolver in
+            MarkNotificationsAsReadUseCase(
                 notificationRepository: resolver.resolve(NotificationRepositoryProtocol.self)!
             )
         }

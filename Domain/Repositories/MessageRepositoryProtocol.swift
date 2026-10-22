@@ -47,6 +47,9 @@ protocol MessageRepositoryProtocol: Sendable {
     /// Fetch active notes for the current user and following friends.
     func fetchNotes() async throws -> [InstagramNote]
 
+    /// Save or update a note for the current user.
+    func saveNote(text: String) async throws -> InstagramNote
+
     /// Detach real-time snapshot listener for a specific conversation when leaving chat view.
     func detachMessageListener(for conversationId: String) async
 
@@ -64,6 +67,10 @@ extension MessageRepositoryProtocol {
 
     func fetchNotes() async throws -> [InstagramNote] {
         return []
+    }
+
+    func saveNote(text: String) async throws -> InstagramNote {
+        throw NSError(domain: "MessageRepository", code: -1, userInfo: [NSLocalizedDescriptionKey: "saveNote not implemented"])
     }
 
     func getUnreadConversationsCount() async throws -> Int {

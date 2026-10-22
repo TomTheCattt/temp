@@ -23,7 +23,7 @@ final class ChatViewModel {
     private(set) var errorMessage: String?
 
     private(set) var currentPage = 1
-    private(set) var hasMorePages = true
+    private(set) var hasMorePages = false
 
     var recipient: User?
     var replyingToMessage: Message?
@@ -474,9 +474,117 @@ final class ChatViewModel {
         )
         messages.insert(pendingMessage, at: 0)
 
+        // Downsample in background task to avoid memory spike and protect MainActor
+        let processedURL: URL = await Task.detached(priority: .userInitiated) {
+            guard url.isFileURL, let rawData = try? Data(contentsOf: url) else { return url }
+            let downsampled = FirebaseStorageService.shared.downsampleImageIfNeeded(data: rawData)
+            let optimizedURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("opt_\(UUID().uuidString).jpg")
+            try? downsampled.write(to: optimizedURL)
+            return optimizedURL
+        }.value
+
         do {
             let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .image(url))
+                SendMessageInput(conversationId: conversationId, content: .image(processedURL))
+            )
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                messages.remove(at: index)
+            }
+            messages = deduplicateAndSort(messages + [message])
+            simulateReadReceipt(for: message.id)
+        } catch {
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                let current = messages[index]
+                messages[index] = Message(
+                    id: current.id,
+                    conversationId: current.conversationId,
+                    sender: current.sender,
+                    content: current.content,
+                    status: .failed,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet,
+                    reactions: current.reactions,
+                    createdAt: current.createdAt
+                )
+            }
+            ToastManager.shared.error(error.userMessage)
+        }
+
+        isSending = false
+    }
+
+    func sendVideoMessage(url: URL, thumbnailURL: URL?) async {
+        guard !isSending else { return }
+        isSending = true
+
+        let tempId = "temp_vid_\(UUID().uuidString.prefix(8))"
+        let currentUser = resolvedCurrentUser
+        let pendingMessage = Message(
+            id: tempId,
+            conversationId: conversationId,
+            sender: currentUser,
+            content: .video(url, thumbnailURL: thumbnailURL),
+            status: .sending,
+            replyToId: nil,
+            replyToSnippet: nil,
+            reactions: [:],
+            createdAt: .now
+        )
+        messages.insert(pendingMessage, at: 0)
+
+        do {
+            let message = try await sendMessageUseCase.execute(
+                SendMessageInput(conversationId: conversationId, content: .video(url, thumbnailURL: thumbnailURL))
+            )
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                messages.remove(at: index)
+            }
+            messages = deduplicateAndSort(messages + [message])
+            simulateReadReceipt(for: message.id)
+        } catch {
+            if let index = messages.firstIndex(where: { $0.id == tempId }) {
+                let current = messages[index]
+                messages[index] = Message(
+                    id: current.id,
+                    conversationId: current.conversationId,
+                    sender: current.sender,
+                    content: current.content,
+                    status: .failed,
+                    replyToId: current.replyToId,
+                    replyToSnippet: current.replyToSnippet,
+                    reactions: current.reactions,
+                    createdAt: current.createdAt
+                )
+            }
+            ToastManager.shared.error(error.userMessage)
+        }
+
+        isSending = false
+    }
+
+    func sendAudioMessage(url: URL, duration: TimeInterval) async {
+        guard !isSending else { return }
+        isSending = true
+
+        let tempId = "temp_aud_\(UUID().uuidString.prefix(8))"
+        let currentUser = resolvedCurrentUser
+        let pendingMessage = Message(
+            id: tempId,
+            conversationId: conversationId,
+            sender: currentUser,
+            content: .audio(url, duration: duration),
+            status: .sending,
+            replyToId: nil,
+            replyToSnippet: nil,
+            reactions: [:],
+            createdAt: .now
+        )
+        messages.insert(pendingMessage, at: 0)
+
+        do {
+            let message = try await sendMessageUseCase.execute(
+                SendMessageInput(conversationId: conversationId, content: .audio(url, duration: duration))
             )
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
                 messages.remove(at: index)
@@ -553,41 +661,54 @@ final class ChatViewModel {
         messages = deduplicateAndSort(messages + older)
     }
 
-    /// Smart deduplication based on ID and message fingerprint (sender + content + time window).
+    /// Identifies whether a message ID represents a temporary or synthetic placeholder.
+    private func isPlaceholderId(_ id: String) -> Bool {
+        id.starts(with: "temp_") || id.hasSuffix("_last") || id == "last"
+    }
+
+    /// Smart deduplication based on ID, sender, content, and timestamp window.
     private func deduplicateAndSort(_ list: [Message]) -> [Message] {
-        var seenIds = Set<String>()
-        var seenFingerprints = Set<String>()
         var result: [Message] = []
+        var seenIds = Set<String>()
 
         for msg in list {
             if seenIds.contains(msg.id) { continue }
 
             let contentKey = msg.content.fingerprintRepresentation
-            let timeBucket = Int(msg.createdAt.timeIntervalSince1970 / 3.0)
-            let fingerprint = "\(msg.sender.id)_\(contentKey)_\(timeBucket)"
+            let msgIsPlaceholder = isPlaceholderId(msg.id)
 
-            if seenFingerprints.contains(fingerprint) {
-                // If existing entry has a temporary or fallback placeholder ID, replace it with real ID
-                if let existingIdx = result.firstIndex(where: {
-                    let existingBucket = Int($0.createdAt.timeIntervalSince1970 / 3.0)
-                    return $0.sender.id == msg.sender.id &&
-                           $0.content.fingerprintRepresentation == contentKey &&
-                           existingBucket == timeBucket
-                }) {
-                    let existingId = result[existingIdx].id
-                    if existingId.starts(with: "temp_") || existingId == "last" || existingId.hasSuffix("_last") {
-                        seenIds.remove(existingId)
-                        result[existingIdx] = msg
-                        seenIds.insert(msg.id)
+            // Look for existing message with matching sender and content
+            if let existingIdx = result.firstIndex(where: {
+                $0.sender.id == msg.sender.id &&
+                $0.content.fingerprintRepresentation == contentKey
+            }) {
+                let existing = result[existingIdx]
+                let existingIsPlaceholder = isPlaceholderId(existing.id)
+
+                if existingIsPlaceholder && !msgIsPlaceholder {
+                    // Replace existing placeholder with real message
+                    seenIds.remove(existing.id)
+                    result[existingIdx] = msg
+                    seenIds.insert(msg.id)
+                    continue
+                } else if !existingIsPlaceholder && msgIsPlaceholder {
+                    // Real message already present, discard incoming placeholder
+                    continue
+                } else if existingIsPlaceholder && msgIsPlaceholder {
+                    // Both are placeholders for the same content, discard duplicate
+                    continue
+                } else {
+                    // Both are real messages: deduplicate only if timestamps are within 1.0s (e.g. duplicate network sync)
+                    if abs(existing.createdAt.timeIntervalSince(msg.createdAt)) <= 1.0 {
+                        continue
                     }
                 }
-                continue
             }
 
             seenIds.insert(msg.id)
-            seenFingerprints.insert(fingerprint)
             result.append(msg)
         }
+
         return result.sorted { $0.createdAt > $1.createdAt }
     }
 

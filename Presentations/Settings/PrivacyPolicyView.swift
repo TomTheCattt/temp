@@ -15,8 +15,7 @@ struct PrivacyPolicyView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
                 Text(L10n.Settings.privacyPolicy)
-                    .font(DS.Font.titleRegular)
-                    .fontWeight(.bold)
+                    .font(DS.Font.title)
 
                 Text("Last updated: July 2026")
                     .font(DS.Font.caption)

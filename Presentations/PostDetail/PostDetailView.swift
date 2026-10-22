@@ -156,10 +156,12 @@ struct PostDetailView: View {
             // Caption
             if let caption = post.caption, !caption.isEmpty {
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {
-                    Text(post.author.username).fontWeight(.semibold) +
+                    Text(post.author.username)
+                        .font(DS.Font.subheadlineBold)
+                    +
                     Text(" \(caption)")
+                        .font(DS.Font.subheadline)
                 }
-                .font(DS.Font.subheadline)
                 .padding(.horizontal, DS.Padding.horizontal)
             }
 
@@ -234,10 +236,12 @@ struct CommentRowView: View {
 
             VStack(alignment: .leading, spacing: DS.Spacing.xxs) {
                 HStack(alignment: .top, spacing: DS.Spacing.xxs) {
-                    Text(comment.author.username).fontWeight(.semibold) +
+                    Text(comment.author.username)
+                        .font(DS.Font.bodyBold)
+                    +
                     Text(" \(comment.text)")
+                        .font(DS.Font.body)
                 }
-                .font(DS.Font.commentText)
 
                 HStack(spacing: DS.Spacing.sm) {
                     Text(comment.createdAt, style: .relative)

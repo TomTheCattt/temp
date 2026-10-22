@@ -26,7 +26,6 @@ struct CreateActionSheetView: View {
             // Header Title
             Text(L10n.CreateMenu.title)
                 .font(DS.Font.headline)
-                .fontWeight(.bold)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, DS.Spacing.md)
 
@@ -106,8 +105,7 @@ struct CreateActionSheetView: View {
                     .frame(width: 28, height: 28)
 
                 Text(title)
-                    .font(DS.Font.body)
-                    .fontWeight(.medium)
+                    .font(DS.Font.bodyBold)
                     .foregroundStyle(.primary)
 
                 Spacer()

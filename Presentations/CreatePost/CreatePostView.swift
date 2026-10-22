@@ -237,8 +237,7 @@ struct CreatePostView: View {
                         InstagramIcon(.system(name: "aspectratio"), size: DS.Size.iconSmall, color: .white)
                         Text(viewModel.aspectRatio.rawValue)
                     }
-                    .font(DS.Font.caption2)
-                    .fontWeight(.bold)
+                    .font(DS.Font.caption2Bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, DS.Spacing.sm)
                     .padding(.vertical, DS.Spacing.iconGap)
@@ -292,8 +291,7 @@ struct CreatePostView: View {
                             color: viewModel.isMultiSelectEnabled ? .white : ColorTokens.textPrimary
                         )
                         Text("CHỌN NHIỀU")
-                            .font(DS.Font.caption2)
-                            .fontWeight(.bold)
+                            .font(DS.Font.caption2Bold)
                     }
                     .foregroundStyle(viewModel.isMultiSelectEnabled ? .white : .primary)
                     .padding(.horizontal, DS.Spacing.inputVertical)

@@ -99,8 +99,7 @@ struct CallView: View {
                         .fill(ColorTokens.success)
                         .frame(width: 8, height: 8)
                     Text(viewModel.callDuration)
-                        .font(DS.Font.subheadline)
-                        .fontWeight(.semibold)
+                        .font(DS.Font.subheadlineBold)
                         .foregroundStyle(.white)
                         .monospacedDigit()
                 }
@@ -265,7 +264,6 @@ struct CallView: View {
         case .connected:
             Text(viewModel.callDuration)
                 .font(DS.Font.title3)
-                .fontWeight(.medium)
                 .foregroundStyle(.white)
                 .monospacedDigit()
 

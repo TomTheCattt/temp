@@ -66,6 +66,10 @@ final class FirebaseMessageRepository: MessageRepositoryProtocol, @unchecked Sen
         try await dataSource.fetchNotes()
     }
 
+    func saveNote(text: String) async throws -> InstagramNote {
+        try await dataSource.saveNote(text: text)
+    }
+
     func detachMessageListener(for conversationId: String) async {
         await dataSource.detachMessageListener(for: conversationId)
     }

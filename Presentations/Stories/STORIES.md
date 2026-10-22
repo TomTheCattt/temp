@@ -8,10 +8,10 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
 
 | File | Vai trò |
 |------|---------|
-| `StoriesBarView.swift` | Thanh stories ngang (horizontal scroll) ở đầu feed |
-| `StoryViewerView.swift` | Full-screen viewer xem stories người khác (progress + navigation + reply) |
-| `StoryViewerViewModel.swift` | ViewModel quản lý navigation giữa stories/items, progress, pause/resume |
-| `MyStoryView.swift` | Full-screen viewer cho stories của bản thân (viewers + delete + share) |
+| `StoriesBarView.swift` | Thanh stories ngang (horizontal scroll) ở đầu feed, tự đồng bộ viền gradient/xám qua `.didUpdateStoryViewed` |
+| `StoryViewerView.swift` | Full-screen dynamic viewer tự thích ứng Header/BottomBar theo quyền sở hữu story hiện tại |
+| `StoryViewerViewModel.swift` | ViewModel quản lý navigation, progress, pause/resume, đánh dấu đã xem, xóa story |
+| `MyStoryView.swift` | Wrapper delegating sang `StoryViewerView` cho story của bản thân |
 | `StoryVideoPlayer.swift` | Video player chuyên dụng cho story items (progress tracking, no loop) |
 
 ## Tính năng chính
@@ -21,39 +21,48 @@ Module xử lý toàn bộ tính năng Stories: thanh stories ngang ở đầu f
 - **"Your Story" button**: avatar current user + plus badge
   - Có story → tap mở `MyStoryView`, long press context menu mở "Add to Story" hoặc "View Story"
   - Chưa có story → mở `StoryCameraView`
-- **Story circles** (StoryCircleView): avatar với gradient ring (red→orange→yellow) cho unviewed, gray ring cho viewed
+- **Story circles** (StoryCircleView): avatar với gradient ring (red→orange→yellow) cho unviewed, gray ring cho viewed (`Color(.systemGray4)`)
 - **Username** dưới mỗi circle
 - **Filter**: ẩn current user khỏi danh sách (hiển thị riêng ở "Your Story")
-- **Event sync**: Tự động reload danh sách story khi nhận sự kiện `Notification.Name.didCreateStory`
+- **Event sync**: 
+  - Tự động reload danh sách story khi nhận sự kiện `Notification.Name.didCreateStory`
+  - Tự động cập nhật `isViewed = true` và đổi viền sang xám ngay lập tức khi nhận sự kiện `Notification.Name.didUpdateStoryViewed`
 
-### StoryViewerView (xem stories người khác)
+### StoryViewerView (Viewer Động Hóa Toàn Diện)
+- **Tự thích ứng theo quyền sở hữu (`isCurrentStoryMine`)**:
+  - **Khi xem story của chính mình**:
+    - Header: Avatar + "Tin của bạn" (`L10n.Story.yourStory`) + relative time + Nút Camera chụp story mới + Nút Close
+    - Bottom Bar: `myStoryBottomBar` (Người xem, Bạn thân, Nút Xóa story kèm confirmationDialog, Tùy chọn)
+  - **Khi chuyển tiếp sang story của bạn bè**:
+    - Header: Avatar đối phương (tap để xem Profile) + Username đối phương (tap để xem Profile) + relative time + Nút Close
+    - Bottom Bar: `replyBar` (TextField "Send message" + Thả tim + Chia sẻ)
+- **Đánh dấu đã xem (`markViewed`)**:
+  - Tự động gọi `markCurrentStoryViewedIfNeeded()` khi hiển thị story mới.
+  - Cập nhật tức thì $O(1)$ trên RAM và phát sự kiện `didUpdateStoryViewed`.
+  - Bắn tác vụ background `Task` gọi `MarkStoryViewedUseCase` đẩy lên backend Firestore.
 - **Progress bars**: HStack capsules ở trên cùng, fill theo progress
-- **Header**: avatar + username + relative time + close button
 - **Tap navigation**: tap trái (50%) = previous, tap phải (50%) = next (cân bằng 50/50 mỗi bên)
 - **Swipe down to dismiss**: vuốt xuống tương tác thời gian thực để đóng (co nhỏ card, tăng bo góc, nền đen mờ dần để lộ màn hình phía dưới; tự động pause khi kéo và resume khi thả nảy về)
 - **Long press**: pause/resume playback
 - **Image stories**: timer-based progress (default 5s/item, tick 0.05s)
 - **Video stories**: progress từ `StoryVideoPlayer` callback
-- **Reply bar**: TextField "Send message" + Heart + Paperplane
 - **Stickers**: location, mention, music, poll (overlay trên content)
-- **Multi-story navigation**: tự chuyển sang story của user tiếp theo
+- **Multi-story navigation**: tự chuyển sang story của user tiếp theo mượt mà
 - **Scene phase handling**: pause khi app vào background
 - **Content card**: rounded corners động (12pt → 32pt khi kéo)
 - **Auto-dismiss**: khi hết story cuối cùng
 
-### MyStoryView (xem stories của mình)
-- Giống StoryViewerView nhưng:
-  - **Không có reply bar** (thay bằng bottom bar)
-  - **Bottom bar**: Viewers (stacked avatars) + Close Friends + Delete + More
-  - **Delete confirmation**: ConfirmationDialog trước khi xóa
-  - **Header**: "Your Story" thay vì username + Nút Camera chụp/thêm story mới ngay lập tức
+### MyStoryView
+- Kế thừa và delegate toàn bộ sang `StoryViewerView` để tái sử dụng 100% logic điều hướng, cử chỉ, và chuyển đổi giao diện mượt mà khi người dùng xem hết story của mình và chuyển tiếp sang story của người khác.
 
 ### StoryViewerViewModel
 - **Navigation**: `goToNext()`, `goToPrevious()`, `jumpToStory(at:)`
 - **Progress tracking**: `itemProgress` (0.0 → 1.0)
 - **Pause/Resume**: `isPaused` flag
 - **Multi-story**: `currentStoryIndex` + `currentItemIndex`
-- **Load stories**: fetch từ API, jump đến `targetUserId` nếu specified
+- **Load stories**: fetch từ API, sắp xếp `myStories + otherStories` chuẩn Single Source of Truth, jump đến `targetUserId` nếu specified
+- **Viewed Tracking**: `markCurrentStoryViewedIfNeeded()` với `MarkStoryViewedUseCaseProtocol`
+- **Delete Story**: `deleteCurrentStory()` với `DeleteStoryUseCaseProtocol` và phát `.didCreateStory` reload Feed
 
 ### StoryVideoPlayer
 - **No looping** (khác ReelVideoPlayer): stories auto-advance khi hết

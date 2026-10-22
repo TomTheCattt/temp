@@ -21,16 +21,16 @@ final class NotificationsViewModel {
     // MARK: - Dependencies
 
     private let fetchNotificationsUseCase: FetchNotificationsUseCaseProtocol
-    private let notificationRepository: NotificationRepositoryProtocol
+    private let markNotificationsAsReadUseCase: MarkNotificationsAsReadUseCaseProtocol
 
     // MARK: - Init
 
     init(
         fetchNotificationsUseCase: FetchNotificationsUseCaseProtocol,
-        notificationRepository: NotificationRepositoryProtocol
+        markNotificationsAsReadUseCase: MarkNotificationsAsReadUseCaseProtocol
     ) {
         self.fetchNotificationsUseCase = fetchNotificationsUseCase
-        self.notificationRepository = notificationRepository
+        self.markNotificationsAsReadUseCase = markNotificationsAsReadUseCase
     }
 
     // MARK: - Actions
@@ -52,7 +52,22 @@ final class NotificationsViewModel {
 
     func markAllAsRead() async {
         do {
-            try await notificationRepository.markAllAsRead()
+            try await markNotificationsAsReadUseCase.execute()
+            AppState.shared.setUnreadNotificationCount(0)
+            if !notifications.isEmpty {
+                notifications = notifications.map { item in
+                    AppNotification(
+                        id: item.id,
+                        type: item.type,
+                        actor: item.actor,
+                        postId: item.postId,
+                        postThumbnailURL: item.postThumbnailURL,
+                        commentText: item.commentText,
+                        isRead: true,
+                        createdAt: item.createdAt
+                    )
+                }
+            }
         } catch {
             // Silent fail
         }

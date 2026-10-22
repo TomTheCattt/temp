@@ -24,6 +24,7 @@ Module hiển thị bảng tin (home feed) của ứng dụng — màn hình ch�
 - **Pull-to-refresh**: kéo xuống để reload feed
 - **Visibility tracking**: theo dõi posts nào đang visible (cho video auto-play)
 - **Custom Navigation Bar**: Bố cục chuẩn Instagram iOS hiện tại: Nút Tạo `+` bên trái (24pt, hitbox 44x44pt mở Creation Hub), Logo `Instagram` căn giữa không dropdown, và Nút Thông báo Trái tim `heart` bên phải (24pt, hitbox 44x44pt mở Notifications). Tự động trượt ẩn khi cuộn xuống và trượt hiện lại khi cuộn lên (`.onScrollGeometryChange`), mở rộng Safe Area Top và nền gradient blur nhẹ khi cuộn.
+- **Notification Red Dot Badge**: Tích hợp chấm đỏ unread indicator (8pt, viền cutout 1.5pt `ColorTokens.backgroundPrimary`, offset `(1.5, -1.5)`) hiển thị reactive khi `AppState.shared.hasUnreadNotifications` là true. Tự động biến mất khi người dùng vào xem màn hình Notifications (`markAllAsRead`), đồng bộ 100% Single Source of Truth qua `FetchUnreadNotificationCountUseCaseProtocol`.
 
 ### FeedViewModel
 - **Phân trang**: page-based (20 items/page), auto load more; **de-dup theo `id`** khi append (chống trùng ở ranh giới trang → tránh "Duplicate ID" trong `ForEach`). Cờ `isLoadingMore` riêng.

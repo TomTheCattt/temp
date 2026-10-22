@@ -151,11 +151,13 @@ enum AppFullScreen: Identifiable {
     case createReel
     case creationHub(initialMode: CreationHubMode = .post)
     case call(userId: String, userName: String, avatarURL: URL? = nil, hasVideo: Bool)
+    case chatMediaDetail(message: Message, mediaURL: URL, isVideo: Bool)
 
     var id: String {
         switch self {
         case .camera:                          return "camera"
         case .mediaViewer(let url):            return "media_\(url.absoluteString)"
+        case .chatMediaDetail(let msg, _, _):  return "chatMedia_\(msg.id)"
         case .storyCamera:                     return "storyCamera"
         case .storyViewer(let id):             return "storyViewer_\(id)"
         case .myStory:                         return "myStory"

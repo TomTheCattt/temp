@@ -59,6 +59,13 @@ Dự án tích hợp bộ font chính hãng `Instagram Sans` với các kiểu d
 | `DS.Font.captionBold` | 12pt | Instagram Sans Bold | Bold | Tag, pill label |
 | `DS.Font.caption2` | 11pt | Instagram Sans Light | Light | Chú thích nhỏ, watermark |
 
+> [!IMPORTANT]
+> **Quy Tắc Bắt Buộc Khi Sử Dụng Custom Font (Zero Font Descriptor Error)**:
+> Bộ font `Instagram Sans` bao gồm các tệp font tĩnh riêng rẽ (`InstagramSans`, `InstagramSans-Medium`, `InstagramSans-Bold`). Tuyệt đối **KHÔNG** gọi modifier `.fontWeight(...)` hoặc `.bold()` lên các token `DS.Font.*`. CoreText trên iOS không thể biến đổi trọng số động của font descriptor tĩnh, dẫn tới lỗi runtime warning `Unable to update Font Descriptor's weight to Weight(...)`.
+> - **ĐÚNG**: Sử dụng token tương ứng đã định nghĩa sẵn: `DS.Font.subheadlineBold`, `DS.Font.bodyBold`, `DS.Font.captionBold`, `DS.Font.title`, v.v.
+> - **SAI**: `.font(DS.Font.subheadline).fontWeight(.semibold)` hoặc `.font(DS.Font.caption).fontWeight(.bold)`.
+> - **Với Text Concatenation**: Khai báo font riêng cho từng Text: `Text(username).font(DS.Font.subheadlineBold) + Text(body).font(DS.Font.subheadline)`.
+
 ---
 
 ## 4. Hệ Thống Spacing & Kích Thước Chuẩn HIG

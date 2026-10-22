@@ -757,12 +757,16 @@ def main():
         dialogue = SAMPLE_DIALOGUES[idx % len(SAMPLE_DIALOGUES)]
         has_unread = (idx < 10)
         unread_count = 1 if has_unread else 0
-        ago_partner = (idx + 1) * 600
-        ago_tom = ago_partner + 300
+        ago_recent = (idx + 1) * 600
+        ago_older = ago_recent + 300
 
-        last_msg_time = iso_ts(seconds_ago=ago_partner if has_unread else ago_tom)
+        last_msg_time = iso_ts(seconds_ago=ago_recent)
         last_sender = partner if has_unread else user_map["tom@example.com"]
         last_text = dialogue[0] if has_unread else dialogue[1]
+
+        m1_sender = user_map["tom@example.com"] if has_unread else partner
+        m1_text = "Chào bạn nhé!" if has_unread else dialogue[0]
+        m1_token = tom_token if has_unread else partner["token"]
 
         # 1. Conversation Document
         conv_fields = {
@@ -810,51 +814,52 @@ def main():
                 "status": "sent",
                 "createdAt": last_msg_time
             },
-            "createdAt": iso_ts(seconds_ago=ago_tom + 3600),
+            "createdAt": iso_ts(seconds_ago=ago_older + 3600),
             "updatedAt": last_msg_time,
         }
         conv_update_keys = ["participants", "unreadCount", "unreadCounts", "lastMessageText", "lastMessageSenderId", "lastMessageTimestamp", "lastMessage", "updatedAt"]
         upsert_doc_safely(f"conversations/{conv_id}", conv_fields, conv_update_keys, tom_token)
 
         # 2. Messages Subcollection
-        # Message 1 from Tom
+        # Message 1 (older)
         m1_fields = {
             "id": f"{conv_id}_m1",
             "conversationId": conv_id,
-            "senderId": tom_uid,
+            "senderId": m1_sender["uid"],
             "sender": {
-                "id": tom_uid,
-                "username": "tomthecat",
-                "fullName": "Tom The Cat",
-                "avatarURL": "https://i.pravatar.cc/300?u=tomthecat",
-                "isVerified": True
+                "id": m1_sender["uid"],
+                "username": m1_sender["username"],
+                "fullName": m1_sender["fullName"],
+                "avatarURL": m1_sender["avatar"],
+                "isVerified": m1_sender["isVerified"]
             },
             "type": "text",
-            "text": dialogue[1] if not has_unread else "Chào bạn nhé!",
+            "text": m1_text,
             "status": "sent",
-            "createdAt": iso_ts(seconds_ago=ago_tom),
+            "createdAt": iso_ts(seconds_ago=ago_older),
         }
         m_update_keys = ["sender", "text", "status"]
-        upsert_doc_safely(f"conversations/{conv_id}/messages/{conv_id}_m1", m1_fields, m_update_keys, tom_token)
+        upsert_doc_safely(f"conversations/{conv_id}/messages/{conv_id}_m1", m1_fields, m_update_keys, m1_token)
 
-        # Message 2 from Partner
+        # Message 2 (recent, matching lastMessage)
         m2_fields = {
             "id": f"{conv_id}_m2",
             "conversationId": conv_id,
-            "senderId": partner["uid"],
+            "senderId": last_sender["uid"],
             "sender": {
-                "id": partner["uid"],
-                "username": partner["username"],
-                "fullName": partner["fullName"],
-                "avatarURL": partner["avatar"],
-                "isVerified": partner["isVerified"]
+                "id": last_sender["uid"],
+                "username": last_sender["username"],
+                "fullName": last_sender["fullName"],
+                "avatarURL": last_sender["avatar"],
+                "isVerified": last_sender["isVerified"]
             },
             "type": "text",
             "text": last_text,
             "status": "sent",
             "createdAt": last_msg_time,
         }
-        upsert_doc_safely(f"conversations/{conv_id}/messages/{conv_id}_m2", m2_fields, m_update_keys, partner["token"])
+        m2_token = partner["token"] if has_unread else tom_token
+        upsert_doc_safely(f"conversations/{conv_id}/messages/{conv_id}_m2", m2_fields, m_update_keys, m2_token)
 
         # 3. Notification for Tom (with rich actor map)
         notif_id = f"notif_{partner['uid'][:8]}_{idx + 1}"

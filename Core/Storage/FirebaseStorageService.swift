@@ -38,6 +38,9 @@ public protocol FirebaseStorageServiceProtocol: Sendable {
     /// Uploads video data to the specified path in Firebase Storage.
     func uploadVideo(data: Data, path: String) async throws -> URL
 
+    /// Uploads audio data to the specified path in Firebase Storage.
+    func uploadAudio(data: Data, path: String) async throws -> URL
+
     /// Deletes a file at the specified URL string or storage path in Firebase Storage.
     func deleteFile(at urlString: String) async throws
 }
@@ -104,6 +107,21 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
         let ref = storage.reference().child(path)
         let metadata = StorageMetadata()
         metadata.contentType = "video/mp4"
+
+        _ = try await ref.putDataAsync(data, metadata: metadata)
+        return try await ref.downloadURL()
+    }
+
+    // MARK: - Upload Audio
+
+    public func uploadAudio(data: Data, path: String) async throws -> URL {
+        guard !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw FirebaseStorageError.invalidPath
+        }
+
+        let ref = storage.reference().child(path)
+        let metadata = StorageMetadata()
+        metadata.contentType = "audio/m4a"
 
         _ = try await ref.putDataAsync(data, metadata: metadata)
         return try await ref.downloadURL()

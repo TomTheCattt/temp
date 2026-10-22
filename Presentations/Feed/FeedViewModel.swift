@@ -35,17 +35,20 @@ final class FeedViewModel {
     private let fetchFeedUseCase: FetchFeedUseCaseProtocol
     private let toggleLikeUseCase: ToggleLikePostUseCaseProtocol
     private let toggleSaveUseCase: ToggleSavePostUseCaseProtocol
+    private let fetchUnreadNotificationCountUseCase: FetchUnreadNotificationCountUseCaseProtocol
 
     // MARK: - Init
 
     init(
         fetchFeedUseCase: FetchFeedUseCaseProtocol,
         toggleLikeUseCase: ToggleLikePostUseCaseProtocol,
-        toggleSaveUseCase: ToggleSavePostUseCaseProtocol
+        toggleSaveUseCase: ToggleSavePostUseCaseProtocol,
+        fetchUnreadNotificationCountUseCase: FetchUnreadNotificationCountUseCaseProtocol
     ) {
         self.fetchFeedUseCase = fetchFeedUseCase
         self.toggleLikeUseCase = toggleLikeUseCase
         self.toggleSaveUseCase = toggleSaveUseCase
+        self.fetchUnreadNotificationCountUseCase = fetchUnreadNotificationCountUseCase
     }
 
     // MARK: - Actions
@@ -56,8 +59,11 @@ final class FeedViewModel {
         errorMessage = nil
         currentPage = 1
 
+        async let feedTask = fetchFeedUseCase.execute(PaginationInput(page: 1, perPage: perPage))
+        async let unreadTask: () = refreshUnreadNotificationCount()
+
         do {
-            let result = try await fetchFeedUseCase.execute(PaginationInput(page: 1, perPage: perPage))
+            let (result, _) = try await (feedTask, unreadTask)
             posts = result
             hasMorePages = result.count >= perPage
         } catch {
@@ -72,8 +78,11 @@ final class FeedViewModel {
         errorMessage = nil
         currentPage = 1
 
+        async let feedTask = fetchFeedUseCase.execute(PaginationInput(page: 1, perPage: perPage))
+        async let unreadTask: () = refreshUnreadNotificationCount()
+
         do {
-            let result = try await fetchFeedUseCase.execute(PaginationInput(page: 1, perPage: perPage))
+            let (result, _) = try await (feedTask, unreadTask)
             posts = result
             hasMorePages = result.count >= perPage
         } catch {
@@ -86,6 +95,15 @@ final class FeedViewModel {
         }
 
         isRefreshing = false
+    }
+
+    func refreshUnreadNotificationCount() async {
+        do {
+            let count = try await fetchUnreadNotificationCountUseCase.execute()
+            AppState.shared.setUnreadNotificationCount(count)
+        } catch {
+            // Non-blocking silent fail
+        }
     }
 
     func loadMore() async {

@@ -45,6 +45,7 @@ struct InstagramApp: App {
                 .withBaseFeatures()
                 .withAppTheme()
                 .withToast() // Single global toast host for the whole app.
+                .withOfflineBanner() // Persistent Instagram-style top connectivity banner.
         }
     }
 

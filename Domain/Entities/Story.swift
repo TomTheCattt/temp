@@ -13,7 +13,7 @@ nonisolated struct Story: Identifiable, Hashable, Sendable {
     let id: String
     let author: User
     let items: [StoryItem]
-    let isViewed: Bool
+    var isViewed: Bool
     let createdAt: Date
     let expiresAt: Date
 }

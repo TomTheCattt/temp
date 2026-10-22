@@ -189,8 +189,7 @@ struct FilterThumbnailCell: View {
                 )
 
             Text(thumbnail.displayName)
-                .font(DS.Font.caption2)
-                .fontWeight(isSelected ? .bold : .regular)
+                .font(isSelected ? DS.Font.caption2Bold : DS.Font.caption2)
                 .foregroundStyle(isSelected ? .primary : .secondary)
                 .lineLimit(1)
         }

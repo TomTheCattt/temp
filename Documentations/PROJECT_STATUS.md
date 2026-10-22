@@ -53,7 +53,7 @@
 - [x] DI Container (6 assemblies: Network, Service, Repository, UseCase, ViewModel)
 - [x] NetworkService (request/requestEnvelope/requestVoid/upload/download + Combine)
 - [x] NetworkService detects global states (503 → maintenance, 426 → force-update) via AppState
-- [x] NetworkMonitor (NWPathMonitor, @Observable) — offline/online toast
+- [x] NetworkMonitor (NWPathMonitor, @Observable) — persistent top offline/reconnected banner + auto-retry trigger
 - [x] AppState (@Observable global: isUnderMaintenance, forceUpdateRequired)
 - [x] APIEndpoint protocol + all endpoint enums
 - [x] RequestInterceptor (auth token + retry; forced logout on 401 → session-expired toast)
@@ -75,7 +75,7 @@
 
 - [x] Entities: User, Post, Story, Comment, Reel, Message, Conversation, AppNotification
 - [x] Repository Protocols: Auth, User, Post, Story, Comment, Message, Notification, Reel
-- [x] UseCases: Login, Register, ChangePassword, FetchFeed, ToggleLike, ToggleSavePost, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications, FetchComments, AddComment, FetchPostDetail, CreatePost, UpdatePost, FetchReels, ToggleLikeReel, FetchMessages, SendMessage, UpdateProfile, FetchFollowers, FetchFollowing
+- [x] UseCases: Login, Register, ChangePassword, FetchFeed, ToggleLike, ToggleSavePost, FetchProfile, ToggleFollow, FetchStories, SearchUsers, FetchNotifications, FetchUnreadNotificationCount, MarkNotificationsAsRead, FetchComments, AddComment, FetchPostDetail, CreatePost, UpdatePost, FetchReels, ToggleLikeReel, FetchMessages, SendMessage, UpdateProfile, FetchFollowers, FetchFollowing
 - [x] Base types: UseCase protocol, PaginationInput, NoInput, AuthSession
 - [x] Error types: APIError (+ friendly `userMessage` + `Error.userMessage`), AuthError, ValidationError, CallServiceError, WebSocketError, LUTError
 - [x] `LogoutReason` (user-initiated vs session-expired) for AuthManager.logout
@@ -388,6 +388,8 @@ Instagram/
 │       ├── Message/FetchMessagesUseCase.swift
 │       ├── Message/SendMessageUseCase.swift
 │       ├── Notification/FetchNotificationsUseCase.swift
+│       ├── Notification/FetchUnreadNotificationCountUseCase.swift
+│       ├── Notification/MarkNotificationsAsReadUseCase.swift
 │       ├── Profile/FetchProfileUseCase.swift
 │       ├── Profile/ToggleFollowUseCase.swift
 │       ├── Profile/UpdateProfileUseCase.swift

@@ -91,7 +91,6 @@ struct ConversationDetailsView: View {
 
             Text(recipient?.fullName.isEmpty == false ? (recipient?.fullName ?? "") : (recipient?.username ?? "User"))
                 .font(DS.Font.title3)
-                .fontWeight(.bold)
 
             Text("@\(recipient?.username ?? "user")")
                 .font(DS.Font.subheadline)

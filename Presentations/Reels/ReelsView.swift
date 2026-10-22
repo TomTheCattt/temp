@@ -107,8 +107,7 @@ struct ReelsView: View {
                         viewModel.setFeedMode(.forYou)
                     } label: {
                         Text(L10n.Tab.reels)
-                            .font(DS.Font.title3)
-                            .fontWeight(viewModel.feedMode == .forYou ? .bold : .medium)
+                            .font(viewModel.feedMode == .forYou ? DS.Font.title3 : DS.Font.title3Regular)
                             .foregroundStyle(viewModel.feedMode == .forYou ? .white : .white.opacity(DS.Opacity.medium))
                     }
 
@@ -116,8 +115,7 @@ struct ReelsView: View {
                         viewModel.setFeedMode(.following)
                     } label: {
                         Text(L10n.Common.following)
-                            .font(DS.Font.title3)
-                            .fontWeight(viewModel.feedMode == .following ? .bold : .medium)
+                            .font(viewModel.feedMode == .following ? DS.Font.title3 : DS.Font.title3Regular)
                             .foregroundStyle(viewModel.feedMode == .following ? .white : .white.opacity(DS.Opacity.medium))
                     }
                 }

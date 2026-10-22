@@ -63,8 +63,7 @@ struct InAppIncomingCallBanner: View {
                     // Caller Information
                     VStack(alignment: .leading, spacing: 2) {
                         Text(call.remoteName)
-                            .font(DS.Font.subheadline)
-                            .fontWeight(.semibold)
+                            .font(DS.Font.subheadlineBold)
                             .foregroundStyle(ColorTokens.textPrimary)
                             .lineLimit(1)
 

@@ -16,6 +16,10 @@ extension Notification.Name {
     /// `object` contains the newly created `Story`.
     nonisolated static let didCreateStory = Notification.Name("com.instagram.didCreateStory")
 
+    /// Dispatched when a story is viewed.
+    /// `object` contains the `storyId` (String).
+    nonisolated static let didUpdateStoryViewed = Notification.Name("com.instagram.didUpdateStoryViewed")
+
     /// Dispatched when current user profile is updated.
     /// `object` contains the updated `User`.
     nonisolated static let didUpdateProfile = Notification.Name("com.instagram.didUpdateProfile")

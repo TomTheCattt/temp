@@ -14,7 +14,8 @@ struct FeedView: View {
     @State private var viewModel = FeedViewModel(
         fetchFeedUseCase: DIContainer.shared.resolve(FetchFeedUseCaseProtocol.self),
         toggleLikeUseCase: DIContainer.shared.resolve(ToggleLikePostUseCaseProtocol.self),
-        toggleSaveUseCase: DIContainer.shared.resolve(ToggleSavePostUseCaseProtocol.self)
+        toggleSaveUseCase: DIContainer.shared.resolve(ToggleSavePostUseCaseProtocol.self),
+        fetchUnreadNotificationCountUseCase: DIContainer.shared.resolve(FetchUnreadNotificationCountUseCaseProtocol.self)
     )
 
     @State private var visiblePostIds: Set<String> = []
@@ -107,6 +108,13 @@ struct FeedView: View {
                 viewModel.handleNewPost(post)
             }
         }
+        .onChange(of: NetworkMonitor.shared.isConnected) { _, isConnected in
+            if isConnected && viewModel.posts.isEmpty && viewModel.errorMessage != nil {
+                Task {
+                    await viewModel.loadFeed()
+                }
+            }
+        }
     }
 
     // MARK: - Custom Feed Navigation Bar (3 evenly spaced buttons)
@@ -142,10 +150,27 @@ struct FeedView: View {
                     HapticFeedbackSafe.impact(.light)
                     AppRouter.shared.push(.notifications)
                 } label: {
-                    InstagramIcon(.like(selected: false), size: DS.Size.iconDefault, color: .primary)
-                        .frame(width: 44, height: 44, alignment: .trailing)
-                        .contentShape(Rectangle())
+                    ZStack(alignment: .topTrailing) {
+                        InstagramIcon(.like(selected: false), size: DS.Size.iconDefault, color: .primary)
+
+                        if AppState.shared.hasUnreadNotifications {
+                            Circle()
+                                .fill(ColorTokens.badgeRed)
+                                .frame(width: Constants.unreadBadgeSize, height: Constants.unreadBadgeSize)
+                                .overlay(
+                                    Circle()
+                                        .stroke(ColorTokens.backgroundPrimary, lineWidth: Constants.unreadBadgeStrokeWidth)
+                                )
+                                .offset(x: Constants.unreadBadgeOffsetX, y: Constants.unreadBadgeOffsetY)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .frame(width: DS.Size.buttonDefaultHeight, height: DS.Size.buttonDefaultHeight, alignment: .trailing)
+                    .contentShape(Rectangle())
                 }
+                .animation(DS.Animation.standard, value: AppState.shared.hasUnreadNotifications)
+                .accessibilityLabel(L10n.Notifications.title)
+                .accessibilityValue(AppState.shared.hasUnreadNotifications ? L10n.Notifications.title : "")
             }
             .tint(.primary)
             .padding(.horizontal, DS.Padding.horizontal)
@@ -243,4 +268,8 @@ private enum Constants {
     static let gradientStopHigh: Double = 0.70
     static let gradientStopMid: Double = 0.30
     static let gradientStopClear: Double = 0.00
+    static let unreadBadgeSize: CGFloat = 8
+    static let unreadBadgeStrokeWidth: CGFloat = 1.5
+    static let unreadBadgeOffsetX: CGFloat = 1.5
+    static let unreadBadgeOffsetY: CGFloat = -1.5
 }

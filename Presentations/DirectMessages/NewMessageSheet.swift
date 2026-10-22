@@ -42,8 +42,7 @@ struct NewMessageSheet: View {
                         } else {
                             VStack(alignment: .leading, spacing: DS.Spacing.xs) {
                                 Text(selectedUsers.isEmpty ? "Gợi ý" : "Người dùng")
-                                    .font(DS.Font.caption)
-                                    .fontWeight(.bold)
+                                    .font(DS.Font.captionBold)
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, DS.Padding.horizontal)
                                     .padding(.top, DS.Spacing.xs)
@@ -98,8 +97,7 @@ struct NewMessageSheet: View {
                     ForEach(selectedUsers) { user in
                         HStack(spacing: 4) {
                             Text(user.username)
-                                .font(DS.Font.caption)
-                                .fontWeight(.medium)
+                                .font(DS.Font.captionBold)
                                 .foregroundStyle(ColorTokens.accentPrimary)
 
                             Button {

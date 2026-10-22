@@ -32,7 +32,8 @@ final class ViewModelAssembly: Assembly {
             FeedViewModel(
                 fetchFeedUseCase: resolver.resolve(FetchFeedUseCaseProtocol.self)!,
                 toggleLikeUseCase: resolver.resolve(ToggleLikePostUseCaseProtocol.self)!,
-                toggleSaveUseCase: resolver.resolve(ToggleSavePostUseCaseProtocol.self)!
+                toggleSaveUseCase: resolver.resolve(ToggleSavePostUseCaseProtocol.self)!,
+                fetchUnreadNotificationCountUseCase: resolver.resolve(FetchUnreadNotificationCountUseCaseProtocol.self)!
             )
         }
 
@@ -50,7 +51,7 @@ final class ViewModelAssembly: Assembly {
         container.register(NotificationsViewModel.self) { resolver in
             NotificationsViewModel(
                 fetchNotificationsUseCase: resolver.resolve(FetchNotificationsUseCaseProtocol.self)!,
-                notificationRepository: resolver.resolve(NotificationRepositoryProtocol.self)!
+                markNotificationsAsReadUseCase: resolver.resolve(MarkNotificationsAsReadUseCaseProtocol.self)!
             )
         }
 
