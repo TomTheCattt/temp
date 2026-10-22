@@ -26,6 +26,7 @@ DerivedDataDevice/
 # Logs & Scratch
 *.log
 scratch/
+.build/
 
 # Node
 node_modules/
