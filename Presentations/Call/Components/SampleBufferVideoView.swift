@@ -25,6 +25,12 @@ final class SampleBufferContainerView: UIView {
         layer as! AVSampleBufferDisplayLayer
     }
 
+    private static let callCIContext = CIContext(options: [
+        .workingColorSpace: CGColorSpaceCreateDeviceRGB(),
+        .useSoftwareRenderer: false,
+        .cacheIntermediates: false
+    ])
+
     private let imageLayer: CALayer = {
         let layer = CALayer()
         layer.masksToBounds = true
@@ -106,16 +112,15 @@ final class SampleBufferContainerView: UIView {
         #endif
     }
 
-    /// Fallback GPU direct rendering: converts CVPixelBuffer into CGImage via CIContext and assigns directly to layer.contents.
+    /// Fallback GPU direct rendering: converts CVPixelBuffer into CGImage via dedicated call CIContext and assigns to imageLayer.
     private func renderViaCGImage(_ sampleBuffer: CMSampleBuffer) {
         autoreleasepool {
             guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
             let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-            guard let cgImage = FilterEngine.shared.ciContext.createCGImage(ciImage, from: ciImage.extent) else { return }
+            guard let cgImage = Self.callCIContext.createCGImage(ciImage, from: ciImage.extent) else { return }
 
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            layer.contents = cgImage
             imageLayer.contents = cgImage
             CATransaction.commit()
         }
@@ -195,11 +200,19 @@ struct SampleBufferVideoView: UIViewRepresentable {
             self.containerView = view
             cancellable?.cancel()
 
+            #if targetEnvironment(simulator)
             cancellable = publisher
                 .receive(on: DispatchQueue.main)
                 .sink { [weak view] sampleBuffer in
                     view?.enqueue(sampleBuffer)
                 }
+            #else
+            // On hardware device, AVSampleBufferDisplayLayer enqueue is thread-safe; do not flood main thread (VIDEO-07)
+            cancellable = publisher
+                .sink { [weak view] sampleBuffer in
+                    view?.enqueue(sampleBuffer)
+                }
+            #endif
         }
 
         func cleanup() {

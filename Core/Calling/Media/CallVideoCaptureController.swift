@@ -54,7 +54,13 @@ final class CallVideoCaptureController: @unchecked Sendable {
 
     private nonisolated let localSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
     private nonisolated let remoteSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
-    private nonisolated(unsafe) var lastSampleBuffer: CMSampleBuffer?
+    private nonisolated let sampleBufferLock = NSLock()
+    private nonisolated(unsafe) var _lastSampleBuffer: CMSampleBuffer?
+
+    private nonisolated var lastSampleBuffer: CMSampleBuffer? {
+        get { sampleBufferLock.withLock { _lastSampleBuffer } }
+        set { sampleBufferLock.withLock { _lastSampleBuffer = newValue } }
+    }
 
     /// Replays the last captured frame to local subscribers if available.
     nonisolated func replayLastSampleBuffer() {
@@ -122,21 +128,33 @@ final class CallVideoCaptureController: @unchecked Sendable {
         }
 
         // Check hardware camera availability
-        if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: isFront ? .front : .back) {
-            do {
-                try configureHardwareSession(device: device, isFront: isFront)
-                let session = self.captureSession
-                sessionQueue.async {
-                    session.startRunning()
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: isFront ? .front : .back) else {
+            startSyntheticGenerator(isFront: isFront)
+            isRunning = true
+            return
+        }
+
+        // All captureSession configuration + startRunning executed on sessionQueue (Cẩm Nang §2.6)
+        let success = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume(returning: false)
+                    return
                 }
-                // Always start remote synthetic feed loop until remote peer connects
-                startRemoteSyntheticFeed()
-                isRunning = true
-            } catch {
-                AppLogger.general.notice("Hardware camera configure failed, falling back to synthetic generator: \(error.localizedDescription)")
-                startSyntheticGenerator(isFront: isFront)
-                isRunning = true
+                do {
+                    try self.configureHardwareSession(device: device, isFront: isFront)
+                    self.captureSession.startRunning()
+                    continuation.resume(returning: true)
+                } catch {
+                    AppLogger.general.notice("Hardware camera configure failed: \(error.localizedDescription)")
+                    continuation.resume(returning: false)
+                }
             }
+        }
+
+        if success {
+            startRemoteSyntheticFeed()
+            isRunning = true
         } else {
             startSyntheticGenerator(isFront: isFront)
             isRunning = true
@@ -153,9 +171,10 @@ final class CallVideoCaptureController: @unchecked Sendable {
         isUsingSyntheticGenerator = false
 
         let session = self.captureSession
-        sessionQueue.async {
-            guard session.isRunning else { return }
-            session.stopRunning()
+        sessionQueue.sync {
+            if session.isRunning {
+                session.stopRunning()
+            }
         }
 
         isRunning = false
@@ -332,6 +351,7 @@ private final class SyntheticFrameGenerator: @unchecked Sendable {
     nonisolated(unsafe) private var pixelBufferPool: CVPixelBufferPool?
     nonisolated(unsafe) private var frameIndex: Int = 0
     nonisolated(unsafe) private var isFrontCamera: Bool = true
+    private let cachedColorSpace = CGColorSpaceCreateDeviceRGB()
     private let lock = NSLock()
 
     nonisolated init() {
@@ -346,7 +366,8 @@ private final class SyntheticFrameGenerator: @unchecked Sendable {
 
     nonisolated private func setupPixelBufferPool() {
         let poolAttributes: [CFString: Any] = [
-            kCVPixelBufferPoolMinimumBufferCountKey: 3
+            kCVPixelBufferPoolMinimumBufferCountKey: 8,
+            kCVPixelBufferPoolAllocationThresholdKey: 12
         ]
         let bufferAttributes: [CFString: Any] = [
             kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA),
@@ -435,7 +456,7 @@ private final class SyntheticFrameGenerator: @unchecked Sendable {
 
         guard let baseAddress = CVPixelBufferGetBaseAddress(buffer) else { return nil }
         let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let colorSpace = cachedColorSpace
 
         guard let context = CGContext(
             data: baseAddress,

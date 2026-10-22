@@ -32,7 +32,8 @@ final class CallAudioEngineController: @unchecked Sendable {
     // MARK: - Audio Graph
 
     private let engine = AVAudioEngine()
-    private let tonePlayerNode = AVAudioPlayerNode()
+    private let ringbackPlayerNode = AVAudioPlayerNode()
+    private let ringtonePlayerNode = AVAudioPlayerNode()
     private let remotePlayerNode = AVAudioPlayerNode()
 
     /// Guaranteed valid stereo 44.1kHz tone format matching synthesized ringback and chime buffers.
@@ -42,9 +43,11 @@ final class CallAudioEngineController: @unchecked Sendable {
 
     private var isTapInstalled = false
     private var isRunning = false
-    private var isMuted = false
+    private let muteLock = NSLock()
+    private var _isMuted = false
     private var isSpeaker = false
-    private var isPlayingTone = false
+    private var isPlayingRingback = false
+    private var isPlayingRingtone = false
 
     // MARK: - Tone Buffers (Cached in RAM)
 
@@ -75,7 +78,8 @@ final class CallAudioEngineController: @unchecked Sendable {
     // MARK: - Engine Setup
 
     private func setupEngineGraph() {
-        engine.attach(tonePlayerNode)
+        engine.attach(ringbackPlayerNode)
+        engine.attach(ringtonePlayerNode)
         engine.attach(remotePlayerNode)
 
         let mainMixer = engine.mainMixerNode
@@ -84,8 +88,9 @@ final class CallAudioEngineController: @unchecked Sendable {
             ? mixerFormat
             : Self.standardToneFormat
 
-        // Connect tonePlayerNode with guaranteed valid stereo toneFormat matching synthesized tone buffers
-        engine.connect(tonePlayerNode, to: mainMixer, format: Self.standardToneFormat)
+        // Connect independent tone player nodes with standard stereo format
+        engine.connect(ringbackPlayerNode, to: mainMixer, format: Self.standardToneFormat)
+        engine.connect(ringtonePlayerNode, to: mainMixer, format: Self.standardToneFormat)
         engine.connect(remotePlayerNode, to: mainMixer, format: remoteFormat)
     }
 
@@ -93,18 +98,22 @@ final class CallAudioEngineController: @unchecked Sendable {
 
     /// Configures audio session for voice chat, enables hardware VoiceProcessingIO (AEC, AGC),
     /// installs microphone tap, and starts the audio engine.
+    /// Non-blocking: offloads hardware session configuration to background queue to preserve 60/120 FPS.
     func startAudio() async throws {
         // 1. Stop any currently playing standalone tones
-        internalStopTone()
+        stopRingbackTone()
+        stopIncomingRingtone()
 
-        // 2. Configure system audio session
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(
-            .playAndRecord,
-            mode: .voiceChat,
-            options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
-        )
-        try session.setActive(true, options: .notifyOthersOnDeactivation)
+        // 2. Configure system audio session off main thread (Cẩm Nang §2.7)
+        try await Task.detached(priority: .userInitiated) {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(
+                .playAndRecord,
+                mode: .voiceChat,
+                options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
+            )
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        }.value
 
         // 3. Enable VoiceProcessingIO for Acoustic Echo Cancellation & Noise Suppression
         let inputNode = engine.inputNode
@@ -115,9 +124,11 @@ final class CallAudioEngineController: @unchecked Sendable {
         }
 
         // Apply hardware mute state
-        inputNode.isVoiceProcessingInputMuted = isMuted
+        let muted = muteLock.withLock { _isMuted }
+        inputNode.isVoiceProcessingInputMuted = muted
 
         // Apply current speaker route
+        let session = AVAudioSession.sharedInstance()
         try? session.overrideOutputAudioPort(isSpeaker ? .speaker : .none)
 
         // 4. Install 1024-sample floating point tap for real-time RMS metering
@@ -138,11 +149,17 @@ final class CallAudioEngineController: @unchecked Sendable {
 
     /// Stops audio engine, removes microphone tap, and releases audio resources.
     func stopAudio() {
-        internalStopTone()
+        stopRingbackTone()
+        stopIncomingRingtone()
 
         if isTapInstalled {
             engine.inputNode.removeTap(onBus: 0)
             isTapInstalled = false
+        }
+
+        // Reset voice processing mute BEFORE stopping engine to avoid undefined state
+        if isRunning {
+            engine.inputNode.isVoiceProcessingInputMuted = false
         }
 
         if remotePlayerNode.isPlaying {
@@ -155,15 +172,14 @@ final class CallAudioEngineController: @unchecked Sendable {
 
         isRunning = false
         audioLevelSubject.send(0.0)
-
-        // Reset voice processing mute
-        engine.inputNode.isVoiceProcessingInputMuted = false
     }
 
     /// Sets hardware microphone mute and resets audio level to 0 when muted.
     func setMuted(_ isMuted: Bool) {
-        self.isMuted = isMuted
-        engine.inputNode.isVoiceProcessingInputMuted = isMuted
+        muteLock.withLock { _isMuted = isMuted }
+        if isRunning {
+            engine.inputNode.isVoiceProcessingInputMuted = isMuted
+        }
 
         if isMuted {
             audioLevelSubject.send(0.0)
@@ -177,28 +193,54 @@ final class CallAudioEngineController: @unchecked Sendable {
         try? session.overrideOutputAudioPort(isSpeaker ? .speaker : .none)
     }
 
+    /// Restores audio engine & tap state after phone call or Siri audio interruption (AUDIO-10).
+    func restartAfterInterruption() async {
+        guard isRunning else { return }
+        do {
+            if !engine.isRunning {
+                try engine.start()
+            }
+            if !remotePlayerNode.isPlaying {
+                remotePlayerNode.play()
+            }
+            isTapInstalled = false
+            installMicrophoneTapIfNeeded(inputNode: engine.inputNode)
+            AppLogger.general.info("Audio engine cleanly restarted after interruption")
+        } catch {
+            AppLogger.general.error("Failed to restart audio engine after interruption: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Tone Generation
 
     /// Plays looping outgoing ringback tone ("tuut... tuut...": 440Hz + 480Hz).
     func startRingbackTone() {
-        guard let buffer = ringbackBuffer else { return }
-        playLoopingToneBuffer(buffer)
+        guard let buffer = ringbackBuffer, !isPlayingRingback else { return }
+        playLoopingToneBuffer(buffer, node: ringbackPlayerNode)
+        isPlayingRingback = true
     }
 
     /// Stops outgoing ringback tone.
     func stopRingbackTone() {
-        internalStopTone()
+        if isPlayingRingback {
+            ringbackPlayerNode.stop()
+            isPlayingRingback = false
+        }
     }
 
     /// Plays looping incoming call ringtone chime.
     func startIncomingRingtone() {
-        guard let buffer = incomingRingtoneBuffer else { return }
-        playLoopingToneBuffer(buffer)
+        guard let buffer = incomingRingtoneBuffer, !isPlayingRingtone else { return }
+        playLoopingToneBuffer(buffer, node: ringtonePlayerNode)
+        isPlayingRingtone = true
     }
 
     /// Stops incoming call ringtone.
     func stopIncomingRingtone() {
-        internalStopTone()
+        if isPlayingRingtone {
+            ringtonePlayerNode.stop()
+            isPlayingRingtone = false
+        }
     }
 
     // MARK: - Remote Audio Injection
@@ -233,10 +275,12 @@ final class CallAudioEngineController: @unchecked Sendable {
 
         let bufferSize: AVAudioFrameCount = 1024
 
-        inputNode.installTap(onBus: bus, bufferSize: bufferSize, format: tapFormat) { [weak self] buffer, _ in
+        // Use nil format so AVAudioEngine matches hardware input node format automatically (AUDIO-06)
+        inputNode.installTap(onBus: bus, bufferSize: bufferSize, format: nil) { [weak self] buffer, _ in
             guard let self else { return }
 
-            guard !self.isMuted else {
+            let muted = self.muteLock.withLock { self._isMuted }
+            guard !muted else {
                 self.audioLevelSubject.send(0.0)
                 return
             }
@@ -245,10 +289,10 @@ final class CallAudioEngineController: @unchecked Sendable {
             let frameLength = Int(buffer.frameLength)
             guard frameLength > 0 else { return }
 
-            // Zero-allocation RMS decibel metering
+            // Zero-allocation RMS decibel metering with sample clamping (AUDIO-07)
             var sumOfSquares: Float = 0
             for i in 0..<frameLength {
-                let sample = channelData[i]
+                let sample = max(-1.0, min(1.0, channelData[i]))
                 sumOfSquares += sample * sample
             }
 
@@ -271,29 +315,24 @@ final class CallAudioEngineController: @unchecked Sendable {
 
     // MARK: - Private Tone Playback Helper
 
-    private func playLoopingToneBuffer(_ buffer: AVAudioPCMBuffer) {
+    private func playLoopingToneBuffer(_ buffer: AVAudioPCMBuffer, node: AVAudioPlayerNode) {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .voiceChat, options: [.mixWithOthers])
+            // Only switch to soloAmbient if session is not active for call; do NOT use .playback (AUDIO-01)
+            if session.category != .playAndRecord {
+                try session.setCategory(.soloAmbient, mode: .default, options: [])
+            }
             try session.setActive(true)
 
             if !engine.isRunning {
                 try engine.start()
             }
 
-            tonePlayerNode.stop()
-            tonePlayerNode.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
-            tonePlayerNode.play()
-            isPlayingTone = true
+            node.stop()
+            node.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+            node.play()
         } catch {
             AppLogger.general.error("Failed to play tone: \(error.localizedDescription)")
-        }
-    }
-
-    private func internalStopTone() {
-        if isPlayingTone {
-            tonePlayerNode.stop()
-            isPlayingTone = false
         }
     }
 
