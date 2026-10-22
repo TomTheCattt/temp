@@ -157,7 +157,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         self.mediaPipeline = mediaPipeline ?? DefaultCallMediaPipeline.shared
         self.signalingHandler = signalingHandler
             ?? DIContainer.shared.resolveOptional(CallSignalingHandlerProtocol.self)
-            ?? MockCallSignalingHandler.shared
+            ?? FirebaseCallSignalingHandler.shared
         subscribeToCallKitEvents()
         subscribeToSignaling()
     }
@@ -236,9 +236,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
                 )
             } catch {
                 logger.notice("Signaling send callInitiate warning: \(error.localizedDescription)")
-                if !(signalingHandler is MockCallSignalingHandler) && AppConfig.shared.callBackendMode != .mock {
-                    throw error
-                }
+                throw error
             }
 
             currentCallState = .ringing
@@ -512,9 +510,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Simulate Incoming Call (Testing / Debug)
 
     func simulateIncomingCall(fromUserId: String, name: String, hasVideo: Bool) async {
-        if let mock = signalingHandler as? MockCallSignalingHandler {
-            mock.simulateIncomingCall(fromUserId: fromUserId, name: name, hasVideo: hasVideo)
-        } else if let firebase = signalingHandler as? FirebaseCallSignalingHandler {
+        if let firebase = signalingHandler as? FirebaseCallSignalingHandler {
             firebase.simulateIncomingCall(fromUserId: fromUserId, name: name, hasVideo: hasVideo)
         } else {
             let signal = CallSignal.callIncoming(

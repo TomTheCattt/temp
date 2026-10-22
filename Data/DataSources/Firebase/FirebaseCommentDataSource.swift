@@ -18,12 +18,6 @@ actor FirebaseCommentDataSource: Sendable {
 
     init(firestore: Firestore = Firestore.firestore()) {
         self.firestore = firestore
-        // Seed initial comments from MockData
-        for comment in MockData.comments {
-            var list = cachedComments[comment.postId] ?? []
-            list.append(comment)
-            cachedComments[comment.postId] = list
-        }
     }
 
     // MARK: - Fetch Comments
@@ -407,7 +401,7 @@ actor FirebaseCommentDataSource: Sendable {
             return authUid
         }
         let sessionUid = await MainActor.run { SessionStore.shared.currentUserId }
-        return sessionUid.isEmpty ? MockData.currentUser.id : sessionUid
+        return sessionUid
     }
 
     private func resolveCurrentUser() async -> User {

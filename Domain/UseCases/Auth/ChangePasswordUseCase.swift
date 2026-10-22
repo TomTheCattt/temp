@@ -30,17 +30,12 @@ protocol ChangePasswordUseCaseProtocol: Sendable {
 final class ChangePasswordUseCase: ChangePasswordUseCaseProtocol, Sendable {
 
     private let firebaseAuth: FirebaseAuthServiceProtocol
-    private let isMockMode: Bool
 
     /// Minimum password length enforced by Firebase.
     private let minPasswordLength = 6
 
-    init(
-        firebaseAuth: FirebaseAuthServiceProtocol,
-        isMockMode: Bool = AppConfig.shared.isMockAPI
-    ) {
+    init(firebaseAuth: FirebaseAuthServiceProtocol) {
         self.firebaseAuth = firebaseAuth
-        self.isMockMode = isMockMode
     }
 
     func execute(_ input: ChangePasswordInput) async throws {
@@ -53,12 +48,6 @@ final class ChangePasswordUseCase: ChangePasswordUseCaseProtocol, Sendable {
         }
         guard input.newPassword != input.currentPassword else {
             throw ChangePasswordError.sameAsCurrent
-        }
-
-        if isMockMode {
-            // Simulate network/SDK latency in mock mode.
-            try await Task.sleep(nanoseconds: 600_000_000)
-            return
         }
 
         try await firebaseAuth.updatePassword(

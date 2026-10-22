@@ -14,7 +14,7 @@ import FirebaseAuth
 actor FirebaseNotificationDataSource: Sendable {
 
     private let firestore: Firestore
-    private var cachedNotifications: [AppNotification] = MockData.notifications
+    private var cachedNotifications: [AppNotification] = []
 
     init(firestore: Firestore = Firestore.firestore()) {
         self.firestore = firestore
@@ -226,6 +226,6 @@ actor FirebaseNotificationDataSource: Sendable {
             return authUid
         }
         let sessionUid = await MainActor.run { SessionStore.shared.currentUserId }
-        return sessionUid.isEmpty ? MockData.currentUser.id : sessionUid
+        return sessionUid
     }
 }

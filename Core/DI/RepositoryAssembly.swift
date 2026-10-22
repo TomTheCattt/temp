@@ -11,147 +11,118 @@ import Swinject
 // MARK: - RepositoryAssembly
 
 /// Registers data repositories.
-/// Switches between Mock and Remote implementations based on the current API mode
-/// configured via Xcode scheme environment variables.
+/// Uses Firebase (Cloud production) or Local Backend depending on configuration.
 ///
-/// - **Instagram** scheme (`API_MODE=live`): Uses remote data sources with production API.
-/// - **Instagram (Local BE)** scheme (`API_MODE=live`, `APP_USE_LOCAL_BACKEND=1`): Uses remote data sources with local backend.
-/// - **Instagram (Mock)** scheme (`API_MODE=mock`): Uses mock repositories with locally generated data.
+/// - **Instagram** scheme: Uses Firebase production repositories.
+/// - **Instagram (Local BE)** scheme (`APP_USE_LOCAL_BACKEND=1`): Uses remote data sources with local backend.
 final class RepositoryAssembly: Assembly {
 
     func assemble(container: Container) {
 
-        let useMock = AppConfig.shared.isMockAPI
-        let useFirebase = AppConfig.shared.isFirebaseAPI
-
         // MARK: AuthRepository
 
         container.register(AuthRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockAuthRepository()
-            }
-            if useFirebase {
-                return FirebaseAuthRepository()
-            }
-            return AuthRepository(
-                remoteDataSource: RemoteAuthDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return AuthRepository(
+                    remoteDataSource: RemoteAuthDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebaseAuthRepository()
         }.inObjectScope(.container)
 
         // MARK: UserRepository
 
         container.register(UserRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockUserRepository()
-            }
-            if useFirebase {
-                return FirebaseUserRepository()
-            }
-            return UserRepository(
-                remoteDataSource: RemoteUserDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return UserRepository(
+                    remoteDataSource: RemoteUserDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebaseUserRepository()
         }.inObjectScope(.container)
 
         // MARK: PostRepository
 
         container.register(PostRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockPostRepository()
-            }
-            if useFirebase {
-                return FirebasePostRepository()
-            }
-            return PostRepository(
-                remoteDataSource: RemotePostDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return PostRepository(
+                    remoteDataSource: RemotePostDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebasePostRepository()
         }.inObjectScope(.container)
 
         // MARK: StoryRepository
 
         container.register(StoryRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockStoryRepository()
-            }
-            if useFirebase {
-                return FirebaseStoryRepository()
-            }
-            return StoryRepository(
-                remoteDataSource: RemoteStoryDataSource(
+            if AppConfig.shared.useLocalBackend {
+                return StoryRepository(
+                    remoteDataSource: RemoteStoryDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    ),
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                ),
-                networkService: resolver.resolve(NetworkServiceProtocol.self)!
-            )
+                )
+            }
+            return FirebaseStoryRepository()
         }.inObjectScope(.container)
 
         // MARK: NotificationRepository
 
         container.register(NotificationRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockNotificationRepository()
-            }
-            if useFirebase {
-                return FirebaseNotificationRepository()
-            }
-            return NotificationRepository(
-                remoteDataSource: RemoteNotificationDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return NotificationRepository(
+                    remoteDataSource: RemoteNotificationDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebaseNotificationRepository()
         }.inObjectScope(.container)
 
         // MARK: MessageRepository
 
         container.register(MessageRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockMessageRepository()
-            }
-            if useFirebase {
-                return FirebaseMessageRepository()
-            }
-            return MessageRepository(
-                remoteDataSource: RemoteMessageDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return MessageRepository(
+                    remoteDataSource: RemoteMessageDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebaseMessageRepository()
         }.inObjectScope(.container)
 
         // MARK: CommentRepository
 
         container.register(CommentRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockCommentRepository()
-            }
-            if useFirebase {
-                return FirebaseCommentRepository()
-            }
-            return CommentRepository(
-                remoteDataSource: RemoteCommentDataSource(
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            if AppConfig.shared.useLocalBackend {
+                return CommentRepository(
+                    remoteDataSource: RemoteCommentDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    )
                 )
-            )
+            }
+            return FirebaseCommentRepository()
         }.inObjectScope(.container)
 
         // MARK: ReelRepository
 
         container.register(ReelRepositoryProtocol.self) { resolver in
-            if useMock {
-                return MockReelRepository()
-            }
-            if useFirebase {
-                return FirebaseReelRepository()
-            }
-            return ReelRepository(
-                remoteDataSource: RemoteReelDataSource(
+            if AppConfig.shared.useLocalBackend {
+                return ReelRepository(
+                    remoteDataSource: RemoteReelDataSource(
+                        networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    ),
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                ),
-                networkService: resolver.resolve(NetworkServiceProtocol.self)!
-            )
+                )
+            }
+            return FirebaseReelRepository()
         }.inObjectScope(.container)
     }
 }

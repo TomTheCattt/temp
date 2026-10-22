@@ -15,7 +15,7 @@ actor FirebasePostDataSource: Sendable {
 
     private let firestore: Firestore
     private let storageService: FirebaseStorageServiceProtocol
-    private var cachedPosts: [Post] = MockData.posts
+    private var cachedPosts: [Post] = []
     private var isCacheSeeded: Bool = false
 
     init(
@@ -55,7 +55,7 @@ actor FirebasePostDataSource: Sendable {
 
     func fetchUserPosts(userId: String, page: Int, perPage: Int) async throws -> [Post] {
         let currentUserId = await resolveCurrentUserId()
-        let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
+        let isCurrent = (userId == currentUserId)
         let effectiveUserId = isCurrent ? currentUserId : userId
 
         do {
@@ -76,7 +76,7 @@ actor FirebasePostDataSource: Sendable {
         }
 
         let filtered = isCurrent
-            ? cachedPosts.filter { $0.author.id == "user_current" || $0.author.id == currentUserId || (currentUserId.isEmpty && $0.author.id == MockData.currentUser.id) }
+            ? cachedPosts.filter { $0.author.id == currentUserId }
             : cachedPosts.filter { $0.author.id == userId }
 
         let start = (page - 1) * perPage
@@ -486,14 +486,8 @@ actor FirebasePostDataSource: Sendable {
     }
 
     private func parseFallbackUser(data: [String: Any], fallbackId: String) -> User {
-        if let existing = MockData.users.first(where: { $0.id == fallbackId }) {
-            return existing
-        }
-        if fallbackId == MockData.currentUser.id || fallbackId == "user_current" {
-            return MockData.currentUser
-        }
-        let username = (data["authorUsername"] as? String) ?? "user"
-        let avatarURL = (data["authorPhotoUrl"] as? String).flatMap { URL(string: $0) }
+        let username = (data["authorUsername"] as? String) ?? (data["username"] as? String) ?? "user"
+        let avatarURL = (data["authorPhotoUrl"] as? String ?? data["avatarURL"] as? String).flatMap { URL(string: $0) }
         return User(
             id: fallbackId,
             username: username,
@@ -636,7 +630,7 @@ actor FirebasePostDataSource: Sendable {
             return authUid
         }
         let sessionUid = await MainActor.run { SessionStore.shared.currentUserId }
-        return sessionUid.isEmpty ? MockData.currentUser.id : sessionUid
+        return sessionUid
     }
 
     private func resolveCurrentUser() async -> User {

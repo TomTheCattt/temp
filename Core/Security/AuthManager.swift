@@ -69,19 +69,8 @@ final class AuthManager: AuthManagerProtocol {
 
     // MARK: - Refresh Token
 
-    /// Refresh the access token.
-    /// In live mode: Firebase SDK returns a fresh ID token (handles expiry internally).
-    /// In mock mode: generates a fake token.
+    /// Refresh the access token via Firebase Auth SDK (handles expiry internally).
     func refreshToken() async throws {
-        if AppConfig.shared.isMockAPI {
-            // Mock: generate a fake refreshed token
-            let newToken = "mock_refreshed_\(UUID().uuidString.prefix(8))"
-            accessToken = newToken
-            keychainManager.set(value: newToken, key: KeychainKeys.accessToken)
-            return
-        }
-
-        // Live: get fresh Firebase ID token
         let freshToken = try await firebaseAuth.getIDToken()
         accessToken = freshToken
         keychainManager.set(value: freshToken, key: KeychainKeys.accessToken)

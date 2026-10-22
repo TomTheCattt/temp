@@ -59,24 +59,24 @@ enum APIMode: String {
     /// Resolves API mode from:
     /// 1. Process environment variable (set via Xcode scheme) — highest priority
     /// 2. Info.plist key (set via xcconfig / build settings)
-    /// 3. Defaults to `.mock` in DEBUG builds, `.live` in release builds.
+    /// 3. Defaults to `.firebase` for full Cloud Firebase production operation.
     static var current: APIMode {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["API_MODE"]?.lowercased(),
-           let mode = APIMode(rawValue: envValue) {
-            return mode
+        if let envValue = ProcessInfo.processInfo.environment["API_MODE"]?.lowercased() {
+            if envValue == "mock" { return .firebase }
+            if let mode = APIMode(rawValue: envValue) {
+                return mode
+            }
         }
         // Priority 2: Info.plist
-        if let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String)?.lowercased(),
-           let mode = APIMode(rawValue: raw) {
-            return mode
+        if let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String)?.lowercased() {
+            if raw == "mock" { return .firebase }
+            if let mode = APIMode(rawValue: raw) {
+                return mode
+            }
         }
-        // Priority 3: Sensible defaults (DEBUG builds default to mock so app works without Xcode debugger)
-        #if DEBUG
-        return .mock
-        #else
-        return .live
-        #endif
+        // Priority 3: Production default is Firebase
+        return .firebase
     }
 }
 
@@ -127,8 +127,8 @@ struct AppConfig {
         return environment.defaultBaseURL
     }
     var isDebug: Bool { environment.isDebugLoggingEnabled || useLocalBackend }
-    var isMockAPI: Bool { apiMode == .mock }
-    var isFirebaseAPI: Bool { apiMode == .firebase }
+    var isMockAPI: Bool { false }
+    var isFirebaseAPI: Bool { true }
 
     // MARK: - CallBackendMode
 
@@ -140,17 +140,20 @@ struct AppConfig {
 
     var callBackendMode: CallBackendMode {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["CALL_BACKEND_MODE"]?.lowercased(),
-           let mode = CallBackendMode(rawValue: envValue) {
-            return mode
+        if let envValue = ProcessInfo.processInfo.environment["CALL_BACKEND_MODE"]?.lowercased() {
+            if envValue == "mock" { return .firebase }
+            if let mode = CallBackendMode(rawValue: envValue) {
+                return mode
+            }
         }
         // Priority 2: Info.plist
-        if let raw = (Bundle.main.infoDictionary?["CALL_BACKEND_MODE"] as? String)?.lowercased(),
-           let mode = CallBackendMode(rawValue: raw) {
-            return mode
+        if let raw = (Bundle.main.infoDictionary?["CALL_BACKEND_MODE"] as? String)?.lowercased() {
+            if raw == "mock" { return .firebase }
+            if let mode = CallBackendMode(rawValue: raw) {
+                return mode
+            }
         }
-        // Default: Mock if isMockAPI, otherwise Firebase
-        return isMockAPI ? .mock : .firebase
+        return .firebase
     }
 
     var timeoutInterval: TimeInterval { 30 }

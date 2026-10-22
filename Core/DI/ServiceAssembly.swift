@@ -87,9 +87,7 @@ final class ServiceAssembly: Assembly {
 
         container.register(CallSignalingHandlerProtocol.self) { resolver in
             switch AppConfig.shared.callBackendMode {
-            case .mock:
-                return MockCallSignalingHandler.shared
-            case .firebase:
+            case .mock, .firebase:
                 return FirebaseCallSignalingHandler.shared
             case .webSocket:
                 let wsHandler = resolver.resolve(WebSocketMessageHandler.self)

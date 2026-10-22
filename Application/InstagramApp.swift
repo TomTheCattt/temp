@@ -30,25 +30,10 @@ struct InstagramApp: App {
         }
 
         // Session restoration and scheme-aware auto-login for development/testing.
-        if AppConfig.shared.isFirebaseAPI {
-            if FirebaseAuthService.shared.isSignedIn && SessionStore.shared.currentUser != nil {
-                AppRouter.shared.isAuthenticated = true
-                Task {
-                    await FirebaseDataSeeder.shared.seedIfNeeded()
-                }
-            } else {
-                performFirebaseAutoLogin()
-            }
-        } else if AppConfig.shared.isMockAPI {
-            if SessionStore.shared.currentUser != nil {
-                AppRouter.shared.isAuthenticated = true
-            } else {
-                performMockAutoLogin()
-            }
+        if FirebaseAuthService.shared.isSignedIn && SessionStore.shared.currentUser != nil {
+            AppRouter.shared.isAuthenticated = true
         } else {
-            if SessionStore.shared.currentUser != nil {
-                AppRouter.shared.isAuthenticated = true
-            }
+            performFirebaseAutoLogin()
         }
     }
 
@@ -63,27 +48,6 @@ struct InstagramApp: App {
         }
     }
 
-    // MARK: - Mock Auto-Login
-
-    /// Simulates the production login flow using MockAuthDataSource.
-    /// This ensures SessionStore is populated identically to a real login.
-    private func performMockAutoLogin() {
-        let mockAuth = MockAuthDataSource()
-        Task { @MainActor in
-            do {
-                let session = try await mockAuth.login(
-                    email: MockData.testEmail,
-                    password: MockData.testPassword
-                )
-                SessionStore.shared.setSession(user: session.user)
-                AppRouter.shared.isAuthenticated = true
-            } catch {
-                // Fallback: still allow access in mock mode
-                AppRouter.shared.isAuthenticated = true
-            }
-        }
-    }
-
     // MARK: - Firebase Auto-Login
 
     /// In Firebase mode, automatically authenticates or registers the primary test user (Tom The Cat)
@@ -91,11 +55,13 @@ struct InstagramApp: App {
     private func performFirebaseAutoLogin() {
         Task { @MainActor in
             let authRepo = FirebaseAuthRepository()
+            let testEmail = "tom@example.com"
+            let testPassword = "password123"
             do {
-                AppLogger.auth.info("Attempting Firebase login for test user: \(MockData.testEmail)")
+                AppLogger.auth.info("Attempting Firebase login for test user: \(testEmail)")
                 let session = try await authRepo.login(
-                    email: MockData.testEmail,
-                    password: MockData.testPassword
+                    email: testEmail,
+                    password: testPassword
                 )
                 SessionStore.shared.setSession(user: session.user)
                 AppRouter.shared.isAuthenticated = true
@@ -104,24 +70,17 @@ struct InstagramApp: App {
                 AppLogger.auth.notice("Firebase login failed (\(error.localizedDescription)). Attempting auto-registration...")
                 do {
                     let session = try await authRepo.register(
-                        name: MockData.currentUser.fullName,
-                        email: MockData.testEmail,
-                        password: MockData.testPassword,
-                        phone: MockData.currentUser.phone ?? ""
+                        name: "Tom The Cat",
+                        email: testEmail,
+                        password: testPassword,
+                        phone: "+84901234567"
                     )
                     SessionStore.shared.setSession(user: session.user)
                     AppRouter.shared.isAuthenticated = true
                     AppLogger.auth.info("Firebase auto-registration succeeded for uid: \(session.user.id)")
                 } catch let regError {
-                    AppLogger.auth.error("Firebase auto-registration failed (\(regError.localizedDescription)). Using local session fallback.")
-                    SessionStore.shared.setSession(user: MockData.currentUser)
-                    AppRouter.shared.isAuthenticated = true
+                    AppLogger.auth.error("Firebase auto-registration failed (\(regError.localizedDescription)).")
                 }
-            }
-
-            // Background cloud data seeding
-            Task {
-                await FirebaseDataSeeder.shared.seedIfNeeded()
             }
         }
     }

@@ -42,12 +42,10 @@ final class AuthViewModel {
         self.registerUseCase = registerUseCase
         self.router = router ?? AppRouter.shared
 
-        // Pre-fill test credentials in debug/mock mode for convenience
+        // Pre-fill test credentials in debug mode for convenience
         #if DEBUG
-        if AppConfig.shared.isMockAPI {
-            email = AppConstants.TestAccount.email
-            password = AppConstants.TestAccount.password
-        }
+        email = AppConstants.TestAccount.email
+        password = AppConstants.TestAccount.password
         #endif
     }
 

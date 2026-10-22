@@ -37,8 +37,29 @@ final class ChatViewModel {
     var currentUserId: String {
         let storeId = SessionStore.shared.currentUserId
         if !storeId.isEmpty { return storeId }
-        if !injectedCurrentUserId.isEmpty { return injectedCurrentUserId }
-        return MockData.currentUser.id
+        return injectedCurrentUserId
+    }
+
+    private var resolvedCurrentUser: User {
+        SessionStore.shared.currentUser ?? User(
+            id: currentUserId,
+            username: "user",
+            fullName: "User",
+            email: nil,
+            phone: nil,
+            avatarURL: nil,
+            bio: nil,
+            website: nil,
+            isVerified: false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
     }
 
     private let injectedCurrentUserId: String
@@ -156,9 +177,7 @@ final class ChatViewModel {
 
             // Resolve recipient if not provided
             if recipient == nil {
-                if let otherUser = messages.first(where: { $0.sender.id != currentUserId && $0.sender.id != MockData.currentUser.id && $0.sender.id != "user_current" })?.sender {
-                    recipient = otherUser
-                } else if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
+                if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
                     recipient = otherUser
                 }
             }
@@ -415,7 +434,7 @@ final class ChatViewModel {
         isSending = true
 
         let tempId = "temp_img_\(UUID().uuidString.prefix(8))"
-        let currentUser = SessionStore.shared.currentUser ?? MockData.currentUser
+        let currentUser = resolvedCurrentUser
         let pendingMessage = Message(
             id: tempId,
             conversationId: conversationId,
@@ -463,7 +482,7 @@ final class ChatViewModel {
         isSending = true
 
         let tempId = "temp_like_\(UUID().uuidString.prefix(8))"
-        let currentUser = SessionStore.shared.currentUser ?? MockData.currentUser
+        let currentUser = resolvedCurrentUser
         let pendingMessage = Message(
             id: tempId,
             conversationId: conversationId,

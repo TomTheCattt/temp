@@ -60,9 +60,9 @@ final class ProfileViewModel {
 
         // Pre-populate user cache synchronously if viewing current user
         let currentUserId = SessionStore.shared.currentUserId
-        let isMe = (userId == nil || userId == currentUserId || userId == "user_current")
+        let isMe = (userId == nil || userId == currentUserId)
         if isMe {
-            self.user = SessionStore.shared.currentUser ?? MockData.currentUser
+            self.user = SessionStore.shared.currentUser
         }
     }
 

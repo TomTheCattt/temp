@@ -60,8 +60,7 @@ struct DirectMessagesView: View {
                     } else {
                         LazyVStack(spacing: 0) {
                             ForEach(viewModel.filteredConversations) { conversation in
-                                let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
-                                    ?? conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
+                                let otherUser = conversation.participants.first { $0.id != SessionStore.shared.currentUserId }
                                     ?? conversation.participants.first
 
                                 ConversationRow(conversation: conversation)
@@ -291,8 +290,7 @@ private struct ConversationRow: View {
 
     private var otherUser: User? {
         let currentId = SessionStore.shared.currentUserId
-        return conversation.participants.first { $0.id != currentId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
-            ?? conversation.participants.first { $0.id != currentId }
+        return conversation.participants.first { $0.id != currentId }
             ?? conversation.participants.first
     }
 
@@ -313,9 +311,7 @@ private struct ConversationRow: View {
     private var isMessageFromCurrentUser: Bool {
         guard let message = conversation.lastMessage else { return false }
         let currentId = SessionStore.shared.currentUserId
-        return message.sender.id == currentId ||
-               message.sender.id == MockData.currentUser.id ||
-               message.sender.id == "user_current"
+        return message.sender.id == currentId
     }
 
     var body: some View {

@@ -31,8 +31,7 @@ final class DirectMessagesViewModel {
         let lower = trimmed.lowercased()
         let currentUserId = SessionStore.shared.currentUserId
         return conversations.filter { conv in
-            let otherUser = conv.participants.first { $0.id != currentUserId && $0.id != MockData.currentUser.id && $0.id != "user_current" }
-                ?? conv.participants.first { $0.id != currentUserId }
+            let otherUser = conv.participants.first { $0.id != currentUserId }
                 ?? conv.participants.first
             let usernameMatch = otherUser?.username.lowercased().contains(lower) ?? false
             let fullNameMatch = otherUser?.fullName.lowercased().contains(lower) ?? false

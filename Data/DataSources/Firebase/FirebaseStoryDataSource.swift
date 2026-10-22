@@ -15,7 +15,7 @@ actor FirebaseStoryDataSource: Sendable {
 
     private let firestore: Firestore
     private var storageService: FirebaseStorageServiceProtocol
-    private var cachedStories: [Story] = MockData.stories
+    private var cachedStories: [Story] = []
 
     init(
         firestore: Firestore = Firestore.firestore(),
@@ -53,11 +53,11 @@ actor FirebaseStoryDataSource: Sendable {
 
     func fetchStoryItems(userId: String) async throws -> [StoryItem] {
         let currentUserId = await resolveCurrentUserId()
-        let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
+        let isCurrent = (userId == currentUserId)
         let effectiveUserId = isCurrent ? currentUserId : userId
 
         if let story = cachedStories.first(where: {
-            $0.author.id == effectiveUserId || (isCurrent && ($0.author.id == "user_current" || $0.author.id == currentUserId))
+            $0.author.id == effectiveUserId
         }) {
             return story.items
         }
@@ -370,7 +370,7 @@ actor FirebaseStoryDataSource: Sendable {
             return authUid
         }
         let sessionUid = await MainActor.run { SessionStore.shared.currentUserId }
-        return sessionUid.isEmpty ? MockData.currentUser.id : sessionUid
+        return sessionUid
     }
 
     private func resolveCurrentUser() async -> User {

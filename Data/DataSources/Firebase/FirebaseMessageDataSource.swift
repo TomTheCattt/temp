@@ -35,8 +35,26 @@ actor FirebaseMessageDataSource: Sendable {
 
     // MARK: - Current User Cache
 
-    private var currentUserIdCache: String = MockData.currentUser.id
-    private var currentUserCache: User = MockData.currentUser
+    private var currentUserIdCache: String = ""
+    private var currentUserCache: User = User(
+        id: "",
+        username: "user",
+        fullName: "User",
+        email: nil,
+        phone: nil,
+        avatarURL: nil,
+        bio: nil,
+        website: nil,
+        isVerified: false,
+        isPrivate: false,
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        createdAt: .now,
+        isFollowing: false,
+        isFollowedBy: false,
+        isBlocked: false
+    )
 
     // MARK: - Init
 
@@ -48,7 +66,6 @@ actor FirebaseMessageDataSource: Sendable {
 
     private func bootstrap() async {
         await syncCurrentUser()
-        seedFromMockData()
         startNotificationObservers()
         startRealtimeInboxSync()
     }
@@ -59,19 +76,6 @@ actor FirebaseMessageDataSource: Sendable {
             listener.remove()
         }
         notesListener?.remove()
-    }
-
-    // MARK: - Seeding Cache from MockData
-
-    private func seedFromMockData() {
-        self.inMemoryConversations = MockData.conversations
-        self.inMemoryMessages = MockData.seededMessages
-        self.inMemoryNotes = MockData.seededNotes
-
-        let initialTotal = inMemoryConversations.filter { $0.unreadCount != 0 }.count
-        Task { @MainActor in
-            AppState.shared.setUnreadChatCount(initialTotal)
-        }
     }
 
     // MARK: - Modern NotificationCenter Observers
@@ -193,28 +197,8 @@ actor FirebaseMessageDataSource: Sendable {
             }
         }
 
-        var currentMessages = inMemoryMessages[conversationId] ?? []
+        let currentMessages = inMemoryMessages[conversationId] ?? []
         let start = (page - 1) * perPage
-
-        if start >= currentMessages.count && page <= Self.maxMockPages {
-            let partner: User = {
-                if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
-                    return conv.participants.first { $0.id != resolvedCurrentUserId() } ?? MockData.currentUser
-                }
-                return MockData.users.first ?? MockData.currentUser
-            }()
-
-            let oldestDate = currentMessages.last?.createdAt ?? Date()
-            let olderBatch = MockData.generateOlderMessages(
-                conversationId: conversationId,
-                page: page,
-                perPage: perPage,
-                oldestDate: oldestDate,
-                partner: partner
-            )
-            currentMessages.append(contentsOf: olderBatch)
-            inMemoryMessages[conversationId] = currentMessages
-        }
 
         guard start < currentMessages.count else { return [] }
         let end = min(start + perPage, currentMessages.count)
@@ -280,8 +264,33 @@ actor FirebaseMessageDataSource: Sendable {
         }
 
         let current = resolvedCurrentUser()
-        let otherUsers = participantIds.compactMap { id in
-            MockData.users.first(where: { $0.id == id })
+        var otherUsers: [User] = []
+        for id in participantIds {
+            if let user = try? await FirebaseUserDataSource.shared.fetchUser(id: id) {
+                otherUsers.append(user)
+            } else if let cached = inMemoryConversations.flatMap(\.participants).first(where: { $0.id == id }) {
+                otherUsers.append(cached)
+            } else {
+                otherUsers.append(User(
+                    id: id,
+                    username: "user_\(id)",
+                    fullName: "User \(id)",
+                    email: nil,
+                    phone: nil,
+                    avatarURL: URL(string: "https://i.pravatar.cc/300?u=\(id)"),
+                    bio: nil,
+                    website: nil,
+                    isVerified: false,
+                    isPrivate: false,
+                    followersCount: 0,
+                    followingCount: 0,
+                    postsCount: 0,
+                    createdAt: .now,
+                    isFollowing: false,
+                    isFollowedBy: false,
+                    isBlocked: false
+                ))
+            }
         }
         let convId = "conv_\(UUID().uuidString.prefix(10))"
         let newConv = Conversation(
@@ -629,9 +638,7 @@ actor FirebaseMessageDataSource: Sendable {
         reason: String
     ) {
         let partnerUser: User
-        if let user = MockData.users.first(where: { $0.id == remoteUserId }) {
-            partnerUser = user
-        } else if let found = inMemoryConversations.flatMap(\.participants).first(where: { $0.id == remoteUserId }) {
+        if let found = inMemoryConversations.flatMap(\.participants).first(where: { $0.id == remoteUserId }) {
             partnerUser = found
         } else {
             partnerUser = User(
@@ -789,8 +796,27 @@ actor FirebaseMessageDataSource: Sendable {
 
     private func syncCurrentUser() async {
         let (uid, user) = await MainActor.run {
-            let u = SessionStore.shared.currentUser ?? MockData.currentUser
-            let id = SessionStore.shared.currentUserId
+            let session = SessionStore.shared
+            let id = session.currentUserId
+            let u = session.currentUser ?? User(
+                id: id,
+                username: "user_\(id)",
+                fullName: "User",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
             return (id.isEmpty ? u.id : id, u)
         }
         self.currentUserIdCache = uid
@@ -853,9 +879,10 @@ actor FirebaseMessageDataSource: Sendable {
             "id": message.id,
             "conversationId": message.conversationId,
             "sender": userToDict(message.sender),
+            "senderId": message.sender.id,
             "status": message.status.rawValue,
             "reactions": message.reactions,
-            "createdAt": message.createdAt.timeIntervalSince1970
+            "createdAt": Timestamp(date: message.createdAt)
         ]
         if let replyToId = message.replyToId {
             dict["replyToId"] = replyToId
@@ -974,7 +1001,7 @@ actor FirebaseMessageDataSource: Sendable {
             "participants": conv.participants.map { userToDict($0) },
             "unreadCount": conv.unreadCount,
             "isGroup": conv.isGroup,
-            "updatedAt": conv.updatedAt.timeIntervalSince1970,
+            "updatedAt": Timestamp(date: conv.updatedAt),
             "isMuted": conv.isMuted
         ]
         if let groupName = conv.groupName {
@@ -1019,7 +1046,7 @@ actor FirebaseMessageDataSource: Sendable {
 
         return Conversation(
             id: id,
-            participants: participants.isEmpty ? [MockData.currentUser] : participants,
+            participants: participants,
             lastMessage: lastMessage,
             unreadCount: unreadCount,
             isGroup: isGroup,
@@ -1080,8 +1107,4 @@ actor FirebaseMessageDataSource: Sendable {
             isCurrentUser: isCurrentUser
         )
     }
-
-    // MARK: - Constants
-
-    private static let maxMockPages = 3
 }

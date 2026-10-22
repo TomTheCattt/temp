@@ -15,7 +15,7 @@ actor FirebaseReelDataSource: Sendable {
 
     private let firestore: Firestore
     private var storageService: FirebaseStorageServiceProtocol
-    private var cachedReels: [Reel] = MockData.reels
+    private var cachedReels: [Reel] = []
 
     init(
         firestore: Firestore = Firestore.firestore(),
@@ -56,7 +56,7 @@ actor FirebaseReelDataSource: Sendable {
 
     func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
         let currentUserId = await resolveCurrentUserId()
-        let isCurrent = (userId == currentUserId || userId == "user_current" || (currentUserId.isEmpty && userId == MockData.currentUser.id))
+        let isCurrent = (userId == currentUserId)
         let effectiveUserId = isCurrent ? currentUserId : userId
 
         do {
@@ -77,7 +77,7 @@ actor FirebaseReelDataSource: Sendable {
         }
 
         let filtered = isCurrent
-            ? cachedReels.filter { $0.author.id == "user_current" || $0.author.id == currentUserId || (currentUserId.isEmpty && $0.author.id == MockData.currentUser.id) }
+            ? cachedReels.filter { $0.author.id == currentUserId }
             : cachedReels.filter { $0.author.id == userId }
 
         let start = (page - 1) * perPage
@@ -401,7 +401,7 @@ actor FirebaseReelDataSource: Sendable {
             return authUid
         }
         let sessionUid = await MainActor.run { SessionStore.shared.currentUserId }
-        return sessionUid.isEmpty ? MockData.currentUser.id : sessionUid
+        return sessionUid
     }
 
     private func resolveCurrentUser() async -> User {
