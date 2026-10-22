@@ -46,6 +46,12 @@ protocol MessageRepositoryProtocol: Sendable {
 
     /// Fetch active notes for the current user and following friends.
     func fetchNotes() async throws -> [InstagramNote]
+
+    /// Detach real-time snapshot listener for a specific conversation when leaving chat view.
+    func detachMessageListener(for conversationId: String) async
+
+    /// Detach all active real-time listeners and clear in-memory caches upon session reset/logout.
+    func resetSession() async
 }
 
 // MARK: - MessageRepositoryProtocol Extension Defaults
@@ -65,5 +71,9 @@ extension MessageRepositoryProtocol {
     }
 
     func markAsUnread(conversationId: String) async throws {}
+
+    func detachMessageListener(for conversationId: String) async {}
+
+    func resetSession() async {}
 }
 

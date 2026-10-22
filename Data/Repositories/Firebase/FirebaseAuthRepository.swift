@@ -66,6 +66,9 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             SessionStore.shared.setSession(user: user)
         }
 
+        // Step 4: Restart realtime message sync for the authenticated user
+        await FirebaseMessageDataSource.shared.restartSession()
+
         return AuthSession(
             accessToken: authResult.idToken,
             refreshToken: "",
@@ -109,6 +112,9 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             SessionStore.shared.setSession(user: newUser)
         }
 
+        // Step 4: Restart realtime message sync for the authenticated user
+        await FirebaseMessageDataSource.shared.restartSession()
+
         return AuthSession(
             accessToken: authResult.idToken,
             refreshToken: "",
@@ -141,6 +147,7 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
     // MARK: - Logout
 
     func logout() async throws {
+        await FirebaseMessageDataSource.shared.resetSession()
         try firebaseAuth.signOut()
         await MainActor.run {
             SessionStore.shared.clear()

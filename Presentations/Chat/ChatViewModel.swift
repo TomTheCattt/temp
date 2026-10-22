@@ -157,6 +157,31 @@ final class ChatViewModel {
         }
     }
 
+    // MARK: - Lifecycle & Cooperative Cancellation
+
+    func onAppear() {
+        if cancellables.isEmpty {
+            subscribeToSyncEvents()
+        }
+    }
+
+    func onDisappear() {
+        cancellables.removeAll()
+        let repo = messageRepository
+        let convId = conversationId
+        Task {
+            await repo.detachMessageListener(for: convId)
+        }
+    }
+
+    deinit {
+        let repo = messageRepository
+        let convId = conversationId
+        Task {
+            await repo.detachMessageListener(for: convId)
+        }
+    }
+
     // MARK: - Actions
 
     func loadMessages() async {

@@ -98,10 +98,14 @@ struct ChatView: View {
             await viewModel.loadMessages()
         }
         .onAppear {
+            viewModel.onAppear()
             // Restore unsent text into the field when a send fails.
             viewModel.restoreDraft = { text in
                 if messageText.isEmpty { messageText = text }
             }
+        }
+        .onDisappear {
+            viewModel.onDisappear()
         }
         .onChange(of: photoPickerItem) { _, newItem in
             guard let newItem else { return }
@@ -152,7 +156,6 @@ struct ChatView: View {
                         HStack(spacing: 4) {
                             Text(viewModel.recipient?.username ?? "User")
                                 .font(DS.Font.headline)
-                                .fontWeight(.bold)
                                 .lineLimit(1)
 
                             if viewModel.recipient?.isVerified == true {
@@ -235,7 +238,6 @@ struct ChatView: View {
 
             Text(viewModel.recipient?.fullName.isEmpty == false ? (viewModel.recipient?.fullName ?? "") : (viewModel.recipient?.username ?? ""))
                 .font(DS.Font.headline)
-                .fontWeight(.bold)
 
             Text("@\(viewModel.recipient?.username ?? "user") · Instagram")
                 .font(DS.Font.subheadline)
@@ -257,8 +259,7 @@ struct ChatView: View {
                 }
             } label: {
                 Text("Xem trang cá nhân")
-                    .font(DS.Font.caption)
-                    .fontWeight(.semibold)
+                    .font(DS.Font.captionBold)
                     .padding(.horizontal, DS.Spacing.md)
                     .padding(.vertical, DS.Spacing.xs)
                     .background(ColorTokens.buttonSecondary, in: Capsule())
@@ -587,8 +588,7 @@ struct ChatView: View {
                 HStack(spacing: DS.Spacing.xs) {
                     InstagramIcon(.system(name: icon), size: 14, color: isMe ? .white : .primary)
                     Text(title)
-                        .font(DS.Font.caption)
-                        .fontWeight(.semibold)
+                        .font(DS.Font.captionBold)
                 }
                 .foregroundStyle(isMe ? .white : .primary)
                 .padding(DS.Spacing.xs)
@@ -651,8 +651,7 @@ struct ChatView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Đang trả lời @\(replyMessage.sender.username)")
-                    .font(DS.Font.caption2)
-                    .fontWeight(.semibold)
+                    .font(DS.Font.caption2Bold)
                     .foregroundStyle(ColorTokens.accentPrimary)
 
                 Text(snippetForMessage(replyMessage))
@@ -763,8 +762,7 @@ struct ChatView: View {
     private var blockedPartnerBanner: some View {
         VStack(spacing: DS.Spacing.xs) {
             Text("Bạn đã chặn tài khoản này")
-                .font(DS.Font.subheadline)
-                .fontWeight(.semibold)
+                .font(DS.Font.subheadlineBold)
                 .foregroundStyle(.secondary)
 
             Text("Bạn không thể gửi hoặc nhận tin nhắn từ @\(viewModel.recipient?.username ?? "người này") trừ khi bạn bỏ chặn họ.")
@@ -778,8 +776,7 @@ struct ChatView: View {
                 viewModel.unblockPartner()
             } label: {
                 Text("Bỏ chặn")
-                    .font(DS.Font.caption)
-                    .fontWeight(.bold)
+                    .font(DS.Font.captionBold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, DS.Spacing.lg)
                     .padding(.vertical, DS.Spacing.xs)

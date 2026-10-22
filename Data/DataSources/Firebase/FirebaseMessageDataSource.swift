@@ -177,6 +177,67 @@ actor FirebaseMessageDataSource: Sendable {
         messageListeners[conversationId] = listener
     }
 
+    /// Detaches the Firestore real-time listener for a specific conversation when leaving ChatView.
+    func detachMessageListener(for conversationId: String) {
+        if let listener = messageListeners.removeValue(forKey: conversationId) {
+            listener.remove()
+            logger.info("Detached Firestore message listener for conversation: \(conversationId)")
+        }
+    }
+
+    /// Detaches all active listeners and purges in-memory caches upon logout/account switch.
+    func resetSession() {
+        // 1. Detach conversation list listener
+        conversationListener?.remove()
+        conversationListener = nil
+        hasAttachedInboxListener = false
+
+        // 2. Detach notes listener
+        notesListener?.remove()
+        notesListener = nil
+
+        // 3. Detach all room message listeners
+        for (convId, listener) in messageListeners {
+            listener.remove()
+            logger.info("Detached message listener during session reset for: \(convId)")
+        }
+        messageListeners.removeAll()
+
+        // 4. Purge in-memory state to prevent cross-account data leaks
+        inMemoryConversations.removeAll()
+        inMemoryMessages.removeAll()
+        inMemoryNotes.removeAll()
+        currentUserIdCache = ""
+        currentUserCache = User(
+            id: "",
+            username: "user",
+            fullName: "User",
+            email: nil,
+            phone: nil,
+            avatarURL: nil,
+            bio: nil,
+            website: nil,
+            isVerified: false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
+
+        logger.info("FirebaseMessageDataSource session reset complete.")
+    }
+
+    /// Re-syncs user and restarts real-time sync for a newly authenticated user.
+    func restartSession() async {
+        resetSession()
+        await syncCurrentUser()
+        startRealtimeInboxSync()
+    }
+
     // MARK: - MessageRepositoryProtocol Implementations
 
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
