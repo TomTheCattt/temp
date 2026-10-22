@@ -136,10 +136,11 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     let mediaPipeline: CallMediaPipelineProtocol
     private let logger = AppLogger.general
 
-    // MARK: - Timers
+    // MARK: - Timers & Generation
 
     private var ringTimeoutTask: Task<Void, Never>?
     private let ringTimeoutSeconds: TimeInterval = 45
+    private var callGeneration: UInt64 = 0
 
     // MARK: - Subscriptions
 
@@ -191,6 +192,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         let callId = UUID().uuidString
         let uuid = UUID()
+        callGeneration &+= 1
 
         let call = ActiveCall(
             id: callId,
@@ -274,6 +276,14 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             try? await mediaPipeline.startVideo(isFront: true)
         }
 
+        // Check if call was cancelled / ended during media startup (CALL-07)
+        guard currentCallState == .connecting,
+              let activeCall = currentCall,
+              activeCall.id == call.id else {
+            logger.notice("Call state transitioned away from connecting before answer could complete; aborting accept")
+            return
+        }
+
         let currentUserId = SessionStore.shared.currentUserId
         do {
             try await signalingHandler.send(
@@ -286,6 +296,13 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             )
         } catch {
             logger.notice("Failed to send answer signal: \(error.localizedDescription)")
+        }
+
+        guard currentCallState == .connecting,
+              let activeCall2 = currentCall,
+              activeCall2.id == call.id else {
+            logger.notice("Call cancelled while sending answer signal; aborting accept")
+            return
         }
 
         currentCallState = .connected
@@ -357,12 +374,18 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Media Controls
 
     func setMuted(_ isMuted: Bool) {
+        setMuted(isMuted, updateCallKit: true)
+    }
+
+    func setMuted(_ isMuted: Bool, updateCallKit: Bool) {
         guard var call = currentCall else { return }
         call.isMuted = isMuted
         currentCall = call
         mediaPipeline.setMuted(isMuted)
-        Task {
-            try? await callManager.setMuted(uuid: call.uuid, muted: isMuted)
+        if updateCallKit {
+            Task {
+                try? await callManager.setMuted(uuid: call.uuid, muted: isMuted)
+            }
         }
     }
 
@@ -439,6 +462,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         }
 
         let callUUID = uuid ?? UUID()
+        callGeneration &+= 1
         let call = ActiveCall(
             id: signal.callId,
             uuid: callUUID,
@@ -452,8 +476,10 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
         currentCall = call
         currentCallState = .incomingRinging
 
-        // Centralized incoming ringtone chime
-        mediaPipeline.startIncomingRingtone()
+        // Centralized incoming ringtone chime only for in-app signaling; CallKit native UI handles audio for VoIP push
+        if uuid == nil {
+            mediaPipeline.startIncomingRingtone()
+        }
 
         // If uuid was passed in (e.g. from VoIP push), CallKit was already reported by VoIPPushService.
         // Only report to CallKit if uuid == nil (e.g. incoming from in-app signaling).
@@ -565,10 +591,11 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         callManager.deactivateAudioSession()
 
-        // Reset to idle after UI transition, without blocking new incoming calls
+        let targetGeneration = self.callGeneration
+        // Reset to idle after UI transition, isolated to matching call generation (CALL-08)
         Task {
             try? await Task.sleep(nanoseconds: 1_500_000_000)
-            if case .ended = self.currentCallState {
+            if self.callGeneration == targetGeneration && self.isEndedState {
                 self.currentCallState = .idle
             }
         }
@@ -619,7 +646,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             }
 
         case .setMuted(_, let muted):
-            setMuted(muted)
+            setMuted(muted, updateCallKit: false)
 
         case .audioSessionActivated:
             // Media pipeline audio active
@@ -727,6 +754,7 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             if currentCall?.id == callId, (currentCallState == .initiating || currentCallState == .ringing) {
                 currentCallState = .ringing
                 mediaPipeline.startRingbackTone()
+                startRingTimeout()
             }
         }
     }

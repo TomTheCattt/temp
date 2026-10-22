@@ -106,13 +106,13 @@ final class CallManager: NSObject, @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
                 if let error {
-                    self?.syncOnQueue { _ = self?.activeCalls.removeValue(forKey: uuid) }
-                    self?.logger.error("Failed to report incoming call: \(error.localizedDescription)")
                     #if targetEnvironment(simulator)
-                    // Simulator fallback: continue even if CallKit native UI has sandbox limitations
+                    // Simulator fallback: continue tracking in CallManager even if CallKit native UI has sandbox limitations
                     self?.logger.notice("Simulator fallback for incoming call")
                     continuation.resume()
                     #else
+                    self?.syncOnQueue { _ = self?.activeCalls.removeValue(forKey: uuid) }
+                    self?.logger.error("Failed to report incoming call: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                     #endif
                 } else {
@@ -351,10 +351,11 @@ extension CallManager: CXProviderDelegate {
     func deactivateAudioSession(session: AVAudioSession = .sharedInstance(), completion: (@Sendable (Bool) -> Void)? = nil) {
         if #available(iOS 27.0, *) {
             session.deactivate(options: .notifyOthersOnDeactivation) { [weak self] success, error in
+                try? session.setCategory(.ambient, mode: .default)
                 if let error {
                     self?.logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
                 } else if success {
-                    self?.logger.info("Audio session cleanly deactivated")
+                    self?.logger.info("Audio session cleanly deactivated & category restored to .ambient")
                 }
                 completion?(success)
             }
@@ -362,9 +363,11 @@ extension CallManager: CXProviderDelegate {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 do {
                     try session.setActive(false, options: .notifyOthersOnDeactivation)
-                    self?.logger.info("Audio session cleanly deactivated")
+                    try? session.setCategory(.ambient, mode: .default)
+                    self?.logger.info("Audio session cleanly deactivated & category restored to .ambient")
                     completion?(true)
                 } catch {
+                    try? session.setCategory(.ambient, mode: .default)
                     self?.logger.error("Failed to deactivate audio session: \(error.localizedDescription)")
                     completion?(false)
                 }
@@ -413,6 +416,9 @@ extension CallManager: CXProviderDelegate {
                     configureAudioSession()
                     activateAudioSession { [weak self] success in
                         if success {
+                            Task { @MainActor in
+                                await DefaultCallMediaPipeline.shared.audioController.restartAfterInterruption()
+                            }
                             self?.callEventSubject.send(.audioSessionActivated)
                         }
                     }

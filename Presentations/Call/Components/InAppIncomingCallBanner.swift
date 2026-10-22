@@ -107,7 +107,9 @@ struct InAppIncomingCallBanner: View {
                     HapticFeedbackSafe.notification(.success)
                     Task {
                         try? await CallService.shared.acceptIncomingCall()
-                        openFullScreenCall(call: call)
+                        if CallService.shared.currentCallState.isActive {
+                            openFullScreenCall(call: call)
+                        }
                     }
                 } label: {
                     InstagramIcon(
