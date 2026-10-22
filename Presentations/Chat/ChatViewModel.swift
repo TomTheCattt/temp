@@ -103,9 +103,9 @@ final class ChatViewModel {
                       let message = notification.object as? Message,
                       message.conversationId == self.conversationId else { return }
 
-                if !self.messages.contains(where: { $0.id == message.id }) {
-                    self.messages.append(message)
-                    self.messages.sort { $0.createdAt > $1.createdAt }
+                let updated = self.deduplicateAndSort(self.messages + [message])
+                if updated.count != self.messages.count || updated != self.messages {
+                    self.messages = updated
                     self.markAsRead()
                 }
             }
@@ -172,7 +172,7 @@ final class ChatViewModel {
             let result = try await fetchMessagesUseCase.execute(
                 FetchMessagesInput(conversationId: conversationId, page: 1, perPage: perPage)
             )
-            messages = result.sorted { $0.createdAt > $1.createdAt }
+            messages = deduplicateAndSort(result)
             hasMorePages = result.count >= perPage
 
             // Resolve recipient if not provided
@@ -294,22 +294,23 @@ final class ChatViewModel {
                 )
             )
             // Replace optimistic pending message with confirmed message
+            let finalMessage = Message(
+                id: message.id,
+                conversationId: message.conversationId,
+                sender: message.sender,
+                content: message.content,
+                status: message.status,
+                replyToId: replyId,
+                replyToSnippet: replySnippet,
+                reactions: [:],
+                createdAt: message.createdAt
+            )
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                let finalMessage = Message(
-                    id: message.id,
-                    conversationId: message.conversationId,
-                    sender: message.sender,
-                    content: message.content,
-                    status: message.status,
-                    replyToId: replyId,
-                    replyToSnippet: replySnippet,
-                    reactions: [:],
-                    createdAt: message.createdAt
-                )
-                messages[index] = finalMessage
-                simulateReadReceipt(for: message.id)
-                simulatePartnerTyping()
+                messages.remove(at: index)
             }
+            messages = deduplicateAndSort(messages + [finalMessage])
+            simulateReadReceipt(for: message.id)
+            simulatePartnerTyping()
         } catch {
             // Update the pending message to .failed state so user can retry
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
@@ -453,9 +454,10 @@ final class ChatViewModel {
                 SendMessageInput(conversationId: conversationId, content: .image(url))
             )
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages[index] = message
-                simulateReadReceipt(for: message.id)
+                messages.remove(at: index)
             }
+            messages = deduplicateAndSort(messages + [message])
+            simulateReadReceipt(for: message.id)
         } catch {
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
                 let current = messages[index]
@@ -501,9 +503,10 @@ final class ChatViewModel {
                 SendMessageInput(conversationId: conversationId, content: .like)
             )
             if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages[index] = message
-                simulateReadReceipt(for: message.id)
+                messages.remove(at: index)
             }
+            messages = deduplicateAndSort(messages + [message])
+            simulateReadReceipt(for: message.id)
         } catch {
             messages.removeAll { $0.id == tempId }
             ToastManager.shared.error(error.userMessage)
@@ -519,20 +522,48 @@ final class ChatViewModel {
 
     // MARK: - Private helpers
 
-    /// Merge an older page into `messages`, keeping existing entries and appending
-    /// only ids we haven't seen yet, then re-sort newest-first.
+    /// Merge an older page into `messages`, keeping existing entries and deduplicating.
     private func mergeOlderMessages(_ older: [Message]) {
         guard !older.isEmpty else { return }
-        var existingIds = Set(messages.map(\.id))
-        var appended = false
-        for message in older where !existingIds.contains(message.id) {
-            messages.append(message)
-            existingIds.insert(message.id)
-            appended = true
+        messages = deduplicateAndSort(messages + older)
+    }
+
+    /// Smart deduplication based on ID and message fingerprint (sender + content + time window).
+    private func deduplicateAndSort(_ list: [Message]) -> [Message] {
+        var seenIds = Set<String>()
+        var seenFingerprints = Set<String>()
+        var result: [Message] = []
+
+        for msg in list {
+            if seenIds.contains(msg.id) { continue }
+
+            let contentKey = msg.content.fingerprintRepresentation
+            let timeBucket = Int(msg.createdAt.timeIntervalSince1970 / 3.0)
+            let fingerprint = "\(msg.sender.id)_\(contentKey)_\(timeBucket)"
+
+            if seenFingerprints.contains(fingerprint) {
+                // If existing entry has a temporary or fallback placeholder ID, replace it with real ID
+                if let existingIdx = result.firstIndex(where: {
+                    let existingBucket = Int($0.createdAt.timeIntervalSince1970 / 3.0)
+                    return $0.sender.id == msg.sender.id &&
+                           $0.content.fingerprintRepresentation == contentKey &&
+                           existingBucket == timeBucket
+                }) {
+                    let existingId = result[existingIdx].id
+                    if existingId.starts(with: "temp_") || existingId == "last" || existingId.hasSuffix("_last") {
+                        seenIds.remove(existingId)
+                        result[existingIdx] = msg
+                        seenIds.insert(msg.id)
+                    }
+                }
+                continue
+            }
+
+            seenIds.insert(msg.id)
+            seenFingerprints.insert(fingerprint)
+            result.append(msg)
         }
-        if appended {
-            messages.sort { $0.createdAt > $1.createdAt }
-        }
+        return result.sorted { $0.createdAt > $1.createdAt }
     }
 
     /// Mock-friendly read-receipt simulation: after a short delay, flip a just-sent
@@ -567,6 +598,23 @@ final class ChatViewModel {
             self.isPartnerTyping = true
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             self.isPartnerTyping = false
+        }
+    }
+}
+
+// MARK: - MessageContent Fingerprint Helper
+
+private extension MessageContent {
+    var fingerprintRepresentation: String {
+        switch self {
+        case .text(let text): return "text:\(text)"
+        case .image(let url): return "image:\(url.absoluteString)"
+        case .video(let url, _): return "video:\(url.absoluteString)"
+        case .audio(let url, _): return "audio:\(url.absoluteString)"
+        case .post(let id): return "post:\(id)"
+        case .story(let id): return "story:\(id)"
+        case .reel(let id): return "reel:\(id)"
+        case .like: return "like"
         }
     }
 }

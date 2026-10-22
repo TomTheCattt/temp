@@ -487,22 +487,28 @@ actor FirebasePostDataSource: Sendable {
 
     private func parseFallbackUser(data: [String: Any], fallbackId: String) -> User {
         let username = (data["authorUsername"] as? String) ?? (data["username"] as? String) ?? "user"
-        let avatarURL = (data["authorPhotoUrl"] as? String ?? data["avatarURL"] as? String).flatMap { URL(string: $0) }
+        let fullName = (data["authorFullName"] as? String) ?? (data["fullName"] as? String) ?? username.capitalized
+        let avatarURL = (data["authorPhotoUrl"] as? String ?? data["avatarURL"] as? String ?? data["avatarUrl"] as? String).flatMap { URL(string: $0) }
+        let isVerified = (data["authorIsVerified"] as? Bool) ?? (data["isVerified"] as? Bool) ?? false
+        let followers = (data["followersCount"] as? Int) ?? 0
+        let following = (data["followingCount"] as? Int) ?? 0
+        let posts = (data["postsCount"] as? Int) ?? 0
+
         return User(
             id: fallbackId,
             username: username,
-            fullName: username.capitalized,
+            fullName: fullName,
             email: nil,
             phone: nil,
             avatarURL: avatarURL,
             bio: nil,
             website: nil,
-            isVerified: false,
+            isVerified: isVerified,
             isPrivate: false,
-            followersCount: 0,
-            followingCount: 0,
-            postsCount: 0,
-            createdAt: .now,
+            followersCount: followers,
+            followingCount: following,
+            postsCount: posts,
+            createdAt: parseDate(data["createdAt"]),
             isFollowing: false,
             isFollowedBy: false,
             isBlocked: false

@@ -143,13 +143,15 @@ actor FirebaseNotificationDataSource: Sendable {
 
     private func parseNotification(_ data: [String: Any], documentId: String) -> AppNotification? {
         let actorData = data["actor"] as? [String: Any]
-        let actor = parseUser(actorData, fallbackId: data["actorId"] as? String ?? "")
+        let fallbackId = (data["actorId"] as? String) ?? (data["senderId"] as? String) ?? ""
+        let actor = parseUser(actorData, rootData: data, fallbackId: fallbackId)
         let typeRaw = (data["type"] as? String)?.lowercased() ?? "like"
         let type = NotificationType(rawValue: typeRaw) ?? .like
         let postId = data["postId"] as? String
-        let postThumb = (data["postThumbnailUrl"] as? String).flatMap { URL(string: $0) }
-        let commentText = data["commentText"] as? String
-        let isRead = data["isRead"] as? Bool ?? false
+        let postThumbStr = (data["postThumbnailUrl"] as? String) ?? (data["mediaUrl"] as? String)
+        let postThumb = postThumbStr.flatMap { URL(string: $0) }
+        let commentText = (data["commentText"] as? String) ?? (data["message"] as? String)
+        let isRead = (data["isRead"] as? Bool) ?? (data["read"] as? Bool) ?? false
         let createdAt = parseDate(data["createdAt"])
 
         return AppNotification(
@@ -164,46 +166,45 @@ actor FirebaseNotificationDataSource: Sendable {
         )
     }
 
-    private func parseUser(_ data: [String: Any]?, fallbackId: String) -> User {
-        guard let data else {
-            return User(
-                id: fallbackId,
-                username: "user",
-                fullName: "Instagram User",
-                email: nil,
-                phone: nil,
-                avatarURL: nil,
-                bio: nil,
-                website: nil,
-                isVerified: false,
-                isPrivate: false,
-                followersCount: 0,
-                followingCount: 0,
-                postsCount: 0,
-                createdAt: .now,
-                isFollowing: false,
-                isFollowedBy: false,
-                isBlocked: false
-            )
-        }
+    private func parseUser(_ authorDict: [String: Any]?, rootData: [String: Any], fallbackId: String) -> User {
+        let username = (authorDict?["username"] as? String)
+            ?? (rootData["senderUsername"] as? String)
+            ?? (rootData["actorUsername"] as? String)
+            ?? (rootData["username"] as? String)
+            ?? "user"
+        let fullName = (authorDict?["fullName"] as? String)
+            ?? (rootData["senderFullName"] as? String)
+            ?? (rootData["actorFullName"] as? String)
+            ?? username.capitalized
+        let avatarStr = (authorDict?["avatarUrl"] as? String)
+            ?? (authorDict?["avatarURL"] as? String)
+            ?? (rootData["senderPhotoUrl"] as? String)
+            ?? (rootData["actorPhotoUrl"] as? String)
+            ?? (rootData["avatarUrl"] as? String)
+            ?? (rootData["avatarURL"] as? String)
+        let avatarURL = avatarStr.flatMap { URL(string: $0) }
+        let isVerified = (authorDict?["isVerified"] as? Bool)
+            ?? (rootData["isVerified"] as? Bool)
+            ?? false
+
         return User(
-            id: data["id"] as? String ?? fallbackId,
-            username: data["username"] as? String ?? "user",
-            fullName: data["fullName"] as? String ?? "Instagram User",
-            email: data["email"] as? String,
-            phone: data["phone"] as? String,
-            avatarURL: (data["avatarUrl"] as? String).flatMap { URL(string: $0) },
-            bio: data["bio"] as? String,
-            website: data["website"] as? String,
-            isVerified: data["isVerified"] as? Bool ?? false,
-            isPrivate: data["isPrivate"] as? Bool ?? false,
-            followersCount: data["followersCount"] as? Int ?? 0,
-            followingCount: data["followingCount"] as? Int ?? 0,
-            postsCount: data["postsCount"] as? Int ?? 0,
-            createdAt: parseDate(data["createdAt"]),
-            isFollowing: data["isFollowing"] as? Bool ?? false,
-            isFollowedBy: data["isFollowedBy"] as? Bool ?? false,
-            isBlocked: data["isBlocked"] as? Bool ?? false
+            id: authorDict?["id"] as? String ?? fallbackId,
+            username: username,
+            fullName: fullName,
+            email: authorDict?["email"] as? String,
+            phone: authorDict?["phone"] as? String,
+            avatarURL: avatarURL,
+            bio: authorDict?["bio"] as? String,
+            website: authorDict?["website"] as? String,
+            isVerified: isVerified,
+            isPrivate: authorDict?["isPrivate"] as? Bool ?? false,
+            followersCount: authorDict?["followersCount"] as? Int ?? 0,
+            followingCount: authorDict?["followingCount"] as? Int ?? 0,
+            postsCount: authorDict?["postsCount"] as? Int ?? 0,
+            createdAt: parseDate(authorDict?["createdAt"] ?? rootData["createdAt"]),
+            isFollowing: authorDict?["isFollowing"] as? Bool ?? false,
+            isFollowedBy: authorDict?["isFollowedBy"] as? Bool ?? false,
+            isBlocked: authorDict?["isBlocked"] as? Bool ?? false
         )
     }
 

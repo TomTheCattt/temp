@@ -554,8 +554,19 @@ actor FirebaseMessageDataSource: Sendable {
                 // Only ingest if not already present or sent by partner
                 if inMemoryMessages[conversationId] == nil {
                     inMemoryMessages[conversationId] = [message]
-                } else if !(inMemoryMessages[conversationId]?.contains(where: { $0.id == message.id }) ?? false) {
-                    inMemoryMessages[conversationId]?.insert(message, at: 0)
+                } else {
+                    var list = inMemoryMessages[conversationId] ?? []
+                    // If list contains placeholder "_last" or "last" with matching content, remove it
+                    if let placeholderIdx = list.firstIndex(where: {
+                        ($0.id.hasSuffix("_last") || $0.id == "last") && $0.content == message.content
+                    }) {
+                        list.remove(at: placeholderIdx)
+                    }
+                    if !list.contains(where: { $0.id == message.id }) {
+                        list.insert(message, at: 0)
+                        list.sort { $0.createdAt > $1.createdAt }
+                    }
+                    inMemoryMessages[conversationId] = list
                 }
 
                 // If remote partner sent the message, update conversation state
@@ -1023,7 +1034,8 @@ actor FirebaseMessageDataSource: Sendable {
 
         let lastMessage: Message?
         if let lastMsgDict = dict["lastMessage"] as? [String: Any] {
-            lastMessage = dictToMessage(lastMsgDict, docId: "last")
+            let lastMsgId = (lastMsgDict["id"] as? String) ?? "\(id)_last"
+            lastMessage = dictToMessage(lastMsgDict, docId: lastMsgId)
         } else {
             lastMessage = nil
         }

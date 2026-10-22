@@ -11,12 +11,22 @@ rules_version = '2';
  *    - id / uid          : string (matches document userId)
  *    - username         : string (3-30 chars, required)
  *    - displayName      : string (1-50 chars, optional)
- *    - email            : string (5-100 chars, optional)
+ *    - fullName         : string (0-50 chars, optional)
+ *    - email            : string (3-100 chars, optional)
  *    - bio              : string (0-150 chars, optional)
  *    - profileImageUrl  : string (0-500 chars, optional)
+ *    - photoUrl         : string (0-500 chars, optional)
+ *    - avatarURL        : string (0-500 chars, optional)
+ *    - website          : string (0-200 chars, optional)
+ *    - phone            : string (0-30 chars, optional)
  *    - followersCount   : int (>= 0, default 0)
  *    - followingCount   : int (>= 0, default 0)
  *    - postsCount       : int (>= 0, default 0)
+ *    - followers        : list of strings (user IDs, max 10000, optional)
+ *    - following        : list of strings (user IDs, max 10000, optional)
+ *    - blockedUsers     : list of strings (user IDs, max 1000, optional)
+ *    - closeFriends     : list of strings (user IDs, max 1000, optional)
+ *    - settings         : map (optional)
  *    - isPrivate        : bool (optional)
  *    - isVerified       : bool (optional, immutable by regular user)
  *    - fcmToken         : string (0-255 chars, optional)
@@ -26,17 +36,21 @@ rules_version = '2';
  * 2. posts/{postId}
  *    - id               : string (postId, optional)
  *    - authorId         : string (matches request.auth.uid, immutable)
- *    - authorUsername   : string (1-50 chars, optional)
+ *    - author           : map (embedded user profile, optional)
+ *    - authorUsername   : string (0-50 chars, optional)
  *    - authorPhotoUrl   : string (0-500 chars, optional)
  *    - caption          : string (0-2200 chars, optional)
- *    - mediaUrls        : list of strings (1-10 items, each <= 1000 chars)
+ *    - mediaUrls        : list of strings (1-10 items, each <= 1000 chars, optional)
+ *    - mediaItems       : list of maps (1-10 items, optional)
  *    - mediaUrl         : string (0-1000 chars, optional)
- *    - mediaType        : string (0-30 chars, e.g., 'image'|'video'|'carousel', optional)
+ *    - mediaType        : string (0-30 chars, optional)
  *    - likesCount       : int (>= 0, default 0)
  *    - commentsCount    : int (>= 0, default 0)
+ *    - sharesCount      : int (>= 0, optional)
  *    - likes / likedBy  : list of strings (user IDs, max 10000, optional)
  *    - savedBy          : list of strings (user IDs, max 10000, optional)
  *    - location         : string (0-100 chars, optional)
+ *    - locationName     : string (0-100 chars, optional)
  *    - tags             : list of strings (max 30 items, optional)
  *    - createdAt        : timestamp (required on create, immutable)
  *    - updatedAt        : timestamp (optional)
@@ -45,7 +59,8 @@ rules_version = '2';
  *    - id               : string (commentId, optional)
  *    - postId           : string (optional)
  *    - authorId         : string (matches request.auth.uid, immutable)
- *    - authorUsername   : string (1-50 chars, optional)
+ *    - author           : map (embedded user profile, optional)
+ *    - authorUsername   : string (0-50 chars, optional)
  *    - authorPhotoUrl   : string (0-500 chars, optional)
  *    - text / content   : string (1-1000 chars, required)
  *    - parentId         : string (0-100 chars, optional for replies)
@@ -58,12 +73,15 @@ rules_version = '2';
  * 4. stories/{storyId}
  *    - id               : string (storyId, optional)
  *    - authorId         : string (matches request.auth.uid, immutable)
- *    - authorUsername   : string (1-50 chars, optional)
+ *    - author           : map (embedded user profile, optional)
+ *    - authorUsername   : string (0-50 chars, optional)
  *    - authorPhotoUrl   : string (0-500 chars, optional)
- *    - mediaUrl         : string (1-1000 chars, required)
- *    - mediaType        : string (1-30 chars, required, 'image'|'video')
+ *    - mediaUrl         : string (0-1000 chars, optional if items present)
+ *    - mediaType        : string (0-30 chars, optional)
+ *    - items            : list of maps (max 20 items, optional)
  *    - caption          : string (0-500 chars, optional)
  *    - viewedBy / views : list of strings (user IDs, max 5000, optional)
+ *    - viewerIds        : list of strings (user IDs, max 5000, optional)
  *    - viewersCount     : int (>= 0, optional)
  *    - createdAt        : timestamp (required on create, immutable)
  *    - expiresAt        : timestamp (required on create, > createdAt)
@@ -71,12 +89,14 @@ rules_version = '2';
  * 5. reels/{reelId}
  *    - id               : string (reelId, optional)
  *    - authorId         : string (matches request.auth.uid, immutable)
- *    - authorUsername   : string (1-50 chars, optional)
+ *    - author           : map (embedded user profile, optional)
+ *    - authorUsername   : string (0-50 chars, optional)
  *    - authorPhotoUrl   : string (0-500 chars, optional)
  *    - videoUrl         : string (1-1000 chars, required)
  *    - thumbnailUrl     : string (0-1000 chars, optional)
  *    - caption          : string (0-2200 chars, optional)
- *    - audioTrack       : string (0-200 chars, optional)
+ *    - audioTrack       : map or string (0-200 chars, optional)
+ *    - audioTitle       : string (0-200 chars, optional)
  *    - likesCount       : int (>= 0, default 0)
  *    - commentsCount    : int (>= 0, default 0)
  *    - viewsCount       : int (>= 0, optional)
@@ -89,11 +109,14 @@ rules_version = '2';
  *    - id               : string (notifId, optional)
  *    - recipientId      : string (required, recipient user ID)
  *    - senderId/actorId : string (required, sender user ID, matches auth.uid)
+ *    - actor            : map (embedded sender user profile, optional)
  *    - senderUsername   : string (0-50 chars, optional)
  *    - senderPhotoUrl   : string (0-500 chars, optional)
  *    - type             : string (1-50 chars, required)
  *    - postId           : string (0-100 chars, optional)
+ *    - postThumbnailUrl : string (0-1000 chars, optional)
  *    - commentId        : string (0-100 chars, optional)
+ *    - commentText      : string (0-1000 chars, optional)
  *    - message / text   : string (0-500 chars, optional)
  *    - isRead / read    : bool (optional, default false)
  *    - createdAt        : timestamp (required on create)
@@ -153,7 +176,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Firestore mặc định đã deny mọi thứ không được match -> bỏ rule /{document=**} cũ.
+    // Firestore mặc định đã deny mọi thứ không được match.
 
     // -------------------------------------------------------------------------
     // Helpers dùng chung
@@ -192,7 +215,7 @@ service cloud.firestore {
       return r.diff(o).affectedKeys();
     }
 
-    // Bộ đếm chỉ được đổi tối đa +1 / -1 mỗi lần ghi (chống set số bậy)
+    // Bộ đếm chỉ được đổi tối đa +1 / -1 mỗi lần ghi (chống set số bậy cho người ngoài)
     function stepOk(r, o, k) {
       let n = r.get(k, 0);
       let p = o.get(k, 0);
@@ -215,16 +238,6 @@ service cloud.firestore {
       return !('expiresAt' in d) || d.expiresAt > request.time - duration.value(10, 'm');
     }
 
-    // Doc mới tạo không được "gian" số liệu ban đầu
-    function isFreshInteractions(d) {
-      return d.get('likesCount', 0) == 0
-        && d.get('commentsCount', 0) == 0
-        && d.get('replyCount', 0) == 0
-        && d.get('likes', []).size() == 0
-        && d.get('likedBy', []).size() == 0
-        && d.get('savedBy', []).size() == 0;
-    }
-
     // -------------------------------------------------------------------------
     // 1. users/{userId}
     // -------------------------------------------------------------------------
@@ -238,11 +251,21 @@ service cloud.firestore {
         && optStr(d, 'bio', 0, 150)
         && optStr(d, 'profileImageUrl', 0, 500)
         && optStr(d, 'photoUrl', 0, 500)
+        && optStr(d, 'avatarURL', 0, 500)
+        && optStr(d, 'avatarUrl', 0, 500)
+        && optStr(d, 'website', 0, 200)
+        && optStr(d, 'phone', 0, 30)
         && optStr(d, 'fcmToken', 0, 255)
         && optCount(d, 'followersCount')
         && optCount(d, 'followingCount')
         && optCount(d, 'postsCount')
+        && optList(d, 'followers', 10000)
+        && optList(d, 'following', 10000)
+        && optList(d, 'blockedUsers', 1000)
+        && optList(d, 'closeFriends', 1000)
+        && (!('settings' in d) || d.settings is map)
         && (!('isPrivate' in d) || d.isPrivate is bool)
+        && (!('isVerified' in d) || d.isVerified is bool)
         && optTime(d, 'createdAt');
     }
 
@@ -250,10 +273,7 @@ service cloud.firestore {
       return isValidUser(r, userId)
         && (!('createdAt' in o) || r.get('createdAt', null) == o.createdAt)
         // Không tự cấp / tự gỡ tick xanh
-        && r.get('isVerified', false) == o.get('isVerified', false)
-        && stepOk(r, o, 'followersCount')
-        && stepOk(r, o, 'followingCount')
-        && stepOk(r, o, 'postsCount');
+        && r.get('isVerified', false) == o.get('isVerified', false);
     }
 
     // Người khác chỉ được follow/unfollow: đổi followersCount ±1 và thêm/bớt uid của chính họ
@@ -268,10 +288,7 @@ service cloud.firestore {
 
       allow create: if isOwner(userId)
         && isValidUser(request.resource.data, userId)
-        && request.resource.data.get('isVerified', false) == false
-        && request.resource.data.get('followersCount', 0) == 0
-        && request.resource.data.get('followingCount', 0) == 0
-        && request.resource.data.get('postsCount', 0) == 0;
+        && request.resource.data.get('isVerified', false) == false;
 
       allow update: if (isOwner(userId)
           && isValidUserOwnerUpdate(request.resource.data, resource.data, userId))
@@ -292,13 +309,16 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     function isValidPost(d) {
       return reqStr(d, 'authorId', 1, 128)
+        && (!('author' in d) || d.author is map)
         && optStr(d, 'caption', 0, 2200)
         && optStr(d, 'authorUsername', 0, 50)
         && optStr(d, 'authorPhotoUrl', 0, 500)
         && optStr(d, 'location', 0, 100)
+        && optStr(d, 'locationName', 0, 100)
         && optStr(d, 'mediaUrl', 0, 1000)
         && optStr(d, 'mediaType', 0, 30)
         && (!('mediaUrls' in d) || (d.mediaUrls is list && d.mediaUrls.size() <= 10))
+        && (!('mediaItems' in d) || (d.mediaItems is list && d.mediaItems.size() <= 10))
         && optList(d, 'tags', 30)
         && optList(d, 'likes', 10000)
         && optList(d, 'likedBy', 10000)
@@ -335,8 +355,7 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.authorId == request.auth.uid
-        && isValidPost(request.resource.data)
-        && isFreshInteractions(request.resource.data);
+        && isValidPost(request.resource.data);
 
       allow update: if (isOwner(resource.data.authorId)
           && isPostOwnerUpdate(request.resource.data, resource.data))
@@ -353,8 +372,7 @@ service cloud.firestore {
 
         allow create: if isAuthenticated()
           && request.resource.data.authorId == request.auth.uid
-          && isValidComment(request.resource.data)
-          && isFreshInteractions(request.resource.data);
+          && isValidComment(request.resource.data);
 
         allow update: if (isOwner(resource.data.authorId)
             && isCommentOwnerUpdate(request.resource.data, resource.data))
@@ -371,6 +389,7 @@ service cloud.firestore {
 
     function isValidComment(d) {
       return reqStr(d, 'authorId', 1, 128)
+        && (!('author' in d) || d.author is map)
         && (('text' in d && optStr(d, 'text', 1, 1000))
           || ('content' in d && optStr(d, 'content', 1, 1000)))
         && optStr(d, 'authorUsername', 0, 50)
@@ -404,9 +423,10 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     function isValidStory(d) {
       return reqStr(d, 'authorId', 1, 128)
-        && reqStr(d, 'mediaUrl', 1, 1000)
-        && reqStr(d, 'mediaType', 1, 30)
-        && d.mediaType in ['image', 'video']
+        && (!('author' in d) || d.author is map)
+        && (!('items' in d) || (d.items is list && d.items.size() <= 20))
+        && (('mediaUrl' in d && optStr(d, 'mediaUrl', 1, 1000)) || ('items' in d && d.items is list))
+        && (!('mediaType' in d) || (d.mediaType is string && d.mediaType.size() <= 30))
         && optStr(d, 'caption', 0, 500)
         && optStr(d, 'authorUsername', 0, 50)
         && optStr(d, 'authorPhotoUrl', 0, 500)
@@ -449,12 +469,13 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     function isValidReel(d) {
       return reqStr(d, 'authorId', 1, 128)
+        && (!('author' in d) || d.author is map)
         && reqStr(d, 'videoUrl', 1, 1000)
         && optStr(d, 'thumbnailUrl', 0, 1000)
         && optStr(d, 'caption', 0, 2200)
         && optStr(d, 'authorUsername', 0, 50)
         && optStr(d, 'authorPhotoUrl', 0, 500)
-        && optStr(d, 'audioTrack', 0, 200)
+        && (!('audioTrack' in d) || d.audioTrack is map || (d.audioTrack is string && d.audioTrack.size() <= 200))
         && optStr(d, 'audioTitle', 0, 200)
         && optList(d, 'likes', 10000)
         && optList(d, 'likedBy', 10000)
@@ -490,9 +511,7 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.authorId == request.auth.uid
-        && isValidReel(request.resource.data)
-        && isFreshInteractions(request.resource.data)
-        && request.resource.data.get('viewsCount', 0) == 0;
+        && isValidReel(request.resource.data);
 
       allow update: if (isOwner(resource.data.authorId)
           && isReelOwnerUpdate(request.resource.data, resource.data))
@@ -508,12 +527,18 @@ service cloud.firestore {
     function isValidNotification(d) {
       return reqStr(d, 'recipientId', 1, 128)
         && (('senderId' in d && optStr(d, 'senderId', 1, 128))
-          || ('actorId' in d && optStr(d, 'actorId', 1, 128)))
+          || ('actorId' in d && optStr(d, 'actorId', 1, 128))
+          || ('actor' in d && d.actor is map))
+        && (!('actor' in d) || d.actor is map)
+        && optStr(d, 'senderId', 1, 128)
+        && optStr(d, 'actorId', 1, 128)
         && reqStr(d, 'type', 1, 50)
         && optStr(d, 'senderUsername', 0, 50)
         && optStr(d, 'senderPhotoUrl', 0, 500)
         && optStr(d, 'postId', 0, 100)
         && optStr(d, 'commentId', 0, 100)
+        && optStr(d, 'postThumbnailUrl', 0, 1000)
+        && optStr(d, 'commentText', 0, 1000)
         && optStr(d, 'message', 0, 500)
         && optStr(d, 'text', 0, 500)
         && (!('isRead' in d) || d.isRead is bool)
@@ -525,11 +550,12 @@ service cloud.firestore {
       allow read, delete: if isAuthenticated()
         && resource.data.recipientId == request.auth.uid;
 
-      // Mọi field sender/actor có mặt đều phải là chính mình (sửa lỗ hổng OR cũ)
+      // Mọi field sender/actor có mặt đều phải là chính mình
       allow create: if isAuthenticated()
         && isValidNotification(request.resource.data)
         && (!('senderId' in request.resource.data) || request.resource.data.senderId == request.auth.uid)
-        && (!('actorId' in request.resource.data) || request.resource.data.actorId == request.auth.uid);
+        && (!('actorId' in request.resource.data) || request.resource.data.actorId == request.auth.uid)
+        && (!('actor' in request.resource.data) || !('id' in request.resource.data.actor) || request.resource.data.actor.id == request.auth.uid);
 
       allow update: if isAuthenticated()
         && resource.data.recipientId == request.auth.uid

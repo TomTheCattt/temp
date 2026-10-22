@@ -334,11 +334,11 @@ enum L10n {
     // MARK: - Chat
 
     enum Chat {
-        static let messagePlaceholder = String(localized: "chat.messagePlaceholder")
-        static let statusSent = String(localized: "chat.statusSent")
-        static let statusDelivered = String(localized: "chat.statusDelivered")
-        static let statusRead = String(localized: "chat.statusRead")
-        static let empty = String(localized: "chat.empty")
+        static let messagePlaceholder = String(localized: "chat.messagePlaceholder", defaultValue: "Message...")
+        static let statusSent = String(localized: "chat.statusSent", defaultValue: "Sent")
+        static let statusDelivered = String(localized: "chat.statusDelivered", defaultValue: "Delivered")
+        static let statusRead = String(localized: "chat.statusRead", defaultValue: "Seen")
+        static let empty = String(localized: "chat.empty", defaultValue: "No messages yet")
     }
 
     // MARK: - Reels

@@ -203,7 +203,7 @@ actor FirebaseStoryDataSource: Sendable {
 
     private func parseStory(_ data: [String: Any], documentId: String, currentUserId: String) -> Story? {
         let authorData = data["author"] as? [String: Any]
-        let author = parseUser(authorData, fallbackId: data["authorId"] as? String ?? "")
+        let author = parseUser(authorData, rootData: data, fallbackId: data["authorId"] as? String ?? "")
         let createdAt = parseDate(data["createdAt"])
         let expiresAt = parseDate(data["expiresAt"])
         let viewedBy = data["viewedBy"] as? [String] ?? []
@@ -308,46 +308,42 @@ actor FirebaseStoryDataSource: Sendable {
         return dict
     }
 
-    private func parseUser(_ data: [String: Any]?, fallbackId: String) -> User {
-        guard let data else {
-            return User(
-                id: fallbackId,
-                username: "user",
-                fullName: "Instagram User",
-                email: nil,
-                phone: nil,
-                avatarURL: nil,
-                bio: nil,
-                website: nil,
-                isVerified: false,
-                isPrivate: false,
-                followersCount: 0,
-                followingCount: 0,
-                postsCount: 0,
-                createdAt: .now,
-                isFollowing: false,
-                isFollowedBy: false,
-                isBlocked: false
-            )
-        }
+    private func parseUser(_ authorDict: [String: Any]?, rootData: [String: Any], fallbackId: String) -> User {
+        let username = (authorDict?["username"] as? String)
+            ?? (rootData["authorUsername"] as? String)
+            ?? (rootData["username"] as? String)
+            ?? "user"
+        let fullName = (authorDict?["fullName"] as? String)
+            ?? (rootData["authorFullName"] as? String)
+            ?? username.capitalized
+        let avatarStr = (authorDict?["avatarUrl"] as? String)
+            ?? (authorDict?["avatarURL"] as? String)
+            ?? (rootData["authorPhotoUrl"] as? String)
+            ?? (rootData["avatarUrl"] as? String)
+            ?? (rootData["avatarURL"] as? String)
+        let avatarURL = avatarStr.flatMap { URL(string: $0) }
+        let isVerified = (authorDict?["isVerified"] as? Bool)
+            ?? (rootData["isVerified"] as? Bool)
+            ?? false
+
         return User(
-            id: data["id"] as? String ?? fallbackId,
-            username: data["username"] as? String ?? "user",
-            fullName: data["fullName"] as? String ?? "Instagram User",
-            email: data["email"] as? String,
-            phone: data["phone"] as? String,
-            avatarURL: (data["avatarUrl"] as? String).flatMap { URL(string: $0) },
-            bio: data["bio"] as? String,
-            website: data["website"] as? String,
-            isVerified: data["isVerified"] as? Bool ?? false,
-            isPrivate: data["isPrivate"] as? Bool ?? false,
-            followersCount: data["followersCount"] as? Int ?? 0,
-            followingCount: data["followingCount"] as? Int ?? 0,
-            postsCount: data["postsCount"] as? Int ?? 0,
-            createdAt: parseDate(data["createdAt"]),
-            isFollowing: data["isFollowing"] as? Bool ?? false,
-            isFollowedBy: data["isFollowedBy"] as? Bool ?? false,
-            isBlocked: data["isBlocked"] as? Bool ?? false
+            id: authorDict?["id"] as? String ?? fallbackId,
+            username: username,
+            fullName: fullName,
+            email: authorDict?["email"] as? String,
+            phone: authorDict?["phone"] as? String,
+            avatarURL: avatarURL,
+            bio: authorDict?["bio"] as? String,
+            website: authorDict?["website"] as? String,
+            isVerified: isVerified,
+            isPrivate: authorDict?["isPrivate"] as? Bool ?? false,
+            followersCount: authorDict?["followersCount"] as? Int ?? 0,
+            followingCount: authorDict?["followingCount"] as? Int ?? 0,
+            postsCount: authorDict?["postsCount"] as? Int ?? 0,
+            createdAt: parseDate(authorDict?["createdAt"] ?? rootData["createdAt"]),
+            isFollowing: authorDict?["isFollowing"] as? Bool ?? false,
+            isFollowedBy: authorDict?["isFollowedBy"] as? Bool ?? false,
+            isBlocked: authorDict?["isBlocked"] as? Bool ?? false
         )
     }
 
