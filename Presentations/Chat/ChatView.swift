@@ -8,15 +8,25 @@
 import SwiftUI
 import PhotosUI
 import NukeUI
+import AVFoundation
+import UniformTypeIdentifiers
 
 // MARK: - ChatView
 
 struct ChatView: View {
 
     @State private var viewModel: ChatViewModel
+    @ObservedObject private var audioPlayer = ChatAudioPlayer.shared
+
     @State private var messageText = ""
     @State private var photoPickerItem: PhotosPickerItem?
     @FocusState private var isInputFocused: Bool
+
+    // Voice Recording State
+    @State private var isRecordingVoice: Bool = false
+    @State private var recordingDuration: TimeInterval = 0
+    @State private var recordingTimer: Timer?
+    @State private var isRecordingBlinking: Bool = false
 
     /// Horizontal drag offset for iMessage-style timestamp reveal.
     /// Negative value means the user dragged left (revealing timestamps on the right).
@@ -89,8 +99,12 @@ struct ChatView: View {
                     replyPreviewBar(replyMessage)
                 }
 
-                // Input bar
-                messageInputBar
+                if isRecordingVoice {
+                    voiceRecordingBar
+                } else {
+                    // Input bar
+                    messageInputBar
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -106,10 +120,12 @@ struct ChatView: View {
         }
         .onDisappear {
             viewModel.onDisappear()
+            cancelVoiceRecording()
+            ChatAudioPlayer.shared.stop()
         }
         .onChange(of: photoPickerItem) { _, newItem in
             guard let newItem else { return }
-            Task { await handlePickedPhoto(newItem) }
+            Task { await handlePickedMedia(newItem) }
         }
     }
 
@@ -390,7 +406,7 @@ struct ChatView: View {
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    // Tap gestures: Double-tap to Like, Long-press context menu
+                    // Tap gestures: Double-tap to Like, Single-tap to open media/audio, Long-press context menu
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) {
                         HapticFeedbackSafe.impact(.medium)
@@ -406,6 +422,9 @@ struct ChatView: View {
                                 }
                             }
                         }
+                    }
+                    .onTapGesture(count: 1) {
+                        handleBubbleSingleTap(for: message)
                     }
                     .contextMenu {
                         // Quick Emoji Reactions
@@ -530,14 +549,44 @@ struct ChatView: View {
             Text("❤️")
                 .font(.system(size: DS.Size.chatLikeEmoji))
 
-        case .audio(_, let duration):
+        case .audio(let url, let duration):
+            let isThisAudioPlaying = audioPlayer.currentPlayingURL == url && audioPlayer.isPlaying
+            let progress = audioPlayer.currentPlayingURL == url ? audioPlayer.playbackProgress : 0.0
+            let displayDuration = (audioPlayer.currentPlayingURL == url && audioPlayer.duration > 0)
+                ? (audioPlayer.isPlaying ? audioPlayer.currentTime : audioPlayer.duration)
+                : duration
+
             HStack(spacing: DS.Spacing.xs) {
-                InstagramIcon(.system(name: "play.fill"), size: 14, color: isMe ? .white : .primary)
-                RoundedRectangle(cornerRadius: DS.Spacing.xxxs)
-                    .fill(isMe ? Color.white.opacity(DS.Opacity.overlay) : Color.gray.opacity(DS.Opacity.low))
-                    .frame(height: DS.Stroke.thick)
-                Text(formatDuration(duration))
+                Button {
+                    HapticFeedbackSafe.impact(.light)
+                    audioPlayer.togglePlayPause(url: url, expectedDuration: duration)
+                } label: {
+                    InstagramIcon(
+                        .system(name: isThisAudioPlaying ? "pause.fill" : "play.fill"),
+                        size: 14,
+                        color: isMe ? .white : .primary
+                    )
+                    .frame(width: 24, height: 24)
+                }
+
+                // Audio Waveform Scrubber Track
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: DS.Spacing.xxxs)
+                            .fill(isMe ? Color.white.opacity(DS.Opacity.overlay) : Color.gray.opacity(DS.Opacity.low))
+                            .frame(height: DS.Stroke.thick)
+
+                        RoundedRectangle(cornerRadius: DS.Spacing.xxxs)
+                            .fill(isMe ? Color.white : ColorTokens.accentPrimary)
+                            .frame(width: max(0, min(geo.size.width * CGFloat(progress), geo.size.width)), height: DS.Stroke.thick)
+                    }
+                    .frame(height: geo.size.height)
+                }
+                .frame(height: 14)
+
+                Text(formatDuration(displayDuration))
                     .font(DS.Font.caption2)
+                    .monospacedDigit()
             }
             .foregroundStyle(isMe ? .white : .primary)
             .padding(.horizontal, DS.Spacing.formGap)
@@ -548,7 +597,7 @@ struct ChatView: View {
             )
             .frame(width: DS.Size.chatAudioBubbleWidth)
 
-        case .video(_, thumbnailURL: let thumb):
+        case .video(let url, thumbnailURL: let thumb):
             ZStack {
                 if let thumbURL = thumb {
                     LazyImage(url: thumbURL) { state in
@@ -559,7 +608,13 @@ struct ChatView: View {
                         }
                     }
                 } else {
-                    Color.gray.opacity(DS.Opacity.low)
+                    LazyImage(url: url) { state in
+                        if let image = state.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            ColorTokens.backgroundSubtler
+                        }
+                    }
                 }
                 InstagramIcon(.system(name: "play.circle.fill"), size: 36, color: .white.opacity(DS.Opacity.high))
             }
@@ -711,17 +766,16 @@ struct ChatView: View {
                     .focused($isInputFocused)
 
                 if messageText.isEmpty {
-                    // Mic button
+                    // Mic button (Toggles 1-tap voice recording)
                     Button {
-                        HapticFeedbackSafe.impact(.light)
-                        ToastManager.shared.info("Nhấn giữ để ghi âm tin nhắn thoại")
+                        handleStartVoiceRecording()
                     } label: {
                         InstagramIcon(.system(name: "mic.fill"), size: 18, color: .secondary)
                     }
                     .disabled(viewModel.isSending)
 
-                    // Photo picker
-                    PhotosPicker(selection: $photoPickerItem, matching: .images) {
+                    // Photo/Video picker (matching both images and videos)
+                    PhotosPicker(selection: $photoPickerItem, matching: .any(of: [.images, .videos])) {
                         InstagramIcon(.picture, size: 20, color: .secondary)
                     }
                     .disabled(viewModel.isSending)
@@ -790,16 +844,167 @@ struct ChatView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    // MARK: - Photo Picker Handling
+    // MARK: - Voice Recording Bar (1-Tap Record & Trash Cancel)
 
-    private func handlePickedPhoto(_ item: PhotosPickerItem) async {
+    private var voiceRecordingBar: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            // Cancel Recording (Trash Button)
+            Button {
+                HapticFeedbackSafe.impact(.medium)
+                cancelVoiceRecording()
+            } label: {
+                InstagramIcon(.system(name: "trash.fill"), size: 22, color: .red)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+
+            // Recording Status Container (Capsule)
+            HStack(spacing: DS.Spacing.xs) {
+                // Pulsing Red Recording Indicator
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 8, height: 8)
+                    .opacity(isRecordingBlinking ? 1.0 : 0.3)
+                    .animation(
+                        .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+                        value: isRecordingBlinking
+                    )
+
+                // Live Duration Counter
+                Text(formatDuration(recordingDuration))
+                    .font(DS.Font.subheadlineBold)
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                // Animated Sound Wave Visualizer
+                VoiceWaveVisualizer(isAnimating: isRecordingVoice)
+            }
+            .padding(.horizontal, DS.Spacing.formGap)
+            .padding(.vertical, DS.Spacing.xs)
+            .background(ColorTokens.backgroundSecondary, in: Capsule())
+
+            // Finish & Send Audio Message Button
+            Button {
+                HapticFeedbackSafe.impact(.medium)
+                finishAndSendVoiceRecording()
+            } label: {
+                InstagramIcon(.system(name: "arrow.up.circle.fill"), size: 30, color: ColorTokens.accentPrimary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+        }
+        .padding(.horizontal, DS.Padding.content)
+        .padding(.vertical, DS.Spacing.xs)
+        .overlay(alignment: .top) { Divider() }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    // MARK: - Bubble Interaction
+
+    private func handleBubbleSingleTap(for message: Message) {
+        switch message.content {
+        case .image(let url):
+            HapticFeedbackSafe.impact(.light)
+            AppRouter.shared.present(fullScreen: .chatMediaDetail(message: message, mediaURL: url, isVideo: false))
+        case .video(let url, _):
+            HapticFeedbackSafe.impact(.light)
+            AppRouter.shared.present(fullScreen: .chatMediaDetail(message: message, mediaURL: url, isVideo: true))
+        case .audio(let url, let duration):
+            HapticFeedbackSafe.impact(.light)
+            audioPlayer.togglePlayPause(url: url, expectedDuration: duration)
+        default:
+            break
+        }
+    }
+
+    // MARK: - Voice Recording Methods
+
+    private func handleStartVoiceRecording() {
+        Task {
+            do {
+                _ = try await AudioRecordingService.shared.startRecording()
+                await MainActor.run {
+                    HapticFeedbackSafe.impact(.medium)
+                    isRecordingVoice = true
+                    recordingDuration = 0
+                    isRecordingBlinking = true
+                    startRecordingTimer()
+                }
+            } catch {
+                await MainActor.run {
+                    ToastManager.shared.error(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func cancelVoiceRecording() {
+        stopRecordingTimer()
+        isRecordingVoice = false
+        isRecordingBlinking = false
+        recordingDuration = 0
+        Task {
+            await AudioRecordingService.shared.cancelRecording()
+        }
+    }
+
+    private func finishAndSendVoiceRecording() {
+        stopRecordingTimer()
+        isRecordingVoice = false
+        isRecordingBlinking = false
+        Task {
+            if let result = try? await AudioRecordingService.shared.stopRecording() {
+                await viewModel.sendAudioMessage(url: result.url, duration: result.duration)
+            }
+        }
+    }
+
+    private func startRecordingTimer() {
+        stopRecordingTimer()
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            Task { @MainActor in
+                recordingDuration += 1
+            }
+        }
+    }
+
+    private func stopRecordingTimer() {
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+    }
+
+    // MARK: - Media Picker Handling (Images & Videos)
+
+    private func handlePickedMedia(_ item: PhotosPickerItem) async {
         defer { photoPickerItem = nil }
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("jpg")
-        guard (try? data.write(to: tempURL)) != nil else { return }
-        await viewModel.sendImageMessage(url: tempURL)
+        let isVideo = item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) || $0.conforms(to: .video) })
+
+        if isVideo {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("vid_\(UUID().uuidString).mp4")
+            guard (try? data.write(to: tempURL)) != nil else { return }
+
+            // Extract half-res cached thumbnail in background
+            let thumb = await VideoThumbnailGenerator.shared.thumbnail(for: tempURL)
+            var thumbURL: URL? = nil
+            if let thumb, let thumbData = thumb.jpegData(compressionQuality: 0.8) {
+                let tURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("thumb_\(UUID().uuidString).jpg")
+                try? thumbData.write(to: tURL)
+                thumbURL = tURL
+            }
+
+            await viewModel.sendVideoMessage(url: tempURL, thumbnailURL: thumbURL)
+        } else {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("img_\(UUID().uuidString).jpg")
+            guard (try? data.write(to: tempURL)) != nil else { return }
+            await viewModel.sendImageMessage(url: tempURL)
+        }
     }
 
     // MARK: - Helpers
@@ -808,6 +1013,37 @@ struct ChatView: View {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+// MARK: - VoiceWaveVisualizer
+
+private struct VoiceWaveVisualizer: View {
+    let isAnimating: Bool
+    @State private var waveScales: [CGFloat] = [0.4, 0.7, 1.0, 0.6, 0.3, 0.8]
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<waveScales.count, id: \.self) { idx in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(ColorTokens.accentPrimary)
+                    .frame(width: 2.5, height: 16 * waveScales[idx])
+                    .animation(
+                        isAnimating
+                            ? Animation.easeInOut(duration: 0.4)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(idx) * 0.08)
+                            : .default,
+                        value: waveScales[idx]
+                    )
+            }
+        }
+        .frame(height: 18)
+        .onAppear {
+            if isAnimating {
+                waveScales = [0.9, 0.3, 0.6, 1.0, 0.7, 0.4]
+            }
+        }
     }
 }
 
