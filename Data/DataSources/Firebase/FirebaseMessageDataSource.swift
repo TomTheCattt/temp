@@ -258,9 +258,8 @@ actor FirebaseMessageDataSource: Sendable {
             inMemoryConversations.insert(updated, at: 0)
         }
 
-        // 3. Post reactive UI notifications
+        // 3. Post reactive UI notifications (do not broadcast didUpdateMessage for self to avoid duplicates)
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
-        NotificationCenter.default.post(name: .didUpdateMessage, object: message)
 
         // 4. Asynchronously persist to Firestore in background
         Task { [weak self] in
@@ -271,6 +270,15 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     func createConversation(participantIds: [String]) async throws -> Conversation {
+        // If 1-on-1 chat, reuse existing conversation if found
+        if participantIds.count == 1,
+           let targetId = participantIds.first,
+           let existing = inMemoryConversations.first(where: { conv in
+               !conv.isGroup && conv.participants.contains(where: { $0.id == targetId })
+           }) {
+            return existing
+        }
+
         let current = resolvedCurrentUser()
         let otherUsers = participantIds.compactMap { id in
             MockData.users.first(where: { $0.id == id })
@@ -317,6 +325,7 @@ actor FirebaseMessageDataSource: Sendable {
             }
         }
 
+        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
@@ -345,6 +354,7 @@ actor FirebaseMessageDataSource: Sendable {
             }
         }
 
+        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
@@ -427,6 +437,7 @@ actor FirebaseMessageDataSource: Sendable {
         inMemoryConversations.removeAll { $0.id == id }
         inMemoryMessages.removeValue(forKey: id)
 
+        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
@@ -491,6 +502,7 @@ actor FirebaseMessageDataSource: Sendable {
                 }
             }
         }
+        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
@@ -603,6 +615,7 @@ actor FirebaseMessageDataSource: Sendable {
             inMemoryConversations.insert(updated, at: 0)
         }
 
+        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
@@ -660,7 +673,8 @@ actor FirebaseMessageDataSource: Sendable {
             conv.participants.contains(where: { $0.id == remoteUserId })
         }) {
             let conv = inMemoryConversations[convIndex]
-            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let isRejectedOrBusy = (reason == "rejected" || reason == "busy")
+            let isMissedIncoming = !isOutgoing && !isRejectedOrBusy && (reason == "timeout" || duration == nil || duration == "00:00")
             let newUnreadCount = isMissedIncoming ? conv.unreadCount + 1 : conv.unreadCount
 
             let callMessage = Message(
@@ -698,7 +712,8 @@ actor FirebaseMessageDataSource: Sendable {
             updateTotalUnreadState()
         } else {
             let newConvId = "conv_\(remoteUserId)"
-            let isMissedIncoming = !isOutgoing && (reason == "timeout" || duration == nil || duration == "00:00")
+            let isRejectedOrBusy = (reason == "rejected" || reason == "busy")
+            let isMissedIncoming = !isOutgoing && !isRejectedOrBusy && (reason == "timeout" || duration == nil || duration == "00:00")
             let unreadCount = isMissedIncoming ? 1 : 0
 
             let callMessage = Message(

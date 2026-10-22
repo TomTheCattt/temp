@@ -27,12 +27,9 @@ final class NotificationRouter {
 
     private func subscribe() {
         pushService.notificationTapped
-            .receive(on: DispatchQueue.main)
+            .receive(on: RunLoop.main)
             .sink { [weak self] payload in
-                guard let self else { return }
-                Task { @MainActor in
-                    self.pushService.navigateFromPayload(payload)
-                }
+                self?.pushService.navigateFromPayload(payload)
             }
             .store(in: &cancellables)
     }

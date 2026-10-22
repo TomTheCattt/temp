@@ -207,6 +207,16 @@ actor MockMessageDataSource {
 
     func createConversation(participantIds: [String]) async throws -> Conversation {
         try await simulateDelay(seconds: 0.1)
+
+        // If 1-on-1 chat, reuse existing conversation if found
+        if participantIds.count == 1,
+           let targetId = participantIds.first,
+           let existing = inMemoryConversations.first(where: { conv in
+               !conv.isGroup && conv.participants.contains(where: { $0.id == targetId })
+           }) {
+            return existing
+        }
+
         let participants = participantIds.compactMap { id in
             MockData.users.first(where: { $0.id == id })
         }
@@ -300,7 +310,10 @@ actor MockMessageDataSource {
 
     private func handleExternalMessage(_ message: Message) {
         // Skip messages sent by current user as they are handled in sendMessage
-        guard message.sender.id != MockData.currentUser.id else { return }
+        let currentUserId = SessionStore.shared.currentUserId
+        guard message.sender.id != MockData.currentUser.id &&
+              message.sender.id != "user_current" &&
+              (currentUserId.isEmpty || message.sender.id != currentUserId) else { return }
 
         let convId = message.conversationId
         if inMemoryMessages[convId] != nil {
