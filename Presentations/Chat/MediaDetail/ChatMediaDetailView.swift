@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AVKit
 import Photos
 import NukeUI
 
@@ -286,7 +287,7 @@ struct ChatMediaDetailView: View {
             Color.black
 
             if let p = player {
-                CustomVideoPlayerView(player: p)
+                VideoContentView(player: p)
                     .frame(maxWidth: .infinity, maxHeight: isImmersiveFullscreen ? .infinity : 520)
 
                 // Fading Controls Overlay
@@ -553,23 +554,5 @@ struct ChatMediaDetailView: View {
                 ToastManager.shared.success("Đã gửi phản hồi")
             }
         }
-    }
-}
-
-// MARK: - CustomVideoPlayerView (AVPlayerLayer)
-
-private struct CustomVideoPlayerView: UIViewControllerRepresentable {
-    let player: AVPlayer
-
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.showsPlaybackControls = false
-        controller.videoGravity = .resizeAspect
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        uiViewController.player = player
     }
 }

@@ -85,13 +85,11 @@ public final class ChatAudioPlayer: ObservableObject {
         // Setup smooth progress periodic observer (20 FPS update)
         let interval = CMTime(seconds: 0.05, preferredTimescale: 600)
         timeObserverToken = newPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            guard let self = self else { return }
             let currentSec = CMTimeGetSeconds(time)
             guard currentSec.isFinite else { return }
-
-            self.currentTime = currentSec
-            let total = self.duration > 0 ? self.duration : 1.0
-            self.playbackProgress = min(max(currentSec / total, 0.0), 1.0)
+            Task { @MainActor [weak self] in
+                self?.updatePlaybackProgress(currentSec: currentSec)
+            }
         }
 
         // Load asset duration asynchronously if fallback was 0
@@ -145,6 +143,12 @@ public final class ChatAudioPlayer: ObservableObject {
     }
 
     // MARK: - Private Helpers
+
+    private func updatePlaybackProgress(currentSec: Double) {
+        currentTime = currentSec
+        let total = duration > 0 ? duration : 1.0
+        playbackProgress = min(max(currentSec / total, 0.0), 1.0)
+    }
 
     private func handlePlaybackFinished() {
         stop()
