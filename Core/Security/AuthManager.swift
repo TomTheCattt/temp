@@ -39,8 +39,7 @@ enum LogoutReason: Sendable {
 // MARK: - AuthManager
 
 /// Manages authentication state.
-/// In live mode: accessToken is the Firebase ID token (auto-refreshed via Firebase SDK).
-/// In mock mode: accessToken is a mock string stored in Keychain.
+/// accessToken is stored securely in Keychain.
 @MainActor
 final class AuthManager: AuthManagerProtocol {
 

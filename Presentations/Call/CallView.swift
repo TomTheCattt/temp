@@ -304,7 +304,7 @@ struct CallView: View {
                         }
                     }
             } else {
-                // Hardware / Mock AVCaptureSession Preview via SampleBufferVideoView
+                // Hardware / Simulator AVCaptureSession Preview via SampleBufferVideoView
                 SampleBufferVideoView(sampleBufferPublisher: viewModel.localSampleBufferPublisher)
                     .clipShape(RoundedRectangle(cornerRadius: DS.Radius.large))
             }

@@ -10,7 +10,7 @@ import Network
 
 // MARK: - NetworkBannerStatus
 
-public enum NetworkBannerStatus: Sendable, Equatable {
+enum NetworkBannerStatus: Sendable, Equatable {
     case hidden
     case disconnected
     case reconnected

@@ -10,17 +10,17 @@ import MapKit
 
 // MARK: - PollStickerItem
 
-public struct PollStickerItem: Identifiable {
-    public let id: UUID
-    public var question: String
-    public var optionA: String
-    public var optionB: String
-    public var votesA: Int
-    public var votesB: Int
-    public var offset: CGSize
-    public var scale: CGFloat
+struct PollStickerItem: Identifiable {
+    let id: UUID
+    var question: String
+    var optionA: String
+    var optionB: String
+    var votesA: Int
+    var votesB: Int
+    var offset: CGSize
+    var scale: CGFloat
 
-    public init(
+    init(
         id: UUID = UUID(),
         question: String = "Có thích điều này không?",
         optionA: String = "CÓ",
@@ -40,22 +40,22 @@ public struct PollStickerItem: Identifiable {
         self.scale = scale
     }
 
-    public var totalVotes: Int {
+    var totalVotes: Int {
         max(1, votesA + votesB)
     }
 
-    public var percentageA: Int {
+    var percentageA: Int {
         Int((Double(votesA) / Double(totalVotes)) * 100.0)
     }
 
-    public var percentageB: Int {
+    var percentageB: Int {
         100 - percentageA
     }
 }
 
 // MARK: - PollStickerView
 
-public struct PollStickerView: View {
+struct PollStickerView: View {
     @Binding var item: PollStickerItem
     let onDelete: () -> Void
 
@@ -63,7 +63,7 @@ public struct PollStickerView: View {
     @State private var hasVoted: Bool = false
     @State private var selectedOption: Int? = nil
 
-    public var body: some View {
+    var body: some View {
         VStack(spacing: 12) {
             Text(item.question)
                 .font(.system(size: 17, weight: .bold))
@@ -154,13 +154,13 @@ public struct PollStickerView: View {
 
 // MARK: - LinkInputDialog
 
-public struct LinkInputDialog: View {
+struct LinkInputDialog: View {
     @Binding var isPresented: Bool
     let onAddLink: (String) -> Void
 
     @State private var urlText: String = "https://"
 
-    public var body: some View {
+    var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
                 Text("Người xem Story có thể nhấn vào nhãn dán để truy cập liên kết này.")
@@ -203,7 +203,7 @@ public struct LinkInputDialog: View {
 
 // MARK: - LocationSearchSheet
 
-public struct LocationSearchSheet: View {
+struct LocationSearchSheet: View {
     @Binding var isPresented: Bool
     let onSelectLocation: (String) -> Void
 
@@ -220,7 +220,7 @@ public struct LocationSearchSheet: View {
         "Vịnh Hạ Long, Quảng Ninh"
     ]
 
-    public var body: some View {
+    var body: some View {
         NavigationStack {
             List {
                 ForEach(filteredLocations, id: \.self) { place in

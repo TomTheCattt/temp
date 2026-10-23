@@ -11,18 +11,19 @@ import Swinject
 // MARK: - RepositoryAssembly
 
 /// Registers data repositories.
-/// Uses Firebase (Cloud production) or Local Backend depending on configuration.
+/// Uses Firebase (Cloud production) or Remote/Local Backend depending on configuration.
 ///
-/// - **Instagram** scheme: Uses Firebase production repositories.
-/// - **Instagram (Local BE)** scheme (`APP_USE_LOCAL_BACKEND=1`): Uses remote data sources with local backend.
+/// - **Firebase**: Uses Firebase cloud repositories (Firestore, Storage, Auth).
+/// - **Live / Local BE**: Uses remote data sources with configured base URL.
 final class RepositoryAssembly: Assembly {
 
     func assemble(container: Container) {
+        let useRemote = AppConfig.shared.useLocalBackend || AppConfig.shared.isLiveAPI
 
         // MARK: AuthRepository
 
         container.register(AuthRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return AuthRepository(
                     remoteDataSource: RemoteAuthDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -35,7 +36,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: UserRepository
 
         container.register(UserRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return UserRepository(
                     remoteDataSource: RemoteUserDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -48,7 +49,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: PostRepository
 
         container.register(PostRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return PostRepository(
                     remoteDataSource: RemotePostDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -61,7 +62,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: StoryRepository
 
         container.register(StoryRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return StoryRepository(
                     remoteDataSource: RemoteStoryDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -75,7 +76,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: NotificationRepository
 
         container.register(NotificationRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return NotificationRepository(
                     remoteDataSource: RemoteNotificationDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -88,7 +89,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: MessageRepository
 
         container.register(MessageRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return MessageRepository(
                     remoteDataSource: RemoteMessageDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -101,7 +102,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: CommentRepository
 
         container.register(CommentRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return CommentRepository(
                     remoteDataSource: RemoteCommentDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
@@ -114,7 +115,7 @@ final class RepositoryAssembly: Assembly {
         // MARK: ReelRepository
 
         container.register(ReelRepositoryProtocol.self) { resolver in
-            if AppConfig.shared.useLocalBackend {
+            if useRemote {
                 return ReelRepository(
                     remoteDataSource: RemoteReelDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!

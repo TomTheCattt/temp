@@ -8,7 +8,7 @@
 import Foundation
 import LocalAuthentication
 
-public enum BiometricPolicy: Sendable {
+enum BiometricPolicy: Sendable {
     case biometricsOnly
     case biometricsOrDevicePasscode
 
@@ -22,21 +22,21 @@ public enum BiometricPolicy: Sendable {
     }
 }
 
-public protocol BiometricAuthenticating: Sendable {
+protocol BiometricAuthenticating: Sendable {
     func canAuthenticate(policy: BiometricPolicy) -> Bool
     func authenticate(reason: String, policy: BiometricPolicy) async throws -> Bool
 }
 
-public struct BiometricAuthenticator: BiometricAuthenticating, Sendable {
-    public init() {}
+struct BiometricAuthenticator: BiometricAuthenticating, Sendable {
+    init() {}
 
-    public func canAuthenticate(policy: BiometricPolicy) -> Bool {
+    func canAuthenticate(policy: BiometricPolicy) -> Bool {
         let context = LAContext()
         var error: NSError?
         return context.canEvaluatePolicy(policy.localAuthenticationPolicy, error: &error)
     }
 
-    public func authenticate(reason: String, policy: BiometricPolicy) async throws -> Bool {
+    func authenticate(reason: String, policy: BiometricPolicy) async throws -> Bool {
         let context = LAContext()
         return try await context.evaluatePolicy(
             policy.localAuthenticationPolicy,

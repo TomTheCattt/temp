@@ -13,9 +13,9 @@ import ImageIO
 /// Memory-efficient image downsampling utility using low-level Image I/O.
 /// Prevents large images (12MP-48MP, 60MB-180MB uncompressed bitmap in RAM)
 /// from exhausting device memory and causing OOM crashes.
-nonisolated public final class ImageDownsampler: @unchecked Sendable {
+nonisolated final class ImageDownsampler: @unchecked Sendable {
 
-    nonisolated public static let shared = ImageDownsampler()
+    nonisolated static let shared = ImageDownsampler()
 
     /// In-memory LRU cache for downsampled images to achieve smooth 60fps scrolling.
     private let cache = NSCache<NSString, UIImage>()
@@ -25,11 +25,11 @@ nonisolated public final class ImageDownsampler: @unchecked Sendable {
         cache.countLimit = 60
     }
 
-    // MARK: - Public API
+    // MARK: - API
 
     /// Downsample raw image Data to a memory-efficient UIImage with the given max dimension.
     /// Preserves EXIF orientation and downsamples directly at decode time.
-    public func downsample(data: Data, maxDimension: CGFloat = 1080) -> UIImage? {
+    func downsample(data: Data, maxDimension: CGFloat = 1080) -> UIImage? {
         let cacheKey = NSString(string: "\(data.hashValue)_\(Int(maxDimension))")
         if let cached = cache.object(forKey: cacheKey) {
             return cached
@@ -48,7 +48,7 @@ nonisolated public final class ImageDownsampler: @unchecked Sendable {
     }
 
     /// Downsample image file URL to a memory-efficient UIImage with the given max dimension.
-    public func downsample(url: URL, maxDimension: CGFloat = 1080) -> UIImage? {
+    func downsample(url: URL, maxDimension: CGFloat = 1080) -> UIImage? {
         let cacheKey = NSString(string: "\(url.path)_\(Int(maxDimension))")
         if let cached = cache.object(forKey: cacheKey) {
             return cached
@@ -67,7 +67,7 @@ nonisolated public final class ImageDownsampler: @unchecked Sendable {
     }
 
     /// Downsamples data and returns optimized JPEG Data for transmission/storage.
-    public func downsampleToData(data: Data, maxDimension: CGFloat = 1080, compressionQuality: CGFloat = 0.85) -> Data? {
+    func downsampleToData(data: Data, maxDimension: CGFloat = 1080, compressionQuality: CGFloat = 0.85) -> Data? {
         guard let image = downsample(data: data, maxDimension: maxDimension) else {
             return data
         }
@@ -75,7 +75,7 @@ nonisolated public final class ImageDownsampler: @unchecked Sendable {
     }
 
     /// Clear the in-memory cache when system warns of low memory.
-    public func clearCache() {
+    func clearCache() {
         cache.removeAllObjects()
     }
 

@@ -145,8 +145,8 @@ struct PostCameraView: View {
                 )
                 .ignoresSafeArea()
             } else {
-                // Simulator Mock Camera Preview
-                simulatorMockPreview
+                // Simulator Camera Preview
+                simulatorCameraPreview
             }
 
             // Overlay Controls
@@ -267,9 +267,9 @@ struct PostCameraView: View {
         )
     }
 
-    // MARK: - Simulator Mock Preview
+    // MARK: - Simulator Preview
 
-    private var simulatorMockPreview: some View {
+    private var simulatorCameraPreview: some View {
         ZStack {
             LinearGradient(
                 colors: [Color(.systemGray6), Color.black],

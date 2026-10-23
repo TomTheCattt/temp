@@ -35,12 +35,14 @@ enum AppConstants {
         static let service = AppConstants.App.bundleID
     }
 
+    #if DEBUG
     enum TestAccount {
         static let email = "tom@example.com"
         static let password = "password123"
         static let username = "tomthecat"
         static let fullName = "Tom The Cat"
     }
+    #endif
 }
 
 // MARK: - Keychain Keys

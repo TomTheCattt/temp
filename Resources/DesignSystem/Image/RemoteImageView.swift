@@ -8,7 +8,7 @@
 import SwiftUI
 import NukeUI
 
-public struct RemoteImageView<
+struct RemoteImageView<
     Placeholder: View,
     Failure: View
 >: View {
@@ -19,7 +19,7 @@ public struct RemoteImageView<
 
     private let failure: Failure
 
-    public init(
+    init(
         url: URL?,
         @ViewBuilder placeholder: () -> Placeholder,
         @ViewBuilder failure: () -> Failure
@@ -30,7 +30,7 @@ public struct RemoteImageView<
         self.failure = failure()
     }
 
-    public var body: some View {
+    var body: some View {
 
         if let url {
 

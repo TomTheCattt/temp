@@ -1,0 +1,28 @@
+//
+//  Release.xcconfig
+//  Instagram
+//
+//  Created by Antigravity on 23/10/26.
+//
+
+#include "Base.xcconfig"
+#include? "Secrets.xcconfig"
+
+// Environment & Display Name
+APP_ENVIRONMENT = prod
+APP_NAME = Instagram
+
+// Backend Type Selection: "firebase" or "live" (Custom REST API)
+// Decoupled: easily switchable when backend is finalized without touching Swift code.
+BACKEND_TYPE = firebase
+APP_BASE_URL = https:$(SLASH)/api.example.com
+
+// Logging & Debugging (Suppressed on production)
+ENABLE_DEBUG_LOGGING = NO
+
+// Production Compiler Conditions & Maximum Optimization
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited)
+SWIFT_OPTIMIZATION_LEVEL = -O
+GCC_OPTIMIZATION_LEVEL = s
+VALIDATE_PRODUCT = YES
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym

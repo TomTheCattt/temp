@@ -387,7 +387,7 @@ struct UniversalCreativeStudioView: View {
 
     // MARK: - Composite Bake & Export
 
-    public func bakeCurrentState() -> Data {
+    func bakeCurrentState() -> Data {
         guard let base = UIImage(data: baseImageData) else { return baseImageData }
 
         // First apply filter if not original

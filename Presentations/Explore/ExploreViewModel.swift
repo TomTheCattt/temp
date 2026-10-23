@@ -5,6 +5,8 @@
 //  Created by Kiro on 26/7/26.
 //
 
+import Combine
+import CombineExt
 import Foundation
 
 // MARK: - ExploreViewModel
@@ -21,7 +23,17 @@ final class ExploreViewModel {
     var isLoadingMore = false
     var isSearching = false
     var selectedCategory: String = "Dành cho bạn"
-    var searchText = ""
+    var searchText = "" {
+        didSet {
+            if searchText.isEmpty {
+                searchResults = []
+                isSearching = false
+            } else if searchText.count >= 2 {
+                isSearching = true
+            }
+            searchSubject.send(searchText)
+        }
+    }
 
     // MARK: - Filtered Explore Posts
 
@@ -39,6 +51,8 @@ final class ExploreViewModel {
 
     private let postRepository: PostRepositoryProtocol
     private let searchUsersUseCase: SearchUsersUseCaseProtocol
+    private let searchSubject = PassthroughSubject<String, Never>()
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
@@ -48,6 +62,43 @@ final class ExploreViewModel {
     ) {
         self.postRepository = postRepository
         self.searchUsersUseCase = searchUsersUseCase
+        setupSearchPipeline()
+    }
+
+    // MARK: - Search Pipeline (CombineExt)
+
+    private func setupSearchPipeline() {
+        searchSubject
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .flatMapLatest { [weak self] (query: String) -> AnyPublisher<[User], Never> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.count >= 2 else {
+                    return Just([]).eraseToAnyPublisher()
+                }
+                let useCase = self.searchUsersUseCase
+                return Deferred {
+                    Future<[User], Never> { promise in
+                        Task {
+                            do {
+                                let results = try await useCase.execute(SearchInput(query: trimmed))
+                                promise(.success(results))
+                            } catch {
+                                promise(.success([]))
+                            }
+                        }
+                    }
+                }
+                .eraseToAnyPublisher()
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] users in
+                guard let self else { return }
+                self.searchResults = users
+                self.isSearching = false
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Actions
@@ -57,15 +108,31 @@ final class ExploreViewModel {
     }
 
     func loadExplore() async {
-        // TODO: Implement loadExplore logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            explorePosts = try await postRepository.fetchExplorePosts(page: 1, perPage: 24)
+        } catch {
+            AppLogger.general.error("Failed to load explore posts: \(error.localizedDescription)")
+        }
     }
 
     func loadMoreExplore() async {
-        // TODO: Implement loadMoreExplore logic from scratch
+        guard !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let nextPage = (explorePosts.count / 24) + 1
+            let morePosts = try await postRepository.fetchExplorePosts(page: nextPage, perPage: 24)
+            explorePosts.append(contentsOf: morePosts)
+        } catch {
+            AppLogger.general.error("Failed to load more explore posts: \(error.localizedDescription)")
+        }
     }
 
     func search() {
-        // TODO: Implement search logic from scratch
+        searchSubject.send(searchText)
     }
 
     func clearSearch() {

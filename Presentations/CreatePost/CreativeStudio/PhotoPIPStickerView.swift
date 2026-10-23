@@ -9,27 +9,27 @@ import SwiftUI
 
 // MARK: - StickerShape
 
-public enum StickerShape: String, CaseIterable, Identifiable {
+enum StickerShape: String, CaseIterable, Identifiable {
     case roundedRect
     case circle
     case heart
     case star
     case square
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 }
 
 // MARK: - PIPStickerItem
 
-public struct PIPStickerItem: Identifiable {
-    public let id: UUID
-    public let imageData: Data
-    public var offset: CGSize
-    public var scale: CGFloat
-    public var rotation: Angle
-    public var shape: StickerShape
+struct PIPStickerItem: Identifiable {
+    let id: UUID
+    let imageData: Data
+    var offset: CGSize
+    var scale: CGFloat
+    var rotation: Angle
+    var shape: StickerShape
 
-    public init(
+    init(
         id: UUID = UUID(),
         imageData: Data,
         offset: CGSize = .zero,

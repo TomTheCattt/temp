@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Permission Types
 
 /// OS-level permissions the app may request.
-public enum PermissionType: String, Sendable, CaseIterable {
+enum PermissionType: String, Sendable, CaseIterable {
     case camera
     case photoLibrary
     case microphone
@@ -23,7 +23,7 @@ public enum PermissionType: String, Sendable, CaseIterable {
 }
 
 /// Current authorization status for a permission.
-public enum PermissionStatus: Sendable, Equatable {
+enum PermissionStatus: Sendable, Equatable {
     /// User has not been asked yet.
     case notDetermined
     /// Access is restricted by system policy (parental controls, MDM).
@@ -43,9 +43,7 @@ public enum PermissionStatus: Sendable, Equatable {
 // MARK: - Permission Service Protocol
 
 /// Abstraction for checking and requesting OS permissions.
-/// Feature modules use this protocol; the concrete implementation lives in the app host
-/// or a platform-specific target since it requires UIKit/system frameworks.
-public protocol PermissionServiceProtocol: Sendable {
+protocol PermissionServiceProtocol: Sendable {
     /// Check the current status without prompting the user.
     func status(for permission: PermissionType) async -> PermissionStatus
 
@@ -56,23 +54,23 @@ public protocol PermissionServiceProtocol: Sendable {
 // MARK: - Permission Result
 
 /// A result combining the permission type with its status, useful for batch checks.
-public struct PermissionResult: Sendable, Equatable {
-    public let type: PermissionType
-    public let status: PermissionStatus
+struct PermissionResult: Sendable, Equatable {
+    let type: PermissionType
+    let status: PermissionStatus
 
-    public init(type: PermissionType, status: PermissionStatus) {
+    init(type: PermissionType, status: PermissionStatus) {
         self.type = type
         self.status = status
     }
 
-    public var isGranted: Bool {
+    var isGranted: Bool {
         status == .authorized || status == .authorizedWhenInUse || status == .provisional
     }
 }
 
 // MARK: - Convenience Extensions
 
-public extension PermissionServiceProtocol {
+extension PermissionServiceProtocol {
     /// Check multiple permissions at once.
     func statuses(for permissions: [PermissionType]) async -> [PermissionResult] {
         var results: [PermissionResult] = []
@@ -88,11 +86,4 @@ public extension PermissionServiceProtocol {
         let s = await status(for: permission)
         return s == .authorized || s == .authorizedWhenInUse || s == .provisional
     }
-
-    /// Returns true if the user can still be prompted (not yet determined).
-    func canRequest(_ permission: PermissionType) async -> Bool {
-        let s = await status(for: permission)
-        return s == .notDetermined
-    }
 }
-

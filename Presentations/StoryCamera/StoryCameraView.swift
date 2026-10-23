@@ -124,7 +124,7 @@ struct StoryCameraView: View {
                     )
                     .ignoresSafeArea()
                 } else {
-                    simulatorMockPreview
+                    simulatorCameraPreview
                 }
             } else {
                 permissionDeniedView
@@ -865,9 +865,9 @@ struct StoryCameraView: View {
         }
     }
 
-    // MARK: - Simulator Mock Preview
+    // MARK: - Simulator Preview
 
-    private var simulatorMockPreview: some View {
+    private var simulatorCameraPreview: some View {
         ZStack {
             LinearGradient(
                 colors: [Color(.systemGray6), Color.black],
@@ -881,7 +881,7 @@ struct StoryCameraView: View {
                 Text("Story Camera Viewfinder")
                     .font(DS.Font.headline)
                     .foregroundStyle(.white)
-                Text("Simulator Mock Mode: Nhấn nút chụp để tạo Story")
+                Text("Simulator Preview: Nhấn nút chụp để tạo Story")
                     .font(DS.Font.caption)
                     .foregroundStyle(.white.opacity(0.7))
             }

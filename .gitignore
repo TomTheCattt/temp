@@ -30,3 +30,9 @@ scratch/
 
 # Node
 node_modules/
+
+# Sensitive Configuration & Secrets (Never commit secrets to git)
+*.secrets.xcconfig
+Secrets.xcconfig
+Config/Configurations/Secrets.xcconfig
+local.xcconfig

@@ -11,14 +11,14 @@ import SwiftUI
 
 // MARK: - MediaAssetItem
 
-public struct MediaAssetItem: Identifiable, Equatable, @unchecked Sendable {
-    public let id: String
-    public let phAsset: PHAsset
-    public let mediaType: PHAssetMediaType
-    public let duration: TimeInterval
-    public let creationDate: Date?
+struct MediaAssetItem: Identifiable, Equatable, @unchecked Sendable {
+    let id: String
+    let phAsset: PHAsset
+    let mediaType: PHAssetMediaType
+    let duration: TimeInterval
+    let creationDate: Date?
 
-    public init(phAsset: PHAsset) {
+    init(phAsset: PHAsset) {
         self.id = phAsset.localIdentifier
         self.phAsset = phAsset
         self.mediaType = phAsset.mediaType
@@ -26,44 +26,44 @@ public struct MediaAssetItem: Identifiable, Equatable, @unchecked Sendable {
         self.creationDate = phAsset.creationDate
     }
 
-    public var isVideo: Bool {
+    var isVideo: Bool {
         mediaType == .video
     }
 
-    public var formattedDuration: String {
+    var formattedDuration: String {
         let mins = Int(duration) / 60
         let secs = Int(duration) % 60
         return String(format: "%d:%02d", mins, secs)
     }
 
-    public static func == (lhs: MediaAssetItem, rhs: MediaAssetItem) -> Bool {
+    static func == (lhs: MediaAssetItem, rhs: MediaAssetItem) -> Bool {
         lhs.id == rhs.id
     }
 }
 
 // MARK: - MediaAlbumItem
 
-public struct MediaAlbumItem: Identifiable, Equatable, @unchecked Sendable {
-    public let id: String
-    public let title: String
-    public let count: Int
-    public let collection: PHAssetCollection?
+struct MediaAlbumItem: Identifiable, Equatable, @unchecked Sendable {
+    let id: String
+    let title: String
+    let count: Int
+    let collection: PHAssetCollection?
 
-    public init(id: String, title: String, count: Int, collection: PHAssetCollection?) {
+    init(id: String, title: String, count: Int, collection: PHAssetCollection?) {
         self.id = id
         self.title = title
         self.count = count
         self.collection = collection
     }
 
-    public static func == (lhs: MediaAlbumItem, rhs: MediaAlbumItem) -> Bool {
+    static func == (lhs: MediaAlbumItem, rhs: MediaAlbumItem) -> Bool {
         lhs.id == rhs.id
     }
 }
 
 // MARK: - PhotoLibraryServiceProtocol
 
-public protocol PhotoLibraryServiceProtocol: Sendable {
+protocol PhotoLibraryServiceProtocol: Sendable {
     func requestAuthorization() async -> Bool
     func checkAuthorization() -> Bool
     func fetchAlbums() async -> [MediaAlbumItem]
@@ -78,9 +78,9 @@ public protocol PhotoLibraryServiceProtocol: Sendable {
 
 // MARK: - PhotoLibraryService
 
-public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
+actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
-    public static let shared = PhotoLibraryService()
+    static let shared = PhotoLibraryService()
 
     private let imageManager = PHCachingImageManager.default()
 
@@ -88,19 +88,19 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Authorization
 
-    public func requestAuthorization() async -> Bool {
+    func requestAuthorization() async -> Bool {
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         return status == .authorized || status == .limited
     }
 
-    nonisolated public func checkAuthorization() -> Bool {
+    nonisolated func checkAuthorization() -> Bool {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         return status == .authorized || status == .limited
     }
 
     // MARK: - Fetch Albums
 
-    public func fetchAlbums() async -> [MediaAlbumItem] {
+    func fetchAlbums() async -> [MediaAlbumItem] {
         guard checkAuthorization() else { return [] }
 
         return await withCheckedContinuation { continuation in
@@ -109,28 +109,48 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
                 // 1. Recents / All Photos
                 let allPhotosOptions = PHFetchOptions()
-                allPhotosOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-                let allPhotos = PHAsset.fetchAssets(with: allPhotosOptions)
-                albums.append(
-                    MediaAlbumItem(
-                        id: "all_photos",
-                        title: "Gần đây",
-                        count: allPhotos.count,
-                        collection: nil
+                allPhotosOptions.includeAssetSourceTypes = [.typeUserLibrary, .typeCloudShared, .typeiTunesSynced]
+                let allPhotosResult = PHAsset.fetchAssets(with: allPhotosOptions)
+                if allPhotosResult.count > 0 {
+                    albums.append(
+                        MediaAlbumItem(
+                            id: "all_photos",
+                            title: "Gần đây",
+                            count: allPhotosResult.count,
+                            collection: nil
+                        )
                     )
-                )
+                }
 
-                // 2. User & Smart Albums (Videos, Favorites, Screenshots)
+                // 2. Smart Albums (Favorites, Videos, Selfies, Screenshots)
                 let smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
                 smartAlbums.enumerateObjects { collection, _, _ in
-                    let fetchOptions = PHFetchOptions()
-                    let assets = PHAsset.fetchAssets(in: collection, options: fetchOptions)
+                    let assets = PHAsset.fetchAssets(in: collection, options: nil)
                     if assets.count > 0 {
                         let localizedTitle = collection.localizedTitle ?? "Album"
+                        // Filter out empty or unwanted system albums
+                        if localizedTitle != "Recently Deleted" && localizedTitle != "Hidden" {
+                            albums.append(
+                                MediaAlbumItem(
+                                    id: collection.localIdentifier,
+                                    title: localizedTitle,
+                                    count: assets.count,
+                                    collection: collection
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // 3. User Albums
+                let userAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
+                userAlbums.enumerateObjects { collection, _, _ in
+                    let assets = PHAsset.fetchAssets(in: collection, options: nil)
+                    if assets.count > 0 {
                         albums.append(
                             MediaAlbumItem(
                                 id: collection.localIdentifier,
-                                title: localizedTitle,
+                                title: collection.localizedTitle ?? "Album",
                                 count: assets.count,
                                 collection: collection
                             )
@@ -145,7 +165,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Fetch Assets
 
-    public func fetchAssets(in album: MediaAlbumItem? = nil, limit: Int = 200) async -> [MediaAssetItem] {
+    func fetchAssets(in album: MediaAlbumItem? = nil, limit: Int = 200) async -> [MediaAssetItem] {
         guard checkAuthorization() else { return [] }
 
         return await withCheckedContinuation { continuation in
@@ -173,7 +193,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Load Thumbnail
 
-    public func loadThumbnail(for asset: PHAsset, targetSize: CGSize = CGSize(width: 250, height: 250)) async -> UIImage? {
+    func loadThumbnail(for asset: PHAsset, targetSize: CGSize = CGSize(width: 250, height: 250)) async -> UIImage? {
         await withCheckedContinuation { continuation in
             let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
@@ -202,7 +222,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Load High Quality Image
 
-    public func loadHighQualityImage(for asset: PHAsset) async -> UIImage? {
+    func loadHighQualityImage(for asset: PHAsset) async -> UIImage? {
         await withCheckedContinuation { continuation in
             let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
@@ -232,7 +252,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Load Image Data
 
-    public func loadImageData(for asset: PHAsset) async -> Data? {
+    func loadImageData(for asset: PHAsset) async -> Data? {
         await withCheckedContinuation { continuation in
             let singleResume = SingleResumeContinuation(continuation)
             let options = PHImageRequestOptions()
@@ -250,7 +270,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Load Video URL
 
-    public func loadVideoURL(for asset: PHAsset) async -> URL? {
+    func loadVideoURL(for asset: PHAsset) async -> URL? {
         await withCheckedContinuation { continuation in
             let singleResume = SingleResumeContinuation(continuation)
             let options = PHVideoRequestOptions()
@@ -268,7 +288,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
 
     // MARK: - Save Media
 
-    public func saveImageData(_ data: Data) async throws {
+    func saveImageData(_ data: Data) async throws {
         guard await requestAuthorization() else {
             throw PhotoLibrarySaveError.authorizationDenied
         }
@@ -280,7 +300,7 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
         }
     }
 
-    public func saveVideo(at url: URL) async throws {
+    func saveVideo(at url: URL) async throws {
         guard await requestAuthorization() else {
             throw PhotoLibrarySaveError.authorizationDenied
         }
@@ -305,13 +325,13 @@ public actor PhotoLibraryService: PhotoLibraryServiceProtocol {
     }
 }
 
-public enum PhotoLibrarySaveError: LocalizedError {
+enum PhotoLibrarySaveError: LocalizedError {
     case authorizationDenied
     case invalidImage
     case missingVideo
     case saveFailed
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .authorizationDenied: return "Photo Library permission was denied."
         case .invalidImage: return "The exported image could not be read."

@@ -18,9 +18,9 @@ import CoreGraphics
 /// - Zero Memory Leak guarantee: Each frame is strictly wrapped in `@autoreleasepool`.
 /// - Reuses buffer memory via `CVPixelBufferPool` for zero-allocation performance.
 /// - Completely non-blocking: Runs on user-initiated background queue.
-public final class CanvasVideoRenderer: @unchecked Sendable {
+final class CanvasVideoRenderer: @unchecked Sendable {
 
-    public static let shared = CanvasVideoRenderer()
+    static let shared = CanvasVideoRenderer()
 
     private let renderQueue = DispatchQueue(
         label: "com.instagram.story.video.render",
@@ -29,10 +29,10 @@ public final class CanvasVideoRenderer: @unchecked Sendable {
 
     private init() {}
 
-    // MARK: - Public Render Method
+    // MARK: - Render Method
 
     /// Renders a full 1080x1920 MP4 video from gradient, drawings, stickers, and animated texts.
-    public func renderVideo(
+    func renderVideo(
         gradientColors: [Color],
         drawings: UIImage? = nil,
         stickers: [PIPStickerItem],

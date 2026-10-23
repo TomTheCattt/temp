@@ -14,7 +14,7 @@ import CoreHaptics
 /// - Guarantees zero `CHHapticPattern` Error 260 log spam on iOS Simulator.
 /// - Caches hardware capabilities check to prevent repeated disk/driver lookups.
 /// - Delivers crisp native haptics on physical iOS hardware.
-public enum HapticFeedbackSafe {
+enum HapticFeedbackSafe {
 
     private static let isSupported: Bool = {
         #if targetEnvironment(simulator)
@@ -24,21 +24,21 @@ public enum HapticFeedbackSafe {
         #endif
     }()
 
-    public static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
         guard isSupported else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
     }
 
-    public static func selection() {
+    static func selection() {
         guard isSupported else { return }
         let generator = UISelectionFeedbackGenerator()
         generator.prepare()
         generator.selectionChanged()
     }
 
-    public static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
         guard isSupported else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()

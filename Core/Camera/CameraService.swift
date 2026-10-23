@@ -308,8 +308,8 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func capturePhoto(isFlashOn: Bool = false) async throws -> Data {
         guard isHardwareAvailable else {
-            // Fallback mock image for simulator
-            return generateMockImageData()
+            // Fallback placeholder image for simulator
+            return generateSimulatorImageData()
         }
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -368,7 +368,7 @@ final class CameraService: NSObject, @unchecked Sendable {
 
     func stopRecording() async throws -> URL {
         guard isHardwareAvailable else {
-            return generateMockVideoURL()
+            return generateSimulatorVideoURL()
         }
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -389,10 +389,10 @@ final class CameraService: NSObject, @unchecked Sendable {
         }
     }
 
-    // MARK: - Mock Generator for Simulator
+    // MARK: - Simulator Fallback Generator
 
-    func generateMockVideoURL() -> URL {
-        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("mock_reel_\(UUID().uuidString).mp4")
+    func generateSimulatorVideoURL() -> URL {
+        let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("simulator_reel_\(UUID().uuidString).mp4")
         try? FileManager.default.removeItem(at: outputURL)
 
         guard let writer = try? AVAssetWriter(outputURL: outputURL, fileType: .mp4) else {
@@ -485,7 +485,7 @@ final class CameraService: NSObject, @unchecked Sendable {
         return outputURL
     }
 
-    func generateMockImageData() -> Data {
+    func generateSimulatorImageData() -> Data {
         let size = CGSize(width: 1080, height: 1920)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { context in

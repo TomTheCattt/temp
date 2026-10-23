@@ -129,12 +129,12 @@ enum AppSheet: Identifiable {
 
 // MARK: - CreationHubMode
 
-public enum CreationHubMode: String, CaseIterable, Identifiable {
+enum CreationHubMode: String, CaseIterable, Identifiable {
     case post = "BÀI VIẾT"
     case story = "TIN"
     case reel = "REEL"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 }
 
 // MARK: - AppFullScreen

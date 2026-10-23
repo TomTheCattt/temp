@@ -1,95 +1,68 @@
 # Config
 
-Quản lý cấu hình môi trường (environment) và API mode cho toàn bộ ứng dụng. Đây là single source of truth cho mọi thông số runtime.
+Quản lý cấu hình môi trường (environment), backend plug-and-play và API mode cho toàn bộ ứng dụng. Đây là single source of truth cho mọi thông số runtime.
 
 ## Cấu trúc
 
 ```
 Config/
-└── AppEnvironment.swift
+├── Configurations/
+│   ├── Base.xcconfig
+│   ├── Debug.xcconfig
+│   ├── Staging.xcconfig
+│   ├── Release.xcconfig
+│   └── Secrets.xcconfig.template
+├── AppEnvironment.swift
+└── CONFIG.md
 ```
 
 ## Chi tiết
 
-### AppEnvironment.swift
+### 1. Hệ thống Configuration Files (.xcconfig)
 
-File này chứa 3 thành phần chính:
+| File | Build Configuration | Môi trường | App Display Name | Base URL | Debug Logging |
+|------|---------------------|------------|------------------|----------|---------------|
+| `Debug.xcconfig` | `Debug` | `dev` | `Instagram (Dev)` | `https://dev-api.example.com` | ✅ YES (`DEBUG=1`) |
+| `Staging.xcconfig` | `Staging` | `staging` | `Instagram (Staging)` | `https://staging-api.example.com` | ✅ YES (`STAGING=1`) |
+| `Release.xcconfig` | `Release` | `prod` | `Instagram` | `https://api.example.com` | ❌ NO (Strip symbols) |
+| `Base.xcconfig` | *(Dùng chung)* | — | Bundle ID & Version | — | `SLASH = /` token |
+| `Secrets.xcconfig` | *(Bảo mật)* | — | API Keys nhạy cảm | — | Đã vào `.gitignore` |
 
 ---
 
-### 1. AppEnvironment (enum)
+### 2. AppEnvironment (enum)
 
-Định nghĩa 3 môi trường triển khai:
+Định nghĩa 3 môi trường triển khai tương ứng:
 
-| Case | Raw Value | Base URL | Debug Logging |
-|------|-----------|----------|---------------|
-| `.development` | `"dev"` | `https://dev-api.example.com` | ✅ |
-| `.staging` | `"staging"` | `https://staging-api.example.com` | ✅ |
-| `.production` | `"prod"` | `https://api.example.com` | ❌ |
+| Case | Raw Value | Base URL | Debug Logging | Mục đích |
+|------|-----------|----------|---------------|----------|
+| `.development` | `"dev"` | `https://dev-api.example.com` | ✅ | Lập trình viên code hàng ngày (`-Onone`) |
+| `.staging` | `"staging"` | `https://staging-api.example.com` | ✅ | QA & Tester kiểm thử nội bộ trên TestFlight (`-O`) |
+| `.production` | `"prod"` | `https://api.example.com` | ❌ | Phát hành chính thức lên App Store (`-O`) |
 
-**Cách xác định môi trường hiện tại (`AppEnvironment.current`):**
-1. Ưu tiên 1: Biến môi trường `APP_ENVIRONMENT` (đặt trong Xcode Scheme)
-2. Ưu tiên 2: Key `APP_ENVIRONMENT` trong Info.plist
+**Thứ tự ưu tiên xác định môi trường (`AppEnvironment.current`):**
+1. Ưu tiên 1: Biến môi trường `APP_ENVIRONMENT` trong Scheme
+2. Ưu tiên 2: Key `APP_ENVIRONMENT` trong `Info.plist` (inject từ `.xcconfig`)
 3. Mặc định: `.production`
 
 ---
 
-### 2. APIMode (enum)
+### 3. BackendType (enum)
 
-Chuyển đổi giữa dữ liệu thật và mock:
+Độc lập Backend (Backend-Agnostic): Hỗ trợ chuyển đổi backend chỉ bằng cách đổi biến `BACKEND_TYPE` trong `.xcconfig` tương ứng:
 
 | Case | Mô tả |
 |------|--------|
-| `.live` | Gọi API thật qua network |
-| `.mock` | Sử dụng `MockDataSource` local (không cần backend) |
-
-**Cách xác định:** Tương tự AppEnvironment — scheme env var → Info.plist → default `.live`
+| `.firebase` | Kết nối Cloud Firebase (Firestore, Storage, Auth) |
+| `.live` | Kết nối Custom REST API qua `APP_BASE_URL` (hoặc Local Server) |
 
 ---
 
-### 3. AppConfig (struct, singleton)
+### 4. Hệ thống Xcode Schemes
 
-Single source of truth cho toàn bộ cấu hình runtime. Truy cập qua `AppConfig.shared`.
-
-| Property | Mô tả |
-|----------|--------|
-| `environment` | Môi trường hiện tại (dev/staging/prod) |
-| `apiMode` | Live hay Mock |
-| `useLocalBackend` | Dùng local server (từ Info.plist key `APP_USE_LOCAL_BACKEND`) |
-| `localBaseURL` | URL local server (từ Info.plist key `APP_LOCAL_BASE_URL`) |
-| `baseURL` | URL cuối cùng được dùng — tự động resolve theo ưu tiên: local → plist → environment default |
-| `isDebug` | True nếu environment không phải production hoặc đang dùng local backend |
-| `isMockAPI` | True nếu apiMode == .mock |
-| `timeoutInterval` | 30 giây |
-| `clientVersion` | Từ `CFBundleShortVersionString` |
-| `buildNumber` | Từ `CFBundleVersion` |
-
-**Thứ tự ưu tiên resolve `baseURL`:**
-1. `useLocalBackend == true` → dùng `localBaseURL` hoặc `http://localhost:3000`
-2. Info.plist key `APP_BASE_URL` (từ xcconfig)
-3. `environment.defaultBaseURL`
-
-## Cách sử dụng
-
-```swift
-// Kiểm tra có đang chạy mock không
-if AppConfig.shared.isMockAPI {
-    // Dùng mock data
-}
-
-// Lấy base URL cho API calls
-let url = AppConfig.shared.baseURL
-
-// Kiểm tra có nên log debug không
-if AppConfig.shared.isDebug {
-    // Log chi tiết
-}
-```
-
-## Cấu hình qua Xcode Scheme
-
-Đặt Environment Variables trong Scheme > Run > Arguments:
-- `APP_ENVIRONMENT` = `dev` | `staging` | `prod`
-- `API_MODE` = `live` | `mock`
-- `APP_USE_LOCAL_BACKEND` = `1` (optional)
-- `APP_LOCAL_BASE_URL` = `http://192.168.1.x:3000` (optional)
+| Scheme | Build Configuration | Môi trường | Backend mặc định |
+|--------|---------------------|------------|------------------|
+| `Instagram (Dev)` | `Debug` | `dev` | `firebase` |
+| `Instagram (Staging)` | `Staging` | `staging` | `firebase` |
+| `Instagram (Prod)` / `Instagram` | `Release` | `prod` | `firebase` |
+| `Instagram (Local BE)` | `Debug` | `dev` | `live` (`localhost:3000`) |

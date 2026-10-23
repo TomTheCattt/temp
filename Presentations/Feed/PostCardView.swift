@@ -7,6 +7,7 @@
 
 import SwiftUI
 import NukeUI
+import Pow
 
 // MARK: - PostCardView
 
@@ -105,7 +106,10 @@ struct PostCardView: View {
             if showHeart {
                 InstagramIcon(.like(selected: true), size: DS.Size.avatarXLarge, color: .white)
                     .shadow(radius: DS.Shadow.radius)
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(AppTransition.pop)
+                    .changeEffect(.spray(origin: .center) {
+                        InstagramIcon(.like(selected: true), size: 28, color: ColorTokens.likeRed)
+                    }, value: showHeart)
             }
         }
     }
@@ -133,6 +137,9 @@ struct PostCardView: View {
         HStack(spacing: DS.Spacing.md) {
             Button { onLikeTapped() } label: {
                 InstagramIcon(AppIcon.like(selected: post.isLiked), size: DS.Size.iconDefault, color: post.isLiked ? ColorTokens.likeRed : .primary)
+                    .changeEffect(.spray(origin: .center) {
+                        InstagramIcon(.like(selected: true), size: 16, color: ColorTokens.likeRed)
+                    }, value: post.isLiked, isEnabled: post.isLiked)
             }
 
             Button {

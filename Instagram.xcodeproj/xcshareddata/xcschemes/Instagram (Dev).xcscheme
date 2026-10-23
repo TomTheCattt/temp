@@ -52,13 +52,23 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
-            key = "API_MODE"
-            value = "mock"
+            key = "APP_ENVIRONMENT"
+            value = "dev"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "APP_ENVIRONMENT"
-            value = "dev"
+            key = "BACKEND_TYPE"
+            value = "firebase"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "API_MODE"
+            value = "firebase"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "CALL_BACKEND_MODE"
+            value = "firebase"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable

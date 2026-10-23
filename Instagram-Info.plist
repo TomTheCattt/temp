@@ -2,6 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>$(APP_NAME)</string>
+	<key>APP_ENVIRONMENT</key>
+	<string>$(APP_ENVIRONMENT)</string>
+	<key>BACKEND_TYPE</key>
+	<string>$(BACKEND_TYPE)</string>
+	<key>APP_BASE_URL</key>
+	<string>$(APP_BASE_URL)</string>
+	<key>APP_STORE_URL</key>
+	<string>$(APP_STORE_URL)</string>
+	<key>ENABLE_DEBUG_LOGGING</key>
+	<string>$(ENABLE_DEBUG_LOGGING)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInMedia</key>
@@ -17,24 +29,6 @@
 		<string>Instagram Sans Bold.ttf</string>
 		<string>Instagram Sans Headline.otf</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Instagram cần truy cập camera để chụp ảnh, quay video cho Stories, Reels và bài đăng.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Instagram cần truy cập microphone để ghi âm video, gọi thoại và gửi tin nhắn thoại.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Instagram cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài đăng, Stories và Reels.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Instagram cần quyền lưu ảnh và video vào thư viện của bạn.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và Stories của bạn.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và cung cấp trải nghiệm tốt hơn.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Instagram cần truy cập danh bạ để giúp bạn tìm và kết nối với bạn bè.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Instagram sử dụng Face ID để đăng nhập nhanh và bảo mật tài khoản của bạn.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Instagram sử dụng thông tin theo dõi để cải thiện quảng cáo và trải nghiệm của bạn.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

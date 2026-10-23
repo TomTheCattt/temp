@@ -10,13 +10,13 @@ import AVFoundation
 
 // MARK: - AudioRecordingError
 
-public enum AudioRecordingError: LocalizedError, Sendable {
+enum AudioRecordingError: LocalizedError, Sendable {
     case permissionDenied
     case callInProgress
     case recorderCreationFailed
     case recordingFailed(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .permissionDenied:
             return "Ứng dụng chưa được cấp quyền truy cập Microphone."
@@ -32,7 +32,7 @@ public enum AudioRecordingError: LocalizedError, Sendable {
 
 // MARK: - AudioRecordingServiceProtocol
 
-public protocol AudioRecordingServiceProtocol: Sendable {
+protocol AudioRecordingServiceProtocol: Sendable {
     func requestPermission() async -> Bool
     func startRecording() async throws -> URL
     func stopRecording() async throws -> (url: URL, duration: TimeInterval)?
@@ -45,19 +45,19 @@ public protocol AudioRecordingServiceProtocol: Sendable {
 
 /// Background Actor managing AVAudioRecorder for voice messages.
 /// Runs completely off the Main Thread for zero UI blocking.
-public actor AudioRecordingService: AudioRecordingServiceProtocol {
+actor AudioRecordingService: AudioRecordingServiceProtocol {
 
-    public static let shared = AudioRecordingService()
+    static let shared = AudioRecordingService()
 
     private var audioRecorder: AVAudioRecorder?
     private var currentFileURL: URL?
     private var recordingStartTime: Date?
 
-    public init() {}
+    init() {}
 
     // MARK: - Permission
 
-    public func requestPermission() async -> Bool {
+    func requestPermission() async -> Bool {
         if #available(iOS 17.0, *) {
             return await AVAudioApplication.requestRecordPermission()
         } else {
@@ -71,7 +71,7 @@ public actor AudioRecordingService: AudioRecordingServiceProtocol {
 
     // MARK: - Recording Lifecycle
 
-    public func startRecording() async throws -> URL {
+    func startRecording() async throws -> URL {
         // Guard against active phone/video calls
         let callActive = await MainActor.run { CallManager.shared.hasActiveCall }
         guard !callActive else {
@@ -121,7 +121,7 @@ public actor AudioRecordingService: AudioRecordingServiceProtocol {
         }
     }
 
-    public func stopRecording() async throws -> (url: URL, duration: TimeInterval)? {
+    func stopRecording() async throws -> (url: URL, duration: TimeInterval)? {
         guard let recorder = audioRecorder, let fileURL = currentFileURL else {
             return nil
         }
@@ -146,7 +146,7 @@ public actor AudioRecordingService: AudioRecordingServiceProtocol {
         return (fileURL, calculatedDuration)
     }
 
-    public func cancelRecording() async {
+    func cancelRecording() async {
         if let recorder = audioRecorder {
             recorder.stop()
             audioRecorder = nil
@@ -162,12 +162,12 @@ public actor AudioRecordingService: AudioRecordingServiceProtocol {
         }
     }
 
-    public func getRecordingDuration() async -> TimeInterval {
+    func getRecordingDuration() async -> TimeInterval {
         guard let start = recordingStartTime else { return 0 }
         return Date().timeIntervalSince(start)
     }
 
-    public func isCurrentlyRecording() async -> Bool {
+    func isCurrentlyRecording() async -> Bool {
         audioRecorder?.isRecording ?? false
     }
 }

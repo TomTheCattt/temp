@@ -33,11 +33,9 @@
 | Alamofire | 5.12.0 | Networking | ✅ NetworkService |
 | Nuke | 13.0.6 (local) | Image loading | ✅ ImageLoader, RemoteImageView, ImagePipeline |
 | Swinject | 2.10.0 | DI Container | ✅ DIContainer + Assemblies |
-| CombineExt | 1.9.0 | Reactive extensions | ✅ CombineExtHelpers |
+| CombineExt | 1.9.0 | Reactive extensions | ✅ CombineExtHelpers + ExploreViewModel search pipeline (`flatMapLatest`) |
 | PopupView | 5.0.3 | Toast/popup UI | ✅ ToastManager |
-| Pow | 1.0.6 | Animations | ✅ AnimationModifier |
-| SkeletonUI | 2.0.2 | Loading placeholders | ✅ ShimmerModifier |
-| ProgressHUD | 15.0.1 | Loading HUD | ✅ HUDManager |
+| Pow | 1.0.6 | Animations | ✅ AnimationModifier + PostCardView heart spray + LoginView error shake |
 
 ---
 
@@ -145,7 +143,7 @@
 - [x] RemoteImageView (Nuke)
 - [x] ImageLoader, ImagePrefetcher, ImageProcessors, ImageCachePolicy, ImagePipelineManager
 - [x] ToastManager (PopupView wrapper)
-- [x] HUDManager (ProgressHUD wrapper)
+- [x] HUDManager (pure SwiftUI, zero-dependency)
 - [x] ShimmerModifier + SkeletonListView + SkeletonCardView
 - [x] AnimationModifier + AppTransition + AppChangeEffect
 - [x] CombineExt helpers

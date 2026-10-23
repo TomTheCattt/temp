@@ -52,6 +52,11 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
+            key = "BACKEND_TYPE"
+            value = "live"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
             key = "API_MODE"
             value = "live"
             isEnabled = "YES">

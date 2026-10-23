@@ -14,15 +14,15 @@ import Combine
 /// Centralized audio player managing voice message playback in chat.
 /// Guarantees that only ONE audio message plays at any given moment.
 @MainActor
-public final class ChatAudioPlayer: ObservableObject {
+final class ChatAudioPlayer: ObservableObject {
 
-    public static let shared = ChatAudioPlayer()
+    static let shared = ChatAudioPlayer()
 
-    @Published public private(set) var currentPlayingURL: URL?
-    @Published public private(set) var isPlaying: Bool = false
-    @Published public private(set) var playbackProgress: Double = 0.0
-    @Published public private(set) var currentTime: TimeInterval = 0.0
-    @Published public private(set) var duration: TimeInterval = 0.0
+    @Published private(set) var currentPlayingURL: URL?
+    @Published private(set) var isPlaying: Bool = false
+    @Published private(set) var playbackProgress: Double = 0.0
+    @Published private(set) var currentTime: TimeInterval = 0.0
+    @Published private(set) var duration: TimeInterval = 0.0
 
     private var player: AVPlayer?
     private var timeObserverToken: Any?
@@ -34,10 +34,10 @@ public final class ChatAudioPlayer: ObservableObject {
         removeTimeObserver()
     }
 
-    // MARK: - Public Control API
+    // MARK: - Control API
 
     /// Toggle Play/Pause for a given audio message URL.
-    public func togglePlayPause(url: URL, expectedDuration: TimeInterval = 0) {
+    func togglePlayPause(url: URL, expectedDuration: TimeInterval = 0) {
         if currentPlayingURL == url {
             if isPlaying {
                 pause()
@@ -49,7 +49,7 @@ public final class ChatAudioPlayer: ObservableObject {
         }
     }
 
-    public func play(url: URL, fallbackDuration: TimeInterval = 0) {
+    func play(url: URL, fallbackDuration: TimeInterval = 0) {
         // Stop any currently playing audio
         stop()
 
@@ -108,18 +108,18 @@ public final class ChatAudioPlayer: ObservableObject {
         isPlaying = true
     }
 
-    public func pause() {
+    func pause() {
         player?.pause()
         isPlaying = false
     }
 
-    public func resume() {
+    func resume() {
         guard let p = player else { return }
         p.play()
         isPlaying = true
     }
 
-    public func stop() {
+    func stop() {
         player?.pause()
         removeTimeObserver()
         endObserverToken?.cancel()
@@ -132,7 +132,7 @@ public final class ChatAudioPlayer: ObservableObject {
         duration = 0.0
     }
 
-    public func seek(to progress: Double) {
+    func seek(to progress: Double) {
         guard let p = player, duration > 0 else { return }
         let clamped = min(max(progress, 0.0), 1.0)
         let targetSec = clamped * duration

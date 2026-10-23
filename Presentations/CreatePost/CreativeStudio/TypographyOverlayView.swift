@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - TextFontStyle
 
-public enum TextFontStyle: String, CaseIterable, Identifiable {
+enum TextFontStyle: String, CaseIterable, Identifiable {
     case modern = "Modern"
     case classic = "Classic"
     case signature = "Signature"
@@ -17,7 +17,7 @@ public enum TextFontStyle: String, CaseIterable, Identifiable {
     case typewriter = "Typewriter"
     case strong = "Strong"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
     var font: Font {
         switch self {
@@ -33,15 +33,15 @@ public enum TextFontStyle: String, CaseIterable, Identifiable {
 
 // MARK: - TextAnimationType
 
-public enum TextAnimationType: String, CaseIterable, Identifiable {
+enum TextAnimationType: String, CaseIterable, Identifiable {
     case none = "Không"
     case typewriter = "Chữ đánh máy"
     case reveal = "Hiện ra"
     case bounce = "Nhảy"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .none: return "slash.circle"
         case .typewriter: return "character.cursor.ibeam"
@@ -53,16 +53,16 @@ public enum TextAnimationType: String, CaseIterable, Identifiable {
 
 // MARK: - TextEffectType
 
-public enum TextEffectType: String, CaseIterable, Identifiable {
+enum TextEffectType: String, CaseIterable, Identifiable {
     case none = "Không"
     case sparkle = "Lấp lánh"
     case neon = "Neon"
     case wavy = "Lung linh"
     case pixel = "Pixel"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .none: return "slash.circle"
         case .sparkle: return "sparkles"
@@ -75,23 +75,23 @@ public enum TextEffectType: String, CaseIterable, Identifiable {
 
 // MARK: - TextOverlayItem
 
-public struct TextOverlayItem: Identifiable {
-    public let id: UUID
-    public var text: String
-    public var color: Color
-    public var hasBackground: Bool
-    public var fontStyle: TextFontStyle
-    public var alignment: TextAlignment
-    public var isItalic: Bool
-    public var animation: TextAnimationType
-    public var effect: TextEffectType
+struct TextOverlayItem: Identifiable {
+    let id: UUID
+    var text: String
+    var color: Color
+    var hasBackground: Bool
+    var fontStyle: TextFontStyle
+    var alignment: TextAlignment
+    var isItalic: Bool
+    var animation: TextAnimationType
+    var effect: TextEffectType
     /// Point size on the logical 9:16 canvas. This must travel with the item
     /// so editing, preview, image export and video export agree.
-    public var fontSize: CGFloat
-    public var offset: CGSize
-    public var scale: CGFloat
+    var fontSize: CGFloat
+    var offset: CGSize
+    var scale: CGFloat
 
-    public init(
+    init(
         id: UUID = UUID(),
         text: String,
         color: Color = .white,

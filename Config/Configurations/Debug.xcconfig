@@ -1,0 +1,26 @@
+//
+//  Debug.xcconfig
+//  Instagram
+//
+//  Created by Antigravity on 23/10/26.
+//
+
+#include "Base.xcconfig"
+#include? "Secrets.xcconfig"
+
+// Environment & Display Name
+APP_ENVIRONMENT = dev
+APP_NAME = Instagram (Dev)
+
+// Backend Type Selection: "firebase" or "live" (Custom REST API)
+BACKEND_TYPE = firebase
+APP_BASE_URL = https:$(SLASH)/dev-api.example.com
+
+// Logging & Debugging
+ENABLE_DEBUG_LOGGING = YES
+
+// Compiler Conditions & Optimizations
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG $(inherited)
+GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1 $(inherited)
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+GCC_OPTIMIZATION_LEVEL = 0

@@ -22,7 +22,7 @@ struct ChangePasswordInput: Sendable {
 /// Per the backend contract, password changes are performed client-side via the
 /// Firebase Auth SDK (`updatePassword`), which requires a recent reauthentication
 /// with the current password. This use case validates input, then delegates to
-/// `FirebaseAuthServiceProtocol`. In mock mode it simulates success.
+/// `FirebaseAuthServiceProtocol`.
 protocol ChangePasswordUseCaseProtocol: Sendable {
     func execute(_ input: ChangePasswordInput) async throws
 }

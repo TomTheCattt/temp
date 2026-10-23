@@ -1,0 +1,22 @@
+//
+//  Base.xcconfig
+//  Instagram
+//
+//  Created by Antigravity on 23/10/26.
+//
+
+// Token to escape slash without triggering Xcode comment parsing
+SLASH = /
+
+// Identity & Versioning
+PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.InstagramClone
+MARKETING_VERSION = 1.0
+CURRENT_PROJECT_VERSION = 1
+IPHONEOS_DEPLOYMENT_TARGET = 18.0
+SWIFT_VERSION = 5.0
+
+// Common App Info
+APP_STORE_URL = https:$(SLASH)/apps.apple.com/app/id000000000
+
+// Default Fallback Backend
+DEFAULT_BACKEND_TYPE = firebase

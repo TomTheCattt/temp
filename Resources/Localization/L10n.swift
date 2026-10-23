@@ -372,7 +372,7 @@ enum L10n {
 
     // MARK: - HUD (action feedback)
 
-    /// Fallback status labels for the global action HUD (ProgressHUD).
+    /// Fallback status labels for the global action HUD.
     enum HUD {
         /// Generic success fallback (shown after a successful action when no custom message provided).
         static let success = String(localized: "hud.success")

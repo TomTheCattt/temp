@@ -20,7 +20,7 @@ struct ExploreView: View {
     @FocusState private var isSearchFocused: Bool
     @State private var isScrolled: Bool = false
 
-    private let mockSuggestions = [
+    private let suggestedCategories = [
         "Dành cho bạn", "Nhiếp ảnh", "Du lịch", "Thời trang",
         "Ẩm thực", "Âm nhạc", "Thể thao", "Kiến trúc", "Công nghệ", "Nghệ thuật"
     ]
@@ -110,7 +110,7 @@ struct ExploreView: View {
             if !isSearchActive {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: DS.Spacing.xs) {
-                        ForEach(mockSuggestions, id: \.self) { suggestion in
+                        ForEach(suggestedCategories, id: \.self) { suggestion in
                             let isSelected = viewModel.selectedCategory == suggestion
                             Button {
                                 withAnimation(DS.Animation.fast) {

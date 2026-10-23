@@ -15,10 +15,10 @@ import CoreImage
 /// - iOS 17+: `VNGenerateForegroundInstanceMaskRequest` extracts people, pets, and objects into transparent stickers.
 /// - iOS 16 fallback: `VNGeneratePersonSegmentationRequest` / Saliency mask.
 /// - Performance: Auto-downsamples large images to <= 1080px to guarantee < 50ms processing and < 15MB RAM usage.
-public enum StickerSubjectLifter {
+enum StickerSubjectLifter {
 
     /// Automatically lifts the foreground subject and returns a transparent PNG UIImage.
-    public static func liftSubject(from image: UIImage) async -> UIImage? {
+    static func liftSubject(from image: UIImage) async -> UIImage? {
         return await Task.detached(priority: .userInitiated) {
             // 1. Memory Capping: Downsample before feeding into Vision
             let maxDimension: CGFloat = 1080

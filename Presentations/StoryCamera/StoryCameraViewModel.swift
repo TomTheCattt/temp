@@ -11,16 +11,16 @@ import Photos
 
 // MARK: - StoryCameraMode
 
-public enum StoryCameraMode: String, CaseIterable, Identifiable {
+enum StoryCameraMode: String, CaseIterable, Identifiable {
     case normal = "Normal"
     case create = "Create"
     case layout = "Layout"
     case boomerang = "Boomerang"
     case hands_free = "Hands-Free"
 
-    public var id: String { rawValue }
+    var id: String { rawValue }
 
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .normal:     return "camera"
         case .create:     return "textformat"
@@ -33,12 +33,12 @@ public enum StoryCameraMode: String, CaseIterable, Identifiable {
 
 // MARK: - StoryFilter
 
-public struct StoryFilter: Identifiable, Equatable {
-    public let id: String
-    public let name: String
-    public let filterId: String
+struct StoryFilter: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let filterId: String
 
-    public static let allFilters: [StoryFilter] = [
+    static let allFilters: [StoryFilter] = [
         StoryFilter(id: "normal", name: "Normal", filterId: "original"),
         StoryFilter(id: "paris", name: "Paris", filterId: "clarendon"),
         StoryFilter(id: "oslo", name: "Oslo", filterId: "gingham"),

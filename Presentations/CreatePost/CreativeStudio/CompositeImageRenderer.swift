@@ -13,14 +13,14 @@ import SwiftUI
 /// High-performance composite renderer that bakes base media, PIP stickers,
 /// and typography overlays into a single final image before upload.
 @MainActor
-public final class CompositeImageRenderer {
+final class CompositeImageRenderer {
 
-    public static let shared = CompositeImageRenderer()
+    static let shared = CompositeImageRenderer()
 
     private init() {}
 
     /// Renders base image with overlaid PIP stickers and text items into a single UIImage.
-    public func render(
+    func render(
         baseImage: UIImage,
         stickers: [PIPStickerItem],
         texts: [TextOverlayItem],

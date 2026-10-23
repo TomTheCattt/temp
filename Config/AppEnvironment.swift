@@ -7,7 +7,50 @@
 
 import Foundation
 
-import Foundation
+// MARK: - Config Keys
+
+enum ConfigKey {
+    static let environment = "APP_ENVIRONMENT"
+    static let backendType = "BACKEND_TYPE"
+    static let baseURL = "APP_BASE_URL"
+    static let appStoreURL = "APP_STORE_URL"
+    static let debugLogging = "ENABLE_DEBUG_LOGGING"
+    static let useLocalBackend = "APP_USE_LOCAL_BACKEND"
+    static let localBaseURL = "APP_LOCAL_BASE_URL"
+    static let callBackendMode = "CALL_BACKEND_MODE"
+    static let bundleVersion = "CFBundleVersion"
+    static let bundleShortVersion = "CFBundleShortVersionString"
+}
+
+// MARK: - BackendType
+
+enum BackendType: String {
+    case firebase
+    case live
+
+    /// Resolves Backend Type from:
+    /// 1. Process environment variable (set via Xcode scheme) — highest priority
+    /// 2. Info.plist key (set via xcconfig)
+    /// 3. Default fallback to .firebase
+    static var current: BackendType {
+        // Priority 1: Scheme environment variable
+        if let envValue = ProcessInfo.processInfo.environment[ConfigKey.backendType]?.lowercased(),
+           let type = BackendType(rawValue: envValue) {
+            return type
+        }
+        // Priority 2: Info.plist
+        if let raw = (Bundle.main.infoDictionary?[ConfigKey.backendType] as? String)?.lowercased(),
+           let type = BackendType(rawValue: raw) {
+            return type
+        }
+        // Priority 3: Fallback
+        return .firebase
+    }
+}
+
+// MARK: - APIMode (Typealias for backward compatibility)
+
+typealias APIMode = BackendType
 
 // MARK: - AppEnvironment
 
@@ -19,25 +62,20 @@ enum AppEnvironment: String {
     // Reads from process environment (scheme) first, then Info.plist key APP_ENVIRONMENT.
     static var current: AppEnvironment {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["APP_ENVIRONMENT"],
+        if let envValue = ProcessInfo.processInfo.environment[ConfigKey.environment],
            let env = AppEnvironment(rawValue: envValue) {
             return env
         }
         // Priority 2: Info.plist
-        let raw = Bundle.main.infoDictionary?["APP_ENVIRONMENT"] as? String ?? "prod"
+        let raw = Bundle.main.infoDictionary?[ConfigKey.environment] as? String ?? "prod"
         return AppEnvironment(rawValue: raw) ?? .production
     }
 
-    var defaultBaseURL: String {
-        switch self {
-        case .development:  return "https://dev-api.example.com"
-        case .staging:      return "https://staging-api.example.com"
-        case .production:   return "https://api.example.com"
-        }
-    }
-
     var isDebugLoggingEnabled: Bool {
-        self != .production
+        if let raw = Bundle.main.infoDictionary?[ConfigKey.debugLogging] as? String {
+            return raw.uppercased() == "YES" || raw == "1"
+        }
+        return self != .production
     }
 
     var displayName: String {
@@ -49,65 +87,38 @@ enum AppEnvironment: String {
     }
 }
 
-// MARK: - APIMode
-
-enum APIMode: String {
-    case live
-    case mock
-    case firebase
-
-    /// Resolves API mode from:
-    /// 1. Process environment variable (set via Xcode scheme) — highest priority
-    /// 2. Info.plist key (set via xcconfig / build settings)
-    /// 3. Defaults to `.firebase` for full Cloud Firebase production operation.
-    static var current: APIMode {
-        // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["API_MODE"]?.lowercased() {
-            if envValue == "mock" { return .firebase }
-            if let mode = APIMode(rawValue: envValue) {
-                return mode
-            }
-        }
-        // Priority 2: Info.plist
-        if let raw = (Bundle.main.infoDictionary?["API_MODE"] as? String)?.lowercased() {
-            if raw == "mock" { return .firebase }
-            if let mode = APIMode(rawValue: raw) {
-                return mode
-            }
-        }
-        // Priority 3: Production default is Firebase
-        return .firebase
-    }
-}
-
 // MARK: - AppConfig (single source of truth)
 
 struct AppConfig {
     static let shared = AppConfig()
 
     let environment: AppEnvironment = .current
-    let apiMode: APIMode = .current
+    let backendType: BackendType = .current
+    var apiMode: BackendType { backendType }
+
     var useLocalBackend: Bool {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["APP_USE_LOCAL_BACKEND"] {
+        if let envValue = ProcessInfo.processInfo.environment[ConfigKey.useLocalBackend] {
             return envValue == "1"
         }
         // Priority 2: Info.plist
-        return (Bundle.main.infoDictionary?["APP_USE_LOCAL_BACKEND"] as? String) == "1"
+        return (Bundle.main.infoDictionary?[ConfigKey.useLocalBackend] as? String) == "1"
     }
+
     var localBaseURL: String? {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["APP_LOCAL_BASE_URL"],
+        if let envValue = ProcessInfo.processInfo.environment[ConfigKey.localBaseURL],
            !envValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return envValue.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         // Priority 2: Info.plist
-        guard let value = Bundle.main.infoDictionary?["APP_LOCAL_BASE_URL"] as? String else {
+        guard let value = Bundle.main.infoDictionary?[ConfigKey.localBaseURL] as? String else {
             return nil
         }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+
     var baseURL: String {
         if useLocalBackend {
             if let localBaseURL, let normalized = normalizedBaseURL(localBaseURL) {
@@ -120,38 +131,34 @@ struct AppConfig {
             return "http://192.168.1.107:3000"
             #endif
         }
-        if let raw = Bundle.main.infoDictionary?["APP_BASE_URL"] as? String,
+        if let raw = Bundle.main.infoDictionary?[ConfigKey.baseURL] as? String,
            let normalized = normalizedBaseURL(raw) {
             return normalized
         }
-        return environment.defaultBaseURL
+        return "https://api.example.com"
     }
+
     var isDebug: Bool { environment.isDebugLoggingEnabled || useLocalBackend }
-    var isMockAPI: Bool { false }
-    var isFirebaseAPI: Bool { true }
+    var isFirebaseAPI: Bool { backendType == .firebase }
+    var isLiveAPI: Bool { backendType == .live }
 
     // MARK: - CallBackendMode
 
     enum CallBackendMode: String {
-        case mock
         case firebase
         case webSocket
     }
 
     var callBackendMode: CallBackendMode {
         // Priority 1: Scheme environment variable
-        if let envValue = ProcessInfo.processInfo.environment["CALL_BACKEND_MODE"]?.lowercased() {
-            if envValue == "mock" { return .firebase }
-            if let mode = CallBackendMode(rawValue: envValue) {
-                return mode
-            }
+        if let envValue = ProcessInfo.processInfo.environment[ConfigKey.callBackendMode]?.lowercased(),
+           let mode = CallBackendMode(rawValue: envValue) {
+            return mode
         }
         // Priority 2: Info.plist
-        if let raw = (Bundle.main.infoDictionary?["CALL_BACKEND_MODE"] as? String)?.lowercased() {
-            if raw == "mock" { return .firebase }
-            if let mode = CallBackendMode(rawValue: raw) {
-                return mode
-            }
+        if let raw = (Bundle.main.infoDictionary?[ConfigKey.callBackendMode] as? String)?.lowercased(),
+           let mode = CallBackendMode(rawValue: raw) {
+            return mode
         }
         return .firebase
     }
@@ -159,23 +166,20 @@ struct AppConfig {
     var timeoutInterval: TimeInterval { 30 }
 
     /// App Store product URL used by the force-update screen ("Update now").
-    /// TODO: Replace the placeholder ID (id000000000) with the real App Store app ID.
     var appStoreURL: URL? {
-        // Priority 1: Info.plist override (APP_STORE_URL) so it can be set per build.
-        if let raw = Bundle.main.infoDictionary?["APP_STORE_URL"] as? String,
+        if let raw = Bundle.main.infoDictionary?[ConfigKey.appStoreURL] as? String,
            let normalized = normalizedBaseURL(raw),
            let url = URL(string: normalized) {
             return url
         }
-        // Priority 2: sensible placeholder.
-        return URL(string: "https://apps.apple.com/app/id000000000")
+        return nil
     }
 
     var clientVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        Bundle.main.infoDictionary?[ConfigKey.bundleShortVersion] as? String ?? "1.0"
     }
     var buildNumber: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        Bundle.main.infoDictionary?[ConfigKey.bundleVersion] as? String ?? "1"
     }
 
     private init() {}

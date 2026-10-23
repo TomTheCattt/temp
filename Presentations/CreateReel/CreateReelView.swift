@@ -84,7 +84,7 @@ struct CreateReelView: View {
                 )
                 .ignoresSafeArea()
             } else {
-                simulatorMockPreview
+                simulatorCameraPreview
             }
 
             // Ghost Alignment Overlay
@@ -411,9 +411,9 @@ struct CreateReelView: View {
         }
     }
 
-    // MARK: - Simulator Mock Preview
+    // MARK: - Simulator Preview
 
-    private var simulatorMockPreview: some View {
+    private var simulatorCameraPreview: some View {
         ZStack {
             LinearGradient(
                 colors: [Color(white: 0.12), Color.black],

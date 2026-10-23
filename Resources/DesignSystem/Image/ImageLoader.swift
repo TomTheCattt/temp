@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import Nuke
 
-public protocol ImageLoading {
+protocol ImageLoading {
 
     func loadImage(
         from url: URL
@@ -20,13 +20,13 @@ public protocol ImageLoading {
     ) -> UIImage?
 }
 
-public final class ImageLoader: ImageLoading {
+final class ImageLoader: ImageLoading {
 
-    public static let shared = ImageLoader()
+    static let shared = ImageLoader()
 
     private init() {}
 
-    public func loadImage(
+    func loadImage(
         from url: URL
     ) async throws -> UIImage {
 
@@ -35,7 +35,7 @@ public final class ImageLoader: ImageLoading {
         return response
     }
 
-    public func cachedImage(
+    func cachedImage(
         for url: URL
     ) -> UIImage? {
 
@@ -45,7 +45,7 @@ public final class ImageLoader: ImageLoading {
 
 extension ImageLoader {
 
-    public func preload(
+    func preload(
         url: URL
     ) {
 
@@ -59,7 +59,7 @@ extension ImageLoader {
 
 extension ImageLoader {
 
-    public func removeCache(
+    func removeCache(
         for url: URL
     ) {
 
@@ -75,7 +75,7 @@ extension ImageLoader {
 
 extension ImageLoader {
 
-    public func preload(
+    func preload(
         urls: [URL]
     ) async {
 

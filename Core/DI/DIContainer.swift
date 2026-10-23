@@ -31,9 +31,6 @@ final class DIContainer: @unchecked Sendable {
         let mode: String
         let backend: String
         switch config.apiMode {
-        case .mock:
-            mode = "MOCK"
-            backend = "LOCAL MOCK DATA"
         case .firebase:
             mode = "FIREBASE"
             backend = "FIREBASE CLOUD (Firestore + Storage)"

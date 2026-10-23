@@ -16,8 +16,6 @@
 		807D4F343015C97100E953EC /* NukeVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F333015C97100E953EC /* NukeVideo */; };
 		807D4F373015C9C600E953EC /* PopupView in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F363015C9C600E953EC /* PopupView */; };
 		807D4F3A3015CA0600E953EC /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F393015CA0600E953EC /* Pow */; };
-		807D4F3D3015CA4800E953EC /* SkeletonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F3C3015CA4800E953EC /* SkeletonUI */; };
-		807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F3F3015CA6B00E953EC /* ProgressHUD */; };
 		80DAA3B530222E5A002DFE74 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */; };
 		80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61030223402002DFE74 /* FirebaseAuth */; };
 		80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61230223402002DFE74 /* FirebaseCore */; };
@@ -40,6 +38,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		80CONFIG0100000000000001 /* Config/Configurations/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Base.xcconfig; sourceTree = "<group>"; };
+		80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Debug.xcconfig; sourceTree = "<group>"; };
+		80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Release.xcconfig; sourceTree = "<group>"; };
+		80CONFIG0400000000000004 /* Config/Configurations/Secrets.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Secrets.xcconfig.template; sourceTree = "<group>"; };
+		80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Staging.xcconfig; sourceTree = "<group>"; };
 		80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FB272021301B3AA600CE68FE /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB2723CD301B601A00CE68FE /* Instagram-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Instagram-Info.plist"; sourceTree = "<group>"; };
@@ -110,13 +113,11 @@
 				807D4F373015C9C600E953EC /* PopupView in Frameworks */,
 				807D4F343015C97100E953EC /* NukeVideo in Frameworks */,
 				807D4F3A3015CA0600E953EC /* Pow in Frameworks */,
-				807D4F3D3015CA4800E953EC /* SkeletonUI in Frameworks */,
 				80DAA61730223402002DFE74 /* FirebaseStorage in Frameworks */,
 				80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */,
 				80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */,
 				80DAA61930223402002DFE74 /* FirebaseFirestore in Frameworks */,
 				807D4F283015C78500E953EC /* CombineExt in Frameworks */,
-				807D4F403015CA6B00E953EC /* ProgressHUD in Frameworks */,
 				807D4F2E3015C97100E953EC /* Nuke in Frameworks */,
 				807D4F303015C97100E953EC /* NukeExtensions in Frameworks */,
 			);
@@ -128,6 +129,11 @@
 		80887F07300D4ECD007EF3E5 = {
 			isa = PBXGroup;
 			children = (
+				80CONFIG0100000000000001 /* Config/Configurations/Base.xcconfig */,
+				80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */,
+				80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */,
+				80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */,
+				80CONFIG0400000000000004 /* Config/Configurations/Secrets.xcconfig.template */,
 				FB2723CD301B601A00CE68FE /* Instagram-Info.plist */,
 				80887F29300D523A007EF3E5 /* Documentations */,
 				80887F28300D5229007EF3E5 /* Persistence */,
@@ -183,8 +189,6 @@
 				807D4F333015C97100E953EC /* NukeVideo */,
 				807D4F363015C9C600E953EC /* PopupView */,
 				807D4F393015CA0600E953EC /* Pow */,
-				807D4F3C3015CA4800E953EC /* SkeletonUI */,
-				807D4F3F3015CA6B00E953EC /* ProgressHUD */,
 				80DAA61030223402002DFE74 /* FirebaseAuth */,
 				80DAA61230223402002DFE74 /* FirebaseCore */,
 				80DAA61430223402002DFE74 /* FirebaseMessaging */,
@@ -227,8 +231,6 @@
 				807D4F2C3015C97100E953EC /* XCRemoteSwiftPackageReference "Nuke" */,
 				807D4F353015C9C600E953EC /* XCRemoteSwiftPackageReference "PopupView" */,
 				807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */,
-				807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */,
-				807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */,
 				80DAA60F30223402002DFE74 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -265,6 +267,7 @@
 /* Begin XCBuildConfiguration section */
 		80887F19300D4ECF007EF3E5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -332,8 +335,72 @@
 			};
 			name = Debug;
 		};
+		80CONFIG_P_STAGING_001 /* Staging */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GAJCLMLJ23;
+				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Staging;
+		};
 		80887F1A300D4ECF007EF3E5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -396,6 +463,7 @@
 		};
 		80887F1C300D4ECF007EF3E5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -407,6 +475,15 @@
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Instagram-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Instagram cần truy cập camera để chụp ảnh, quay video cho Stories, Reels và bài đăng.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Instagram cần truy cập danh bạ để giúp bạn tìm và kết nối với bạn bè.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Instagram sử dụng Face ID để đăng nhập nhanh và bảo mật tài khoản của bạn.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và cung cấp trải nghiệm tốt hơn.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và Stories của bạn.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Instagram cần truy cập microphone để ghi âm video, gọi thoại và gửi tin nhắn thoại.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Instagram cần quyền lưu ảnh và video vào thư viện của bạn.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Instagram cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài đăng, Stories và Reels.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "Instagram sử dụng thông tin theo dõi để cải thiện quảng cáo và trải nghiệm của bạn.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -434,8 +511,9 @@
 			};
 			name = Debug;
 		};
-		80887F1D300D4ECF007EF3E5 /* Release */ = {
+		80CONFIG_T_STAGING_002 /* Staging */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -447,6 +525,65 @@
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Instagram-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Instagram cần truy cập camera để chụp ảnh, quay video cho Stories, Reels và bài đăng.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Instagram cần truy cập danh bạ để giúp bạn tìm và kết nối với bạn bè.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Instagram sử dụng Face ID để đăng nhập nhanh và bảo mật tài khoản của bạn.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và cung cấp trải nghiệm tốt hơn.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và Stories của bạn.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Instagram cần truy cập microphone để ghi âm video, gọi thoại và gửi tin nhắn thoại.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Instagram cần quyền lưu ảnh và video vào thư viện của bạn.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Instagram cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài đăng, Stories và Reels.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "Instagram sử dụng thông tin theo dõi để cải thiện quảng cáo và trải nghiệm của bạn.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tomthecat.InstagramClone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Staging;
+		};
+		80887F1D300D4ECF007EF3E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = GAJCLMLJ23;
+				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
+				ENABLE_PREVIEWS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Instagram-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Instagram cần truy cập camera để chụp ảnh, quay video cho Stories, Reels và bài đăng.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "Instagram cần truy cập danh bạ để giúp bạn tìm và kết nối với bạn bè.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Instagram sử dụng Face ID để đăng nhập nhanh và bảo mật tài khoản của bạn.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và cung cấp trải nghiệm tốt hơn.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Instagram cần truy cập vị trí để gắn địa điểm vào bài đăng và Stories của bạn.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Instagram cần truy cập microphone để ghi âm video, gọi thoại và gửi tin nhắn thoại.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Instagram cần quyền lưu ảnh và video vào thư viện của bạn.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Instagram cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài đăng, Stories và Reels.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "Instagram sử dụng thông tin theo dõi để cải thiện quảng cáo và trải nghiệm của bạn.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -481,6 +618,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				80887F19300D4ECF007EF3E5 /* Debug */,
+				80CONFIG_P_STAGING_001 /* Staging */,
 				80887F1A300D4ECF007EF3E5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -490,6 +628,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				80887F1C300D4ECF007EF3E5 /* Debug */,
+				80CONFIG_T_STAGING_002 /* Staging */,
 				80887F1D300D4ECF007EF3E5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -544,22 +683,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.0.6;
-			};
-		};
-		807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/CSolanaM/SkeletonUI.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.2;
-			};
-		};
-		807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/relatedcode/ProgressHUD.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 15.0.1;
 			};
 		};
 		80DAA60F30223402002DFE74 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
@@ -617,16 +740,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 807D4F383015CA0600E953EC /* XCRemoteSwiftPackageReference "Pow" */;
 			productName = Pow;
-		};
-		807D4F3C3015CA4800E953EC /* SkeletonUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 807D4F3B3015CA4800E953EC /* XCRemoteSwiftPackageReference "SkeletonUI" */;
-			productName = SkeletonUI;
-		};
-		807D4F3F3015CA6B00E953EC /* ProgressHUD */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 807D4F3E3015CA6B00E953EC /* XCRemoteSwiftPackageReference "ProgressHUD" */;
-			productName = ProgressHUD;
 		};
 		80DAA61030223402002DFE74 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;

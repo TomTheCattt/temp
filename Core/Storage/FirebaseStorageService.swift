@@ -11,12 +11,12 @@ import FirebaseStorage
 
 // MARK: - FirebaseStorageError
 
-public enum FirebaseStorageError: LocalizedError, Sendable {
+enum FirebaseStorageError: LocalizedError, Sendable {
     case invalidPath
     case invalidStorageURL(String)
     case uploadFailed(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .invalidPath:
             return "Firebase Storage path cannot be empty."
@@ -30,7 +30,7 @@ public enum FirebaseStorageError: LocalizedError, Sendable {
 
 // MARK: - FirebaseStorageServiceProtocol
 
-public protocol FirebaseStorageServiceProtocol: Sendable {
+protocol FirebaseStorageServiceProtocol: Sendable {
     /// Uploads an image to the specified path in Firebase Storage.
     /// Safely downsamples image data beforehand to prevent Out Of Memory (OOM) crashes.
     func uploadImage(data: Data, path: String) async throws -> URL
@@ -47,13 +47,13 @@ public protocol FirebaseStorageServiceProtocol: Sendable {
 
 // MARK: - FirebaseStorageService
 
-nonisolated public final class FirebaseStorageService: FirebaseStorageServiceProtocol, @unchecked Sendable {
+nonisolated final class FirebaseStorageService: FirebaseStorageServiceProtocol, @unchecked Sendable {
 
-    nonisolated public static let shared = FirebaseStorageService()
+    nonisolated static let shared = FirebaseStorageService()
 
     private let storage: Storage
 
-    public init(storage: Storage = Storage.storage()) {
+    init(storage: Storage = Storage.storage()) {
         self.storage = storage
     }
 
@@ -62,7 +62,7 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
     /// Safely downsamples raw image data using low-level Image I/O at decode time to prevent high RAM spikes.
     /// Wrapped in `@autoreleasepool` for zero memory leaks.
     /// Fully thread-safe and non-blocking, safe to execute on background tasks or MainActor.
-    public func downsampleImageIfNeeded(
+    func downsampleImageIfNeeded(
         data: Data,
         maxDimension: CGFloat = 1080,
         compressionQuality: CGFloat = 0.85
@@ -81,7 +81,7 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
 
     // MARK: - Upload Image
 
-    public func uploadImage(data: Data, path: String) async throws -> URL {
+    func uploadImage(data: Data, path: String) async throws -> URL {
         guard !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw FirebaseStorageError.invalidPath
         }
@@ -98,7 +98,7 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
 
     // MARK: - Upload Video
 
-    public func uploadVideo(data: Data, path: String) async throws -> URL {
+    func uploadVideo(data: Data, path: String) async throws -> URL {
         guard !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw FirebaseStorageError.invalidPath
         }
@@ -113,7 +113,7 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
 
     // MARK: - Upload Audio
 
-    public func uploadAudio(data: Data, path: String) async throws -> URL {
+    func uploadAudio(data: Data, path: String) async throws -> URL {
         guard !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw FirebaseStorageError.invalidPath
         }
@@ -128,7 +128,7 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
 
     // MARK: - Delete File
 
-    public func deleteFile(at urlString: String) async throws {
+    func deleteFile(at urlString: String) async throws {
         let ref = try resolveReference(for: urlString)
         try await ref.delete()
     }

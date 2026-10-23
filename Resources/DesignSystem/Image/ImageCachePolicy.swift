@@ -8,13 +8,13 @@
 import Foundation
 import Nuke
 
-public struct ImageCachePolicy: Sendable {
+struct ImageCachePolicy: Sendable {
 
-    public let memoryCacheSize: Int
-    public let diskCacheSize: Int
-    public let diskCacheExpiration: TimeInterval
+    let memoryCacheSize: Int
+    let diskCacheSize: Int
+    let diskCacheExpiration: TimeInterval
 
-    public init(
+    init(
         memoryCacheSize: Int = 100 * 1024 * 1024,
         diskCacheSize: Int = 500 * 1024 * 1024,
         diskCacheExpiration: TimeInterval = 7 * 24 * 60 * 60
@@ -24,9 +24,9 @@ public struct ImageCachePolicy: Sendable {
         self.diskCacheExpiration = diskCacheExpiration
     }
 
-    public static let `default` = ImageCachePolicy()
+    static let `default` = ImageCachePolicy()
 
-    public static let lightweight = ImageCachePolicy(
+    static let lightweight = ImageCachePolicy(
         memoryCacheSize: 50 * 1024 * 1024,
         diskCacheSize: 100 * 1024 * 1024,
         diskCacheExpiration: 3 * 24 * 60 * 60

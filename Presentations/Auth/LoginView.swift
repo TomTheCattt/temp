@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Pow
 
 // MARK: - LoginView
 
@@ -27,16 +28,20 @@ struct LoginView: View {
                     .padding(.bottom, DS.Spacing.xxxl)
 
                 // MARK: Form
-                if viewModel.isLoginMode {
-                    loginForm
-                } else {
-                    registerForm
+                Group {
+                    if viewModel.isLoginMode {
+                        loginForm
+                    } else {
+                        registerForm
+                    }
                 }
+                .errorShake(trigger: viewModel.errorMessage)
 
                 // MARK: Error
                 if let error = viewModel.errorMessage {
                     errorBanner(error)
                         .padding(.top, DS.Spacing.sm)
+                        .transition(AppTransition.moveIn(edge: .top).combined(with: .opacity))
                 }
 
                 // MARK: Login Button

@@ -8,15 +8,15 @@
 import Foundation
 import Nuke
 
-public final class ImagePrefetchService {
+final class ImagePrefetchService {
 
-    public static let shared = ImagePrefetchService()
+    static let shared = ImagePrefetchService()
 
     private var prefetcher: ImagePrefetcher?
 
     private init() {}
 
-    public func startPrefetching(
+    func startPrefetching(
         urls: [URL]
     ) {
 
@@ -31,7 +31,7 @@ public final class ImagePrefetchService {
         prefetcher?.startPrefetching(with: urls)
     }
 
-    public func stop() {
+    func stop() {
 
         prefetcher?.stopPrefetching()
 

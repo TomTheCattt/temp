@@ -303,7 +303,7 @@ enum DS {
         static let low: Double = 0.38
         /// Overlay background.
         static let overlay: Double = 0.5
-        /// Dimming behind the action HUD (ProgressHUD background).
+        /// Dimming behind the action HUD background.
         static let hudBackground: Double = 0.3
         /// Faint tint (error banner background wash).
         static let faint: Double = 0.08
@@ -381,13 +381,9 @@ enum DS {
         static let wsPingInterval: TimeInterval = 25.0
         /// Network request timeout.
         static let networkTimeout: TimeInterval = 30.0
-        /// Mock delay range (lower).
-        static let mockDelayMin: TimeInterval = 0.3
-        /// Mock delay range (upper).
-        static let mockDelayMax: TimeInterval = 0.8
         /// Delay before auto-dismissing the action HUD after success/error feedback.
         static let hudDismiss: TimeInterval = 0.5
-        /// Mock delay before a sent chat message transitions to "read" (receipt simulation).
+        /// Delay before a sent chat message transitions to "read" (receipt simulation).
         static let chatReadReceipt: TimeInterval = 1.5
     }
 
