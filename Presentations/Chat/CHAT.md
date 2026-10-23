@@ -8,8 +8,11 @@ Module xử lý giao diện và logic chat trực tiếp giữa người dùng t
 
 | File | Vai trò |
 |------|---------|
-| `ChatView.swift` | Giao diện màn hình chat: Custom Header, Starter Banner, Message Bubbles, Reaction Bar, Typing Indicator, Reply Bar, Blocked Banner, Failed Message Retry |
-| `ChatViewModel.swift` | ViewModel quản lý messages, phân trang, gửi/xoá tin, thả emoji reactions, optimistic UI, retry, subscribe real-time message và typing updates |
+| `ChatView.swift` | Giao diện màn hình chat: Custom Header, Starter Banner, Message Bubbles, Reaction Bar, Typing Indicator, Reply Bar, Blocked Banner, Voice Recording Bar, Media Picker, Audio Player integration |
+| `ChatViewModel.swift` | ViewModel quản lý messages, phân trang, gửi/xoá tin, gửi media (image, video, audio), thả emoji reactions, optimistic UI, retry, subscribe real-time updates |
+| `ChatMediaDetailView.swift` | Màn hình xem chi tiết media 1:1 Instagram: Safe area padding chuẩn chống bóp/giãn/che mất, Ambient blur, Top Bar (sender info, download, share, add to story), Video auto-play với fading controls (1.5s), Error state chuẩn ("Không thể tải"), Hit-testing toàn diện vùng giữa cho phép tap bất kỳ đâu để auto phóng to toàn màn hình (Pure Fullscreen ẩn 100% bars/layouts) và tap để thu nhỏ lại mượt mà, Bottom Quick Reply Bar |
+| `AudioRecordingService.swift` | Actor quản lý AVAudioRecorder ngoài background thread: 1-tap start, Trash button cancel, AAC 44.1kHz mono, guard cuộc gọi đang diễn ra |
+| `ChatAudioPlayer.swift` | Controller phát tin nhắn thoại độc quyền: Play/Pause toggle, periodic progress updates, single audio exclusivity, time tracking |
 | `ConversationDetailsView.swift` | Màn hình chi tiết cuộc trò chuyện: Profile info, Mute toggles, Shared media grid, Chặn người dùng, Xoá hội thoại (pop 2 bước về Inbox) |
 
 ## Tính năng chính & Xử lý Edge Cases

@@ -61,19 +61,18 @@ nonisolated public final class FirebaseStorageService: FirebaseStorageServicePro
 
     /// Safely downsamples raw image data using low-level Image I/O at decode time to prevent high RAM spikes.
     /// Wrapped in `@autoreleasepool` for zero memory leaks.
+    /// Fully thread-safe and non-blocking, safe to execute on background tasks or MainActor.
     public func downsampleImageIfNeeded(
         data: Data,
         maxDimension: CGFloat = 1080,
         compressionQuality: CGFloat = 0.85
     ) -> Data {
         autoreleasepool {
-            if let downsampled = MainActor.assumeIsolated({
-                ImageDownsampler.shared.downsampleToData(
-                    data: data,
-                    maxDimension: maxDimension,
-                    compressionQuality: compressionQuality
-                )
-            }) {
+            if let downsampled = ImageDownsampler.shared.downsampleToData(
+                data: data,
+                maxDimension: maxDimension,
+                compressionQuality: compressionQuality
+            ) {
                 return downsampled
             }
             return data

@@ -13,9 +13,9 @@ import ImageIO
 /// Memory-efficient image downsampling utility using low-level Image I/O.
 /// Prevents large images (12MP-48MP, 60MB-180MB uncompressed bitmap in RAM)
 /// from exhausting device memory and causing OOM crashes.
-public final class ImageDownsampler: Sendable {
+nonisolated public final class ImageDownsampler: @unchecked Sendable {
 
-    public static let shared = ImageDownsampler()
+    nonisolated public static let shared = ImageDownsampler()
 
     /// In-memory LRU cache for downsampled images to achieve smooth 60fps scrolling.
     private let cache = NSCache<NSString, UIImage>()
