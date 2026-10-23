@@ -15,14 +15,11 @@ final class HashtagViewModel {
 
     // MARK: - State
 
-    private(set) var posts: [Post] = []
-    private(set) var isLoading = false
-    private(set) var postCount: Int = 0
+    var posts: [Post] = []
+    var isLoading = false
+    var postCount: Int = 0
 
     let hashtagName: String
-
-    private var currentPage = 1
-    private var hasMorePages = true
 
     // MARK: - Dependencies
 
@@ -38,37 +35,10 @@ final class HashtagViewModel {
     // MARK: - Actions
 
     func loadPosts() async {
-        guard !isLoading else { return }
-        isLoading = true
-        currentPage = 1
-
-        do {
-            // Mock: use explore posts as hashtag results
-            let result = try await postRepository.fetchExplorePosts(page: 1, perPage: 30)
-            posts = result
-            postCount = Int.random(in: 10_000...500_000) // Mock count
-            hasMorePages = result.count >= 30
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadPosts for hashtag from scratch
     }
 
     func loadMore() async {
-        guard !isLoading, hasMorePages else { return }
-        isLoading = true
-
-        let nextPage = currentPage + 1
-        do {
-            let result = try await postRepository.fetchExplorePosts(page: nextPage, perPage: 30)
-            posts.append(contentsOf: result)
-            currentPage = nextPage
-            hasMorePages = result.count >= 30
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadMore for hashtag from scratch
     }
 }

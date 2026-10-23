@@ -42,7 +42,6 @@ final class AuthViewModel {
         self.registerUseCase = registerUseCase
         self.router = router ?? AppRouter.shared
 
-        // Pre-fill test credentials in debug mode for convenience
         #if DEBUG
         email = AppConstants.TestAccount.email
         password = AppConstants.TestAccount.password
@@ -70,20 +69,7 @@ final class AuthViewModel {
             errorMessage = L10n.Auth.invalidLogin
             return
         }
-
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let session = try await loginUseCase.execute(
-                LoginInput(email: email, password: password)
-            )
-            handleAuthSuccess(session)
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
+        // TODO: Implement login logic from scratch
     }
 
     func register() async {
@@ -91,25 +77,7 @@ final class AuthViewModel {
             errorMessage = L10n.Auth.invalidRegister
             return
         }
-
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let session = try await registerUseCase.execute(
-                RegisterInput(
-                    name: fullName,
-                    email: email,
-                    password: password,
-                    phone: phone
-                )
-            )
-            handleAuthSuccess(session)
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
+        // TODO: Implement register logic from scratch
     }
 
     func toggleMode() {
@@ -119,16 +87,5 @@ final class AuthViewModel {
 
     func clearError() {
         errorMessage = nil
-    }
-
-    // MARK: - Private
-
-    private func handleAuthSuccess(_ session: AuthSession) {
-        // Store tokens so AuthInterceptor can inject Bearer token into subsequent requests
-        let authManager = DIContainer.shared.resolve(AuthManagerProtocol.self)
-        authManager.storeSession(session)
-
-        SessionStore.shared.setSession(user: session.user)
-        router.isAuthenticated = true
     }
 }

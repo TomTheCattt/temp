@@ -429,24 +429,7 @@ final class CreatePostViewModel {
     func publish() async {
         guard !isPublishing, !selectedImages.isEmpty else { return }
         isPublishing = true
-        HUDManager.shared.showLoading(L10n.HUD.publishing)
-
-        do {
-            let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-            let post = try await createPostUseCase.execute(
-                CreatePostInput(
-                    caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
-                    mediaData: selectedImages,
-                    location: location
-                )
-            )
-            NotificationCenter.default.post(name: .didCreatePost, object: post)
-            isPublished = true
-            HUDManager.shared.showSuccess(L10n.HUD.published)
-        } catch {
-            HUDManager.shared.showError(error.userMessage)
-        }
-
+        // TODO: Implement createPost publish logic from scratch
         isPublishing = false
     }
 

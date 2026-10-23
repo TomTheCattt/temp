@@ -474,23 +474,9 @@ final class CreateReelViewModel {
     // MARK: - Publishing
 
     func publish() async {
-        guard let videoData = finalVideoData, !isPublishing else { return }
+        guard finalVideoData != nil, !isPublishing else { return }
         isPublishing = true
-        HUDManager.shared.showLoading(L10n.HUD.publishing)
-
-        do {
-            let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = try await reelRepository.createReel(
-                videoData: videoData,
-                caption: trimmedCaption.isEmpty ? nil : trimmedCaption,
-                audioTrackId: nil
-            )
-            isPublished = true
-            HUDManager.shared.showSuccess(L10n.HUD.published)
-        } catch {
-            HUDManager.shared.showError(error.userMessage)
-        }
-
+        // TODO: Implement createReel publish logic from scratch
         isPublishing = false
     }
 

@@ -22,14 +22,10 @@ final class FollowListViewModel {
 
     // MARK: - State
 
-    private(set) var users: [User] = []
-    private(set) var isLoading = false
-    private(set) var errorMessage: String?
-
+    var users: [User] = []
+    var isLoading = false
+    var errorMessage: String?
     var searchQuery = ""
-
-    private var currentPage = 1
-    private var hasMorePages = true
 
     let userId: String
     let mode: FollowListMode
@@ -74,75 +70,15 @@ final class FollowListViewModel {
     // MARK: - Actions
 
     func loadUsers() async {
-        guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
-        currentPage = 1
-
-        do {
-            let input = FetchFollowListInput(userId: userId, page: 1)
-            let result: [User]
-            switch mode {
-            case .followers:
-                result = try await fetchFollowersUseCase.execute(input)
-            case .following:
-                result = try await fetchFollowingUseCase.execute(input)
-            }
-            users = result
-            hasMorePages = result.count >= 30
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
+        // TODO: Implement loadUsers logic from scratch
     }
 
     func loadMore() async {
-        guard !isLoading, hasMorePages else { return }
-        isLoading = true
-
-        let nextPage = currentPage + 1
-        do {
-            let input = FetchFollowListInput(userId: userId, page: nextPage)
-            let result: [User]
-            switch mode {
-            case .followers:
-                result = try await fetchFollowersUseCase.execute(input)
-            case .following:
-                result = try await fetchFollowingUseCase.execute(input)
-            }
-            users.append(contentsOf: result)
-            currentPage = nextPage
-            hasMorePages = result.count >= 30
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadMore follow list logic from scratch
     }
 
     func toggleFollow(for user: User) async {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
-
-        // Optimistic update
-        var updated = users[index]
-        updated.isFollowing.toggle()
-        users[index] = updated
-
-        do {
-            if user.isFollowing {
-                try await toggleFollowUseCase.execute(
-                    ToggleFollowInput(userId: user.id, isCurrentlyFollowing: true)
-                )
-            } else {
-                try await toggleFollowUseCase.execute(
-                    ToggleFollowInput(userId: user.id, isCurrentlyFollowing: false)
-                )
-            }
-        } catch {
-            // Revert and notify.
-            users[index] = user
-            ToastManager.shared.error(error.userMessage)
-        }
+        _ = user
+        // TODO: Implement toggleFollow logic from scratch
     }
 }

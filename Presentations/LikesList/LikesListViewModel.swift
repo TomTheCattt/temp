@@ -15,10 +15,9 @@ final class LikesListViewModel {
 
     // MARK: - State
 
-    private(set) var users: [User] = []
-    private(set) var isLoading = false
-    private(set) var errorMessage: String?
-
+    var users: [User] = []
+    var isLoading = false
+    var errorMessage: String?
     var searchQuery = ""
 
     let postId: String
@@ -54,36 +53,11 @@ final class LikesListViewModel {
     // MARK: - Actions
 
     func loadLikes() async {
-        guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            // Use suggested users as mock "likes" list
-            // Real implementation would have a dedicated endpoint: POST /posts/{id}/likes
-            users = try await userRepository.fetchSuggested(page: 1, perPage: 50)
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
+        // TODO: Implement loadLikes logic from scratch
     }
 
     func toggleFollow(for user: User) async {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
-
-        // Optimistic update
-        var updated = users[index]
-        updated.isFollowing.toggle()
-        users[index] = updated
-
-        do {
-            try await toggleFollowUseCase.execute(
-                ToggleFollowInput(userId: user.id, isCurrentlyFollowing: user.isFollowing)
-            )
-        } catch {
-            users[index] = user
-            ToastManager.shared.error(error.userMessage)
-        }
+        _ = user
+        // TODO: Implement toggleFollow logic from scratch
     }
 }

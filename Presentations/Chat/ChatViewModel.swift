@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 
 // MARK: - ChatViewModel
 
@@ -16,63 +15,36 @@ final class ChatViewModel {
 
     // MARK: - State
 
-    private(set) var messages: [Message] = []
-    private(set) var isLoading = false
-    private(set) var isLoadingMore = false
-    private(set) var isSending = false
-    private(set) var errorMessage: String?
+    var messages: [Message] = []
+    var isLoading = false
+    var isLoadingMore = false
+    var isSending = false
+    var errorMessage: String?
 
-    private(set) var currentPage = 1
-    private(set) var hasMorePages = false
+    var currentPage = 1
+    var hasMorePages = false
 
     var recipient: User?
     var replyingToMessage: Message?
-    var isPartnerTyping: Bool = false
-    var isPartnerBlocked: Bool = false
+    var isPartnerTyping = false
+    var isPartnerBlocked = false
 
     let conversationId: String
-
-    /// Resolved current user id. Falls back to the shared session store when the
-    /// injected value is empty so bubbles don't all render as incoming.
     var currentUserId: String {
         let storeId = SessionStore.shared.currentUserId
         if !storeId.isEmpty { return storeId }
         return injectedCurrentUserId
     }
 
-    private var resolvedCurrentUser: User {
-        SessionStore.shared.currentUser ?? User(
-            id: currentUserId,
-            username: "user",
-            fullName: "User",
-            email: nil,
-            phone: nil,
-            avatarURL: nil,
-            bio: nil,
-            website: nil,
-            isVerified: false,
-            isPrivate: false,
-            followersCount: 0,
-            followingCount: 0,
-            postsCount: 0,
-            createdAt: .now,
-            isFollowing: false,
-            isFollowedBy: false,
-            isBlocked: false
-        )
-    }
+    var restoreDraft: ((String) -> Void)?
 
     private let injectedCurrentUserId: String
-
-    /// Page size used for every fetch. Keeps `hasMorePages` math consistent.
-    private let perPage = DS.Layout.messagesPageSize
 
     // MARK: - Dependencies
 
     private let fetchMessagesUseCase: FetchMessagesUseCaseProtocol
     private let sendMessageUseCase: SendMessageUseCaseProtocol
     private let messageRepository: MessageRepositoryProtocol
-    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
@@ -90,678 +62,75 @@ final class ChatViewModel {
         self.fetchMessagesUseCase = fetchMessagesUseCase
         self.sendMessageUseCase = sendMessageUseCase
         self.messageRepository = messageRepository
-
-        subscribeToSyncEvents()
     }
 
-    private func subscribeToSyncEvents() {
-        // Real-time incoming messages with chronological sorting
-        NotificationCenter.default.publisher(for: .didUpdateMessage)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let self = self,
-                      let message = notification.object as? Message,
-                      message.conversationId == self.conversationId else { return }
-
-                let updated = self.deduplicateAndSort(self.messages + [message])
-                if updated.count != self.messages.count || updated != self.messages {
-                    self.messages = updated
-                    self.markAsRead()
-                }
-            }
-            .store(in: &cancellables)
-
-        // Real-time typing status
-        NotificationCenter.default.publisher(for: .didUpdateTypingStatus)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let self = self,
-                      let userInfo = notification.userInfo,
-                      let convId = userInfo["conversationId"] as? String,
-                      convId == self.conversationId,
-                      let isTyping = userInfo["isTyping"] as? Bool else { return }
-
-                self.isPartnerTyping = isTyping
-            }
-            .store(in: &cancellables)
-
-        // Real-time block status
-        NotificationCenter.default.publisher(for: .didUpdateBlockStatus)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let self = self,
-                      let userInfo = notification.userInfo,
-                      let userId = userInfo["userId"] as? String,
-                      userId == self.recipient?.id,
-                      let isBlocked = userInfo["isBlocked"] as? Bool else { return }
-
-                self.isPartnerBlocked = isBlocked
-            }
-            .store(in: &cancellables)
-    }
-
-    func unblockPartner() {
-        guard let user = recipient else { return }
-        isPartnerBlocked = false
-        NotificationCenter.default.post(
-            name: .didUpdateBlockStatus,
-            object: nil,
-            userInfo: ["userId": user.id, "isBlocked": false]
-        )
-        ToastManager.shared.info("Đã bỏ chặn @\(user.username)")
-    }
-
-    func markAsRead() {
-        Task {
-            try? await messageRepository.markAsRead(conversationId: conversationId)
-        }
-    }
-
-    // MARK: - Lifecycle & Cooperative Cancellation
+    // MARK: - Lifecycle
 
     func onAppear() {
-        if cancellables.isEmpty {
-            subscribeToSyncEvents()
-        }
+        // TODO: Implement onAppear listener setup from scratch
     }
 
     func onDisappear() {
-        cancellables.removeAll()
-        let repo = messageRepository
-        let convId = conversationId
-        Task {
-            await repo.detachMessageListener(for: convId)
-        }
-    }
-
-    deinit {
-        let repo = messageRepository
-        let convId = conversationId
-        Task {
-            await repo.detachMessageListener(for: convId)
-        }
+        // TODO: Implement onDisappear cleanup from scratch
     }
 
     // MARK: - Actions
 
     func loadMessages() async {
-        guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
-        currentPage = 1
-
-        let clock = ContinuousClock()
-        let startTime = clock.now
-
-        do {
-            let result = try await fetchMessagesUseCase.execute(
-                FetchMessagesInput(conversationId: conversationId, page: 1, perPage: perPage)
-            )
-            messages = deduplicateAndSort(result)
-            hasMorePages = result.count >= perPage
-
-            // Resolve recipient if not provided
-            if recipient == nil {
-                if let otherUser = messages.first(where: { $0.sender.id != currentUserId })?.sender {
-                    recipient = otherUser
-                }
-            }
-
-            // Benchmark execution time
-            let duration = clock.now - startTime
-            print("[Benchmark] ChatViewModel.loadMessages executed in \(duration) for \(messages.count) messages")
-
-            // Mark as read
-            try? await messageRepository.markAsRead(conversationId: conversationId)
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
+        // TODO: Implement loadMessages logic from scratch
     }
 
     func loadMoreMessages() async {
-        // Guard against concurrent loads and against re-triggering when exhausted.
-        guard !isLoading, !isLoadingMore, hasMorePages else { return }
-        isLoadingMore = true
-
-        let nextPage = currentPage + 1
-        let clock = ContinuousClock()
-        let startTime = clock.now
-
-        do {
-            let result = try await fetchMessagesUseCase.execute(
-                FetchMessagesInput(conversationId: conversationId, page: nextPage, perPage: perPage)
-            )
-            currentPage = nextPage
-            // Fewer than a full page means there's no more history.
-            hasMorePages = result.count >= perPage
-            mergeOlderMessages(result)
-
-            let duration = clock.now - startTime
-            print("[Benchmark] ChatViewModel.loadMoreMessages (page \(nextPage)) executed in \(duration)")
-        } catch {
-            // Don't retry silently in a loop: stop further auto-triggers and
-            // surface the error since we already have messages on screen.
-            hasMorePages = false
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        isLoadingMore = false
+        // TODO: Implement loadMoreMessages logic from scratch
     }
 
     func sendTextMessage(_ text: String) async {
-        guard !isSending, !isPartnerBlocked else { return }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        isSending = true
-
-        let replyId = replyingToMessage?.id
-        let replySnippet: String? = {
-            guard let reply = replyingToMessage else { return nil }
-            switch reply.content {
-            case .text(let t): return t
-            case .image: return "Hình ảnh"
-            case .video: return "Video"
-            case .audio: return "Tin nhắn thoại"
-            case .post: return "Bài viết"
-            case .reel: return "Reel"
-            case .story: return "Tin"
-            case .like: return "❤️"
-            }
-        }()
-
-        // Clear reply bar immediately on send
-        replyingToMessage = nil
-
-        // Optimistic UI: insert pending message with .sending status
-        let tempId = "temp_\(UUID().uuidString.prefix(8))"
-        let currentUser = SessionStore.shared.currentUser ?? User(
-            id: currentUserId,
-            username: AppConstants.TestAccount.username,
-            fullName: AppConstants.TestAccount.fullName,
-            email: AppConstants.TestAccount.email,
-            phone: nil,
-            avatarURL: nil,
-            bio: nil,
-            website: nil,
-            isVerified: true,
-            isPrivate: false,
-            followersCount: 0,
-            followingCount: 0,
-            postsCount: 0,
-            createdAt: .now,
-            isFollowing: false,
-            isFollowedBy: false,
-            isBlocked: false
-        )
-        let pendingMessage = Message(
-            id: tempId,
-            conversationId: conversationId,
-            sender: currentUser,
-            content: .text(trimmed),
-            status: .sending,
-            replyToId: replyId,
-            replyToSnippet: replySnippet,
-            reactions: [:],
-            createdAt: .now
-        )
-        messages.insert(pendingMessage, at: 0)
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(
-                    conversationId: conversationId,
-                    content: .text(trimmed),
-                    replyToId: replyId,
-                    replyToSnippet: replySnippet
-                )
-            )
-            // Replace optimistic pending message with confirmed message
-            let finalMessage = Message(
-                id: message.id,
-                conversationId: message.conversationId,
-                sender: message.sender,
-                content: message.content,
-                status: message.status,
-                replyToId: replyId,
-                replyToSnippet: replySnippet,
-                reactions: [:],
-                createdAt: message.createdAt
-            )
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages.remove(at: index)
-            }
-            messages = deduplicateAndSort(messages + [finalMessage])
-            simulateReadReceipt(for: message.id)
-            simulatePartnerTyping()
-        } catch {
-            // Update the pending message to .failed state so user can retry
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                let current = messages[index]
-                messages[index] = Message(
-                    id: current.id,
-                    conversationId: current.conversationId,
-                    sender: current.sender,
-                    content: current.content,
-                    status: .failed,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet,
-                    reactions: current.reactions,
-                    createdAt: current.createdAt
-                )
-            }
-            ToastManager.shared.error("Không thể gửi tin nhắn. Chạm để thử lại.")
-        }
-
-        isSending = false
+        _ = text
+        // TODO: Implement sendTextMessage logic from scratch
     }
 
-    /// Retry sending a failed message
     func retryMessage(id: String) async {
-        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
-        let current = messages[index]
-        guard current.status == .failed else { return }
-
-        // Set status to sending
-        messages[index] = Message(
-            id: current.id,
-            conversationId: current.conversationId,
-            sender: current.sender,
-            content: current.content,
-            status: .sending,
-            replyToId: current.replyToId,
-            replyToSnippet: current.replyToSnippet,
-            reactions: current.reactions,
-            createdAt: current.createdAt
-        )
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(
-                    conversationId: conversationId,
-                    content: current.content,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet
-                )
-            )
-            if let newIndex = messages.firstIndex(where: { $0.id == id }) {
-                messages[newIndex] = Message(
-                    id: message.id,
-                    conversationId: message.conversationId,
-                    sender: message.sender,
-                    content: message.content,
-                    status: message.status,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet,
-                    reactions: [:],
-                    createdAt: message.createdAt
-                )
-                simulateReadReceipt(for: message.id)
-            }
-        } catch {
-            if let newIndex = messages.firstIndex(where: { $0.id == id }) {
-                let failed = messages[newIndex]
-                messages[newIndex] = Message(
-                    id: failed.id,
-                    conversationId: failed.conversationId,
-                    sender: failed.sender,
-                    content: failed.content,
-                    status: .failed,
-                    replyToId: failed.replyToId,
-                    replyToSnippet: failed.replyToSnippet,
-                    reactions: failed.reactions,
-                    createdAt: failed.createdAt
-                )
-            }
-            ToastManager.shared.error("Gửi lại thất bại. Vui lòng kiểm tra kết nối mạng.")
-        }
+        _ = id
+        // TODO: Implement retryMessage logic from scratch
     }
 
     func addReaction(to messageId: String, emoji: String) {
-        guard let index = messages.firstIndex(where: { $0.id == messageId }) else { return }
-        let current = messages[index]
-        var updatedReactions = current.reactions
-        if updatedReactions[currentUserId] == emoji {
-            updatedReactions.removeValue(forKey: currentUserId)
-        } else {
-            updatedReactions[currentUserId] = emoji
-        }
-
-        messages[index] = Message(
-            id: current.id,
-            conversationId: current.conversationId,
-            sender: current.sender,
-            content: current.content,
-            status: current.status,
-            replyToId: current.replyToId,
-            replyToSnippet: current.replyToSnippet,
-            reactions: updatedReactions,
-            createdAt: current.createdAt
-        )
-
-        Task {
-            try? await messageRepository.addReaction(messageId: messageId, emoji: emoji)
-        }
+        _ = messageId
+        _ = emoji
+        // TODO: Implement addReaction logic from scratch
     }
 
     func deleteMessage(id: String) {
-        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
-        messages.remove(at: index)
-        Task {
-            try? await messageRepository.deleteMessage(id: id)
-            NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
-        }
+        _ = id
+        // TODO: Implement deleteMessage logic from scratch
     }
 
     func sendImageMessage(url: URL) async {
-        guard !isSending else { return }
-        isSending = true
-
-        let tempId = "temp_img_\(UUID().uuidString.prefix(8))"
-        let currentUser = resolvedCurrentUser
-        let pendingMessage = Message(
-            id: tempId,
-            conversationId: conversationId,
-            sender: currentUser,
-            content: .image(url),
-            status: .sending,
-            replyToId: nil,
-            replyToSnippet: nil,
-            reactions: [:],
-            createdAt: .now
-        )
-        messages.insert(pendingMessage, at: 0)
-
-        // Downsample in background task to avoid memory spike and protect MainActor
-        let processedURL: URL = await Task.detached(priority: .userInitiated) {
-            guard url.isFileURL, let rawData = try? Data(contentsOf: url) else { return url }
-            let downsampled = FirebaseStorageService.shared.downsampleImageIfNeeded(data: rawData)
-            let optimizedURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("opt_\(UUID().uuidString).jpg")
-            try? downsampled.write(to: optimizedURL)
-            return optimizedURL
-        }.value
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .image(processedURL))
-            )
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages.remove(at: index)
-            }
-            messages = deduplicateAndSort(messages + [message])
-            simulateReadReceipt(for: message.id)
-        } catch {
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                let current = messages[index]
-                messages[index] = Message(
-                    id: current.id,
-                    conversationId: current.conversationId,
-                    sender: current.sender,
-                    content: current.content,
-                    status: .failed,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet,
-                    reactions: current.reactions,
-                    createdAt: current.createdAt
-                )
-            }
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        isSending = false
+        _ = url
+        // TODO: Implement sendImageMessage logic from scratch
     }
 
     func sendVideoMessage(url: URL, thumbnailURL: URL?) async {
-        guard !isSending else { return }
-        isSending = true
-
-        let tempId = "temp_vid_\(UUID().uuidString.prefix(8))"
-        let currentUser = resolvedCurrentUser
-        let pendingMessage = Message(
-            id: tempId,
-            conversationId: conversationId,
-            sender: currentUser,
-            content: .video(url, thumbnailURL: thumbnailURL),
-            status: .sending,
-            replyToId: nil,
-            replyToSnippet: nil,
-            reactions: [:],
-            createdAt: .now
-        )
-        messages.insert(pendingMessage, at: 0)
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .video(url, thumbnailURL: thumbnailURL))
-            )
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages.remove(at: index)
-            }
-            messages = deduplicateAndSort(messages + [message])
-            simulateReadReceipt(for: message.id)
-        } catch {
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                let current = messages[index]
-                messages[index] = Message(
-                    id: current.id,
-                    conversationId: current.conversationId,
-                    sender: current.sender,
-                    content: current.content,
-                    status: .failed,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet,
-                    reactions: current.reactions,
-                    createdAt: current.createdAt
-                )
-            }
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        isSending = false
+        _ = url
+        _ = thumbnailURL
+        // TODO: Implement sendVideoMessage logic from scratch
     }
 
     func sendAudioMessage(url: URL, duration: TimeInterval) async {
-        guard !isSending else { return }
-        isSending = true
-
-        let tempId = "temp_aud_\(UUID().uuidString.prefix(8))"
-        let currentUser = resolvedCurrentUser
-        let pendingMessage = Message(
-            id: tempId,
-            conversationId: conversationId,
-            sender: currentUser,
-            content: .audio(url, duration: duration),
-            status: .sending,
-            replyToId: nil,
-            replyToSnippet: nil,
-            reactions: [:],
-            createdAt: .now
-        )
-        messages.insert(pendingMessage, at: 0)
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .audio(url, duration: duration))
-            )
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages.remove(at: index)
-            }
-            messages = deduplicateAndSort(messages + [message])
-            simulateReadReceipt(for: message.id)
-        } catch {
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                let current = messages[index]
-                messages[index] = Message(
-                    id: current.id,
-                    conversationId: current.conversationId,
-                    sender: current.sender,
-                    content: current.content,
-                    status: .failed,
-                    replyToId: current.replyToId,
-                    replyToSnippet: current.replyToSnippet,
-                    reactions: current.reactions,
-                    createdAt: current.createdAt
-                )
-            }
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        isSending = false
+        _ = url
+        _ = duration
+        // TODO: Implement sendAudioMessage logic from scratch
     }
 
     func sendLikeReaction() async {
-        guard !isSending else { return }
-        isSending = true
-
-        let tempId = "temp_like_\(UUID().uuidString.prefix(8))"
-        let currentUser = resolvedCurrentUser
-        let pendingMessage = Message(
-            id: tempId,
-            conversationId: conversationId,
-            sender: currentUser,
-            content: .like,
-            status: .sending,
-            replyToId: nil,
-            replyToSnippet: nil,
-            reactions: [:],
-            createdAt: .now
-        )
-        messages.insert(pendingMessage, at: 0)
-
-        do {
-            let message = try await sendMessageUseCase.execute(
-                SendMessageInput(conversationId: conversationId, content: .like)
-            )
-            if let index = messages.firstIndex(where: { $0.id == tempId }) {
-                messages.remove(at: index)
-            }
-            messages = deduplicateAndSort(messages + [message])
-            simulateReadReceipt(for: message.id)
-        } catch {
-            messages.removeAll { $0.id == tempId }
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        isSending = false
+        // TODO: Implement sendLikeReaction logic from scratch
     }
 
-    // MARK: - Draft restoration
-
-    /// Set by the view to restore unsent text into the input field when a send fails.
-    var restoreDraft: ((String) -> Void)?
-
-    // MARK: - Private helpers
-
-    /// Merge an older page into `messages`, keeping existing entries and deduplicating.
-    private func mergeOlderMessages(_ older: [Message]) {
-        guard !older.isEmpty else { return }
-        messages = deduplicateAndSort(messages + older)
+    func unblockPartner() {
+        // TODO: Implement unblockPartner logic from scratch
     }
 
-    /// Identifies whether a message ID represents a temporary or synthetic placeholder.
-    private func isPlaceholderId(_ id: String) -> Bool {
-        id.starts(with: "temp_") || id.hasSuffix("_last") || id == "last"
-    }
-
-    /// Smart deduplication based on ID, sender, content, and timestamp window.
-    private func deduplicateAndSort(_ list: [Message]) -> [Message] {
-        var result: [Message] = []
-        var seenIds = Set<String>()
-
-        for msg in list {
-            if seenIds.contains(msg.id) { continue }
-
-            let contentKey = msg.content.fingerprintRepresentation
-            let msgIsPlaceholder = isPlaceholderId(msg.id)
-
-            // Look for existing message with matching sender and content
-            if let existingIdx = result.firstIndex(where: {
-                $0.sender.id == msg.sender.id &&
-                $0.content.fingerprintRepresentation == contentKey
-            }) {
-                let existing = result[existingIdx]
-                let existingIsPlaceholder = isPlaceholderId(existing.id)
-
-                if existingIsPlaceholder && !msgIsPlaceholder {
-                    // Replace existing placeholder with real message
-                    seenIds.remove(existing.id)
-                    result[existingIdx] = msg
-                    seenIds.insert(msg.id)
-                    continue
-                } else if !existingIsPlaceholder && msgIsPlaceholder {
-                    // Real message already present, discard incoming placeholder
-                    continue
-                } else if existingIsPlaceholder && msgIsPlaceholder {
-                    // Both are placeholders for the same content, discard duplicate
-                    continue
-                } else {
-                    // Both are real messages: deduplicate only if timestamps are within 1.0s (e.g. duplicate network sync)
-                    if abs(existing.createdAt.timeIntervalSince(msg.createdAt)) <= 1.0 {
-                        continue
-                    }
-                }
-            }
-
-            seenIds.insert(msg.id)
-            result.append(msg)
-        }
-
-        return result.sorted { $0.createdAt > $1.createdAt }
-    }
-
-    /// Mock-friendly read-receipt simulation: after a short delay, flip a just-sent
-    /// message from `.sent` to `.read` so the "Đã xem" receipt appears. Harmless in
-    /// live mode — it only upgrades a local status and never mutates the backend.
-    private func simulateReadReceipt(for messageId: String) {
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(DS.Duration.chatReadReceipt * 1_000_000_000))
-            guard let self else { return }
-            guard let index = self.messages.firstIndex(where: { $0.id == messageId }) else { return }
-            let current = self.messages[index]
-            guard current.status != .read, current.status != .failed else { return }
-            self.messages[index] = Message(
-                id: current.id,
-                conversationId: current.conversationId,
-                sender: current.sender,
-                content: current.content,
-                status: .read,
-                replyToId: current.replyToId,
-                replyToSnippet: current.replyToSnippet,
-                reactions: current.reactions,
-                createdAt: current.createdAt
-            )
-        }
-    }
-
-    /// Mock-friendly partner typing simulator.
-    private func simulatePartnerTyping() {
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 800_000_000)
-            guard let self else { return }
-            self.isPartnerTyping = true
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            self.isPartnerTyping = false
-        }
+    func markAsRead() {
+        // TODO: Implement markAsRead logic from scratch
     }
 }
-
-// MARK: - MessageContent Fingerprint Helper
-
-private extension MessageContent {
-    var fingerprintRepresentation: String {
-        switch self {
-        case .text(let text): return "text:\(text)"
-        case .image(let url): return "image:\(url.absoluteString)"
-        case .video(let url, _): return "video:\(url.absoluteString)"
-        case .audio(let url, _): return "audio:\(url.absoluteString)"
-        case .post(let id): return "post:\(id)"
-        case .story(let id): return "story:\(id)"
-        case .reel(let id): return "reel:\(id)"
-        case .like: return "like"
-        }
-    }
-}
-

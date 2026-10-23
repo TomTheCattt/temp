@@ -15,13 +15,10 @@ final class LocationViewModel {
 
     // MARK: - State
 
-    private(set) var posts: [Post] = []
-    private(set) var isLoading = false
+    var posts: [Post] = []
+    var isLoading = false
 
     let locationName: String
-
-    private var currentPage = 1
-    private var hasMorePages = true
 
     // MARK: - Dependencies
 
@@ -37,36 +34,10 @@ final class LocationViewModel {
     // MARK: - Actions
 
     func loadPosts() async {
-        guard !isLoading else { return }
-        isLoading = true
-        currentPage = 1
-
-        do {
-            // Mock: use explore posts filtered/shuffled
-            let result = try await postRepository.fetchExplorePosts(page: 1, perPage: 30)
-            posts = result
-            hasMorePages = result.count >= 30
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadPosts for location from scratch
     }
 
     func loadMore() async {
-        guard !isLoading, hasMorePages else { return }
-        isLoading = true
-
-        let nextPage = currentPage + 1
-        do {
-            let result = try await postRepository.fetchExplorePosts(page: nextPage, perPage: 30)
-            posts.append(contentsOf: result)
-            currentPage = nextPage
-            hasMorePages = result.count >= 30
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadMore for location from scratch
     }
 }

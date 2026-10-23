@@ -15,12 +15,12 @@ final class ProfileViewModel {
 
     // MARK: - State
 
-    private(set) var user: User?
-    private(set) var posts: [Post] = []
-    private(set) var reels: [Reel] = []
-    private(set) var isLoading = false
-    private(set) var isLoadingReels = false
-    private(set) var errorMessage: String?
+    var user: User?
+    var posts: [Post] = []
+    var reels: [Reel] = []
+    var isLoading = false
+    var isLoadingReels = false
+    var errorMessage: String?
 
     var isCurrentUser: Bool {
         let currentUserId = SessionStore.shared.currentUserId
@@ -33,8 +33,8 @@ final class ProfileViewModel {
         }
         return false
     }
+
     private let userId: String?
-    private var didLoadReels = false
 
     // MARK: - Dependencies
 
@@ -58,7 +58,6 @@ final class ProfileViewModel {
         self.postRepository = postRepository
         self.reelRepository = reelRepository
 
-        // Pre-populate user cache synchronously if viewing current user
         let currentUserId = SessionStore.shared.currentUserId
         let isMe = (userId == nil || userId == currentUserId)
         if isMe {
@@ -69,76 +68,19 @@ final class ProfileViewModel {
     // MARK: - Actions
 
     func loadProfile() async {
-        guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let profile = try await fetchProfileUseCase.execute(
-                FetchProfileInput(userId: userId)
-            )
-            user = profile
-
-            let userPosts = try await postRepository.fetchUserPosts(
-                userId: profile.id,
-                page: 1,
-                perPage: 30
-            )
-            posts = userPosts
-        } catch {
-            if user == nil {
-                errorMessage = error.userMessage
-            } else {
-                ToastManager.shared.error(error.userMessage)
-            }
-        }
-
-        isLoading = false
+        // TODO: Implement loadProfile logic from scratch
     }
 
-    /// Loads the user's reels lazily, the first time the Reels tab is opened.
     func loadReelsIfNeeded() async {
-        guard !didLoadReels, !isLoadingReels else { return }
-        guard let resolvedId = user?.id ?? userId else { return }
-
-        isLoadingReels = true
-        do {
-            reels = try await reelRepository.fetchUserReels(
-                userId: resolvedId,
-                page: 1,
-                perPage: 30
-            )
-            didLoadReels = true
-        } catch {
-            // Grid stays empty; a transient failure shouldn't block the whole profile.
-            ToastManager.shared.error(error.userMessage)
-        }
-        isLoadingReels = false
+        // TODO: Implement loadReelsIfNeeded logic from scratch
     }
 
     func toggleFollow() async {
-        guard var currentUser = user, !isCurrentUser else { return }
-
-        // Optimistic update
-        let wasFollowing = currentUser.isFollowing
-        currentUser.isFollowing = !wasFollowing
-        user = currentUser
-
-        do {
-            try await toggleFollowUseCase.execute(
-                ToggleFollowInput(userId: currentUser.id, isCurrentlyFollowing: wasFollowing)
-            )
-        } catch {
-            // Revert and notify.
-            currentUser.isFollowing = wasFollowing
-            user = currentUser
-            ToastManager.shared.error(error.userMessage)
-        }
+        // TODO: Implement toggleFollow logic from scratch
     }
 
-    /// Updates the displayed profile immediately when updated externally (e.g. from EditProfile).
     func applyUpdatedUser(_ updatedUser: User) {
-        guard isCurrentUser || updatedUser.id == user?.id else { return }
-        user = updatedUser
+        _ = updatedUser
+        // TODO: Implement applyUpdatedUser logic from scratch
     }
 }

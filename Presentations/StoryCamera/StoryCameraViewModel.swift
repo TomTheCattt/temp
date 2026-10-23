@@ -61,7 +61,6 @@ final class StoryCameraViewModel {
     var isFrontCamera = true
     var isFlashOn = false
 
-    // Multi-layer Story Overlays
     var stickers: [PIPStickerItem] = []
     var texts: [TextOverlayItem] = []
     var currentFilterIndex: Int = 0
@@ -70,28 +69,20 @@ final class StoryCameraViewModel {
         StoryFilter.allFilters[currentFilterIndex % StoryFilter.allFilters.count]
     }
 
-    /// Latest gallery thumbnail for the bottom-left camera roll shortcut.
     var latestGalleryThumbnail: UIImage?
+    var capturedImageData: Data?
+    var capturedVideoURL: URL?
 
-    /// Captured media data (photo or video).
-    private(set) var capturedImageData: Data?
-    private(set) var capturedVideoURL: URL?
-
-    /// Whether we have media ready for editing.
     var hasCapturedMedia: Bool {
         capturedImageData != nil || capturedVideoURL != nil
     }
 
-    /// Show the edit/preview screen after capture.
     var isShowingPreview = false
+    var isPublishing = false
+    var isPublished = false
 
-    /// Publishing state.
-    private(set) var isPublishing = false
-    private(set) var isPublished = false
-
-    /// Permission state.
-    private(set) var cameraPermissionGranted = false
-    private(set) var microphonePermissionGranted = false
+    var cameraPermissionGranted = false
+    var microphonePermissionGranted = false
 
     // MARK: - Dependencies
 
@@ -131,7 +122,6 @@ final class StoryCameraViewModel {
             if cameraService.isSessionConfigured {
                 isFrontCamera = cameraService.isFrontFacing
                 if cameraService.isRunning {
-                    // Session already active & running; skip redundant configuration
                     await loadLatestGalleryThumbnail()
                     return
                 }
@@ -140,7 +130,6 @@ final class StoryCameraViewModel {
             cameraService.start()
         }
 
-        // Fetch latest photo thumbnail for gallery shortcut
         await loadLatestGalleryThumbnail()
     }
 
@@ -164,7 +153,6 @@ final class StoryCameraViewModel {
                 isShowingPreview = true
                 cameraService.stop()
             } catch {
-                // If hardware capture fails (e.g. Simulator), create simulated photo
                 let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1080, height: 1920))
                 let image = renderer.image { ctx in
                     UIColor.darkGray.setFill()
@@ -246,53 +234,8 @@ final class StoryCameraViewModel {
     // MARK: - Publish
 
     func publishStory(isCloseFriendsOnly: Bool = false) async {
-        guard hasCapturedMedia, !isPublishing else { return }
-        isPublishing = true
-        HUDManager.shared.showLoading(L10n.HUD.publishing)
-
-        do {
-            var mediaData = capturedImageData ?? Data()
-
-            // If image story, bake filter, stickers & texts into final image
-            if let baseImage = UIImage(data: mediaData) {
-                var filtered = baseImage
-                if currentFilter.filterId != "original",
-                   let filter = FilterRegistry.filter(byId: currentFilter.filterId),
-                   let ci = CIImage(image: baseImage) {
-                    let outCI = FilterEngine.shared.apply(filter: filter, to: ci, intensity: 1.0)
-                    if let rendered = FilterEngine.shared.renderToUIImage(outCI) {
-                        filtered = rendered
-                    }
-                }
-
-                let composite = CompositeImageRenderer.shared.render(
-                    baseImage: filtered,
-                    stickers: stickers,
-                    texts: texts,
-                    renderSize: CGSize(width: 1080, height: 1920)
-                )
-
-                if let jpeg = composite.jpegData(compressionQuality: 0.88) {
-                    mediaData = jpeg
-                }
-            }
-
-            let mediaType: StoryItem.MediaType = capturedVideoURL != nil ? .video : .image
-            let duration: TimeInterval = capturedVideoURL != nil ? 15 : 5
-
-            let story = try await storyRepository.createStory(
-                mediaData: mediaData,
-                type: mediaType,
-                duration: duration
-            )
-            NotificationCenter.default.post(name: .didCreateStory, object: story)
-            isPublished = true
-            HUDManager.shared.showSuccess(L10n.HUD.published)
-        } catch {
-            HUDManager.shared.showError(error.userMessage)
-        }
-
-        isPublishing = false
+        _ = isCloseFriendsOnly
+        // TODO: Implement publishStory logic from scratch
     }
 
     // MARK: - Reset

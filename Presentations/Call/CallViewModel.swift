@@ -117,110 +117,53 @@ final class CallViewModel {
     // MARK: - Lifecycle Actions
 
     /// Automatically initiates outgoing call if state is currently idle.
+    // MARK: - Actions
+
     func onAppear() async {
-        if callService.currentCallState == .idle {
-            await startOutgoingCall()
-        }
+        // TODO: Implement call onAppear logic from scratch
     }
 
     func startOutgoingCall() async {
-        do {
-            try await callService.initiateCall(
-                to: remoteUserId,
-                name: remoteName,
-                avatarURL: remoteAvatarURL,
-                hasVideo: hasVideo
-            )
-            // Start audio & video capture for outgoing call
-            try? await pipeline.startAudio()
-            if hasVideo && !isCameraOff {
-                try? await pipeline.startVideo(isFront: isFrontCamera)
-            }
-            if isSpeakerOn {
-                pipeline.setSpeaker(true)
-            }
-        } catch {
-            logger.error("Failed to initiate outgoing call: \(error.localizedDescription)")
-        }
+        // TODO: Implement startOutgoingCall logic from scratch
     }
 
     // MARK: - User Controls
 
     func accept() async {
-        HapticFeedbackSafe.impact(.medium)
-        try? await callService.acceptIncomingCall()
-        try? await pipeline.startAudio()
-        if hasVideo && !isCameraOff {
-            try? await pipeline.startVideo(isFront: isFrontCamera)
-        }
-        if isSpeakerOn {
-            pipeline.setSpeaker(true)
-        }
+        // TODO: Implement accept call logic from scratch
     }
 
     func reject() async {
-        HapticFeedbackSafe.notification(.warning)
-        try? await callService.rejectIncomingCall()
+        // TODO: Implement reject call logic from scratch
     }
 
     func hangup() async {
-        HapticFeedbackSafe.notification(.warning)
-        try? await callService.hangup()
+        // TODO: Implement hangup call logic from scratch
     }
 
     func toggleMute() {
-        HapticFeedbackSafe.selection()
         isMuted.toggle()
-        pipeline.setMuted(isMuted)
-        Task {
-            try? await callService.toggleMute()
-        }
+        // TODO: Implement toggleMute logic from scratch
     }
 
     func toggleSpeaker() {
-        HapticFeedbackSafe.selection()
         isSpeakerOn.toggle()
-        pipeline.setSpeaker(isSpeakerOn)
-        updateProximitySensor()
-        Task {
-            try? await callService.toggleSpeaker()
-        }
+        // TODO: Implement toggleSpeaker logic from scratch
     }
 
     func flipCamera() {
-        guard hasVideo else { return }
-        HapticFeedbackSafe.selection()
         isFrontCamera.toggle()
-        Task {
-            await pipeline.switchCamera(isFront: isFrontCamera)
-        }
+        // TODO: Implement flipCamera logic from scratch
     }
 
     func toggleCamera() {
-        guard hasVideo else { return }
-        HapticFeedbackSafe.selection()
         isCameraOff.toggle()
-        if isCameraOff {
-            pipeline.stopVideo()
-        } else {
-            Task {
-                try? await pipeline.startVideo(isFront: isFrontCamera)
-            }
-        }
+        // TODO: Implement toggleCamera logic from scratch
     }
 
     func upgradeToVideo() {
-        guard !hasVideo else { return }
-        HapticFeedbackSafe.impact(.medium)
         hasVideo = true
-        isSpeakerOn = true
-        Task {
-            try? await callService.upgradeToVideo()
-            try? await pipeline.startVideo(isFront: true)
-            pipeline.setSpeaker(true)
-        }
-        updateIdleTimer()
-        updateProximitySensor()
+        // TODO: Implement upgradeToVideo logic from scratch
     }
 
     func dismissCall() {

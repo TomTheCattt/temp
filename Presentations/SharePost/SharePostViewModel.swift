@@ -16,8 +16,8 @@ final class SharePostViewModel {
 
     // MARK: - State
 
-    private(set) var users: [User] = []
-    private(set) var isLoading = false
+    var users: [User] = []
+    var isLoading = false
     var selectedUserIds: Set<String> = []
 
     let postId: String
@@ -42,17 +42,7 @@ final class SharePostViewModel {
     // MARK: - Actions
 
     func loadUsers() async {
-        guard !isLoading else { return }
-        isLoading = true
-
-        do {
-            // Load recent/suggested users to share with
-            users = try await userRepository.fetchSuggested(page: 1, perPage: 20)
-        } catch {
-            // Silent fail
-        }
-
-        isLoading = false
+        // TODO: Implement loadUsers logic from scratch
     }
 
     func filteredUsers(query: String) -> [User] {
@@ -60,7 +50,7 @@ final class SharePostViewModel {
         let q = query.lowercased()
         return users.filter {
             $0.username.lowercased().contains(q) ||
-            $0.fullName.lowercased().contains(q)
+            $0.fullName.lowercased().contains(query)
         }
     }
 
@@ -73,23 +63,10 @@ final class SharePostViewModel {
     }
 
     func sendToSelected() async {
-        // Send post as message to each selected user
-        for userId in selectedUserIds {
-            do {
-                // Create or find conversation, then send post
-                let conversation = try await messageRepository.createConversation(participantIds: [userId])
-                _ = try await messageRepository.sendMessage(
-                    conversationId: conversation.id,
-                    content: .post(postId: postId)
-                )
-            } catch {
-                // Silent fail per user
-            }
-        }
+        // TODO: Implement sendToSelected logic from scratch
     }
 
     func copyLink() {
-        // Copy post link to clipboard
         let link = "https://instagram.com/p/\(postId)"
         UIPasteboard.general.string = link
     }
