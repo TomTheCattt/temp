@@ -128,6 +128,9 @@ struct DirectMessagesView: View {
         } message: {
             Text("Ghi chú sẽ biến mất sau 24 giờ.")
         }
+        .onAppear {
+            viewModel.refreshFromLocal()
+        }
         .task {
             if viewModel.conversations.isEmpty {
                 await viewModel.loadConversations()
@@ -346,7 +349,7 @@ private struct ConversationRow: View {
                         .foregroundStyle(conversation.unreadCount > 0 ? .primary : .secondary)
                         .lineLimit(1)
 
-                    Text("· \(conversation.updatedAt.timeAgoDisplay())")
+                    Text("· \(conversation.effectiveDate.timeAgoDisplay())")
                         .font(DS.Font.subheadline)
                         .foregroundStyle(.secondary)
 

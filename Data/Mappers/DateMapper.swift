@@ -30,8 +30,8 @@ nonisolated enum DateMapper {
 
     /// Parse an ISO 8601 date string into a Date.
     /// Tries fractional seconds first, then fallback without.
-    /// Returns `.now` if parsing fails (fail-safe for UI display).
-    static func toDate(_ string: String) -> Date {
+    /// Returns fallback (.distantPast by default) if parsing fails to avoid jumping invalid dates to the top of chronological feeds.
+    static func toDate(_ string: String, fallback: Date = .distantPast) -> Date {
         if let date = iso8601Formatter.date(from: string) {
             return date
         }
@@ -42,7 +42,7 @@ nonisolated enum DateMapper {
         if let timestamp = Double(string) {
             return Date(timeIntervalSince1970: timestamp)
         }
-        return .now
+        return fallback
     }
 
     /// Convert Date to ISO 8601 string (for request payloads).

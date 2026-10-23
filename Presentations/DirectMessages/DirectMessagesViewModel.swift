@@ -68,11 +68,11 @@ final class DirectMessagesViewModel {
         refreshTask?.cancel()
         refreshTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            async let convsTask = self.messageRepository.fetchConversations(page: 1, perPage: 30)
+            async let convsTask = self.messageRepository.fetchConversations(page: 1, perPage: 100)
             async let notesTask = self.messageRepository.fetchNotes()
             if let (convs, fetchedNotes) = try? await (convsTask, notesTask) {
                 guard !Task.isCancelled else { return }
-                self.conversations = convs
+                self.conversations = convs.sorted { $0.effectiveDate > $1.effectiveDate }
                 self.notes = fetchedNotes
             }
         }
@@ -87,20 +87,20 @@ final class DirectMessagesViewModel {
         let clock = ContinuousClock()
         let startTime = clock.now
 
-        async let convsTask = messageRepository.fetchConversations(page: 1, perPage: 30)
+        async let convsTask = messageRepository.fetchConversations(page: 1, perPage: 100)
         async let notesTask = messageRepository.fetchNotes()
 
         do {
             let (fetchedConvs, fetchedNotes) = try await (convsTask, notesTask)
-            conversations = fetchedConvs
+            conversations = fetchedConvs.sorted { $0.effectiveDate > $1.effectiveDate }
             notes = fetchedNotes
 
             let duration = clock.now - startTime
             print("[Benchmark] DirectMessagesViewModel.loadData executed in \(duration) (\(conversations.count) conversations, \(notes.count) notes)")
         } catch {
             // Fallback load
-            if let convs = try? await messageRepository.fetchConversations(page: 1, perPage: 30) {
-                conversations = convs
+            if let convs = try? await messageRepository.fetchConversations(page: 1, perPage: 100) {
+                conversations = convs.sorted { $0.effectiveDate > $1.effectiveDate }
             }
         }
 

@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import FirebaseAuth
 import FirebaseFirestore
 
 // MARK: - FirebaseMessageDataSource
@@ -116,19 +117,23 @@ actor FirebaseMessageDataSource: Sendable {
     // MARK: - Real-time Inbox & Notes Firestore Listeners
 
     private func startRealtimeInboxSync() {
+        let currentUserId = resolvedCurrentUserId()
+        guard !currentUserId.isEmpty else {
+            logger.info("startRealtimeInboxSync deferred: currentUserId is empty")
+            return
+        }
         guard !hasAttachedInboxListener else { return }
         hasAttachedInboxListener = true
 
         let db = Firestore.firestore()
-        let currentUserId = resolvedCurrentUserId()
 
         // 1. Listen to user's conversations
         conversationListener = db.collection("conversations")
             .whereField("participantIds", arrayContains: currentUserId)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
-                if let _ = error {
-                    // Log gracefully for offline / simulator
+                if let error = error {
+                    self.logger.error("Firestore inbox snapshot listener error: \(error.localizedDescription)")
                     return
                 }
                 guard let documents = snapshot?.documents else { return }
@@ -161,7 +166,6 @@ actor FirebaseMessageDataSource: Sendable {
         let listener = db.collection("conversations")
             .document(conversationId)
             .collection("messages")
-            .order(by: "createdAt", descending: true)
             .limit(to: 50)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
@@ -240,7 +244,99 @@ actor FirebaseMessageDataSource: Sendable {
 
     // MARK: - MessageRepositoryProtocol Implementations
 
+    /// Synchronizes conversation summary in inMemoryConversations with inMemoryMessages (Single Source of Truth)
+    private func syncConversationSummary(for conversationId: String, preferredLastMessage: Message? = nil, incrementUnread: Bool = false) {
+        let ramLatest = inMemoryMessages[conversationId]?.first
+
+        if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
+            let existing = inMemoryConversations[index]
+
+            // Downgrade Protection: Never downgrade a conversation to an older message
+            let chosenLast: Message?
+            if let pref = preferredLastMessage {
+                if let ram = ramLatest {
+                    chosenLast = (pref.createdAt >= ram.createdAt) ? pref : ram
+                } else {
+                    chosenLast = pref
+                }
+            } else if let ram = ramLatest, let ext = existing.lastMessage {
+                chosenLast = (ram.createdAt >= ext.createdAt) ? ram : ext
+            } else {
+                chosenLast = ramLatest ?? existing.lastMessage
+            }
+
+            let newUpdatedAt = max(existing.updatedAt, chosenLast?.createdAt ?? existing.updatedAt)
+            let newUnreadCount = incrementUnread ? existing.unreadCount + 1 : existing.unreadCount
+
+            let updated = Conversation(
+                id: existing.id,
+                participants: existing.participants,
+                lastMessage: chosenLast,
+                unreadCount: newUnreadCount,
+                isGroup: existing.isGroup,
+                groupName: existing.groupName,
+                groupAvatarURL: existing.groupAvatarURL,
+                updatedAt: newUpdatedAt,
+                isMuted: existing.isMuted
+            )
+
+            inMemoryConversations[index] = updated
+        } else if let candidate = (preferredLastMessage ?? ramLatest) {
+            // New conversation discovered via message event that wasn't in cache yet
+            let current = resolvedCurrentUser()
+            let otherUser = (candidate.sender.id != current.id) ? candidate.sender : User(
+                id: "unknown",
+                username: "user",
+                fullName: "User",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .distantPast,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+            let newConv = Conversation(
+                id: conversationId,
+                participants: [current, otherUser],
+                lastMessage: candidate,
+                unreadCount: incrementUnread ? 1 : 0,
+                isGroup: false,
+                groupName: nil,
+                groupAvatarURL: nil,
+                updatedAt: candidate.createdAt,
+                isMuted: false
+            )
+            inMemoryConversations.append(newConv)
+        }
+
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
+        updateTotalUnreadState()
+        NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+    }
+
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
+        await syncCurrentUser()
+        startRealtimeInboxSync()
+
+        let currentUserId = resolvedCurrentUserId()
+        if inMemoryConversations.isEmpty && !currentUserId.isEmpty {
+            let db = Firestore.firestore()
+            if let snapshot = try? await db.collection("conversations")
+                .whereField("participantIds", arrayContains: currentUserId)
+                .getDocuments() {
+                mergeFirestoreConversations(snapshot.documents)
+            }
+        }
+
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         let start = (page - 1) * perPage
         let end = min(start + perPage, inMemoryConversations.count)
         guard start < end else { return [] }
@@ -255,18 +351,20 @@ actor FirebaseMessageDataSource: Sendable {
             let snapshot = try? await db.collection("conversations")
                 .document(conversationId)
                 .collection("messages")
-                .order(by: "createdAt", descending: true)
                 .limit(to: 50)
                 .getDocuments()
 
             if let docs = snapshot?.documents, !docs.isEmpty {
-                let msgs = docs.compactMap { Self.dictToMessage($0.data(), docId: $0.documentID) }
+                let msgs = docs.map { Self.dictToMessage($0.data(), docId: $0.documentID) }
                 inMemoryMessages[conversationId] = msgs.sorted { $0.createdAt > $1.createdAt }
             } else if let conv = inMemoryConversations.first(where: { $0.id == conversationId }) {
                 inMemoryMessages[conversationId] = conv.lastMessage.map { [$0] } ?? []
             } else {
                 inMemoryMessages[conversationId] = []
             }
+
+            // Keep conversation summary in sync with latest message (Rule 7)
+            syncConversationSummary(for: conversationId)
         }
 
         let currentMessages = inMemoryMessages[conversationId] ?? []
@@ -293,26 +391,13 @@ actor FirebaseMessageDataSource: Sendable {
         // 1. Update in-memory message cache
         if inMemoryMessages[conversationId] != nil {
             inMemoryMessages[conversationId]?.insert(message, at: 0)
+            inMemoryMessages[conversationId]?.sort { $0.createdAt > $1.createdAt }
         } else {
             inMemoryMessages[conversationId] = [message]
         }
 
-        // 2. Update conversation lastMessage & move to top (index 0)
-        if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
-            let existing = inMemoryConversations.remove(at: index)
-            let updated = Conversation(
-                id: existing.id,
-                participants: existing.participants,
-                lastMessage: message,
-                unreadCount: existing.unreadCount,
-                isGroup: existing.isGroup,
-                groupName: existing.groupName,
-                groupAvatarURL: existing.groupAvatarURL,
-                updatedAt: message.createdAt,
-                isMuted: existing.isMuted
-            )
-            inMemoryConversations.insert(updated, at: 0)
-        }
+        // 2. Update conversation lastMessage & move to top (Single Source of Truth)
+        syncConversationSummary(for: conversationId, preferredLastMessage: message)
 
         // 3. Post reactive UI notifications (do not broadcast didUpdateMessage for self to avoid duplicates)
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -389,6 +474,7 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     func markAsRead(conversationId: String) async throws {
+        let currentUserId = resolvedCurrentUserId()
         if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
             let existing = inMemoryConversations[index]
             if existing.unreadCount > 0 {
@@ -406,18 +492,21 @@ actor FirebaseMessageDataSource: Sendable {
             }
         }
 
-        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
         // Sync to Firestore
         let db = Firestore.firestore()
-        try? await db.collection("conversations").document(conversationId).setData([
-            "unreadCount": 0
-        ], merge: true)
+        var updateDict: [String: Any] = ["unreadCount": 0]
+        if !currentUserId.isEmpty {
+            updateDict["unreadCounts.\(currentUserId)"] = 0
+        }
+        try? await db.collection("conversations").document(conversationId).setData(updateDict, merge: true)
     }
 
     func markAsUnread(conversationId: String) async throws {
+        let currentUserId = resolvedCurrentUserId()
         if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
             let existing = inMemoryConversations[index]
             if existing.unreadCount == 0 {
@@ -435,15 +524,17 @@ actor FirebaseMessageDataSource: Sendable {
             }
         }
 
-        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
         // Sync to Firestore
         let db = Firestore.firestore()
-        try? await db.collection("conversations").document(conversationId).setData([
-            "unreadCount": 1
-        ], merge: true)
+        var updateDict: [String: Any] = ["unreadCount": 1]
+        if !currentUserId.isEmpty {
+            updateDict["unreadCounts.\(currentUserId)"] = 1
+        }
+        try? await db.collection("conversations").document(conversationId).setData(updateDict, merge: true)
     }
 
     func getUnreadConversationsCount() -> Int {
@@ -460,23 +551,7 @@ actor FirebaseMessageDataSource: Sendable {
                 updatedMsgs.remove(at: targetIndex)
                 inMemoryMessages[convId] = updatedMsgs
 
-                if let convIndex = inMemoryConversations.firstIndex(where: { $0.id == convId }) {
-                    let existing = inMemoryConversations[convIndex]
-                    let newLastMessage = updatedMsgs.first
-                    let newUpdatedAt = newLastMessage?.createdAt ?? existing.updatedAt
-                    inMemoryConversations[convIndex] = Conversation(
-                        id: existing.id,
-                        participants: existing.participants,
-                        lastMessage: newLastMessage,
-                        unreadCount: existing.unreadCount,
-                        isGroup: existing.isGroup,
-                        groupName: existing.groupName,
-                        groupAvatarURL: existing.groupAvatarURL,
-                        updatedAt: newUpdatedAt,
-                        isMuted: existing.isMuted
-                    )
-                }
-                NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
+                syncConversationSummary(for: convId)
                 break
             }
         }
@@ -505,6 +580,7 @@ actor FirebaseMessageDataSource: Sendable {
                 updatedAt: conv.updatedAt,
                 isMuted: mute
             )
+            inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         }
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
@@ -518,7 +594,7 @@ actor FirebaseMessageDataSource: Sendable {
         inMemoryConversations.removeAll { $0.id == id }
         inMemoryMessages.removeValue(forKey: id)
 
-        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
 
@@ -623,17 +699,42 @@ actor FirebaseMessageDataSource: Sendable {
     // MARK: - Firestore Parsing & Merging
 
     private func mergeFirestoreConversations(_ documents: [QueryDocumentSnapshot]) {
+        let currentUserId = resolvedCurrentUserId()
         for doc in documents {
             let data = doc.data()
-            if let conv = Self.dictToConversation(data, docId: doc.documentID) {
-                if let index = inMemoryConversations.firstIndex(where: { $0.id == conv.id }) {
-                    inMemoryConversations[index] = conv
+            if let conv = Self.dictToConversation(data, docId: doc.documentID, currentUserId: currentUserId) {
+                // If we already have in-memory messages for this conversation, preserve the newest known message
+                let candidateLastMessage: Message?
+                if let ramMsgs = inMemoryMessages[conv.id], let ramLatest = ramMsgs.first {
+                    if let docLast = conv.lastMessage {
+                        candidateLastMessage = (ramLatest.createdAt >= docLast.createdAt) ? ramLatest : docLast
+                    } else {
+                        candidateLastMessage = ramLatest
+                    }
                 } else {
-                    inMemoryConversations.insert(conv, at: 0)
+                    candidateLastMessage = conv.lastMessage
+                }
+
+                let mergedConv = Conversation(
+                    id: conv.id,
+                    participants: conv.participants,
+                    lastMessage: candidateLastMessage,
+                    unreadCount: conv.unreadCount,
+                    isGroup: conv.isGroup,
+                    groupName: conv.groupName,
+                    groupAvatarURL: conv.groupAvatarURL,
+                    updatedAt: max(conv.updatedAt, candidateLastMessage?.createdAt ?? conv.updatedAt),
+                    isMuted: conv.isMuted
+                )
+
+                if let index = inMemoryConversations.firstIndex(where: { $0.id == conv.id }) {
+                    inMemoryConversations[index] = mergedConv
+                } else {
+                    inMemoryConversations.append(mergedConv)
                 }
             }
         }
-        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
@@ -669,7 +770,7 @@ actor FirebaseMessageDataSource: Sendable {
 
         for change in changes {
             let data = change.document.data()
-            guard let message = Self.dictToMessage(data, docId: change.document.documentID) else { continue }
+            let message = Self.dictToMessage(data, docId: change.document.documentID)
 
             switch change.type {
             case .added:
@@ -684,44 +785,32 @@ actor FirebaseMessageDataSource: Sendable {
                     }) {
                         list.remove(at: placeholderIdx)
                     }
-                    if !list.contains(where: { $0.id == message.id }) {
+                    if let existingIdx = list.firstIndex(where: { $0.id == message.id }) {
+                        list[existingIdx] = message
+                    } else {
                         list.insert(message, at: 0)
-                        list.sort { $0.createdAt > $1.createdAt }
                     }
+                    list.sort { $0.createdAt > $1.createdAt }
                     inMemoryMessages[conversationId] = list
                 }
 
-                // If remote partner sent the message, update conversation state
-                if message.sender.id != currentUserId {
-                    if let index = inMemoryConversations.firstIndex(where: { $0.id == conversationId }) {
-                        let existing = inMemoryConversations.remove(at: index)
-                        let updated = Conversation(
-                            id: existing.id,
-                            participants: existing.participants,
-                            lastMessage: message,
-                            unreadCount: existing.unreadCount + 1,
-                            isGroup: existing.isGroup,
-                            groupName: existing.groupName,
-                            groupAvatarURL: existing.groupAvatarURL,
-                            updatedAt: message.createdAt,
-                            isMuted: existing.isMuted
-                        )
-                        inMemoryConversations.insert(updated, at: 0)
-                    }
-                    updateTotalUnreadState()
-                    NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
-                }
+                // Update conversation state & bump to top for both incoming and outgoing messages
+                let isRemote = (message.sender.id != currentUserId)
+                syncConversationSummary(for: conversationId, preferredLastMessage: message, incrementUnread: isRemote)
 
                 NotificationCenter.default.post(name: .didUpdateMessage, object: message)
 
             case .modified:
                 if let idx = inMemoryMessages[conversationId]?.firstIndex(where: { $0.id == message.id }) {
                     inMemoryMessages[conversationId]?[idx] = message
+                    inMemoryMessages[conversationId]?.sort { $0.createdAt > $1.createdAt }
+                    syncConversationSummary(for: conversationId)
                     NotificationCenter.default.post(name: .didUpdateMessage, object: message)
                 }
 
             case .removed:
                 inMemoryMessages[conversationId]?.removeAll { $0.id == message.id }
+                syncConversationSummary(for: conversationId)
                 NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
             }
         }
@@ -757,7 +846,7 @@ actor FirebaseMessageDataSource: Sendable {
             inMemoryConversations.insert(updated, at: 0)
         }
 
-        inMemoryConversations.sort { $0.updatedAt > $1.updatedAt }
+        inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
         updateTotalUnreadState()
         NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
     }
@@ -846,6 +935,7 @@ actor FirebaseMessageDataSource: Sendable {
                 isMuted: existing.isMuted
             )
             inMemoryConversations.insert(updated, at: 0)
+            inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
 
             NotificationCenter.default.post(name: .didUpdateMessage, object: callMessage)
             NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -880,6 +970,7 @@ actor FirebaseMessageDataSource: Sendable {
                 isMuted: false
             )
             inMemoryConversations.insert(newConv, at: 0)
+            inMemoryConversations.sort { $0.effectiveDate > $1.effectiveDate }
 
             NotificationCenter.default.post(name: .didUpdateMessage, object: callMessage)
             NotificationCenter.default.post(name: .didUpdateConversations, object: nil)
@@ -962,13 +1053,35 @@ actor FirebaseMessageDataSource: Sendable {
             .document(resolvedMessage.id)
             .setData(dict)
 
-        // Update conversation summary
+        // Update conversation summary with both lastMessage dict and root summary fields
+        var summaryUpdate: [String: Any] = [
+            "lastMessage": dict,
+            "lastMessageSenderId": resolvedMessage.sender.id,
+            "lastMessageTimestamp": FieldValue.serverTimestamp(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        switch resolvedMessage.content {
+        case .text(let text):
+            summaryUpdate["lastMessageText"] = text
+        case .image:
+            summaryUpdate["lastMessageText"] = "[Hình ảnh]"
+        case .video:
+            summaryUpdate["lastMessageText"] = "[Video]"
+        case .audio:
+            summaryUpdate["lastMessageText"] = "[Tin nhắn thoại]"
+        case .post:
+            summaryUpdate["lastMessageText"] = "[Bài viết]"
+        case .story:
+            summaryUpdate["lastMessageText"] = "[Tin]"
+        case .reel:
+            summaryUpdate["lastMessageText"] = "[Reel]"
+        case .like:
+            summaryUpdate["lastMessageText"] = "❤️"
+        }
+
         try? await db.collection("conversations")
             .document(conversationId)
-            .setData([
-                "lastMessage": dict,
-                "updatedAt": FieldValue.serverTimestamp()
-            ], merge: true)
+            .setData(summaryUpdate, merge: true)
     }
 
     private func persistConversationToFirestore(_ conv: Conversation) async {
@@ -992,7 +1105,10 @@ actor FirebaseMessageDataSource: Sendable {
     private func syncCurrentUser() async {
         let (uid, user) = await MainActor.run {
             let session = SessionStore.shared
-            let id = session.currentUserId
+            var id = session.currentUserId
+            if id.isEmpty, let authUid = Auth.auth().currentUser?.uid, !authUid.isEmpty {
+                id = authUid
+            }
             let u = session.currentUser ?? User(
                 id: id,
                 username: "user_\(id)",
@@ -1019,7 +1135,14 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     private func resolvedCurrentUserId() -> String {
-        return currentUserIdCache
+        if !currentUserIdCache.isEmpty {
+            return currentUserIdCache
+        }
+        if let authUid = Auth.auth().currentUser?.uid, !authUid.isEmpty {
+            currentUserIdCache = authUid
+            return authUid
+        }
+        return ""
     }
 
     private func resolvedCurrentUser() -> User {
@@ -1042,8 +1165,8 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     static func dictToUser(_ dict: [String: Any]) -> User? {
-        guard let id = dict["id"] as? String ?? dict["uid"] as? String ?? dict["userId"] as? String ?? dict["authorId"] as? String,
-              let username = dict["username"] as? String ?? dict["authorUsername"] as? String ?? dict["displayName"] as? String ?? dict["name"] as? String else { return nil }
+        guard let id = dict["id"] as? String ?? dict["uid"] as? String ?? dict["userId"] as? String ?? dict["authorId"] as? String else { return nil }
+        let username = dict["username"] as? String ?? dict["authorUsername"] as? String ?? dict["displayName"] as? String ?? dict["name"] as? String ?? "user_\(id.prefix(6))"
         let fullName = dict["fullName"] as? String ?? dict["authorFullName"] as? String ?? dict["authorDisplayName"] as? String ?? username
         let avatarStr = dict["avatarURL"] as? String ?? dict["avatarUrl"] as? String ?? dict["authorPhotoUrl"] as? String ?? dict["photoUrl"] as? String ?? dict["profileImageUrl"] as? String
         let avatarURL = avatarStr.flatMap { URL(string: $0) }
@@ -1118,17 +1241,23 @@ actor FirebaseMessageDataSource: Sendable {
         return dict
     }
 
-    static func dictToMessage(_ dict: [String: Any], docId: String) -> Message? {
+    static func dictToMessage(_ dict: [String: Any], docId: String) -> Message {
         let id = (dict["id"] as? String) ?? docId
         let convId = dict["conversationId"] as? String ?? ""
 
-        // Resolve sender defensively (nested dict or flat fields)
+        // Resolve sender defensively (nested dict or flat fields or string)
         let sender: User
         if let senderDict = dict["sender"] as? [String: Any],
            let parsed = dictToUser(senderDict) {
             sender = parsed
-        } else if let senderId = dict["senderId"] as? String ?? dict["sender_id"] as? String ?? dict["authorId"] as? String ?? dict["userId"] as? String {
-            let username = dict["senderUsername"] as? String ?? dict["username"] as? String ?? "user"
+        } else if let senderId = dict["senderId"] as? String
+               ?? dict["sender_id"] as? String
+               ?? dict["sender"] as? String
+               ?? dict["authorId"] as? String
+               ?? dict["userId"] as? String
+               ?? dict["fromId"] as? String
+               ?? dict["uid"] as? String {
+            let username = dict["senderUsername"] as? String ?? dict["username"] as? String ?? dict["authorUsername"] as? String ?? "user"
             let fullName = dict["senderFullName"] as? String ?? dict["fullName"] as? String ?? username
             let avatarStr = dict["senderAvatarURL"] as? String ?? dict["senderAvatarUrl"] as? String ?? dict["avatarURL"] as? String ?? dict["photoUrl"] as? String
             let avatarURL = avatarStr.flatMap { URL(string: $0) }
@@ -1152,24 +1281,59 @@ actor FirebaseMessageDataSource: Sendable {
                 isBlocked: false
             )
         } else {
-            return nil
+            // Defensive fallback: Never drop a message even if sender is completely missing/corrupted
+            sender = User(
+                id: "unknown_\(id)",
+                username: "user",
+                fullName: "Người dùng",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .now,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
         }
 
-        let statusStr = dict["status"] as? String ?? "sent"
-        let status = MessageStatus(rawValue: statusStr) ?? .sent
+        let statusStr = (dict["status"] as? String ?? "sent").lowercased()
+        let status: MessageStatus
+        switch statusStr {
+        case "failed", "error":
+            status = .failed
+        case "sending":
+            status = .sending
+        case "delivered":
+            status = .delivered
+        case "read":
+            status = .read
+        default:
+            status = .sent
+        }
+
         let replyToId = dict["replyToId"] as? String
         let replyToSnippet = dict["replyToSnippet"] as? String
         let reactions = dict["reactions"] as? [String: String] ?? [:]
 
+        // Defensive timestamp parsing with multiple fallback field names
         let createdAt: Date
-        if let timestamp = dict["createdAt"] as? Timestamp {
+        if let timestamp = dict["createdAt"] as? Timestamp ?? dict["timestamp"] as? Timestamp ?? dict["time"] as? Timestamp ?? dict["created_at"] as? Timestamp {
             createdAt = timestamp.dateValue()
-        } else if let interval = dict["createdAt"] as? TimeInterval {
+        } else if let interval = dict["createdAt"] as? TimeInterval ?? dict["timestamp"] as? TimeInterval ?? dict["time"] as? TimeInterval {
             createdAt = Date(timeIntervalSince1970: interval)
-        } else if let dateStr = dict["createdAt"] as? String {
-            createdAt = DateMapper.toDate(dateStr)
+        } else if let date = dict["createdAt"] as? Date ?? dict["timestamp"] as? Date {
+            createdAt = date
+        } else if let dateStr = dict["createdAt"] as? String ?? dict["timestamp"] as? String ?? dict["time"] as? String ?? dict["created_at"] as? String {
+            createdAt = DateMapper.toDate(dateStr, fallback: .now)
         } else {
-            createdAt = Date()
+            createdAt = .now
         }
 
         let content = parseContent(from: dict)
@@ -1188,17 +1352,17 @@ actor FirebaseMessageDataSource: Sendable {
     }
 
     static func parseContent(from dict: [String: Any]) -> MessageContent {
-        let type = dict["type"] as? String ?? "text"
+        let type = (dict["type"] as? String ?? dict["contentType"] as? String ?? "text").lowercased()
         switch type {
         case "text":
-            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? ""
+            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? dict["message"] as? String ?? ""
             return .text(text)
         case "image":
             let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["imageUrl"] as? String ?? dict["url"] as? String
             if let urlStr, let url = URL(string: urlStr) {
                 return .image(url)
             }
-            return .text("[Hình ảnh]")
+            return .text(dict["text"] as? String ?? "[Hình ảnh]")
         case "video":
             let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["videoUrl"] as? String ?? dict["url"] as? String
             if let urlStr, let url = URL(string: urlStr) {
@@ -1206,14 +1370,14 @@ actor FirebaseMessageDataSource: Sendable {
                 let thumb = thumbStr.flatMap { URL(string: $0) }
                 return .video(url, thumbnailURL: thumb)
             }
-            return .text("[Video]")
+            return .text(dict["text"] as? String ?? "[Video]")
         case "audio":
             let urlStr = dict["mediaURL"] as? String ?? dict["mediaUrl"] as? String ?? dict["audioUrl"] as? String ?? dict["url"] as? String
             if let urlStr, let url = URL(string: urlStr) {
                 let duration = dict["duration"] as? Double ?? 0
                 return .audio(url, duration: duration)
             }
-            return .text("[Tin nhắn thoại]")
+            return .text(dict["text"] as? String ?? "[Tin nhắn thoại]")
         case "post":
             let postId = dict["referenceId"] as? String ?? dict["postId"] as? String ?? ""
             return .post(postId: postId)
@@ -1226,7 +1390,7 @@ actor FirebaseMessageDataSource: Sendable {
         case "like":
             return .like
         default:
-            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? ""
+            let text = dict["text"] as? String ?? dict["textContent"] as? String ?? dict["content"] as? String ?? dict["message"] as? String ?? ""
             return .text(text)
         }
     }
@@ -1253,20 +1417,95 @@ actor FirebaseMessageDataSource: Sendable {
         return dict
     }
 
-    static func dictToConversation(_ dict: [String: Any], docId: String) -> Conversation? {
+    static func dictToConversation(_ dict: [String: Any], docId: String, currentUserId: String = "") -> Conversation? {
         let id = (dict["id"] as? String) ?? docId
-        let participantsRaw = dict["participants"] as? [[String: Any]] ?? []
-        let participants = participantsRaw.compactMap { dictToUser($0) }
 
-        let lastMessage: Message?
+        // 1. Resolve participants (robust fallback from participantIds if empty)
+        let participantsRaw = dict["participants"] as? [[String: Any]] ?? []
+        var participants = participantsRaw.compactMap { dictToUser($0) }
+        if participants.isEmpty, let participantIds = dict["participantIds"] as? [String] {
+            participants = participantIds.map { pid in
+                User(
+                    id: pid,
+                    username: pid == currentUserId ? "me" : "user_\(pid.prefix(6))",
+                    fullName: pid == currentUserId ? "Me" : "User \(pid.prefix(6))",
+                    email: nil,
+                    phone: nil,
+                    avatarURL: URL(string: "https://i.pravatar.cc/300?u=\(pid)"),
+                    bio: nil,
+                    website: nil,
+                    isVerified: false,
+                    isPrivate: false,
+                    followersCount: 0,
+                    followingCount: 0,
+                    postsCount: 0,
+                    createdAt: .distantPast,
+                    isFollowing: false,
+                    isFollowedBy: false,
+                    isBlocked: false
+                )
+            }
+        }
+
+        // 2. Parse lastMessage: support nested dict OR root summary fields fallback
+        var lastMessage: Message? = nil
         if let lastMsgDict = dict["lastMessage"] as? [String: Any] {
             let lastMsgId = (lastMsgDict["id"] as? String) ?? "\(id)_last"
             lastMessage = dictToMessage(lastMsgDict, docId: lastMsgId)
-        } else {
-            lastMessage = nil
         }
 
-        let unreadCount = dict["unreadCount"] as? Int ?? 0
+        if lastMessage == nil, let lastText = dict["lastMessageText"] as? String ?? dict["lastMessage"] as? String {
+            let senderId = dict["lastMessageSenderId"] as? String ?? dict["senderId"] as? String ?? ""
+            let senderUser = participants.first(where: { $0.id == senderId }) ?? User(
+                id: senderId,
+                username: "user",
+                fullName: "User",
+                email: nil,
+                phone: nil,
+                avatarURL: nil,
+                bio: nil,
+                website: nil,
+                isVerified: false,
+                isPrivate: false,
+                followersCount: 0,
+                followingCount: 0,
+                postsCount: 0,
+                createdAt: .distantPast,
+                isFollowing: false,
+                isFollowedBy: false,
+                isBlocked: false
+            )
+
+            let msgDate: Date
+            if let ts = dict["lastMessageTimestamp"] as? Timestamp {
+                msgDate = ts.dateValue()
+            } else if let interval = dict["lastMessageTimestamp"] as? TimeInterval {
+                msgDate = Date(timeIntervalSince1970: interval)
+            } else if let dateStr = dict["lastMessageTimestamp"] as? String {
+                msgDate = DateMapper.toDate(dateStr, fallback: .distantPast)
+            } else {
+                msgDate = .distantPast
+            }
+
+            lastMessage = Message(
+                id: "\(id)_last",
+                conversationId: id,
+                sender: senderUser,
+                content: .text(lastText),
+                status: .sent,
+                replyToId: nil,
+                createdAt: msgDate
+            )
+        }
+
+        // 3. Resolve unreadCount: per-user map unreadCounts[currentUserId] or root unreadCount
+        let unreadCount: Int
+        if !currentUserId.isEmpty, let unreadMap = dict["unreadCounts"] as? [String: Any], let userUnread = unreadMap[currentUserId] as? Int {
+            unreadCount = userUnread
+        } else {
+            unreadCount = dict["unreadCount"] as? Int ?? 0
+        }
+
         let isGroup = dict["isGroup"] as? Bool ?? (participants.count > 2)
         let groupName = dict["groupName"] as? String
         let groupAvatarURL = (dict["groupAvatarURL"] as? String).flatMap { URL(string: $0) }
@@ -1276,10 +1515,12 @@ actor FirebaseMessageDataSource: Sendable {
             updatedAt = timestamp.dateValue()
         } else if let interval = dict["updatedAt"] as? TimeInterval {
             updatedAt = Date(timeIntervalSince1970: interval)
+        } else if let date = dict["updatedAt"] as? Date {
+            updatedAt = date
         } else if let dateStr = dict["updatedAt"] as? String {
-            updatedAt = DateMapper.toDate(dateStr)
+            updatedAt = DateMapper.toDate(dateStr, fallback: lastMessage?.createdAt ?? .distantPast)
         } else {
-            updatedAt = lastMessage?.createdAt ?? Date()
+            updatedAt = lastMessage?.createdAt ?? .distantPast
         }
 
         let isMuted = dict["isMuted"] as? Bool ?? false
@@ -1307,10 +1548,12 @@ actor FirebaseMessageDataSource: Sendable {
             createdAt = timestamp.dateValue()
         } else if let interval = dict["createdAt"] as? TimeInterval {
             createdAt = Date(timeIntervalSince1970: interval)
+        } else if let date = dict["createdAt"] as? Date {
+            createdAt = date
         } else if let dateStr = dict["createdAt"] as? String {
-            createdAt = DateMapper.toDate(dateStr)
+            createdAt = DateMapper.toDate(dateStr, fallback: .distantPast)
         } else {
-            createdAt = Date()
+            createdAt = .distantPast
         }
 
         let expiresAt: Date?

@@ -19,6 +19,15 @@ nonisolated struct Conversation: Identifiable, Hashable, Sendable {
     let groupAvatarURL: URL?
     let updatedAt: Date
     let isMuted: Bool
+
+    /// The definitive timestamp for chronological inbox sorting and display.
+    /// Combines conversation update timestamp with the most recent message createdAt.
+    var effectiveDate: Date {
+        if let msgDate = lastMessage?.createdAt {
+            return max(updatedAt, msgDate)
+        }
+        return updatedAt
+    }
 }
 
 // MARK: - Message
