@@ -24,7 +24,12 @@ protocol VoIPPushServiceProtocol: AnyObject {
 /// within the same callback — otherwise iOS will terminate the app.
 final class VoIPPushService: NSObject, VoIPPushServiceProtocol, @unchecked Sendable {
 
-    static let shared = VoIPPushService()
+    nonisolated(unsafe) static var shared = VoIPPushService()
+
+    /// Resets the shared instance for testing purposes.
+    nonisolated static func resetSharedInstanceForTesting() {
+        shared = VoIPPushService()
+    }
 
     // MARK: - Properties
 
@@ -32,7 +37,7 @@ final class VoIPPushService: NSObject, VoIPPushServiceProtocol, @unchecked Senda
     private(set) var voipToken: String?
     private let logger = AppLogger.general
 
-    private override init() {
+    internal override init() {
         super.init()
     }
 
@@ -96,7 +101,6 @@ extension VoIPPushService: PKPushRegistryDelegate {
 
         // MUST report to CallKit synchronously within this callback
         Task { @MainActor in
-            defer { completion() }
             do {
                 try await CallManager.shared.reportIncomingCall(
                     uuid: uuid,
@@ -124,6 +128,9 @@ extension VoIPPushService: PKPushRegistryDelegate {
                     callerName: callerName,
                     uuid: uuid
                 )
+
+                // Only call completion AFTER all async operations succeed
+                completion()
             } catch {
                 // If we fail to report the call, we MUST still complete.
                 // CallKit will show a missed call.
@@ -131,6 +138,9 @@ extension VoIPPushService: PKPushRegistryDelegate {
 
                 // Report and immediately end to satisfy iOS requirement
                 CallManager.shared.reportCallEnded(uuid: uuid, reason: .failed)
+
+                // Still must call completion to avoid iOS killing the app
+                completion()
             }
         }
     }

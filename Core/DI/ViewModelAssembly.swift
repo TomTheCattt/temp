@@ -63,6 +63,20 @@ final class ViewModelAssembly: Assembly {
             )
         }
 
+        // MARK: ChatViewModel
+
+        container.register(ChatViewModel.self) { resolver in
+            ChatViewModel(
+                conversationId: "",
+                currentUserId: SessionStore.shared.currentUserId,
+                recipient: nil,
+                fetchMessagesUseCase: resolver.resolve(FetchMessagesUseCaseProtocol.self)!,
+                sendMessageUseCase: resolver.resolve(SendMessageUseCaseProtocol.self)!,
+                messageRepository: resolver.resolve(MessageRepositoryProtocol.self)!,
+                chatSyncService: resolver.resolve(ChatSyncService.self)!
+            )
+        }
+
         // MARK: ReelsViewModel
 
         container.register(ReelsViewModel.self) { resolver in

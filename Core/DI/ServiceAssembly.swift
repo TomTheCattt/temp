@@ -29,6 +29,15 @@ final class ServiceAssembly: Assembly {
             )
         }.inObjectScope(.container)
 
+        // MARK: ChatSyncService
+
+        container.register(ChatSyncService.self) { resolver in
+            ChatSyncService(
+                webSocketMessageHandler: resolver.resolve(WebSocketMessageHandler.self)!,
+                messageRepository: resolver.resolve(MessageRepositoryProtocol.self)!
+            )
+        }.inObjectScope(.container)
+
         // MARK: BiometricAuthenticator
 
         container.register(BiometricAuthenticator.self) { _ in

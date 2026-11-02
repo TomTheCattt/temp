@@ -26,7 +26,7 @@ enum NetworkBannerStatus: Sendable, Equatable {
 /// - Safe task cancellation to prevent flapping / race conditions.
 @MainActor
 @Observable
-final class NetworkMonitor {
+class NetworkMonitor {
 
     static let shared = NetworkMonitor()
 
@@ -38,6 +38,13 @@ final class NetworkMonitor {
     /// Visual presentation status for the persistent top banner.
     private(set) var bannerStatus: NetworkBannerStatus = .hidden
 
+    /// AsyncStream for observing connectivity changes
+    var connectionChanges: AsyncStream<Bool> {
+        AsyncStream { continuation in
+            self.connectionContinuations.append(continuation)
+        }
+    }
+
     /// Tracks whether we've resolved the initial path yet.
     private var hasResolvedInitialState = false
 
@@ -47,6 +54,7 @@ final class NetworkMonitor {
     private let queue = DispatchQueue(label: "com.instagram.networkmonitor")
     private var isStarted = false
     private var dismissBannerTask: Task<Void, Never>?
+    private var connectionContinuations: [AsyncStream<Bool>.Continuation] = []
 
     private init() {}
 
@@ -91,6 +99,11 @@ final class NetworkMonitor {
         // Ignore no-op updates (same status reported again).
         guard connected != isConnected else { return }
         isConnected = connected
+
+        // Notify connection change observers
+        for continuation in connectionContinuations {
+            continuation.yield(connected)
+        }
 
         dismissBannerTask?.cancel()
         dismissBannerTask = nil
