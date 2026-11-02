@@ -13,7 +13,7 @@ APP_ENVIRONMENT = dev
 APP_NAME = Instagram (Dev)
 
 // Backend Type Selection: "firebase" or "live" (Custom REST API)
-BACKEND_TYPE = firebase
+BACKEND_TYPE = live
 APP_BASE_URL = https:$(SLASH)/dev-api.example.com
 
 // Logging & Debugging

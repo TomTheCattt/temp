@@ -7,7 +7,7 @@
 	<key>APP_ENVIRONMENT</key>
 	<string>$(APP_ENVIRONMENT)</string>
 	<key>BACKEND_TYPE</key>
-	<string>$(BACKEND_TYPE)</string>
+	<string>live</string>
 	<key>APP_BASE_URL</key>
 	<string>$(APP_BASE_URL)</string>
 	<key>APP_STORE_URL</key>
@@ -36,5 +36,9 @@
 		<string>voip</string>
 		<string>audio</string>
 	</array>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	<key>GULAppDelegateSwizzlerEnabled</key>
+	<false/>
 </dict>
 </plist>
