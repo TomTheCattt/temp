@@ -101,6 +101,12 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
     private var connectionGeneration: UInt64 = 0
     private var lastPongReceivedAt: Date = Date()
 
+    // MARK: - Offline Message Queue
+
+    /// Queued outgoing messages sent while disconnected, flushed on reconnect
+    private var outgoingMessageQueue: [(text: String, completion: (Error?) -> Void)] = []
+    private let maxQueueSize = 100
+
     // MARK: - Configuration
 
     private let reconnectMaxAttempts = 5
@@ -202,19 +208,49 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
     // MARK: - Send
 
     func send(text: String) async throws {
-        guard let task = queue.sync(execute: { webSocketTask }),
-              isConnected else {
-            throw WebSocketError.notConnected
+        var task: URLSessionWebSocketTask?
+        queue.sync { [weak self] in
+            guard let self else { task = nil; return }
+
+            if let t = self.webSocketTask, self.isConnected {
+                task = t
+            } else {
+                // Queue message for later delivery when reconnected
+                if self.outgoingMessageQueue.count < self.maxQueueSize {
+                    self.outgoingMessageQueue.append((text: text, completion: { _ in }))
+                } else {
+                    self.logger.notice("WebSocket message queue full, dropping message")
+                }
+                task = nil
+            }
         }
+
+        guard let task else { throw WebSocketError.notConnected }
+
         try await task.send(.string(text))
         logger.debug("WebSocket sent text (\(text.count) chars)")
     }
 
     func send(data: Data) async throws {
-        guard let task = queue.sync(execute: { webSocketTask }),
-              isConnected else {
-            throw WebSocketError.notConnected
+        var task: URLSessionWebSocketTask?
+        queue.sync { [weak self] in
+            guard let self else { task = nil; return }
+
+            if let t = self.webSocketTask, self.isConnected {
+                task = t
+            } else {
+                // Queue message for later delivery when reconnected
+                if self.outgoingMessageQueue.count < self.maxQueueSize {
+                    self.outgoingMessageQueue.append((text: String(data: data, encoding: .utf8) ?? "", completion: { _ in }))
+                } else {
+                    self.logger.notice("WebSocket message queue full, dropping message")
+                }
+                task = nil
+            }
         }
+
+        guard let task else { throw WebSocketError.notConnected }
+
         try await task.send(.data(data))
         logger.debug("WebSocket sent data (\(data.count) bytes)")
     }
@@ -222,7 +258,7 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
     // MARK: - Ping
 
     func ping() async {
-        guard let task = queue.sync(execute: { webSocketTask }) else { return }
+        guard let task = queue.sync(execute: { self.webSocketTask }) else { return }
         task.sendPing { [weak self] error in
             guard let self else { return }
             self.queue.async {
@@ -331,6 +367,24 @@ final class WebSocketService: NSObject, WebSocketServiceProtocol, @unchecked Sen
         pingTimer = nil
     }
 
+    /// Flushes queued outgoing messages when connection is restored
+    private func flushOutgoingQueue() {
+        guard !outgoingMessageQueue.isEmpty, let task = webSocketTask, isConnected else { return }
+
+        let messages = outgoingMessageQueue
+        outgoingMessageQueue.removeAll()
+
+        for (text, completion) in messages {
+            task.send(.string(text)) { error in
+                completion(error)
+            }
+        }
+
+        if !messages.isEmpty {
+            logger.info("Flushed \(messages.count) queued WebSocket messages")
+        }
+    }
+
     // MARK: - Private: Reconnect
 
     /// Must be called on `queue`.
@@ -378,6 +432,9 @@ extension WebSocketService: URLSessionWebSocketDelegate {
         updateState(.connected)
         eventSubject.send(.connected)
         logger.info("WebSocket connection opened")
+
+        // Flush queued messages
+        flushOutgoingQueue()
     }
 
     func urlSession(_ session: URLSession,
