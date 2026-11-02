@@ -245,24 +245,71 @@ struct DirectMessagesView: View {
     // MARK: - Search Bar Section
 
     private var searchBarSection: some View {
-        HStack(spacing: DS.Spacing.xs) {
-            InstagramIcon(.search(), size: 14, color: .secondary)
+        VStack(spacing: DS.Spacing.xs) {
+            HStack(spacing: DS.Spacing.xs) {
+                InstagramIcon(.search(), size: 14, color: .secondary)
 
-            TextField("Tìm kiếm", text: $viewModel.searchQuery)
-                .textFieldStyle(.plain)
-                .font(DS.Font.subheadline)
+                TextField("Tìm kiếm", text: $viewModel.searchQuery)
+                    .textFieldStyle(.plain)
+                    .font(DS.Font.subheadline)
 
-            if !viewModel.searchQuery.isEmpty {
-                Button {
-                    viewModel.searchQuery = ""
-                } label: {
-                    InstagramIcon(.system(name: "xmark.circle.fill"), size: 14, color: .secondary)
+                if !viewModel.searchQuery.isEmpty {
+                    Button {
+                        viewModel.searchQuery = ""
+                    } label: {
+                        InstagramIcon(.system(name: "xmark.circle.fill"), size: 14, color: .secondary)
+                    }
                 }
             }
+            .padding(.horizontal, DS.Spacing.sm)
+            .padding(.vertical, 8)
+            .background(ColorTokens.backgroundSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+
+            // Filter Chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.Spacing.xs) {
+                    ForEach(DirectMessagesViewModel.ConversationFilter.allCases, id: \.self) { filter in
+                        FilterChip(
+                            title: filter.title,
+                            icon: filter.icon,
+                            isSelected: viewModel.selectedFilter == filter
+                        ) {
+                            withAnimation(DS.Animation.standard) {
+                                viewModel.selectedFilter = filter
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Padding.horizontal)
+            }
         }
-        .padding(.horizontal, DS.Spacing.sm)
-        .padding(.vertical, 8)
-        .background(ColorTokens.backgroundSecondary, in: RoundedRectangle(cornerRadius: DS.Radius.medium))
+    }
+
+    // MARK: - Filter Chip
+
+    private struct FilterChip: View {
+        let title: String
+        let icon: String
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: DS.Spacing.xxs) {
+                    InstagramIcon(.system(name: icon), size: 12, color: isSelected ? .white : .secondary)
+                    Text(title)
+                        .font(DS.Font.caption)
+                }
+                .padding(.horizontal, DS.Spacing.sm)
+                .padding(.vertical, DS.Spacing.xxs)
+                .background(
+                    isSelected ? ColorTokens.accentPrimary : ColorTokens.backgroundSecondary,
+                    in: Capsule()
+                )
+                .foregroundStyle(isSelected ? .white : .primary)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private var conversationPlaceholder: some View {

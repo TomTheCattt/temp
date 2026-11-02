@@ -56,7 +56,7 @@ struct ChatView: View {
                     } else if let errorMessage = viewModel.errorMessage, viewModel.messages.isEmpty {
                         ErrorStateView(
                             message: errorMessage,
-                            retryAction: { Task { await viewModel.loadMessages() } }
+                            retryAction: { viewModel.loadMessages() }
                         )
                         .padding(.top, DS.Spacing.xxxl)
                     } else if viewModel.messages.isEmpty {
@@ -70,7 +70,7 @@ struct ChatView: View {
                         if viewModel.hasMorePages {
                             ProgressView()
                                 .padding(.vertical, DS.Spacing.xs)
-                                .task { await viewModel.loadMoreMessages() }
+                                .task { viewModel.loadMoreMessages() }
                         }
 
                         // Conversation Starter Header (Avatar lớn, bio, nút xem profile)
@@ -99,6 +99,11 @@ struct ChatView: View {
                     replyPreviewBar(replyMessage)
                 }
 
+                // Offline message queue indicator
+                if OfflineMessageQueue.shared.pendingCount > 0 {
+                    offlineQueueIndicator
+                }
+
                 if isRecordingVoice {
                     voiceRecordingBar
                 } else {
@@ -108,9 +113,7 @@ struct ChatView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            await viewModel.loadMessages()
-        }
+        .task { viewModel.loadMessages() }
         .onAppear {
             viewModel.onAppear()
             // Restore unsent text into the field when a send fails.
@@ -295,22 +298,69 @@ struct ChatView: View {
         // Precompute the last own message id once (avoids O(n^2) scans per row).
         let lastOwnId = reversed.last { $0.sender.id == viewModel.currentUserId }?.id
 
-        ForEach(Array(reversed.enumerated()), id: \.element.id) { index, message in
-            let isMe = message.sender.id == viewModel.currentUserId
-            // Show avatar only on the last message of a consecutive incoming run.
-            let nextSameSender: Bool = {
-                let nextIndex = index + 1
-                guard nextIndex < reversed.count else { return false }
-                return reversed[nextIndex].sender.id == message.sender.id
-            }()
-            messageBubble(
-                message,
-                isMe: isMe,
-                showReadReceipt: message.id == lastOwnId,
-                showAvatar: !isMe && !nextSameSender
-            )
+        // Group messages by date for date headers
+        let groupedMessages = groupMessagesByDate(reversed)
+
+        ForEach(Array(groupedMessages.enumerated()), id: \.element.id) { sectionIndex, section in
+            // Date header
+            VStack(spacing: DS.Spacing.xxs) {
+                Text(section.date, format: Date.FormatStyle().day().month().year())
+                    .font(DS.Font.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, DS.Spacing.xxs)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(UIColor.systemBackground))
+
+                ForEach(Array(section.messages.enumerated()), id: \.element.id) { index, message in
+                    let isMe = message.sender.id == viewModel.currentUserId
+                    // Show avatar only on the last message of a consecutive incoming run.
+                    let nextSameSender: Bool = {
+                        let nextIndex = index + 1
+                        guard nextIndex < section.messages.count else { return false }
+                        return section.messages[nextIndex].sender.id == message.sender.id
+                    }()
+                    messageBubble(
+                        message,
+                        isMe: isMe,
+                        showReadReceipt: message.id == lastOwnId,
+                        showAvatar: !isMe && !nextSameSender
+                    )
+                }
+            }
         }
     }
+
+    /// Groups messages by date for date separator headers
+    private func groupMessagesByDate(_ messages: [Message]) -> [MessageSection] {
+        let calendar = Calendar.current
+        var sections: [MessageSection] = []
+        var currentSection: MessageSection?
+
+        for message in messages {
+            let dateKey = calendar.startOfDay(for: message.createdAt)
+
+            if let section = currentSection, calendar.isDate(section.date, inSameDayAs: dateKey) {
+                currentSection?.messages.append(message)
+            } else {
+                if let section = currentSection {
+                    sections.append(section)
+                }
+                currentSection = MessageSection(date: dateKey, messages: [message])
+            }
+        }
+
+        if let section = currentSection {
+            sections.append(section)
+        }
+
+        return sections
+    }
+
+private struct MessageSection: Identifiable {
+    let id = UUID()
+    let date: Date
+    var messages: [Message]
+}
 
     // MARK: - Timestamp Drag Gesture (iMessage-style)
 
@@ -808,6 +858,32 @@ struct ChatView: View {
         }
         .padding(.horizontal, DS.Padding.content)
         .padding(.vertical, DS.Spacing.xs)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    // MARK: - Offline Queue Indicator
+
+    private var offlineQueueIndicator: some View {
+        HStack(spacing: DS.Spacing.sm) {
+            InstagramIcon(.system(name: "clock.arrow.circlepath"), size: 14, color: .orange)
+            Text("\(OfflineMessageQueue.shared.pendingCount) tin nhắn đang chờ gửi")
+                .font(DS.Font.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Button {
+                HapticFeedbackSafe.impact(.light)
+                Task { await viewModel.retryQueuedMessages() }
+            } label: {
+                Text("Gửi lại")
+                    .font(DS.Font.captionBold)
+                    .foregroundStyle(ColorTokens.accentPrimary)
+            }
+        }
+        .padding(.horizontal, DS.Padding.content)
+        .padding(.vertical, DS.Spacing.xs)
+        .background(ColorTokens.backgroundSecondary)
         .overlay(alignment: .top) { Divider() }
     }
 
