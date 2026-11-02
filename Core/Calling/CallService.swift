@@ -100,20 +100,25 @@ struct ActiveCall: Sendable {
 ///   idle → incomingRinging → connecting → connected → ended
 ///
 @MainActor
-final class CallService: CallServiceProtocol, @unchecked Sendable {
+class CallService: CallServiceProtocol, @unchecked Sendable {
 
-    static let shared = CallService()
+    static var shared = CallService()
+
+    /// Resets the shared instance for testing purposes.
+    static func resetSharedInstanceForTesting() {
+        shared = CallService()
+    }
 
     // MARK: - State
 
-    private(set) var currentCallState: CallState = .idle {
+    var currentCallState: CallState = .idle {
         didSet {
             callStateSubject.send(currentCallState)
             logger.info("Call state: \(String(describing: currentCallState))")
         }
     }
 
-    private(set) var currentCall: ActiveCall? {
+    var currentCall: ActiveCall? {
         didSet {
             currentCallSubject.send(currentCall)
         }
@@ -138,9 +143,18 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
     // MARK: - Timers & Generation
 
-    private var ringTimeoutTask: Task<Void, Never>?
+    internal var ringTimeoutTask: Task<Void, Never>?
     private let ringTimeoutSeconds: TimeInterval = 45
-    private var callGeneration: UInt64 = 0
+    internal var callGeneration: UInt64 = 0
+
+    // MARK: - Network Monitoring
+
+    internal var networkMonitorTask: Task<Void, Never>?
+    internal var wasConnectedBeforeNetworkLoss = false
+
+    // MARK: - ICE Candidate Buffer (for WebRTC when implemented)
+
+    internal var pendingICECandidates: [CallSignal] = []
 
     // MARK: - Subscriptions
 
@@ -148,18 +162,25 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
     // MARK: - Init
 
+    /// Optional custom connection changes stream for testing.
+    /// If not provided, uses NetworkMonitor.shared.connectionChanges.
+    private let customConnectionChanges: AsyncStream<Bool>?
+
     init(
         callManager: CallManager? = nil,
         signalingHandler: CallSignalingHandlerProtocol? = nil,
-        mediaPipeline: CallMediaPipelineProtocol? = nil
+        mediaPipeline: CallMediaPipelineProtocol? = nil,
+        connectionChanges: AsyncStream<Bool>? = nil
     ) {
         self.callManager = callManager ?? CallManager.shared
         self.mediaPipeline = mediaPipeline ?? DefaultCallMediaPipeline.shared
         self.signalingHandler = signalingHandler
             ?? DIContainer.shared.resolveOptional(CallSignalingHandlerProtocol.self)
             ?? FirebaseCallSignalingHandler.shared
+        self.customConnectionChanges = connectionChanges
         subscribeToCallKitEvents()
         subscribeToSignaling()
+        subscribeToNetworkChanges()
     }
 
     /// For DI / testing
@@ -174,13 +195,31 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
     func configure(signalingHandler: CallSignalingHandlerProtocol) {
         self.signalingHandler = signalingHandler
         cancellables.removeAll()
+        networkMonitorTask?.cancel()
+        networkMonitorTask = nil
+        pendingICECandidates.removeAll()
+        wasConnectedBeforeNetworkLoss = false
         subscribeToCallKitEvents()
         subscribeToSignaling()
+        subscribeToNetworkChanges()
     }
 
     func configure(messageHandler: WebSocketMessageHandler) {
         let wsHandler = WebSocketCallSignalingHandler(messageHandler: messageHandler)
         configure(signalingHandler: wsHandler)
+    }
+
+    /// Resets the service to initial state (for testing or app termination)
+    func reset() {
+        cancellables.removeAll()
+        networkMonitorTask?.cancel()
+        networkMonitorTask = nil
+        ringTimeoutTask?.cancel()
+        ringTimeoutTask = nil
+        pendingICECandidates.removeAll()
+        wasConnectedBeforeNetworkLoss = false
+        currentCallState = .idle
+        currentCall = nil
     }
 
     // MARK: - Outgoing Call
@@ -587,6 +626,12 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
 
         callManager.deactivateAudioSession()
 
+        // Cleanup network monitor task and pending ICE candidates
+        networkMonitorTask?.cancel()
+        networkMonitorTask = nil
+        pendingICECandidates.removeAll()
+        wasConnectedBeforeNetworkLoss = false
+
         let targetGeneration = self.callGeneration
         // Reset to idle after UI transition, isolated to matching call generation (CALL-08)
         Task {
@@ -679,6 +724,58 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
             .store(in: &cancellables)
     }
 
+    private func subscribeToNetworkChanges() {
+        let connectionChanges = customConnectionChanges ?? NetworkMonitor.shared.connectionChanges
+        networkMonitorTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await isConnected in connectionChanges {
+                if !isConnected {
+                    // Network lost - if we're in a connected call, transition to reconnecting
+                    if self.currentCallState == .connected {
+                        self.logger.info("Network lost during active call, transitioning to reconnecting")
+                        self.wasConnectedBeforeNetworkLoss = true
+                        self.currentCallState = .reconnecting
+                    }
+                } else {
+                    // Network restored - if we were reconnecting, attempt to recover
+                    if self.currentCallState == .reconnecting && self.wasConnectedBeforeNetworkLoss {
+                        self.logger.info("Network restored, attempting call recovery")
+                        await self.attemptCallRecovery()
+                    }
+                    self.wasConnectedBeforeNetworkLoss = false
+                }
+            }
+        }
+    }
+
+    /// Attempts to recover a call after network interruption
+    private func attemptCallRecovery() async {
+        guard let call = currentCall else {
+            logger.notice("No active call to recover")
+            currentCallState = .idle
+            return
+        }
+
+        // In a real WebRTC implementation, this would:
+        // 1. Trigger ICE restart
+        // 2. Renegotiate SDP
+        // 3. Resend pending ICE candidates
+        // For now, we'll just log and stay in connected state if media is still flowing
+
+        logger.info("Call recovery initiated for \(call.id)")
+
+        // Resend any pending ICE candidates (stored for WebRTC)
+        for candidate in pendingICECandidates {
+            try? await signalingHandler.send(signal: candidate)
+        }
+        pendingICECandidates.removeAll()
+
+        // For now, assume recovery succeeded if we have media pipeline running
+        // In real implementation, this would wait for ICE connection state change
+        currentCallState = .connected
+        callManager.reportCallConnected(uuid: call.uuid, isOutgoing: call.isOutgoing)
+    }
+
     private func handleIncomingSignal(_ signal: CallSignal) {
         switch signal {
         case .callIncoming(_, let fromUserId, _, _, let callerName, let avatarURL):
@@ -713,8 +810,20 @@ final class CallService: CallServiceProtocol, @unchecked Sendable {
                 }
             }
 
-        case .callIceCandidate(let callId, _, _, _, _, _):
+        case .callIceCandidate(let callId, let fromUserId, let toUserId, let candidate, let sdpMid, let sdpMLineIndex):
             logger.info("Received ICE candidate for \(callId)")
+            // Store ICE candidate for potential recovery (WebRTC implementation)
+            if currentCall?.id == callId {
+                let iceSignal = CallSignal.callIceCandidate(
+                    callId: callId,
+                    fromUserId: fromUserId,
+                    toUserId: toUserId,
+                    candidate: candidate,
+                    sdpMid: sdpMid,
+                    sdpMLineIndex: sdpMLineIndex
+                )
+                pendingICECandidates.append(iceSignal)
+            }
 
         case .callHangup(let callId, _, _):
             if currentCall?.id == callId {

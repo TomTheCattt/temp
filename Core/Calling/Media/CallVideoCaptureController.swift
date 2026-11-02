@@ -87,7 +87,9 @@ final class CallVideoCaptureController: @unchecked Sendable {
 
     private var isRunning: Bool = false
     private var isUsingSyntheticGenerator: Bool = false
+    private var isRemoteSyntheticFeedActive: Bool = false
     private var syntheticLoopTask: Task<Void, Never>?
+    private let logger = AppLogger.general
 
     // MARK: - Synthetic Generator
 
@@ -95,12 +97,62 @@ final class CallVideoCaptureController: @unchecked Sendable {
 
     // MARK: - Init & Deinit
 
-    init() {}
+    init() {
+        setupBackgroundForegroundObservers()
+    }
 
     deinit {
         syntheticLoopTask?.cancel()
         if captureSession.isRunning {
             captureSession.stopRunning()
+        }
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setupBackgroundForegroundObservers() {
+        #if canImport(UIKit)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+        #endif
+    }
+
+    @objc private func appDidEnterBackground() {
+        logger.info("App entered background, pausing synthetic video generator")
+        pauseSyntheticGenerator()
+    }
+
+    @objc private func appWillEnterForeground() {
+        logger.info("App will enter foreground, resuming synthetic video generator if needed")
+        resumeSyntheticGeneratorIfNeeded()
+    }
+
+    private func pauseSyntheticGenerator() {
+        syntheticLoopTask?.cancel()
+        syntheticLoopTask = nil
+        isUsingSyntheticGenerator = false
+        isRemoteSyntheticFeedActive = false
+    }
+
+    private func resumeSyntheticGeneratorIfNeeded() {
+        guard isRunning else { return }
+
+        if isUsingSyntheticGenerator || isRemoteSyntheticFeedActive {
+            logger.info("Resuming synthetic video on foreground")
+            if isUsingSyntheticGenerator {
+                startSyntheticGenerator(isFront: isFrontFacing)
+            } else if isRemoteSyntheticFeedActive {
+                startRemoteSyntheticFeed()
+            }
         }
     }
 
@@ -169,6 +221,7 @@ final class CallVideoCaptureController: @unchecked Sendable {
         syntheticLoopTask?.cancel()
         syntheticLoopTask = nil
         isUsingSyntheticGenerator = false
+        isRemoteSyntheticFeedActive = false
 
         let session = self.captureSession
         sessionQueue.sync {
@@ -320,6 +373,7 @@ final class CallVideoCaptureController: @unchecked Sendable {
     }
 
     private func startRemoteSyntheticFeed() {
+        isRemoteSyntheticFeedActive = true
         syntheticLoopTask?.cancel()
 
         let remoteSubject = self.remoteSampleBufferSubject

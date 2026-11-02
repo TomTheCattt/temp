@@ -318,11 +318,13 @@ final class CallAudioEngineController: @unchecked Sendable {
     private func playLoopingToneBuffer(_ buffer: AVAudioPCMBuffer, node: AVAudioPlayerNode) {
         do {
             let session = AVAudioSession.sharedInstance()
-            // Only switch to soloAmbient if session is not active for call; do NOT use .playback (AUDIO-01)
-            if session.category != .playAndRecord {
-                try session.setCategory(.soloAmbient, mode: .default, options: [])
+            // FIX: Don't change audio session category if a call is active (using .playAndRecord).
+            // Tones can play on top of .playAndRecord category without changing it.
+            // Only configure category if not already set for voice chat.
+            if session.category != .playAndRecord || session.mode != .voiceChat {
+                try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay])
             }
-            try session.setActive(true)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
 
             if !engine.isRunning {
                 try engine.start()

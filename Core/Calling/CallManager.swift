@@ -16,9 +16,14 @@ import UIKit
 /// Manages CXProvider and CXCallController to integrate with iOS CallKit.
 /// Handles reporting incoming calls, starting outgoing calls, and responding to
 /// system call actions (answer, end, hold, mute).
-final class CallManager: NSObject, @unchecked Sendable {
+class CallManager: NSObject, @unchecked Sendable {
 
-    static let shared = CallManager()
+    nonisolated(unsafe) static var shared = CallManager()
+
+    /// Resets the shared instance for testing purposes.
+    nonisolated static func resetSharedInstanceForTesting() {
+        shared = CallManager()
+    }
 
     // MARK: - Publishers
 
@@ -43,7 +48,7 @@ final class CallManager: NSObject, @unchecked Sendable {
 
     // MARK: - Init
 
-    private override init() {
+    override init() {
         let configuration = CXProviderConfiguration()
         configuration.supportsVideo = true
         configuration.maximumCallGroups = 1
@@ -107,10 +112,12 @@ final class CallManager: NSObject, @unchecked Sendable {
             provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
                 if let error {
                     #if targetEnvironment(simulator)
-                    // Simulator fallback: continue tracking in CallManager even if CallKit native UI has sandbox limitations
-                    self?.logger.notice("Simulator fallback for incoming call")
+                    // Simulator fallback: CallKit may fail in sandbox, but we still track the call for in-app UI
+                    // This is EXPECTED on simulator - do not treat as error
+                    self?.logger.notice("Simulator: CallKit reportNewIncomingCall failed (expected in sandbox): \(error.localizedDescription)")
                     continuation.resume()
                     #else
+                    // On device, CallKit failure is a real error - remove from tracking and propagate
                     self?.syncOnQueue { _ = self?.activeCalls.removeValue(forKey: uuid) }
                     self?.logger.error("Failed to report incoming call: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
