@@ -43,7 +43,7 @@ final class FirebaseMessageRepository: MessageRepositoryProtocol, @unchecked Sen
     }
 
     func getUnreadConversationsCount() async throws -> Int {
-        await dataSource.getUnreadConversationsCount()
+        try await dataSource.getUnreadConversationsCount()
     }
 
     func deleteMessage(id: String) async throws {
