@@ -352,6 +352,9 @@
         }
       }
     },
+    "%lld tin nhắn đang chờ gửi" : {
+
+    },
     "%lld/%lld" : {
       "localizations" : {
         "en" : {
@@ -3869,6 +3872,9 @@
       }
     },
     "Gợi ý" : {
+
+    },
+    "Gửi lại" : {
 
     },
     "Hạn chế" : {

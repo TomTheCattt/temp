@@ -213,7 +213,8 @@ struct MainTabView: View {
                     recipient: recipient,
                     fetchMessagesUseCase: DIContainer.shared.resolve(FetchMessagesUseCaseProtocol.self),
                     sendMessageUseCase: DIContainer.shared.resolve(SendMessageUseCaseProtocol.self),
-                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self),
+                    chatSyncService: DIContainer.shared.resolve(ChatSyncService.self)
                 )
             )
 
