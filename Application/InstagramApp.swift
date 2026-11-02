@@ -7,13 +7,31 @@
 
 import SwiftUI
 import FirebaseCore
+import UserNotifications
+import Combine
+
+// Global cancellables storage for app-level subscriptions
+private var appCancellables = Set<AnyCancellable>()
+
+// Detect test environment at process launch (before test bundle injection)
+private var isRunningTests: Bool {
+    let env = ProcessInfo.processInfo.environment
+    if env["XCTestConfigurationFilePath"] != nil { return true }
+    if env["XCTestSessionIdentifier"] != nil { return true }
+    if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-XCTest") }) { return true }
+    if NSClassFromString("XCTest") != nil { return true }
+    return false
+}
 
 @main
 struct InstagramApp: App {
 
     init() {
         let appConfig = AppConfig.shared
-        if appConfig.isFirebaseAPI {
+        // Force live backend during tests to avoid Firebase/GoogleUtilities initialization
+        let useFirebase = appConfig.isFirebaseAPI && !isRunningTests
+
+        if useFirebase {
             // Configure Firebase (must be called before any Firebase service is used)
             FirebaseApp.configure()
 
@@ -28,7 +46,7 @@ struct InstagramApp: App {
         } else {
             // Auto login when the application is not using FirebaseAPI
         }
-        
+
         // Initialize DI container (triggers all assembly registrations)
         _ = DIContainer.shared
 
@@ -41,6 +59,58 @@ struct InstagramApp: App {
         // Start app-wide internet connectivity monitoring (drives offline/online toasts).
         Task { @MainActor in
             NetworkMonitor.shared.start()
+        }
+
+        // Initialize Push Notifications
+        setupPushNotifications()
+    }
+
+    private func setupPushNotifications() {
+        Task { @MainActor in
+            // Set up notification center delegate
+            UNUserNotificationCenter.current().delegate = PushNotificationService.shared
+
+            // Request authorization
+            let granted = await PushNotificationService.shared.requestAuthorization()
+            if granted {
+                // Register for remote notifications (APNs)
+                PushNotificationService.shared.registerForRemoteNotifications()
+            }
+
+            // Initialize notification router (subscribes to tapped notifications)
+            _ = NotificationRouter.shared
+
+            // Subscribe to received notifications to sync messages in background
+            subscribeToBackgroundMessages()
+        }
+    }
+
+    private func subscribeToBackgroundMessages() {
+        // When a message push is received in background/foreground, trigger message sync
+        PushNotificationService.shared.notificationReceived
+            .receive(on: RunLoop.main)
+            .sink { payload in
+                guard payload.type == .message, let conversationId = payload.conversationId else { return }
+                Task {
+                    // Trigger message sync for this conversation
+                    await syncMessagesForConversation(conversationId)
+                }
+            }
+            .store(in: &appCancellables)
+    }
+
+    @MainActor
+    private func syncMessagesForConversation(_ conversationId: String) async {
+        do {
+            let messageRepository = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+            _ = try await messageRepository.fetchMessages(conversationId: conversationId, page: 1, perPage: 50)
+            // Also update unread badge
+            if let count = try? await messageRepository.getUnreadConversationsCount() {
+                AppState.shared.setUnreadChatCount(count)
+                try await UNUserNotificationCenter.current().setBadgeCount(count)
+            }
+        } catch {
+            AppLogger.general.error("Failed to sync messages from push: \(error.localizedDescription)")
         }
     }
 

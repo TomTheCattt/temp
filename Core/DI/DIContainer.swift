@@ -20,6 +20,12 @@ final class DIContainer: @unchecked Sendable {
 
     private init() {
         container = Container()
+        // Force live backend during tests to avoid Firebase/GoogleUtilities initialization
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+           NSClassFromString("XCTest") != nil {
+            // Override the backend type for test environment
+            setenv("BACKEND_TYPE", "live", 1)
+        }
         registerAssemblies()
         logConfiguration()
     }

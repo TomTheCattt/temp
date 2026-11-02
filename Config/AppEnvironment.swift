@@ -31,7 +31,8 @@ enum BackendType: String {
     /// Resolves Backend Type from:
     /// 1. Process environment variable (set via Xcode scheme) — highest priority
     /// 2. Info.plist key (set via xcconfig)
-    /// 3. Default fallback to .firebase
+    /// 3. Test environment detection (use live to avoid Firebase init)
+    /// 4. Default fallback to .firebase
     static var current: BackendType {
         // Priority 1: Scheme environment variable
         if let envValue = ProcessInfo.processInfo.environment[ConfigKey.backendType]?.lowercased(),
@@ -43,7 +44,12 @@ enum BackendType: String {
            let type = BackendType(rawValue: raw) {
             return type
         }
-        // Priority 3: Fallback
+        // Priority 3: Test environment - use live backend to avoid Firebase initialization
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil ||
+           NSClassFromString("XCTest") != nil {
+            return .live
+        }
+        // Priority 4: Fallback
         return .firebase
     }
 }
