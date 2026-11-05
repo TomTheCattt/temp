@@ -45,6 +45,8 @@ struct InstagramApp: App {
             }
         } else {
             // Auto login when the application is not using FirebaseAPI
+            // Check if user is already authenticated (tokens in keychain)
+            restoreAuthenticationState()
         }
 
         // Initialize DI container (triggers all assembly registrations)
@@ -166,4 +168,24 @@ struct InstagramApp: App {
         }
     }
     #endif
+
+    /// Restores authentication state on app launch for non-Firebase backends.
+    /// Checks if valid tokens exist in Keychain and connects WebSocket if authenticated.
+    private func restoreAuthenticationState() {
+        Task { @MainActor in
+            // Resolve AuthManager to check authentication state
+            let authManager = DIContainer.shared.resolve(AuthManagerProtocol.self)
+
+            if authManager.isAuthenticated {
+                AppLogger.auth.info("Restored authentication state from Keychain")
+                AppRouter.shared.isAuthenticated = true
+
+                // Connect WebSocket
+                let wsManager = DIContainer.shared.resolve(WebSocketConnectionManagerProtocol.self)
+                wsManager.handleAuthStateChange(isAuthenticated: true)
+            } else {
+                AppLogger.auth.info("No valid authentication state found")
+            }
+        }
+    }
 }
