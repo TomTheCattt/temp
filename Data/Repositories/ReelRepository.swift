@@ -6,21 +6,20 @@
 //
 
 import Foundation
-import Alamofire
 
 // MARK: - ReelRepository
 
 final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteReelDataSource
-    private let networkService: NetworkServiceProtocol
+    private let uploadDataSource: RemoteUploadDataSource
 
     init(
         remoteDataSource: RemoteReelDataSource,
-        networkService: NetworkServiceProtocol
+        uploadDataSource: RemoteUploadDataSource
     ) {
         self.remoteDataSource = remoteDataSource
-        self.networkService = networkService
+        self.uploadDataSource = uploadDataSource
     }
 
     func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
@@ -32,17 +31,19 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
-        // Step 1: Upload video
-        let uploadResponse: UploadVideoResponseDTO = try await networkService.upload(UploadEndpoint.video) { formData in
-            formData.append(videoData, withName: "file", fileName: "reel.mp4", mimeType: "video/mp4")
-        }
+        // Step 1: Upload video using presigned URL
+        let uploadResult = try await uploadDataSource.upload(
+            data: videoData,
+            category: .reel,
+            filename: "reel.mp4"
+        )
 
         // Step 2: Create reel with uploaded URL
         return try await remoteDataSource.createReel(
-            videoUrl: uploadResponse.url,
-            thumbnailUrl: uploadResponse.thumbnailUrl,
+            videoUrl: uploadResult.url,
+            thumbnailUrl: nil, // Thumbnail would need to be uploaded separately
             caption: caption,
-            duration: uploadResponse.duration ?? 15,
+            duration: uploadResult.duration ?? 15,
             audioName: nil,
             audioArtist: nil
         )

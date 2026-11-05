@@ -1,10 +1,29 @@
 # API Response Reference
 
-Base URL: `http://localhost:3000`
+**Base URL:** `http://localhost:3000` (configurable via `AppConfig.baseURL`)
 
-All authenticated endpoints require header: `Authorization: Bearer <Firebase ID Token>`
+**Authentication:** All authenticated endpoints require header: `Authorization: Bearer <Firebase ID Token>`
 
-Pagination query params: `?page=1&perPage=20` (max 50)
+> **Important:** The client uses **Firebase ID Token** (JWT from Firebase Auth SDK) as the access token.
+> The backend **does NOT issue its own access/refresh tokens**. The Firebase SDK handles token rotation internally.
+> The `/v1/auth/refresh` endpoint exists in this spec but **is not called by the client** - it's kept for reference only.
+
+**Response Envelope:** All responses follow the `APIEnvelope<T>` format:
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "message": null
+}
+```
+Errors: `"success": false, "error": "ERROR_CODE", "message": "Human readable"`
+
+**Pagination:** `?page=1&perPage=20` (max 50) — returns `{ items, page, perPage, total, hasMore }`
+
+**Date Format:** ISO 8601 with fractional seconds (`yyyy-MM-dd'T'HH:mm:ss.SSSZ`)
+
+**Field Naming:** JSON uses **snake_case** (client decodes with `.convertFromSnakeCase`)
 
 ---
 
@@ -28,12 +47,14 @@ Pagination query params: `?page=1&perPage=20` (max 50)
 
 ### POST /v1/auth/register
 
+Register a new user after Firebase Auth account creation.
+
 **Body:**
 ```json
 {
-  "idToken": "eyJhbGci...",
-  "name": "John Doe",
-  "phone": "+84901234567"
+  "idToken": "eyJhbGci...",    // Firebase ID Token from createUser()
+  "name": "John Doe",          // Full name
+  "phone": "+84901234567"      // Optional phone number
 }
 ```
 
@@ -43,33 +64,37 @@ Pagination query params: `?page=1&perPage=20` (max 50)
   "success": true,
   "data": {
     "user": {
-      "id": "ddc20ee7-c705-4622-8431-deaff120408b",
-      "firebaseUid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",
+      "id": "ddc20ee7-c705-4622-8431-deaff120408b",      // App's internal UUID (not firebaseUid)
+      "firebase_uid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",   // Firebase UID for reference
       "username": "john_doe_1234",
-      "fullName": "John Doe",
+      "full_name": "John Doe",
       "email": "john@example.com",
       "phone": "+84901234567",
-      "avatarUrl": null,
+      "avatar_url": null,
       "bio": null,
       "website": null,
-      "isVerified": false,
-      "isPrivate": false,
-      "postsCount": 0,
-      "followersCount": 0,
-      "followingCount": 0,
-      "createdAt": "2026-08-04T14:37:10.661Z",
-      "updatedAt": "2026-08-04T14:37:10.661Z"
+      "is_verified": false,
+      "is_private": false,
+      "posts_count": 0,
+      "followers_count": 0,
+      "following_count": 0,
+      "created_at": "2026-08-04T14:37:10.661Z",
+      "updated_at": "2026-08-04T14:37:10.661Z"
     }
   }
 }
 ```
 
+> **Note:** Response uses snake_case. `id` is the app's internal UUID (primary key), `firebase_uid` is the Firebase Auth UID. Client maps both via `UserMapper`.
+
 ### POST /v1/auth/login
+
+Verify Firebase ID Token and return user profile.
 
 **Body:**
 ```json
 {
-  "idToken": "eyJhbGci..."
+  "idToken": "eyJhbGci..."    // Firebase ID Token from signIn()
 }
 ```
 
@@ -80,66 +105,169 @@ Pagination query params: `?page=1&perPage=20` (max 50)
   "data": {
     "user": {
       "id": "ddc20ee7-c705-4622-8431-deaff120408b",
-      "firebaseUid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",
+      "firebase_uid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",
       "username": "dev_user",
-      "fullName": "Dev User",
+      "full_name": "Dev User",
       "email": "dev@example.com",
       "phone": null,
-      "avatarUrl": "https://i.pravatar.cc/400?u=dev_user",
+      "avatar_url": "https://i.pravatar.cc/400?u=dev_user",
       "bio": "Development account",
       "website": null,
-      "isVerified": false,
-      "isPrivate": false,
-      "postsCount": 0,
-      "followersCount": 4,
-      "followingCount": 4,
-      "createdAt": "2026-08-04T14:37:10.661Z",
-      "updatedAt": "2026-08-04T14:37:10.874Z"
+      "is_verified": false,
+      "is_private": false,
+      "posts_count": 0,
+      "followers_count": 4,
+      "following_count": 4,
+      "created_at": "2026-08-04T14:37:10.661Z",
+      "updated_at": "2026-08-04T14:37:10.874Z"
     }
   }
 }
 ```
 
-### POST /v1/auth/refresh
+> **Important:** Do NOT return `accessToken`, `refreshToken`, or `expiresIn` in the response. The client already has the Firebase ID Token and uses it as the Bearer token. The client extracts token expiry from the JWT `exp` claim locally.
+
+### POST /v1/auth/refresh  (NOT USED BY CLIENT - REFERENCE ONLY)
+
+The client **does not call this endpoint**. Token refresh is handled by Firebase SDK via `user.getIDToken()` which auto-refreshes expired tokens. This endpoint is documented for reference only.
 
 **Body:**
 ```json
 {
-  "refreshToken": "AMf-vBxV..."
+  "refresh_token": "..."    // Not used - Firebase doesn't provide backend refresh tokens
 }
 ```
 
-**Response (200):**
+**Response (200) - If implemented:**
 ```json
 {
   "success": true,
   "data": {
-    "idToken": "eyJhbGci...",
-    "refreshToken": "AMf-vBxV...",
-    "expiresIn": "3600"
+    "id_token": "eyJhbGci...",       // New Firebase ID Token (if backend generates)
+    "refresh_token": "...",          // New refresh token (if backend issues)
+    "expires_in": 3600               // Seconds until expiry
   }
 }
 ```
 
 ### POST /v1/auth/logout-all-devices
 
+Invalidate all sessions for the current user (called on logout).
+
 **Response (204):** No content
 
-### POST /v1/auth/change-password
+### POST /v1/auth/forgot-password
+
+Request password reset via phone number.
+
+**Body:**
+```json
+{
+  "phone_number": "+84901234567"
+}
+```
 
 **Response (200):**
 ```json
 {
   "success": true,
-  "message": "Use Firebase Auth SDK updatePassword() on the client side"
+  "message": "Password reset code sent"
 }
 ```
+
+### POST /v1/auth/reset-password
+
+Reset password with OTP token from SMS/email.
+
+**Body:**
+```json
+{
+  "token": "123456",
+  "password": "newSecurePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password reset successful"
+}
+```
+
+### POST /v1/auth/verify-email
+
+Verify email with token from verification email.
+
+**Body:**
+```json
+{
+  "token": "verification-token-from-email"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+### POST /v1/auth/resend-verification
+
+Resend email verification link.
+
+**Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Verification email sent"
+}
+```
+
+### POST /v1/auth/change-password
+
+Change password for authenticated user (requires current password).
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
+**Body:**
+```json
+{
+  "current_password": "oldPassword123",
+  "new_password": "newSecurePassword456"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+> **Note:** Client also calls Firebase Auth SDK `updatePassword()` after this succeeds (requires re-authentication with current password). Backend should verify current password and update the user's password hash.
 
 ---
 
 ## Users
 
-### GET /v1/users/me
+> **Endpoint Paths:** The client uses `/v1/user/profile` and `/v1/user/settings` (not `/v1/users/me`).
+
+### GET /v1/user/profile
+
+Get current user's full profile.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -148,32 +276,36 @@ Pagination query params: `?page=1&perPage=20` (max 50)
   "data": {
     "user": {
       "id": "ddc20ee7-c705-4622-8431-deaff120408b",
+      "firebase_uid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",
       "username": "dev_user",
-      "fullName": "Dev User",
-      "avatarUrl": "https://i.pravatar.cc/400?u=dev_user",
+      "full_name": "Dev User",
+      "email": "dev@example.com",
+      "phone": null,
+      "avatar_url": "https://i.pravatar.cc/400?u=dev_user",
       "bio": "Development account",
       "website": null,
-      "isVerified": false,
-      "isPrivate": false,
-      "postsCount": 2,
-      "followersCount": 4,
-      "followingCount": 4,
-      "isFollowing": false,
-      "isFollowedBy": false
+      "is_verified": false,
+      "is_private": false,
+      "posts_count": 2,
+      "followers_count": 4,
+      "following_count": 4,
+      "created_at": "2026-08-04T14:37:10.661Z",
+      "updated_at": "2026-08-04T14:37:10.874Z"
     }
   }
 }
 ```
 
-### PUT /v1/users/me
+### PUT /v1/user/profile
+
+Update current user's profile (name only).
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Body:**
 ```json
 {
-  "fullName": "New Name",
-  "bio": "Updated bio",
-  "website": "https://example.com",
-  "isPrivate": false
+  "name": "New Name"
 }
 ```
 
@@ -184,22 +316,85 @@ Pagination query params: `?page=1&perPage=20` (max 50)
   "data": {
     "user": {
       "id": "ddc20ee7-c705-4622-8431-deaff120408b",
+      "firebase_uid": "SPrBlqwAx0VPklWeuYtVre1EHOD3",
       "username": "dev_user",
-      "fullName": "New Name",
-      "avatarUrl": "https://i.pravatar.cc/400?u=dev_user",
-      "bio": "Updated bio",
-      "website": "https://example.com",
-      "isVerified": false,
-      "isPrivate": false,
-      "postsCount": 2,
-      "followersCount": 4,
-      "followingCount": 4
+      "full_name": "New Name",
+      "email": "dev@example.com",
+      "phone": null,
+      "avatar_url": "https://i.pravatar.cc/400?u=dev_user",
+      "bio": "Development account",
+      "website": null,
+      "is_verified": false,
+      "is_private": false,
+      "posts_count": 2,
+      "followers_count": 4,
+      "following_count": 4,
+      "created_at": "2026-08-04T14:37:10.661Z",
+      "updated_at": "2026-08-04T15:30:00.000Z"
     }
   }
 }
 ```
 
+### GET /v1/user/settings
+
+Get current user's preferences (notifications, data usage, UI).
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "language": "en",
+      "biometric_enabled": true,
+      "push_enabled": true,
+      "dark_mode": false
+    }
+  }
+}
+```
+
+### PUT /v1/user/settings
+
+Update current user's preferences. All fields optional.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
+**Body:**
+```json
+{
+  "language": "vi",
+  "biometric_enabled": false,
+  "push_enabled": true,
+  "dark_mode": true
+}
+```
+
+**Response (200):** Same shape as `GET /v1/user/settings` with updated values.
+```json
+{
+  "success": true,
+  "data": {
+    "settings": {
+      "language": "vi",
+      "biometric_enabled": false,
+      "push_enabled": true,
+      "dark_mode": true
+    }
+  }
+}
+```
+
+> **Note:** The client sends snake_case keys (`biometric_enabled`, `push_enabled`, `dark_mode`). The `language` field uses ISO 639-1 codes (e.g., "en", "vi").
+
 ### GET /v1/users/:id
+
+Get public profile of another user.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -209,23 +404,27 @@ Pagination query params: `?page=1&perPage=20` (max 50)
     "user": {
       "id": "abc123",
       "username": "alice",
-      "fullName": "Alice Nguyen",
-      "avatarUrl": "https://i.pravatar.cc/400?u=alice",
+      "full_name": "Alice Nguyen",
+      "avatar_url": "https://i.pravatar.cc/400?u=alice",
       "bio": "Photography enthusiast",
       "website": null,
-      "isVerified": false,
-      "isPrivate": false,
-      "postsCount": 10,
-      "followersCount": 15,
-      "followingCount": 12,
-      "isFollowing": true,
-      "isFollowedBy": false
+      "is_verified": false,
+      "is_private": false,
+      "posts_count": 10,
+      "followers_count": 15,
+      "following_count": 12,
+      "is_following": true,
+      "is_followed_by": false
     }
   }
 }
 ```
 
 ### GET /v1/users/search?q=alice&page=1&perPage=20
+
+Search users by username/full name.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -236,26 +435,30 @@ Pagination query params: `?page=1&perPage=20` (max 50)
       {
         "id": "abc123",
         "username": "alice",
-        "fullName": "Alice Nguyen",
-        "avatarUrl": "https://i.pravatar.cc/400?u=alice",
+        "full_name": "Alice Nguyen",
+        "avatar_url": "https://i.pravatar.cc/400?u=alice",
         "bio": "Photography enthusiast",
         "website": null,
-        "isVerified": false,
-        "isPrivate": false,
-        "postsCount": 10,
-        "followersCount": 15,
-        "followingCount": 12
+        "is_verified": false,
+        "is_private": false,
+        "posts_count": 10,
+        "followers_count": 15,
+        "following_count": 12
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 1,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
 ### GET /v1/users/suggested?page=1&perPage=20
+
+Get suggested users to follow.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -266,26 +469,30 @@ Pagination query params: `?page=1&perPage=20` (max 50)
       {
         "id": "xyz789",
         "username": "emma",
-        "fullName": "Emma Vo",
-        "avatarUrl": "https://i.pravatar.cc/400?u=emma",
+        "full_name": "Emma Vo",
+        "avatar_url": "https://i.pravatar.cc/400?u=emma",
         "bio": "Living one day at a time",
         "website": null,
-        "isVerified": false,
-        "isPrivate": false,
-        "postsCount": 8,
-        "followersCount": 20,
-        "followingCount": 10
+        "is_verified": false,
+        "is_private": false,
+        "posts_count": 8,
+        "followers_count": 20,
+        "following_count": 10
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 15,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
 ### GET /v1/users/:id/followers?page=1&perPage=20
+
+Get user's followers.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -296,50 +503,66 @@ Pagination query params: `?page=1&perPage=20` (max 50)
       {
         "id": "abc123",
         "username": "bob",
-        "fullName": "Bob Tran",
-        "avatarUrl": "https://i.pravatar.cc/400?u=bob",
+        "full_name": "Bob Tran",
+        "avatar_url": "https://i.pravatar.cc/400?u=bob",
         "bio": "Developer by day",
         "website": null,
-        "isVerified": false,
-        "isPrivate": false,
-        "postsCount": 5,
-        "followersCount": 10,
-        "followingCount": 8
+        "is_verified": false,
+        "is_private": false,
+        "posts_count": 5,
+        "followers_count": 10,
+        "following_count": 8
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 4,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
 ### GET /v1/users/:id/following?page=1&perPage=20
 
-Same structure as followers.
+Get user's following. Same structure as followers.
 
 ### POST /v1/users/:id/follow
+
+Follow a user.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (204):** No content
 
 ### DELETE /v1/users/:id/follow
 
+Unfollow a user.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Response (204):** No content
 
 ### POST /v1/users/:id/block
+
+Block a user.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (204):** No content
 
 ### DELETE /v1/users/:id/block
 
+Unblock a user.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Response (204):** No content
 
 ### GET /v1/users/me/blocked?page=1&perPage=20
 
-Returns the list of accounts the current user has blocked. Same item shape as
-`/followers` (public user summary). `isBlocked` is implicitly `true` for every
-item in this list.
+Get list of users blocked by current user. Same item shape as `/followers`.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -350,68 +573,34 @@ item in this list.
       {
         "id": "blk123",
         "username": "spammer",
-        "fullName": "Spam Account",
-        "avatarUrl": "https://i.pravatar.cc/400?u=spammer",
+        "full_name": "Spam Account",
+        "avatar_url": "https://i.pravatar.cc/400?u=spammer",
         "bio": null,
         "website": null,
-        "isVerified": false,
-        "isPrivate": false,
-        "postsCount": 0,
-        "followersCount": 0,
-        "followingCount": 0
+        "is_verified": false,
+        "is_private": false,
+        "posts_count": 0,
+        "followers_count": 0,
+        "following_count": 0
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 1,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
-### GET /v1/users/me/settings
+---
 
-Per-account preferences (notifications + data usage). Values are persisted
-server-side so they follow the user across devices.
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "settings": {
-      "pushEnabled": true,
-      "likeNotifications": true,
-      "commentNotifications": true,
-      "followNotifications": true,
-      "directMessageNotifications": true,
-      "activityStatusVisible": true,
-      "highQualityUploads": true,
-      "cellularDataEnabled": true
-    }
-  }
-}
-```
-
-### PUT /v1/users/me/settings
-
-All fields are optional; send only the ones being changed. Returns the full,
-updated settings object.
-
-**Body:**
-```json
-{
-  "pushEnabled": false,
-  "highQualityUploads": false
-}
-```
-
-**Response (200):** Same shape as `GET /v1/users/me/settings`.
+## Close Friends
 
 ### GET /v1/users/me/close-friends?page=1&perPage=50
 
-Returns the accounts on the current user's Close Friends list. Same item shape
-as `/followers`.
+Returns the accounts on the current user's Close Friends list. Same item shape as `/followers`.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -422,41 +611,45 @@ as `/followers`.
       {
         "id": "cf123",
         "username": "bestie",
-        "fullName": "Best Friend",
-        "avatarUrl": "https://i.pravatar.cc/400?u=bestie",
+        "full_name": "Best Friend",
+        "avatar_url": "https://i.pravatar.cc/400?u=bestie",
         "bio": null,
         "website": null,
-        "isVerified": false,
-        "isPrivate": false,
-        "postsCount": 12,
-        "followersCount": 30,
-        "followingCount": 25
+        "is_verified": false,
+        "is_private": false,
+        "posts_count": 12,
+        "followers_count": 30,
+        "following_count": 25
       }
     ],
     "page": 1,
     "perPage": 50,
     "total": 1,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
 ### PUT /v1/users/me/close-friends
 
-Replaces the entire Close Friends list with the provided set of user IDs
-(idempotent full-set update, matching Instagram's editor which submits the
-final selection).
+Replaces the entire Close Friends list with the provided set of user IDs (idempotent full-set update, matching Instagram's editor which submits the final selection).
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Body:**
 ```json
 {
-  "userIds": ["cf123", "cf456"]
+  "user_ids": ["cf123", "cf456"]
 }
 ```
 
 **Response (200):** Same shape as `GET /v1/users/me/close-friends` (the updated list).
 
 ### POST /v1/users/me/device-token
+
+Register FCM/APNs device token for push notifications.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Body:**
 ```json
@@ -469,6 +662,10 @@ final selection).
 **Response (204):** No content
 
 ### DELETE /v1/users/me/device-token
+
+Unregister device token.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Body:**
 ```json
@@ -483,7 +680,11 @@ final selection).
 
 ## Posts
 
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
+
 ### GET /v1/posts/feed?page=1&perPage=20
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -493,62 +694,64 @@ final selection).
     "items": [
       {
         "id": "10000000-0000-4000-8000-000000000001",
-        "authorId": "abc123",
+        "author_id": "abc123",
         "caption": "A calm morning in Da Nang ☀️",
-        "locationName": null,
-        "locationLat": null,
-        "locationLng": null,
-        "likesCount": 15,
-        "commentsCount": 3,
-        "isSponsored": false,
-        "createdAt": "2026-07-15T08:30:00.000Z",
-        "updatedAt": "2026-07-15T08:30:00.000Z",
+        "location_name": null,
+        "location_lat": null,
+        "location_lng": null,
+        "likes_count": 15,
+        "comments_count": 3,
+        "is_sponsored": false,
+        "created_at": "2026-07-15T08:30:00.000Z",
+        "updated_at": "2026-07-15T08:30:00.000Z",
         "author": {
           "id": "abc123",
           "username": "alice",
-          "fullName": "Alice Nguyen",
-          "avatarUrl": "https://i.pravatar.cc/400?u=alice",
-          "isVerified": false,
-          "isPrivate": false
+          "full_name": "Alice Nguyen",
+          "avatar_url": "https://i.pravatar.cc/400?u=alice",
+          "is_verified": false,
+          "is_private": false
         },
-        "mediaItems": [
+        "media_items": [
           {
             "id": "media-uuid-1",
-            "postId": "10000000-0000-4000-8000-000000000001",
+            "post_id": "10000000-0000-4000-8000-000000000001",
             "url": "https://picsum.photos/seed/post-1-0/1080/1350",
-            "thumbnailUrl": null,
+            "thumbnail_url": null,
             "type": "IMAGE",
             "width": 1080,
             "height": 1350,
             "duration": null,
-            "sortOrder": 0
+            "sort_order": 0
           }
         ],
-        "isLiked": true,
-        "isSaved": false
+        "is_liked": true,
+        "is_saved": false
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 50,
-    "hasMore": true
+    "has_more": true
   }
 }
 ```
 
 ### GET /v1/posts/explore?page=1&perPage=30
 
-Same structure as feed (sorted by likesCount desc).
+Same structure as feed (sorted by likes_count desc).
 
 ### GET /v1/posts/saved?page=1&perPage=20
 
-Same structure as feed (isSaved is always true).
+Same structure as feed (is_saved is always true).
 
 ### GET /v1/posts/user/:userId?page=1&perPage=20
 
 Same structure as feed.
 
 ### GET /v1/posts/:id
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (200):**
 ```json
@@ -557,50 +760,50 @@ Same structure as feed.
   "data": {
     "post": {
       "id": "10000000-0000-4000-8000-000000000001",
-      "authorId": "abc123",
+      "author_id": "abc123",
       "caption": "A calm morning in Da Nang ☀️",
-      "locationName": null,
-      "locationLat": null,
-      "locationLng": null,
-      "likesCount": 15,
-      "commentsCount": 3,
-      "isSponsored": false,
-      "createdAt": "2026-07-15T08:30:00.000Z",
-      "updatedAt": "2026-07-15T08:30:00.000Z",
+      "location_name": null,
+      "location_lat": null,
+      "location_lng": null,
+      "likes_count": 15,
+      "comments_count": 3,
+      "is_sponsored": false,
+      "created_at": "2026-07-15T08:30:00.000Z",
+      "updated_at": "2026-07-15T08:30:00.000Z",
       "author": {
         "id": "abc123",
         "username": "alice",
-        "fullName": "Alice Nguyen",
-        "avatarUrl": "https://i.pravatar.cc/400?u=alice",
-        "isVerified": false,
-        "isPrivate": false
+        "full_name": "Alice Nguyen",
+        "avatar_url": "https://i.pravatar.cc/400?u=alice",
+        "is_verified": false,
+        "is_private": false
       },
-      "mediaItems": [
+      "media_items": [
         {
           "id": "media-uuid-1",
-          "postId": "10000000-0000-4000-8000-000000000001",
+          "post_id": "10000000-0000-4000-8000-000000000001",
           "url": "https://picsum.photos/seed/post-1-0/1080/1350",
-          "thumbnailUrl": null,
+          "thumbnail_url": null,
           "type": "IMAGE",
           "width": 1080,
           "height": 1350,
           "duration": null,
-          "sortOrder": 0
+          "sort_order": 0
         },
         {
           "id": "media-uuid-2",
-          "postId": "10000000-0000-4000-8000-000000000001",
+          "post_id": "10000000-0000-4000-8000-000000000001",
           "url": "https://picsum.photos/seed/post-1-1/1080/1080",
-          "thumbnailUrl": null,
+          "thumbnail_url": null,
           "type": "IMAGE",
           "width": 1080,
           "height": 1080,
           "duration": null,
-          "sortOrder": 1
+          "sort_order": 1
         }
       ],
-      "isLiked": true,
-      "isSaved": false
+      "is_liked": true,
+      "is_saved": false
     }
   }
 }
@@ -608,20 +811,24 @@ Same structure as feed.
 
 ### POST /v1/posts
 
+Create a new post.
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Body:**
 ```json
 {
   "caption": "Beautiful sunset 🌅",
-  "locationName": "Da Nang Beach",
-  "locationLat": 16.0544,
-  "locationLng": 108.2022,
+  "location_name": "Da Nang Beach",
+  "location_lat": 16.0544,
+  "location_lng": 108.2022,
   "media": [
     {
       "url": "https://storage.example.com/uploads/user-id/image.jpg",
       "type": "IMAGE",
       "width": 1080,
       "height": 1350,
-      "pendingUploadId": "upload-uuid"
+      "pending_upload_id": "upload-uuid"
     }
   ]
 }
@@ -634,35 +841,35 @@ Same structure as feed.
   "data": {
     "post": {
       "id": "new-post-uuid",
-      "authorId": "user-uuid",
+      "author_id": "user-uuid",
       "caption": "Beautiful sunset 🌅",
-      "locationName": "Da Nang Beach",
-      "locationLat": 16.0544,
-      "locationLng": 108.2022,
-      "likesCount": 0,
-      "commentsCount": 0,
-      "isSponsored": false,
-      "createdAt": "2026-08-04T15:00:00.000Z",
-      "updatedAt": "2026-08-04T15:00:00.000Z",
+      "location_name": "Da Nang Beach",
+      "location_lat": 16.0544,
+      "location_lng": 108.2022,
+      "likes_count": 0,
+      "comments_count": 0,
+      "is_sponsored": false,
+      "created_at": "2026-08-04T15:00:00.000Z",
+      "updated_at": "2026-08-04T15:00:00.000Z",
       "author": {
         "id": "user-uuid",
         "username": "dev_user",
-        "fullName": "Dev User",
-        "avatarUrl": "https://i.pravatar.cc/400?u=dev_user",
-        "isVerified": false,
-        "isPrivate": false
+        "full_name": "Dev User",
+        "avatar_url": "https://i.pravatar.cc/400?u=dev_user",
+        "is_verified": false,
+        "is_private": false
       },
-      "mediaItems": [
+      "media_items": [
         {
           "id": "media-uuid",
-          "postId": "new-post-uuid",
+          "post_id": "new-post-uuid",
           "url": "https://storage.example.com/uploads/user-id/image.jpg",
-          "thumbnailUrl": null,
+          "thumbnail_url": null,
           "type": "IMAGE",
           "width": 1080,
           "height": 1350,
           "duration": null,
-          "sortOrder": 0
+          "sort_order": 0
         }
       ]
     }
@@ -672,18 +879,17 @@ Same structure as feed.
 
 ### PUT /v1/posts/:id
 
-Edit an existing post. Only the caption and location are editable — media is
-immutable after creation (matches Instagram). All body fields are optional;
-send only the fields being changed. Send `caption: null` / `locationName: null`
-to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
+Edit an existing post. Only the caption and location are editable — media is immutable after creation (matches Instagram). All body fields are optional; send only the fields being changed. Send `caption: null` / `location_name: null` to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Body:**
 ```json
 {
   "caption": "Updated caption ✏️",
-  "locationName": "Da Nang Beach",
-  "locationLat": 16.0544,
-  "locationLng": 108.2022
+  "location_name": "Da Nang Beach",
+  "location_lat": 16.0544,
+  "location_lng": 108.2022
 }
 ```
 
@@ -695,20 +901,20 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
   "data": {
     "post": {
       "id": "10000000-0000-4000-8000-000000000001",
-      "authorId": "abc123",
+      "author_id": "abc123",
       "caption": "Updated caption ✏️",
-      "locationName": "Da Nang Beach",
-      "locationLat": 16.0544,
-      "locationLng": 108.2022,
-      "likesCount": 15,
-      "commentsCount": 3,
-      "isSponsored": false,
-      "createdAt": "2026-07-15T08:30:00.000Z",
-      "updatedAt": "2026-08-04T16:00:00.000Z",
-      "author": { "id": "abc123", "username": "alice", "fullName": "Alice Nguyen", "avatarUrl": "https://i.pravatar.cc/400?u=alice", "isVerified": false, "isPrivate": false },
-      "mediaItems": [ /* unchanged, same as create/detail */ ],
-      "isLiked": true,
-      "isSaved": false
+      "location_name": "Da Nang Beach",
+      "location_lat": 16.0544,
+      "location_lng": 108.2022,
+      "likes_count": 15,
+      "comments_count": 3,
+      "is_sponsored": false,
+      "created_at": "2026-07-15T08:30:00.000Z",
+      "updated_at": "2026-08-04T16:00:00.000Z",
+      "author": { "id": "abc123", "username": "alice", "full_name": "Alice Nguyen", "avatar_url": "https://i.pravatar.cc/400?u=alice", "is_verified": false, "is_private": false },
+      "media_items": [ /* unchanged, same as create/detail */ ],
+      "is_liked": true,
+      "is_saved": false
     }
   }
 }
@@ -716,21 +922,31 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
 
 ### DELETE /v1/posts/:id
 
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Response (204):** No content
 
 ### POST /v1/posts/:id/like
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (204):** No content
 
 ### DELETE /v1/posts/:id/like
 
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Response (204):** No content
 
 ### POST /v1/posts/:id/save
 
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
+
 **Response (204):** No content
 
 ### DELETE /v1/posts/:id/save
+
+**Headers:** `Authorization: Bearer <Firebase ID Token>`
 
 **Response (204):** No content
 
@@ -738,7 +954,9 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
 
 ## Comments
 
-### GET /v1/posts/:postId/comments?page=1&perPage=20
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
+
+### GET /v1/posts/:post_id/comments?page=1&perPage=20
 
 **Response (200):**
 ```json
@@ -748,34 +966,34 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
     "items": [
       {
         "id": "20000000-0000-4000-8000-000000000001",
-        "postId": "10000000-0000-4000-8000-000000000001",
-        "authorId": "abc123",
+        "post_id": "10000000-0000-4000-8000-000000000001",
+        "author_id": "abc123",
         "text": "Looks wonderful! 😍",
-        "parentId": null,
-        "likesCount": 2,
-        "createdAt": "2026-07-15T09:00:00.000Z",
+        "parent_id": null,
+        "likes_count": 2,
+        "created_at": "2026-07-15T09:00:00.000Z",
         "author": {
           "id": "abc123",
           "username": "bob",
-          "fullName": "Bob Tran",
-          "avatarUrl": "https://i.pravatar.cc/400?u=bob",
-          "isVerified": false
+          "full_name": "Bob Tran",
+          "avatar_url": "https://i.pravatar.cc/400?u=bob",
+          "is_verified": false
         },
         "replies": [
           {
             "id": "20000000-0000-4000-8000-000000000002",
-            "postId": "10000000-0000-4000-8000-000000000001",
-            "authorId": "def456",
+            "post_id": "10000000-0000-4000-8000-000000000001",
+            "author_id": "def456",
             "text": "Agreed! 🙌",
-            "parentId": "20000000-0000-4000-8000-000000000001",
-            "likesCount": 0,
-            "createdAt": "2026-07-15T09:05:00.000Z",
+            "parent_id": "20000000-0000-4000-8000-000000000001",
+            "likes_count": 0,
+            "created_at": "2026-07-15T09:05:00.000Z",
             "author": {
               "id": "def456",
               "username": "carol",
-              "fullName": "Carol Le",
-              "avatarUrl": "https://i.pravatar.cc/400?u=carol",
-              "isVerified": false
+              "full_name": "Carol Le",
+              "avatar_url": "https://i.pravatar.cc/400?u=carol",
+              "is_verified": false
             }
           }
         ]
@@ -784,18 +1002,18 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
     "page": 1,
     "perPage": 20,
     "total": 5,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
 
-### POST /v1/posts/:postId/comments
+### POST /v1/posts/:post_id/comments
 
 **Body:**
 ```json
 {
   "text": "Amazing photo!",
-  "parentId": "optional-comment-uuid-for-reply"
+  "parent_id": "optional-comment-uuid-for-reply"
 }
 ```
 
@@ -806,18 +1024,18 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
   "data": {
     "comment": {
       "id": "new-comment-uuid",
-      "postId": "post-uuid",
-      "authorId": "user-uuid",
+      "post_id": "post-uuid",
+      "author_id": "user-uuid",
       "text": "Amazing photo!",
-      "parentId": null,
-      "likesCount": 0,
-      "createdAt": "2026-08-04T15:00:00.000Z",
+      "parent_id": null,
+      "likes_count": 0,
+      "created_at": "2026-08-04T15:00:00.000Z",
       "author": {
         "id": "user-uuid",
         "username": "dev_user",
-        "fullName": "Dev User",
-        "avatarUrl": "https://i.pravatar.cc/400?u=dev_user",
-        "isVerified": false
+        "full_name": "Dev User",
+        "avatar_url": "https://i.pravatar.cc/400?u=dev_user",
+        "is_verified": false
       },
       "replies": []
     }
@@ -825,21 +1043,23 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
 }
 ```
 
-### DELETE /v1/posts/:postId/comments/:commentId
+### DELETE /v1/posts/:post_id/comments/:comment_id
 
 **Response (204):** No content
 
-### POST /v1/posts/:postId/comments/:commentId/like
+### POST /v1/posts/:post_id/comments/:comment_id/like
 
 **Response (204):** No content
 
-### DELETE /v1/posts/:postId/comments/:commentId/like
+### DELETE /v1/posts/:post_id/comments/:comment_id/like
 
 **Response (204):** No content
 
 ---
 
 ## Stories
+
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
 
 ### GET /v1/stories/feed
 
@@ -851,25 +1071,25 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
     "items": [
       {
         "id": "40000000-0000-4000-8000-000000000001",
-        "authorId": "abc123",
-        "createdAt": "2026-08-04T06:00:00.000Z",
-        "expiresAt": "2026-08-05T06:00:00.000Z",
+        "author_id": "abc123",
+        "created_at": "2026-08-04T06:00:00.000Z",
+        "expires_at": "2026-08-05T06:00:00.000Z",
         "author": {
           "id": "abc123",
           "username": "alice",
-          "avatarUrl": "https://i.pravatar.cc/400?u=alice"
+          "avatar_url": "https://i.pravatar.cc/400?u=alice"
         },
         "items": [
           {
             "id": "story-item-uuid-1",
-            "storyId": "40000000-0000-4000-8000-000000000001",
-            "mediaUrl": "https://picsum.photos/seed/story-1-0/1080/1350",
+            "story_id": "40000000-0000-4000-8000-000000000001",
+            "media_url": "https://picsum.photos/seed/story-1-0/1080/1350",
             "type": "IMAGE",
             "duration": 5,
-            "sortOrder": 0,
-            "stickerType": null,
-            "stickerData": null,
-            "createdAt": "2026-08-04T06:00:00.000Z"
+            "sort_order": 0,
+            "sticker_type": null,
+            "sticker_data": null,
+            "created_at": "2026-08-04T06:00:00.000Z"
           }
         ],
         "views": []
@@ -881,7 +1101,7 @@ to clear them. Only the post author may edit (otherwise `403 FORBIDDEN`).
 
 Note: `views` array contains `{ "id": "..." }` if current user has viewed the story.
 
-### GET /v1/stories/:userId/items
+### GET /v1/stories/:user_id/items
 
 **Response (200):**
 ```json
@@ -891,20 +1111,20 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
     "stories": [
       {
         "id": "40000000-0000-4000-8000-000000000001",
-        "authorId": "abc123",
-        "createdAt": "2026-08-04T06:00:00.000Z",
-        "expiresAt": "2026-08-05T06:00:00.000Z",
+        "author_id": "abc123",
+        "created_at": "2026-08-04T06:00:00.000Z",
+        "expires_at": "2026-08-05T06:00:00.000Z",
         "items": [
           {
             "id": "story-item-uuid-1",
-            "storyId": "40000000-0000-4000-8000-000000000001",
-            "mediaUrl": "https://picsum.photos/seed/story-1-0/1080/1350",
+            "story_id": "40000000-0000-4000-8000-000000000001",
+            "media_url": "https://picsum.photos/seed/story-1-0/1080/1350",
             "type": "IMAGE",
             "duration": 5,
-            "sortOrder": 0,
-            "stickerType": null,
-            "stickerData": null,
-            "createdAt": "2026-08-04T06:00:00.000Z"
+            "sort_order": 0,
+            "sticker_type": null,
+            "sticker_data": null,
+            "created_at": "2026-08-04T06:00:00.000Z"
           }
         ],
         "views": []
@@ -919,11 +1139,11 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
 **Body:**
 ```json
 {
-  "mediaUrl": "https://storage.example.com/uploads/user-id/story.jpg",
+  "media_url": "https://storage.example.com/uploads/user-id/story.jpg",
   "type": "IMAGE",
   "duration": 5,
-  "stickerType": "poll",
-  "stickerData": "{\"question\":\"Yes or No?\"}"
+  "sticker_type": "poll",
+  "sticker_data": "{\"question\":\"Yes or No?\"}"
 }
 ```
 
@@ -934,20 +1154,20 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
   "data": {
     "story": {
       "id": "new-story-uuid",
-      "authorId": "user-uuid",
-      "createdAt": "2026-08-04T15:00:00.000Z",
-      "expiresAt": "2026-08-05T15:00:00.000Z",
+      "author_id": "user-uuid",
+      "created_at": "2026-08-04T15:00:00.000Z",
+      "expires_at": "2026-08-05T15:00:00.000Z",
       "items": [
         {
           "id": "story-item-uuid",
-          "storyId": "new-story-uuid",
-          "mediaUrl": "https://storage.example.com/uploads/user-id/story.jpg",
+          "story_id": "new-story-uuid",
+          "media_url": "https://storage.example.com/uploads/user-id/story.jpg",
           "type": "IMAGE",
           "duration": 5,
-          "sortOrder": 0,
-          "stickerType": "poll",
-          "stickerData": "{\"question\":\"Yes or No?\"}",
-          "createdAt": "2026-08-04T15:00:00.000Z"
+          "sort_order": 0,
+          "sticker_type": "poll",
+          "sticker_data": "{\"question\":\"Yes or No?\"}",
+          "created_at": "2026-08-04T15:00:00.000Z"
         }
       ]
     }
@@ -955,11 +1175,11 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
 }
 ```
 
-### POST /v1/stories/:storyId/view
+### POST /v1/stories/:story_id/view
 
 **Response (204):** No content
 
-### DELETE /v1/stories/:storyId
+### DELETE /v1/stories/:story_id
 
 **Response (204):** No content
 
@@ -967,12 +1187,14 @@ Note: `views` array contains `{ "id": "..." }` if current user has viewed the st
 
 ## Reels
 
-### GET /v1/reels/user/:userId?page=1&perPage=30
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
+
+### GET /v1/reels/user/:user_id?page=1&perPage=30
 
 Returns reels authored by a specific user (used by the profile Reels grid).
 Same item + pagination shape as `/v1/reels/feed`.
 
-**Response (200):** Same structure as the reels feed below (filtered to `authorId == :userId`).
+**Response (200):** Same structure as the reels feed below (filtered to `author_id == :user_id`).
 
 ### GET /v1/reels/feed?page=1&perPage=10
 
@@ -984,41 +1206,41 @@ Same item + pagination shape as `/v1/reels/feed`.
     "items": [
       {
         "id": "30000000-0000-4000-8000-000000000001",
-        "authorId": "abc123",
-        "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "thumbnailUrl": "https://picsum.photos/seed/reel-1/1080/1350",
+        "author_id": "abc123",
+        "video_url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "thumbnail_url": "https://picsum.photos/seed/reel-1/1080/1350",
         "caption": "Day in the life 🎬",
-        "audioName": null,
-        "audioArtist": null,
-        "audioCoverUrl": null,
-        "isOriginalAudio": true,
+        "audio_name": null,
+        "audio_artist": null,
+        "audio_cover_url": null,
+        "is_original_audio": true,
         "duration": 30,
-        "likesCount": 45,
-        "commentsCount": 0,
-        "sharesCount": 0,
-        "viewsCount": 1200,
-        "createdAt": "2026-07-20T10:00:00.000Z",
+        "likes_count": 45,
+        "comments_count": 0,
+        "shares_count": 0,
+        "views_count": 1200,
+        "created_at": "2026-07-20T10:00:00.000Z",
         "author": {
           "id": "abc123",
           "username": "alice",
-          "avatarUrl": "https://i.pravatar.cc/400?u=alice",
-          "isFollowing": false
+          "avatar_url": "https://i.pravatar.cc/400?u=alice",
+          "is_following": false
         },
-        "isLiked": false,
-        "isSaved": false
+        "is_liked": false,
+        "is_saved": false
       }
     ],
     "page": 1,
     "perPage": 10,
     "total": 60,
-    "hasMore": true
+    "has_more": true
   }
 }
 ```
 
-> `author.isFollowing` reflects whether the current user follows the reel's
+> `author.is_following` reflects whether the current user follows the reel's
 > author (drives the inline Follow button + the "Following" tab filter).
-> `isSaved` reflects whether the current user has saved the reel (drives the
+> `is_saved` reflects whether the current user has saved the reel (drives the
 > bookmark toggle). Both default to `false` when absent.
 
 ### POST /v1/reels
@@ -1026,12 +1248,12 @@ Same item + pagination shape as `/v1/reels/feed`.
 **Body:**
 ```json
 {
-  "videoUrl": "https://storage.example.com/uploads/user-id/reel.mp4",
-  "thumbnailUrl": "https://storage.example.com/uploads/user-id/reel_thumb.jpg",
+  "video_url": "https://storage.example.com/uploads/user-id/reel.mp4",
+  "thumbnail_url": "https://storage.example.com/uploads/user-id/reel_thumb.jpg",
   "caption": "New reel! 🎬",
   "duration": 15,
-  "audioName": "Original Sound",
-  "audioArtist": "dev_user"
+  "audio_name": "Original Sound",
+  "audio_artist": "dev_user"
 }
 ```
 
@@ -1042,24 +1264,24 @@ Same item + pagination shape as `/v1/reels/feed`.
   "data": {
     "reel": {
       "id": "new-reel-uuid",
-      "authorId": "user-uuid",
-      "videoUrl": "https://storage.example.com/uploads/user-id/reel.mp4",
-      "thumbnailUrl": "https://storage.example.com/uploads/user-id/reel_thumb.jpg",
+      "author_id": "user-uuid",
+      "video_url": "https://storage.example.com/uploads/user-id/reel.mp4",
+      "thumbnail_url": "https://storage.example.com/uploads/user-id/reel_thumb.jpg",
       "caption": "New reel! 🎬",
-      "audioName": "Original Sound",
-      "audioArtist": "dev_user",
-      "audioCoverUrl": null,
-      "isOriginalAudio": true,
+      "audio_name": "Original Sound",
+      "audio_artist": "dev_user",
+      "audio_cover_url": null,
+      "is_original_audio": true,
       "duration": 15,
-      "likesCount": 0,
-      "commentsCount": 0,
-      "sharesCount": 0,
-      "viewsCount": 0,
-      "createdAt": "2026-08-04T15:00:00.000Z",
+      "likes_count": 0,
+      "comments_count": 0,
+      "shares_count": 0,
+      "views_count": 0,
+      "created_at": "2026-08-04T15:00:00.000Z",
       "author": {
         "id": "user-uuid",
         "username": "dev_user",
-        "avatarUrl": "https://i.pravatar.cc/400?u=dev_user"
+        "avatar_url": "https://i.pravatar.cc/400?u=dev_user"
       }
     }
   }
@@ -1096,23 +1318,25 @@ Delete a reel. Only the reel's author may delete it (otherwise `403 FORBIDDEN`).
 
 **Response (204):** No content
 
-### GET /v1/reels/:reelId/comments?page=1&perPage=20
+### GET /v1/reels/:reel_id/comments?page=1&perPage=20
 
 Reel comments reuse the exact same contract, request params, and response shape
-as post comments (`GET /v1/posts/:postId/comments`). The client renders reel
+as post comments (`GET /v1/posts/:post_id/comments`). The client renders reel
 comments with the same UI as post comments (presented as a ~2/3-height sheet).
 
-### POST /v1/reels/:reelId/comments
+### POST /v1/reels/:reel_id/comments
 
-Same body and response shape as `POST /v1/posts/:postId/comments`.
+Same body and response shape as `POST /v1/posts/:post_id/comments`.
 
 > Note: If the backend prefers a single polymorphic comments resource, an
-> alternative is `GET/POST /v1/comments?targetType=REEL&targetId=:reelId`.
+> alternative is `GET/POST /v1/comments?target_type=REEL&target_id=:reel_id`.
 > The client only needs the paginated `items` + single-`comment` shapes to match.
 
 ---
 
 ## Conversations & Messages
+
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
 
 ### GET /v1/conversations?page=1&perPage=20
 
@@ -1124,55 +1348,55 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
     "items": [
       {
         "id": "50000000-0000-4000-8000-000000000001",
-        "isGroup": false,
-        "groupName": null,
-        "groupAvatar": null,
-        "createdAt": "2026-08-01T10:00:00.000Z",
-        "updatedAt": "2026-08-04T14:00:00.000Z",
+        "is_group": false,
+        "group_name": null,
+        "group_avatar": null,
+        "created_at": "2026-08-01T10:00:00.000Z",
+        "updated_at": "2026-08-04T14:00:00.000Z",
         "members": [
           {
             "id": "member-uuid-1",
-            "conversationId": "50000000-0000-4000-8000-000000000001",
-            "userId": "user-uuid-1",
-            "isMuted": false,
-            "lastReadAt": "2026-08-04T14:00:00.000Z",
-            "joinedAt": "2026-08-01T10:00:00.000Z",
+            "conversation_id": "50000000-0000-4000-8000-000000000001",
+            "user_id": "user-uuid-1",
+            "is_muted": false,
+            "last_read_at": "2026-08-04T14:00:00.000Z",
+            "joined_at": "2026-08-01T10:00:00.000Z",
             "user": {
               "id": "user-uuid-1",
               "username": "dev_user",
-              "fullName": "Dev User",
-              "avatarUrl": "https://i.pravatar.cc/400?u=dev_user"
+              "full_name": "Dev User",
+              "avatar_url": "https://i.pravatar.cc/400?u=dev_user"
             }
           },
           {
             "id": "member-uuid-2",
-            "conversationId": "50000000-0000-4000-8000-000000000001",
-            "userId": "user-uuid-2",
-            "isMuted": false,
-            "lastReadAt": null,
-            "joinedAt": "2026-08-01T10:00:00.000Z",
+            "conversation_id": "50000000-0000-4000-8000-000000000001",
+            "user_id": "user-uuid-2",
+            "is_muted": false,
+            "last_read_at": null,
+            "joined_at": "2026-08-01T10:00:00.000Z",
             "user": {
               "id": "user-uuid-2",
               "username": "alice",
-              "fullName": "Alice Nguyen",
-              "avatarUrl": "https://i.pravatar.cc/400?u=alice"
+              "full_name": "Alice Nguyen",
+              "avatar_url": "https://i.pravatar.cc/400?u=alice"
             }
           }
         ],
         "messages": [
           {
             "id": "60000000-0000-4000-8000-000000000010",
-            "conversationId": "50000000-0000-4000-8000-000000000001",
-            "senderId": "user-uuid-2",
-            "contentType": "TEXT",
-            "textContent": "See you tomorrow!",
-            "mediaUrl": null,
-            "mediaThumbnail": null,
-            "mediaDuration": null,
-            "referenceId": null,
-            "replyToId": null,
+            "conversation_id": "50000000-0000-4000-8000-000000000001",
+            "sender_id": "user-uuid-2",
+            "content_type": "TEXT",
+            "text_content": "See you tomorrow!",
+            "media_url": null,
+            "media_thumbnail": null,
+            "media_duration": null,
+            "reference_id": null,
+            "reply_to_id": null,
             "status": "SENT",
-            "createdAt": "2026-08-04T14:00:00.000Z"
+            "created_at": "2026-08-04T14:00:00.000Z"
           }
         ]
       }
@@ -1180,7 +1404,7 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
     "page": 1,
     "perPage": 20,
     "total": 5,
-    "hasMore": false
+    "has_more": false
   }
 }
 ```
@@ -1190,8 +1414,8 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
 **Body:**
 ```json
 {
-  "participantIds": ["user-uuid-2", "user-uuid-3"],
-  "groupName": "My Group Chat"
+  "participant_ids": ["user-uuid-2", "user-uuid-3"],
+  "group_name": "My Group Chat"
 }
 ```
 
@@ -1202,24 +1426,24 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
   "data": {
     "conversation": {
       "id": "new-conversation-uuid",
-      "isGroup": true,
-      "groupName": "My Group Chat",
-      "groupAvatar": null,
-      "createdAt": "2026-08-04T15:00:00.000Z",
-      "updatedAt": "2026-08-04T15:00:00.000Z",
+      "is_group": true,
+      "group_name": "My Group Chat",
+      "group_avatar": null,
+      "created_at": "2026-08-04T15:00:00.000Z",
+      "updated_at": "2026-08-04T15:00:00.000Z",
       "members": [
         {
           "id": "member-uuid",
-          "conversationId": "new-conversation-uuid",
-          "userId": "user-uuid",
-          "isMuted": false,
-          "lastReadAt": null,
-          "joinedAt": "2026-08-04T15:00:00.000Z",
+          "conversation_id": "new-conversation-uuid",
+          "user_id": "user-uuid",
+          "is_muted": false,
+          "last_read_at": null,
+          "joined_at": "2026-08-04T15:00:00.000Z",
           "user": {
             "id": "user-uuid",
             "username": "dev_user",
-            "fullName": "Dev User",
-            "avatarUrl": "https://i.pravatar.cc/400?u=dev_user"
+            "full_name": "Dev User",
+            "avatar_url": "https://i.pravatar.cc/400?u=dev_user"
           }
         }
       ]
@@ -1238,28 +1462,28 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
     "items": [
       {
         "id": "60000000-0000-4000-8000-000000000001",
-        "conversationId": "50000000-0000-4000-8000-000000000001",
-        "senderId": "user-uuid",
-        "contentType": "TEXT",
-        "textContent": "Hey! How are you?",
-        "mediaUrl": null,
-        "mediaThumbnail": null,
-        "mediaDuration": null,
-        "referenceId": null,
-        "replyToId": null,
+        "conversation_id": "50000000-0000-4000-8000-000000000001",
+        "sender_id": "user-uuid",
+        "content_type": "TEXT",
+        "text_content": "Hey! How are you?",
+        "media_url": null,
+        "media_thumbnail": null,
+        "media_duration": null,
+        "reference_id": null,
+        "reply_to_id": null,
         "status": "SENT",
-        "createdAt": "2026-08-04T12:00:00.000Z",
+        "created_at": "2026-08-04T12:00:00.000Z",
         "sender": {
           "id": "user-uuid",
           "username": "dev_user",
-          "avatarUrl": "https://i.pravatar.cc/400?u=dev_user"
+          "avatar_url": "https://i.pravatar.cc/400?u=dev_user"
         }
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 30,
-    "hasMore": true
+    "has_more": true
   }
 }
 ```
@@ -1269,18 +1493,18 @@ Same body and response shape as `POST /v1/posts/:postId/comments`.
 **Body:**
 ```json
 {
-  "contentType": "TEXT",
-  "textContent": "Hello!",
-  "replyToId": "optional-message-uuid"
+  "content_type": "TEXT",
+  "text_content": "Hello!",
+  "reply_to_id": "optional-message-uuid"
 }
 ```
 
 Or for media:
 ```json
 {
-  "contentType": "IMAGE",
-  "mediaUrl": "https://storage.example.com/uploads/user-id/photo.jpg",
-  "mediaThumbnail": "https://storage.example.com/uploads/user-id/photo_thumb.jpg"
+  "content_type": "IMAGE",
+  "media_url": "https://storage.example.com/uploads/user-id/photo.jpg",
+  "media_thumbnail": "https://storage.example.com/uploads/user-id/photo_thumb.jpg"
 }
 ```
 
@@ -1291,21 +1515,21 @@ Or for media:
   "data": {
     "message": {
       "id": "new-message-uuid",
-      "conversationId": "conversation-uuid",
-      "senderId": "user-uuid",
-      "contentType": "TEXT",
-      "textContent": "Hello!",
-      "mediaUrl": null,
-      "mediaThumbnail": null,
-      "mediaDuration": null,
-      "referenceId": null,
-      "replyToId": null,
+      "conversation_id": "conversation-uuid",
+      "sender_id": "user-uuid",
+      "content_type": "TEXT",
+      "text_content": "Hello!",
+      "media_url": null,
+      "media_thumbnail": null,
+      "media_duration": null,
+      "reference_id": null,
+      "reply_to_id": null,
       "status": "SENT",
-      "createdAt": "2026-08-04T15:00:00.000Z",
+      "created_at": "2026-08-04T15:00:00.000Z",
       "sender": {
         "id": "user-uuid",
         "username": "dev_user",
-        "avatarUrl": "https://i.pravatar.cc/400?u=dev_user"
+        "avatar_url": "https://i.pravatar.cc/400?u=dev_user"
       }
     }
   }
@@ -1329,13 +1553,15 @@ Or for media:
 
 **Response (204):** No content
 
-### DELETE /v1/conversations/messages/:messageId
+### DELETE /v1/conversations/messages/:message_id
 
 **Response (204):** No content
 
 ---
 
 ## Notifications
+
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
 
 ### GET /v1/notifications?page=1&perPage=20
 
@@ -1347,67 +1573,67 @@ Or for media:
     "items": [
       {
         "id": "notification-uuid",
-        "recipientId": "user-uuid",
-        "actorId": "actor-uuid",
+        "recipient_id": "user-uuid",
+        "actor_id": "actor-uuid",
         "type": "LIKE",
-        "postId": "10000000-0000-4000-8000-000000000001",
-        "postThumbnailUrl": "https://picsum.photos/seed/post-1-0/200/200",
-        "commentText": null,
-        "isRead": false,
-        "createdAt": "2026-08-04T12:00:00.000Z",
+        "post_id": "10000000-0000-4000-8000-000000000001",
+        "post_thumbnail_url": "https://picsum.photos/seed/post-1-0/200/200",
+        "comment_text": null,
+        "is_read": false,
+        "created_at": "2026-08-04T12:00:00.000Z",
         "actor": {
           "id": "actor-uuid",
           "username": "alice",
-          "fullName": "Alice Nguyen",
-          "avatarUrl": "https://i.pravatar.cc/400?u=alice"
+          "full_name": "Alice Nguyen",
+          "avatar_url": "https://i.pravatar.cc/400?u=alice"
         }
       },
       {
         "id": "notification-uuid-2",
-        "recipientId": "user-uuid",
-        "actorId": "actor-uuid-2",
+        "recipient_id": "user-uuid",
+        "actor_id": "actor-uuid-2",
         "type": "COMMENT",
-        "postId": "10000000-0000-4000-8000-000000000002",
-        "postThumbnailUrl": "https://picsum.photos/seed/post-2-0/200/200",
-        "commentText": "Great photo!",
-        "isRead": true,
-        "createdAt": "2026-08-03T18:00:00.000Z",
+        "post_id": "10000000-0000-4000-8000-000000000002",
+        "post_thumbnail_url": "https://picsum.photos/seed/post-2-0/200/200",
+        "comment_text": "Great photo!",
+        "is_read": true,
+        "created_at": "2026-08-03T18:00:00.000Z",
         "actor": {
           "id": "actor-uuid-2",
           "username": "bob",
-          "fullName": "Bob Tran",
-          "avatarUrl": "https://i.pravatar.cc/400?u=bob"
+          "full_name": "Bob Tran",
+          "avatar_url": "https://i.pravatar.cc/400?u=bob"
         }
       },
       {
         "id": "notification-uuid-3",
-        "recipientId": "user-uuid",
-        "actorId": "actor-uuid-3",
+        "recipient_id": "user-uuid",
+        "actor_id": "actor-uuid-3",
         "type": "FOLLOW",
-        "postId": null,
-        "postThumbnailUrl": null,
-        "commentText": null,
-        "isRead": false,
-        "createdAt": "2026-08-03T10:00:00.000Z",
+        "post_id": null,
+        "post_thumbnail_url": null,
+        "comment_text": null,
+        "is_read": false,
+        "created_at": "2026-08-03T10:00:00.000Z",
         "actor": {
           "id": "actor-uuid-3",
           "username": "carol",
-          "fullName": "Carol Le",
-          "avatarUrl": "https://i.pravatar.cc/400?u=carol"
+          "full_name": "Carol Le",
+          "avatar_url": "https://i.pravatar.cc/400?u=carol"
         }
       }
     ],
     "page": 1,
     "perPage": 20,
     "total": 25,
-    "hasMore": true
+    "has_more": true
   }
 }
 ```
 
 **NotificationType enum:** `LIKE`, `COMMENT`, `FOLLOW`, `FOLLOW_REQUEST`, `MENTION`, `TAGGED_IN_POST`, `STORY_MENTION`, `LIVE_VIDEO`
 
-`postThumbnailUrl` is a small thumbnail of the related post (present for
+`post_thumbnail_url` is a small thumbnail of the related post (present for
 post-related types like `LIKE`, `COMMENT`, `TAGGED_IN_POST`; `null` for
 `FOLLOW`). Lets the client render the post preview without an extra fetch.
 
@@ -1435,6 +1661,8 @@ post-related types like `LIKE`, `COMMENT`, `TAGGED_IN_POST`; `null` for
 
 ## Upload
 
+> **Field Naming:** All JSON fields use snake_case (client decodes with `.convertFromSnakeCase`)
+
 ### POST /v1/upload/image
 
 **Body:** `multipart/form-data` with field `file` (max 10MB, jpeg/png/webp/heic)
@@ -1447,7 +1675,7 @@ post-related types like `LIKE`, `COMMENT`, `TAGGED_IN_POST`; `null` for
     "url": "https://storage.googleapis.com/bucket/uploads/user-id/uuid.jpg",
     "width": 1080,
     "height": 1350,
-    "pendingUploadId": "pending-upload-uuid"
+    "pending_upload_id": "pending-upload-uuid"
   }
 }
 ```
@@ -1462,11 +1690,11 @@ post-related types like `LIKE`, `COMMENT`, `TAGGED_IN_POST`; `null` for
   "success": true,
   "data": {
     "url": "https://storage.googleapis.com/bucket/uploads/user-id/uuid.mp4",
-    "thumbnailUrl": "https://storage.googleapis.com/bucket/uploads/user-id/uuid_thumb.jpg",
+    "thumbnail_url": "https://storage.googleapis.com/bucket/uploads/user-id/uuid_thumb.jpg",
     "duration": 15.5,
     "width": 1080,
     "height": 1920,
-    "pendingUploadId": "pending-upload-uuid"
+    "pending_upload_id": "pending-upload-uuid"
   }
 }
 ```

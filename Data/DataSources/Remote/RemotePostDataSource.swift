@@ -6,16 +6,17 @@
 //
 
 import Foundation
-import Alamofire
 
 // MARK: - RemotePostDataSource
 
 final class RemotePostDataSource: @unchecked Sendable {
 
     private let networkService: NetworkServiceProtocol
+    private let uploadDataSource: RemoteUploadDataSource
 
     init(networkService: NetworkServiceProtocol) {
         self.networkService = networkService
+        self.uploadDataSource = RemoteUploadDataSource(networkService: networkService)
     }
 
     // MARK: - Feed
@@ -66,38 +67,37 @@ final class RemotePostDataSource: @unchecked Sendable {
     // MARK: - Create
 
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post {
-        // Step 1: Upload media files
+        // Step 1: Upload media files using presigned URLs
         var mediaItems: [[String: Any]] = []
         for (index, data) in mediaData.enumerated() {
             if isVideoData(data) {
-                let uploadResponse: UploadVideoResponseDTO = try await networkService.upload(
-                    UploadEndpoint.video
-                ) { formData in
-                    formData.append(data, withName: "file", fileName: "video_\(index).mp4", mimeType: "video/mp4")
-                }
+                let uploadResult = try await uploadDataSource.upload(
+                    data: data,
+                    category: .video,
+                    filename: "video_\(index).mp4"
+                )
                 var item: [String: Any] = [
-                    "url": uploadResponse.url,
+                    "url": uploadResult.url,
                     "type": "VIDEO"
                 ]
-                if let width = uploadResponse.width { item["width"] = width }
-                if let height = uploadResponse.height { item["height"] = height }
-                if let duration = uploadResponse.duration { item["duration"] = duration }
-                if let thumb = uploadResponse.thumbnailUrl { item["thumbnailUrl"] = thumb }
-                if let pendingId = uploadResponse.pendingUploadId { item["pendingUploadId"] = pendingId }
+                if let width = uploadResult.width { item["width"] = width }
+                if let height = uploadResult.height { item["height"] = height }
+                if let duration = uploadResult.duration { item["duration"] = duration }
+                if let pendingId = uploadResult.uploadId as String? { item["pendingUploadId"] = pendingId }
                 mediaItems.append(item)
             } else {
-                let uploadResponse: UploadImageResponseDTO = try await networkService.upload(
-                    UploadEndpoint.image
-                ) { formData in
-                    formData.append(data, withName: "file", fileName: "image_\(index).jpg", mimeType: "image/jpeg")
-                }
+                let uploadResult = try await uploadDataSource.upload(
+                    data: data,
+                    category: .image,
+                    filename: "image_\(index).jpg"
+                )
                 var item: [String: Any] = [
-                    "url": uploadResponse.url,
+                    "url": uploadResult.url,
                     "type": "IMAGE"
                 ]
-                if let width = uploadResponse.width { item["width"] = width }
-                if let height = uploadResponse.height { item["height"] = height }
-                if let pendingId = uploadResponse.pendingUploadId { item["pendingUploadId"] = pendingId }
+                if let width = uploadResult.width { item["width"] = width }
+                if let height = uploadResult.height { item["height"] = height }
+                if let pendingId = uploadResult.uploadId as String? { item["pendingUploadId"] = pendingId }
                 mediaItems.append(item)
             }
         }
@@ -150,6 +150,22 @@ final class RemotePostDataSource: @unchecked Sendable {
 
     func deletePost(id: String) async throws {
         try await networkService.requestVoid(PostEndpoint.delete(id: id))
+    }
+
+    // MARK: - Comments
+
+    func fetchComments(postId: String, page: Int, perPage: Int) async throws -> [Comment] {
+        let response: PaginatedCommentsDTO = try await networkService.requestEnvelope(
+            PostEndpoint.comments(postId: postId, page: page, perPage: perPage)
+        )
+        return CommentMapper.toEntityList(response.items)
+    }
+
+    func addComment(postId: String, text: String, parentId: String?) async throws -> Comment {
+        let wrapper: CommentWrapperDTO = try await networkService.requestEnvelope(
+            PostEndpoint.addComment(postId: postId, text: text, parentId: parentId)
+        )
+        return CommentMapper.toEntity(wrapper.comment)
     }
 
     // MARK: - Private Helpers

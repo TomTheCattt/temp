@@ -17,25 +17,20 @@ struct ChangePasswordInput: Sendable {
 
 // MARK: - ChangePasswordUseCase
 
-/// Changes the current user's password.
-///
-/// Per the backend contract, password changes are performed client-side via the
-/// Firebase Auth SDK (`updatePassword`), which requires a recent reauthentication
-/// with the current password. This use case validates input, then delegates to
-/// `FirebaseAuthServiceProtocol`.
+/// Changes the current user's password via the backend API.
 protocol ChangePasswordUseCaseProtocol: Sendable {
     func execute(_ input: ChangePasswordInput) async throws
 }
 
 final class ChangePasswordUseCase: ChangePasswordUseCaseProtocol, Sendable {
 
-    private let firebaseAuth: FirebaseAuthServiceProtocol
+    private let authRepository: AuthRepositoryProtocol
 
-    /// Minimum password length enforced by Firebase.
+    /// Minimum password length enforced by the backend.
     private let minPasswordLength = 6
 
-    init(firebaseAuth: FirebaseAuthServiceProtocol) {
-        self.firebaseAuth = firebaseAuth
+    init(authRepository: AuthRepositoryProtocol) {
+        self.authRepository = authRepository
     }
 
     func execute(_ input: ChangePasswordInput) async throws {
@@ -50,7 +45,7 @@ final class ChangePasswordUseCase: ChangePasswordUseCaseProtocol, Sendable {
             throw ChangePasswordError.sameAsCurrent
         }
 
-        try await firebaseAuth.updatePassword(
+        try await authRepository.changePassword(
             currentPassword: input.currentPassword,
             newPassword: input.newPassword
         )

@@ -6,21 +6,20 @@
 //
 
 import Foundation
-import Alamofire
 
 // MARK: - StoryRepository
 
 final class StoryRepository: StoryRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteStoryDataSource
-    private let networkService: NetworkServiceProtocol
+    private let uploadDataSource: RemoteUploadDataSource
 
     init(
         remoteDataSource: RemoteStoryDataSource,
-        networkService: NetworkServiceProtocol
+        uploadDataSource: RemoteUploadDataSource
     ) {
         self.remoteDataSource = remoteDataSource
-        self.networkService = networkService
+        self.uploadDataSource = uploadDataSource
     }
 
     func fetchStories() async throws -> [Story] {
@@ -33,20 +32,17 @@ final class StoryRepository: StoryRepositoryProtocol, @unchecked Sendable {
     }
 
     func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
-        // Step 1: Upload media
-        let mediaType = type == .video ? "VIDEO" : "IMAGE"
-        let uploadEndpoint = type == .video ? UploadEndpoint.video : UploadEndpoint.image
-
-        let uploadResponse: UploadImageResponseDTO = try await networkService.upload(uploadEndpoint) { formData in
-            let mimeType = type == .video ? "video/mp4" : "image/jpeg"
-            let fileName = type == .video ? "story.mp4" : "story.jpg"
-            formData.append(mediaData, withName: "file", fileName: fileName, mimeType: mimeType)
-        }
+        // Step 1: Upload media using presigned URL
+        let uploadResult = try await uploadDataSource.upload(
+            data: mediaData,
+            category: type == .video ? .story : .story,
+            filename: type == .video ? "story.mp4" : "story.jpg"
+        )
 
         // Step 2: Create story with uploaded URL
         return try await remoteDataSource.createStory(
-            mediaUrl: uploadResponse.url,
-            type: mediaType,
+            mediaUrl: uploadResult.url,
+            type: type == .video ? "VIDEO" : "IMAGE",
             duration: duration,
             stickerType: nil,
             stickerData: nil

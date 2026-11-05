@@ -20,6 +20,9 @@ protocol FirebaseAuthServiceProtocol: Sendable {
     /// Get the current user's fresh ID token (auto-refreshes if expired).
     func getIDToken() async throws -> String
 
+    /// Get the current user's fresh ID token with expiry info.
+    func getIDTokenWithExpiry() async throws -> (token: String, expiresAt: Date?)
+
     /// Change the current user's password. Reauthenticates with the current
     /// password first (Firebase requires a recent login for sensitive operations).
     func updatePassword(currentPassword: String, newPassword: String) async throws
@@ -40,6 +43,7 @@ struct FirebaseAuthResult: Sendable {
     let idToken: String
     let uid: String
     let email: String?
+    let expiresAt: Date?
 }
 
 // MARK: - FirebaseAuthService
@@ -55,11 +59,13 @@ final class FirebaseAuthService: FirebaseAuthServiceProtocol, @unchecked Sendabl
     func signIn(email: String, password: String) async throws -> FirebaseAuthResult {
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
         let idToken = try await result.user.getIDToken()
+        let expiresAt = extractExpiryFromToken(idToken)
 
         return FirebaseAuthResult(
             idToken: idToken,
             uid: result.user.uid,
-            email: result.user.email
+            email: result.user.email,
+            expiresAt: expiresAt
         )
     }
 
@@ -68,11 +74,13 @@ final class FirebaseAuthService: FirebaseAuthServiceProtocol, @unchecked Sendabl
     func createAccount(email: String, password: String) async throws -> FirebaseAuthResult {
         let result = try await Auth.auth().createUser(withEmail: email, password: password)
         let idToken = try await result.user.getIDToken()
+        let expiresAt = extractExpiryFromToken(idToken)
 
         return FirebaseAuthResult(
             idToken: idToken,
             uid: result.user.uid,
-            email: result.user.email
+            email: result.user.email,
+            expiresAt: expiresAt
         )
     }
 
@@ -80,10 +88,18 @@ final class FirebaseAuthService: FirebaseAuthServiceProtocol, @unchecked Sendabl
 
     /// Returns a fresh ID token. Firebase SDK auto-refreshes if the token is expired.
     func getIDToken() async throws -> String {
+        let (token, _) = try await getIDTokenWithExpiry()
+        return token
+    }
+
+    /// Returns a fresh ID token with expiry information.
+    func getIDTokenWithExpiry() async throws -> (token: String, expiresAt: Date?) {
         guard let user = Auth.auth().currentUser else {
             throw FirebaseAuthError.notSignedIn
         }
-        return try await user.getIDToken()
+        let idToken = try await user.getIDToken()
+        let expiresAt = extractExpiryFromToken(idToken)
+        return (idToken, expiresAt)
     }
 
     // MARK: - Change Password
@@ -128,5 +144,34 @@ enum FirebaseAuthError: LocalizedError {
         case .tokenRetrievalFailed:
             return "Failed to retrieve Firebase ID token."
         }
+    }
+}
+
+// MARK: - Private Helpers
+
+private extension FirebaseAuthService {
+    /// Decodes a JWT token and extracts the expiry date from the `exp` claim.
+    func extractExpiryFromToken(_ token: String) -> Date? {
+        let parts = token.split(separator: ".")
+        guard parts.count == 3 else { return nil }
+
+        let payload = parts[1]
+        var base64 = String(payload)
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        // Add padding if needed
+        let remainder = base64.count % 4
+        if remainder > 0 {
+            base64 += String(repeating: "=", count: 4 - remainder)
+        }
+
+        guard let data = Data(base64Encoded: base64),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = json["exp"] as? TimeInterval else {
+            return nil
+        }
+
+        return Date(timeIntervalSince1970: exp)
     }
 }
