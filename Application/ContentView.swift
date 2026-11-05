@@ -17,10 +17,7 @@ struct ContentView: View {
                 MainTabView()
             } else {
                 LoginView(
-                    viewModel: AuthViewModel(
-                        loginUseCase: DIContainer.shared.resolve(LoginUseCaseProtocol.self),
-                        registerUseCase: DIContainer.shared.resolve(RegisterUseCaseProtocol.self)
-                    )
+                    viewModel: DIContainer.shared.resolve(AuthViewModel.self)
                 )
             }
         }
