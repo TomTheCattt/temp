@@ -69,10 +69,13 @@ actor FirebaseUserDataSource {
         return []
     }
 
-    func updateProfile(name: String?, bio: String?, website: String?) async throws -> User {
-        _ = name
+    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User {
+        _ = fullName
+        _ = username
         _ = bio
         _ = website
+        _ = phone
+        _ = avatarUrl
         // TODO: Implement updateProfile logic from scratch
         return try await fetchCurrentUser()
     }
@@ -170,5 +173,14 @@ actor FirebaseUserDataSource {
         _ = perPage
         // TODO: Implement fetchSuggested logic from scratch
         return []
+    }
+
+    func fetchDeviceTokens() async throws -> [DeviceToken] {
+        // TODO: Implement when Firebase supports device tokens
+        return []
+    }
+
+    func addDeviceToken(token: String, platform: String) async throws {
+        // TODO: Implement when Firebase supports device tokens
     }
 }
