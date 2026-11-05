@@ -55,4 +55,5 @@ enum KeychainKeys {
     static let accessToken      = "\(prefix).auth.accessToken"
     static let refreshToken     = "\(prefix).auth.refreshToken"
     static let biometricEnabled = "\(prefix).auth.biometricEnabled"
+    static let tokenExpiry      = "\(prefix).auth.tokenExpiry"
 }
