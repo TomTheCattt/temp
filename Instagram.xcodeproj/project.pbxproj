@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		801B670430987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670530987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670630987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670730987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670830987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670930987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670A30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670B30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670C30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670D30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670E30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B670F30987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B671030987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		801B671130987C8C00BC0691 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		807D4F173015C25B00E953EC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F163015C25B00E953EC /* Alamofire */; };
 		807D4F283015C78500E953EC /* CombineExt in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F273015C78500E953EC /* CombineExt */; };
 		807D4F2B3015C89B00E953EC /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F2A3015C89B00E953EC /* Swinject */; };
@@ -16,25 +30,35 @@
 		807D4F343015C97100E953EC /* NukeVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F333015C97100E953EC /* NukeVideo */; };
 		807D4F373015C9C600E953EC /* PopupView in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F363015C9C600E953EC /* PopupView */; };
 		807D4F3A3015CA0600E953EC /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = 807D4F393015CA0600E953EC /* Pow */; };
+		80887F60300D4ECD007EF3E5 /* InstagramTests/CallAudioEngineControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F50300D4ECD007EF3E5 /* InstagramTests/CallAudioEngineControllerTests.swift */; };
+		80887F61300D4ECD007EF3E5 /* InstagramTests/CallManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F51300D4ECD007EF3E5 /* InstagramTests/CallManagerTests.swift */; };
+		80887F62300D4ECD007EF3E5 /* InstagramTests/CallServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F52300D4ECD007EF3E5 /* InstagramTests/CallServiceTests.swift */; };
+		80887F63300D4ECD007EF3E5 /* InstagramTests/CallSignalingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F53300D4ECD007EF3E5 /* InstagramTests/CallSignalingTests.swift */; };
+		80887F64300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */; };
+		80887F65300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */; };
+		80887F66300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */; };
+		80887F67300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */; };
+		80887F68300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */; };
+		80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */; };
+		80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */; };
+		80887F6B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */; };
 		80DAA3B530222E5A002DFE74 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */; };
 		80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61030223402002DFE74 /* FirebaseAuth */; };
 		80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61230223402002DFE74 /* FirebaseCore */; };
 		80DAA61530223402002DFE74 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61430223402002DFE74 /* FirebaseMessaging */; };
 		80DAA61730223402002DFE74 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61630223402002DFE74 /* FirebaseStorage */; };
 		80DAA61930223402002DFE74 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61830223402002DFE74 /* FirebaseFirestore */; };
-		80887F60300D4ECD007EF3E5 /* CallAudioEngineControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F50300D4ECD007EF3E5 /* CallAudioEngineControllerTests.swift */; };
-		80887F61300D4ECD007EF3E5 /* CallManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F51300D4ECD007EF3E5 /* CallManagerTests.swift */; };
-		80887F62300D4ECD007EF3E5 /* CallServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F52300D4ECD007EF3E5 /* CallServiceTests.swift */; };
-		80887F63300D4ECD007EF3E5 /* CallSignalingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F53300D4ECD007EF3E5 /* CallSignalingTests.swift */; };
-		80887F64300D4ECD007EF3E5 /* CallVideoCaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F54300D4ECD007EF3E5 /* CallVideoCaptureControllerTests.swift */; };
-		80887F65300D4ECD007EF3E5 /* ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F55300D4ECD007EF3E5 /* ChatViewModelTests.swift */; };
-		80887F66300D4ECD007EF3E5 /* DirectMessagesViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F56300D4ECD007EF3E5 /* DirectMessagesViewModelTests.swift */; };
-		80887F67300D4ECD007EF3E5 /* FirebaseMessageDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F57300D4ECD007EF3E5 /* FirebaseMessageDataSourceTests.swift */; };
-		80887F68300D4ECD007EF3E5 /* MessageEntityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F58300D4ECD007EF3E5 /* MessageEntityTests.swift */; };
-		80887F69300D4ECD007EF3E5 /* VoIPPushServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F59300D4ECD007EF3E5 /* VoIPPushServiceTests.swift */; };
-		80887F6A300D4ECD007EF3E5 /* WebSocketServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5A300D4ECD007EF3E5 /* WebSocketServiceTests.swift */; };
-		80887F6B300D4ECD007EF3E5 /* TestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5B300D4ECD007EF3E5 /* TestModels.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		80887F40300D4ECD007EF3E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 80887F08300D4ECD007EF3E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 80887F0F300D4ECD007EF3E5;
+			remoteInfo = Instagram;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		807D52AD3019273200E953EC /* Embed Frameworks */ = {
@@ -50,6 +74,19 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		801B671230987C8C00BC0691 /* InstagramTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InstagramTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		80887F50300D4ECD007EF3E5 /* InstagramTests/CallAudioEngineControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallAudioEngineControllerTests.swift; sourceTree = "<group>"; };
+		80887F51300D4ECD007EF3E5 /* InstagramTests/CallManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallManagerTests.swift; sourceTree = "<group>"; };
+		80887F52300D4ECD007EF3E5 /* InstagramTests/CallServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallServiceTests.swift; sourceTree = "<group>"; };
+		80887F53300D4ECD007EF3E5 /* InstagramTests/CallSignalingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallSignalingTests.swift; sourceTree = "<group>"; };
+		80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallVideoCaptureControllerTests.swift; sourceTree = "<group>"; };
+		80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/ChatViewModelTests.swift; sourceTree = "<group>"; };
+		80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/DirectMessagesViewModelTests.swift; sourceTree = "<group>"; };
+		80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/FirebaseMessageDataSourceTests.swift; sourceTree = "<group>"; };
+		80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/MessageEntityTests.swift; sourceTree = "<group>"; };
+		80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/VoIPPushServiceTests.swift; sourceTree = "<group>"; };
+		80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/WebSocketServiceTests.swift; sourceTree = "<group>"; };
+		80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/TestModels.swift; sourceTree = "<group>"; };
 		80CONFIG0100000000000001 /* Config/Configurations/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Base.xcconfig; sourceTree = "<group>"; };
 		80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Debug.xcconfig; sourceTree = "<group>"; };
 		80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Release.xcconfig; sourceTree = "<group>"; };
@@ -57,19 +94,6 @@
 		80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Staging.xcconfig; sourceTree = "<group>"; };
 		80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FB272021301B3AA600CE68FE /* Instagram.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Instagram.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		80887F0F300D4ECD007EF3E7 /* InstagramTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InstagramTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		80887F50300D4ECD007EF3E5 /* CallAudioEngineControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/CallAudioEngineControllerTests.swift"; sourceTree = "<group>"; };
-		80887F51300D4ECD007EF3E5 /* CallManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/CallManagerTests.swift"; sourceTree = "<group>"; };
-		80887F52300D4ECD007EF3E5 /* CallServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/CallServiceTests.swift"; sourceTree = "<group>"; };
-		80887F53300D4ECD007EF3E5 /* CallSignalingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/CallSignalingTests.swift"; sourceTree = "<group>"; };
-		80887F54300D4ECD007EF3E5 /* CallVideoCaptureControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/CallVideoCaptureControllerTests.swift"; sourceTree = "<group>"; };
-		80887F55300D4ECD007EF3E5 /* ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/ChatViewModelTests.swift"; sourceTree = "<group>"; };
-		80887F56300D4ECD007EF3E5 /* DirectMessagesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/DirectMessagesViewModelTests.swift"; sourceTree = "<group>"; };
-		80887F57300D4ECD007EF3E5 /* FirebaseMessageDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/FirebaseMessageDataSourceTests.swift"; sourceTree = "<group>"; };
-		80887F58300D4ECD007EF3E5 /* MessageEntityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/MessageEntityTests.swift"; sourceTree = "<group>"; };
-		80887F59300D4ECD007EF3E5 /* VoIPPushServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/VoIPPushServiceTests.swift"; sourceTree = "<group>"; };
-		80887F5A300D4ECD007EF3E5 /* WebSocketServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/WebSocketServiceTests.swift"; sourceTree = "<group>"; };
-		80887F5B300D4ECD007EF3E5 /* TestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstagramTests/TestModels.swift"; sourceTree = "<group>"; };
 		FB2723CD301B601A00CE68FE /* Instagram-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Instagram-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -83,16 +107,6 @@
 				Configurations/Staging.xcconfig,
 			);
 			target = 80887F0F300D4ECD007EF3E5 /* Instagram */;
-		};
-		806A0D1F308B661A0089834F /* Exceptions for "Config" folder in "InstagramTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Configurations/Base.xcconfig,
-				Configurations/Debug.xcconfig,
-				Configurations/Release.xcconfig,
-				Configurations/Staging.xcconfig,
-			);
-			target = 80887F0F300D4ECD007EF3E6 /* InstagramTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -178,20 +192,20 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				807D4F2B3015C89B00E953EC /* Swinject in Frameworks */,
-				807D4F323015C97100E953EC /* NukeUI in Frameworks */,
-				80DAA61530223402002DFE74 /* FirebaseMessaging in Frameworks */,
-				807D4F173015C25B00E953EC /* Alamofire in Frameworks */,
-				807D4F373015C9C600E953EC /* PopupView in Frameworks */,
-				807D4F343015C97100E953EC /* NukeVideo in Frameworks */,
-				807D4F3A3015CA0600E953EC /* Pow in Frameworks */,
-				80DAA61730223402002DFE74 /* FirebaseStorage in Frameworks */,
-				80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */,
-				80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */,
-				80DAA61930223402002DFE74 /* FirebaseFirestore in Frameworks */,
-				807D4F283015C78500E953EC /* CombineExt in Frameworks */,
-				807D4F2E3015C97100E953EC /* Nuke in Frameworks */,
-				807D4F303015C97100E953EC /* NukeExtensions in Frameworks */,
+				801B670430987C8C00BC0691 /* (null) in Frameworks */,
+				801B670530987C8C00BC0691 /* (null) in Frameworks */,
+				801B670630987C8C00BC0691 /* (null) in Frameworks */,
+				801B670730987C8C00BC0691 /* (null) in Frameworks */,
+				801B670830987C8C00BC0691 /* (null) in Frameworks */,
+				801B670930987C8C00BC0691 /* (null) in Frameworks */,
+				801B670A30987C8C00BC0691 /* (null) in Frameworks */,
+				801B670B30987C8C00BC0691 /* (null) in Frameworks */,
+				801B670C30987C8C00BC0691 /* (null) in Frameworks */,
+				801B670D30987C8C00BC0691 /* (null) in Frameworks */,
+				801B670E30987C8C00BC0691 /* (null) in Frameworks */,
+				801B670F30987C8C00BC0691 /* (null) in Frameworks */,
+				801B671030987C8C00BC0691 /* (null) in Frameworks */,
+				801B671130987C8C00BC0691 /* (null) in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,24 +234,25 @@
 				FB272021301B3AA600CE68FE /* Instagram.app */,
 				80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */,
 				80887F30300D4ECD007EF3E5 /* InstagramTests */,
+				801B671230987C8C00BC0691 /* InstagramTests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
 		80887F30300D4ECD007EF3E5 /* InstagramTests */ = {
 			isa = PBXGroup;
 			children = (
-				80887F50300D4ECD007EF3E5 /* CallAudioEngineControllerTests.swift */,
-				80887F51300D4ECD007EF3E5 /* CallManagerTests.swift */,
-				80887F52300D4ECD007EF3E5 /* CallServiceTests.swift */,
-				80887F53300D4ECD007EF3E5 /* CallSignalingTests.swift */,
-				80887F54300D4ECD007EF3E5 /* CallVideoCaptureControllerTests.swift */,
-				80887F55300D4ECD007EF3E5 /* ChatViewModelTests.swift */,
-				80887F56300D4ECD007EF3E5 /* DirectMessagesViewModelTests.swift */,
-				80887F57300D4ECD007EF3E5 /* FirebaseMessageDataSourceTests.swift */,
-				80887F58300D4ECD007EF3E5 /* MessageEntityTests.swift */,
-				80887F59300D4ECD007EF3E5 /* VoIPPushServiceTests.swift */,
-				80887F5A300D4ECD007EF3E5 /* WebSocketServiceTests.swift */,
-				80887F5B300D4ECD007EF3E5 /* TestModels.swift */,
+				80887F50300D4ECD007EF3E5 /* InstagramTests/CallAudioEngineControllerTests.swift */,
+				80887F51300D4ECD007EF3E5 /* InstagramTests/CallManagerTests.swift */,
+				80887F52300D4ECD007EF3E5 /* InstagramTests/CallServiceTests.swift */,
+				80887F53300D4ECD007EF3E5 /* InstagramTests/CallSignalingTests.swift */,
+				80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */,
+				80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */,
+				80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */,
+				80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */,
+				80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */,
+				80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */,
+				80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */,
+				80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */,
 			);
 			name = InstagramTests;
 			sourceTree = "<group>";
@@ -291,7 +306,6 @@
 			productReference = FB272021301B3AA600CE68FE /* Instagram.app */;
 			productType = "com.apple.product-type.application";
 		};
-/* End PBXNativeTarget section */
 		80887F0F300D4ECD007EF3E6 /* InstagramTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 80887F1B300D4ECF007EF3E6 /* Build configuration list for PBXNativeTarget "InstagramTests" */;
@@ -307,28 +321,10 @@
 			);
 			name = InstagramTests;
 			productName = InstagramTests;
-			productReference = 80887F0F300D4ECD007EF3E7 /* InstagramTests.xctest */;
+			productReference = 801B671230987C8C00BC0691 /* InstagramTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-	/* End PBXNativeTarget section */
-
-/* Begin PBXContainerItemProxy section */
-		80887F40300D4ECD007EF3E5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 80887F08300D4ECD007EF3E5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 80887F0F300D4ECD007EF3E5;
-			remoteInfo = Instagram;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		80887F41300D4ECD007EF3E5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 80887F0F300D4ECD007EF3E5 /* Instagram */;
-			targetProxy = 80887F40300D4ECD007EF3E5 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
+/* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		80887F08300D4ECD007EF3E5 /* Project object */ = {
@@ -407,22 +403,30 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				80887F60300D4ECD007EF3E5 /* CallAudioEngineControllerTests.swift in Sources */,
-				80887F61300D4ECD007EF3E5 /* CallManagerTests.swift in Sources */,
-				80887F62300D4ECD007EF3E5 /* CallServiceTests.swift in Sources */,
-				80887F63300D4ECD007EF3E5 /* CallSignalingTests.swift in Sources */,
-				80887F64300D4ECD007EF3E5 /* CallVideoCaptureControllerTests.swift in Sources */,
-				80887F65300D4ECD007EF3E5 /* ChatViewModelTests.swift in Sources */,
-				80887F66300D4ECD007EF3E5 /* DirectMessagesViewModelTests.swift in Sources */,
-				80887F67300D4ECD007EF3E5 /* FirebaseMessageDataSourceTests.swift in Sources */,
-				80887F68300D4ECD007EF3E5 /* MessageEntityTests.swift in Sources */,
-				80887F69300D4ECD007EF3E5 /* VoIPPushServiceTests.swift in Sources */,
-				80887F6A300D4ECD007EF3E5 /* WebSocketServiceTests.swift in Sources */,
-				80887F6B300D4ECD007EF3E5 /* TestModels.swift in Sources */,
+				80887F60300D4ECD007EF3E5 /* InstagramTests/CallAudioEngineControllerTests.swift in Sources */,
+				80887F61300D4ECD007EF3E5 /* InstagramTests/CallManagerTests.swift in Sources */,
+				80887F62300D4ECD007EF3E5 /* InstagramTests/CallServiceTests.swift in Sources */,
+				80887F63300D4ECD007EF3E5 /* InstagramTests/CallSignalingTests.swift in Sources */,
+				80887F64300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift in Sources */,
+				80887F65300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift in Sources */,
+				80887F66300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift in Sources */,
+				80887F67300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift in Sources */,
+				80887F68300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift in Sources */,
+				80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */,
+				80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */,
+				80887F6B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		80887F41300D4ECD007EF3E5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 80887F0F300D4ECD007EF3E5 /* Instagram */;
+			targetProxy = 80887F40300D4ECD007EF3E5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		80887F19300D4ECF007EF3E5 /* Debug */ = {
@@ -608,6 +612,81 @@
 			};
 			name = Debug;
 		};
+		80887F1C300D4ECF007EF3E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = GAJCLMLJ23;
+				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = InstagramTests;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instagram.app/Instagram";
+			};
+			name = Debug;
+		};
 		80887F1D300D4ECF007EF3E5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */;
@@ -655,6 +734,75 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		80887F1D300D4ECF007EF3E6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GAJCLMLJ23;
+				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = InstagramTests;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instagram.app/Instagram";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -771,156 +919,13 @@
 			};
 			name = Staging;
 		};
-		80887F1C300D4ECF007EF3E6 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = GAJCLMLJ23;
-				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_TESTING_SEARCH_PATHS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instagram.app/Instagram";
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_NAME = InstagramTests;
-			};
-			name = Debug;
-		};
-		80887F1D300D4ECF007EF3E6 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = GAJCLMLJ23;
-				ENABLE_APP_INTENTS_METADATA_EXTRACTION = NO;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_TESTING_SEARCH_PATHS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instagram.app/Instagram";
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				VALIDATE_PRODUCT = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_NAME = InstagramTests;
-			};
-			name = Release;
-		};
 		80CONFIG_T_STAGING_003 /* Staging */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 80CONFIG0500000000000005 /* Config/Configurations/Staging.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -968,19 +973,18 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = InstagramTests;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instagram.app/Instagram";
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				VALIDATE_PRODUCT = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_NAME = InstagramTests;
 			};
 			name = Staging;
 		};
@@ -1007,7 +1011,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-80887F1B300D4ECF007EF3E6 /* Build configuration list for PBXNativeTarget "InstagramTests" */ = {
+		80887F1B300D4ECF007EF3E6 /* Build configuration list for PBXNativeTarget "InstagramTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				80887F1C300D4ECF007EF3E6 /* Debug */,

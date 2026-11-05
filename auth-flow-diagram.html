@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Flow Diagram</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --fg: #1a1a2e;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --success: #059669;
+      --warning: #d97706;
+      --error: #dc2626;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --fg: #f1f5f9;
+        --muted: #94a3b8;
+        --accent: #60a5fa;
+        --accent-light: #1e3a5f;
+        --success: #34d399;
+        --warning: #fbbf24;
+        --error: #f87171;
+        --card-bg: #1e293b;
+        --border: #334155;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 24px;
+      margin: 0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; font-size: 0.85rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    .diagram { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; }
+    svg { display: block; }
+    .box { rx: 8; ry: 8; stroke-width: 2; }
+    .box-local { fill: #dbeafe; stroke: #2563eb; }
+    .box-firebase { fill: #fef3c7; stroke: #d97706; }
+    .box-shared { fill: #dcfce7; stroke: #059669; }
+    .box-ui { fill: #f3e8ff; stroke: #9333ea; }
+    .box-text { fill: var(--fg); font-size: 11px; font-weight: 500; text-anchor: middle; }
+    .arrow { fill: none; stroke: var(--muted); stroke-width: 2; marker-end: url(#arrowhead); }
+    .arrow-async { stroke-dasharray: 6, 4; }
+    .arrow-label { fill: var(--muted); font-size: 9px; text-anchor: middle; }
+    .section-label { fill: var(--accent); font-size: 13px; font-weight: 600; text-anchor: middle; }
+    .note { fill: var(--warning); font-size: 10px; font-style: italic; text-anchor: middle; }
+    #arrowhead { fill: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Authentication Flow Architecture</h1>
+    <p class="subtitle">Dual backend support: Local Backend (Remote) vs Firebase Production</p>
+    
+    <div class="legend">
+      <div class="legend-item"><div class="legend-color" style="background:#dbeafe;border:2px solid #2563eb"></div><span>Local Backend Path</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#fef3c7;border:2px solid #d97706"></div><span>Firebase Production Path</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#dcfce7;border:2px solid #059669"></div><span>Shared Components</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#f3e8ff;border:2px solid #9333ea"></div><span>UI Layer</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:transparent;border:2px dashed var(--muted)"></div><span>Async/Network Call</span></div>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1350 800" role="img" aria-label="Authentication flow diagram showing dual backend architecture">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" />
+          </marker>
+          <marker id="arrowhead-accent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb" />
+          </marker>
+        </defs>
+
+        <!-- Section Labels -->
+        <text x="180" y="30" class="section-label">UI LAYER</text>
+        <text x="500" y="30" class="section-label">DOMAIN / USE CASES</text>
+        <text x="850" y="30" class="section-label">DATA / REPOSITORY</text>
+        <text x="1150" y="30" class="section-label">EXTERNAL SERVICES</text>
+
+        <!-- UI LAYER -->
+        <rect x="50" y="50" width="260" height="140" class="box box-ui" />
+        <text x="180" y="75" class="box-text">AuthViewModel</text>
+        <text x="180" y="95" class="box-text" style="font-size:9px;fill:var(--muted)">• login() / register()</text>
+        <text x="180" y="110" class="box-text" style="font-size:9px;fill:var(--muted)">• loginWithBiometrics()</text>
+        <text x="180" y="125" class="box-text" style="font-size:9px;fill:var(--muted)">• toggleBiometricLogin()</text>
+        <text x="180" y="155" class="box-text" style="font-size:9px;fill:#9333ea">@MainActor @Observable</text>
+        <text x="180" y="175" class="box-text" style="font-size:9px;fill:var(--warning)">Injects: LoginUseCase, RegisterUseCase, BiometricAuthUseCase</text>
+
+        <rect x="50" y="220" width="260" height="100" class="box box-ui" />
+        <text x="180" y="245" class="box-text">SettingsViewModel</text>
+        <text x="180" y="265" class="box-text" style="font-size:9px;fill:var(--muted)">• setBiometricEnabled()</text>
+        <text x="180" y="285" class="box-text" style="font-size:9px;fill:var(--muted)">• logout()</text>
+        <text x="180" y="300" class="box-text" style="font-size:9px;fill:#9333ea">@MainActor @Observable</text>
+
+        <!-- DOMAIN / USE CASES -->
+        <rect x="370" y="50" width="260" height="100" class="box box-shared" />
+        <text x="500" y="75" class="box-text">LoginUseCase</text>
+        <text x="500" y="95" class="box-text" style="font-size:9px;fill:var(--muted)">• validate email/password</text>
+        <text x="500" y="110" class="box-text" style="font-size:9px;fill:var(--muted)">• calls authRepository.login()</text>
+
+        <rect x="370" y="170" width="260" height="100" class="box box-shared" />
+        <text x="500" y="195" class="box-text">RegisterUseCase</text>
+        <text x="500" y="215" class="box-text" style="font-size:9px;fill:var(--muted)">• validate name/email/phone/password</text>
+        <text x="500" y="230" class="box-text" style="font-size:9px;fill:var(--muted)">• calls authRepository.register()</text>
+
+        <rect x="370" y="290" width="260" height="100" class="box box-shared" />
+        <text x="500" y="315" class="box-text">BiometricAuthUseCase</text>
+        <text x="500" y="335" class="box-text" style="font-size:9px;fill:var(--muted)">• authenticateWithBiometrics()</text>
+        <text x="500" y="350" class="box-text" style="font-size:9px;fill:var(--muted)">• store/clear credentials</text>
+        <text x="500" y="365" class="box-text" style="font-size:9px;fill:var(--muted)">• setBiometricEnabled()</text>
+
+        <!-- DATA / REPOSITORY -->
+        <rect x="720" y="50" width="280" height="160" class="box box-local" />
+        <text x="860" y="75" class="box-text" style="fill:#1e40af">RemoteAuthRepository</text>
+        <text x="860" y="95" class="box-text" style="font-size:9px;fill:var(--muted)">implements AuthRepositoryProtocol</text>
+        <text x="860" y="115" class="box-text" style="font-size:9px;fill:var(--muted)">• login() → RemoteAuthDataSource.login()</text>
+        <text x="860" y="130" class="box-text" style="font-size:9px;fill:var(--muted)">• register() → RemoteAuthDataSource.register()</text>
+        <text x="860" y="145" class="box-text" style="font-size:9px;fill:var(--muted)">• refreshToken() → RemoteAuthDataSource.refreshTokenWithExpiry()</text>
+        <text x="860" y="160" class="box-text" style="font-size:9px;fill:var(--muted)">• logout() → RemoteAuthDataSource.logout()</text>
+        <text x="860" y="180" class="box-text" style="font-size:9px;fill:#2563eb;font-weight:600">USED WHEN: useLocalBackend || isLiveAPI</text>
+
+        <rect x="720" y="230" width="280" height="160" class="box box-firebase" />
+        <text x="860" y="255" class="box-text" style="fill:#92400e">FirebaseAuthRepository</text>
+        <text x="860" y="275" class="box-text" style="font-size:9px;fill:var(--muted)">implements AuthRepositoryProtocol</text>
+        <text x="860" y="295" class="box-text" style="font-size:9px;fill:var(--muted)">• login() → FirebaseAuthService.signIn() + Firestore</text>
+        <text x="860" y="310" class="box-text" style="font-size:9px;fill:var(--muted)">• register() → FirebaseAuthService.createAccount() + Firestore</text>
+        <text x="860" y="325" class="box-text" style="font-size:9px;fill:var(--muted)">• refreshToken() → FirebaseAuthService.getIDTokenWithExpiry()</text>
+        <text x="860" y="340" class="box-text" style="font-size:9px;fill:var(--muted)">• logout() → FirebaseAuth.signOut() + clear SessionStore</text>
+        <text x="860" y="360" class="box-text" style="font-size:9px;fill:#d97706;font-weight:600">USED WHEN: Firebase Production</text>
+
+        <rect x="720" y="410" width="280" height="120" class="box box-local" />
+        <text x="860" y="435" class="box-text" style="fill:#1e40af">RemoteAuthDataSource</text>
+        <text x="860" y="455" class="box-text" style="font-size:9px;fill:var(--muted)">• login: Firebase → POST /v1/auth/login</text>
+        <text x="860" y="470" class="box-text" style="font-size:9px;fill:var(--muted)">• register: Firebase → POST /v1/auth/register</text>
+        <text x="860" y="485" class="box-text" style="font-size:9px;fill:var(--muted)">• refreshTokenWithExpiry() → FirebaseAuthService.getIDTokenWithExpiry()</text>
+        <text x="860" y="500" class="box-text" style="font-size:9px;fill:var(--muted)">• logout() → POST /v1/auth/logout-all-devices</text>
+
+        <!-- SHARED COMPONENTS -->
+        <rect x="720" y="550" width="280" height="160" class="box box-shared" />
+        <text x="860" y="575" class="box-text" style="fill:#065f46">AuthManager (Shared)</text>
+        <text x="860" y="595" class="box-text" style="font-size:9px;fill:var(--muted)">• storeSession(session) → Keychain</text>
+        <text x="860" y="610" class="box-text" style="font-size:9px;fill:var(--muted)">• refreshToken() → FirebaseAuthService.getIDTokenWithExpiry()</text>
+        <text x="860" y="625" class="box-text" style="font-size:9px;fill:var(--muted)">• refreshTokenIfNeeded() ← proactive 5min buffer</text>
+        <text x="860" y="640" class="box-text" style="font-size:9px;fill:var(--muted)">• tokenExpiry property + Keychain persistence</text>
+        <text x="860" y="655" class="box-text" style="font-size:9px;fill:var(--muted)">• logout() → clear Keychain + Firebase + SessionStore</text>
+        <text x="860" y="670" class="box-text" style="font-size:9px;fill:var(--muted)">• @MainActor singleton</text>
+
+        <rect x="720" y="730" width="280" height="50" class="box box-shared" />
+        <text x="860" y="755" class="box-text" style="fill:#065f46">KeychainManagerProtocol</text>
+        <text x="860" y="770" class="box-text" style="font-size:9px;fill:var(--muted)">accessToken, tokenExpiry, biometricEnabled, biometricEmail, biometricPassword</text>
+
+        <!-- EXTERNAL SERVICES -->
+        <rect x="1060" y="50" width="240" height="160" class="box box-local" />
+        <text x="1180" y="75" class="box-text" style="fill:#1e40af">Local Backend API</text>
+        <text x="1180" y="95" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/login</text>
+        <text x="1180" y="110" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/register</text>
+        <text x="1180" y="125" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/logout-all-devices</text>
+        <text x="1180" y="140" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/refresh (unused)</text>
+        <text x="1180" y="155" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/forgot-password/phone</text>
+        <text x="1180" y="170" class="box-text" style="font-size:9px;fill:var(--muted)">POST /v1/auth/change-password</text>
+
+        <rect x="1060" y="230" width="240" height="160" class="box box-firebase" />
+        <text x="1180" y="255" class="box-text" style="fill:#92400e">Firebase Auth SDK</text>
+        <text x="1180" y="275" class="box-text" style="font-size:9px;fill:var(--muted)">signInWithEmailAndPassword</text>
+        <text x="1180" y="290" class="box-text" style="font-size:9px;fill:var(--muted)">createUserWithEmailAndPassword</text>
+        <text x="1180" y="305" class="box-text" style="font-size:9px;fill:var(--muted)">getIDToken() [auto-refreshes]</text>
+        <text x="1180" y="320" class="box-text" style="font-size:9px;fill:var(--muted)">reauthenticate + updatePassword</text>
+        <text x="1180" y="335" class="box-text" style="font-size:9px;fill:var(--muted)">sendPasswordReset / applyActionCode</text>
+        <text x="1180" y="350" class="box-text" style="font-size:9px;fill:var(--muted)">signOut()</text>
+
+        <rect x="1060" y="410" width="240" height="120" class="box box-firebase" />
+        <text x="1180" y="435" class="box-text" style="fill:#92400e">Firestore</text>
+        <text x="1180" y="455" class="box-text" style="font-size:9px;fill:var(--muted)">User profiles (create/fetch)</text>
+        <text x="1180" y="470" class="box-text" style="font-size:9px;fill:var(--muted)">Realtime message sync</text>
+        <text x="1180" y="485" class="box-text" style="font-size:9px;fill:var(--muted)">SessionStore.setSession()</text>
+
+        <rect x="1060" y="550" width="240" height="100" class="box box-shared" />
+        <text x="1180" y="575" class="box-text" style="fill:#065f46">LocalAuthentication</text>
+        <text x="1180" y="595" class="box-text" style="font-size:9px;fill:var(--muted)">LAContext.evaluatePolicy()</text>
+        <text x="1180" y="610" class="box-text" style="font-size:9px;fill:var(--muted)">Face ID / Touch ID / Passcode</text>
+        <text x="1180" y="625" class="box-text" style="font-size:9px;fill:var(--muted)">BiometricAuthenticator</text>
+
+        <!-- ARROWS: UI → USE CASES -->
+        <path d="M310 120 L370 100" class="arrow" />
+        <path d="M310 270 L370 220" class="arrow" />
+        <path d="M310 270 L370 340" class="arrow" />
+
+        <!-- ARROWS: USE CASES → REPOSITORY (Local) -->
+        <path d="M630 100 L720 130" class="arrow" />
+        <path d="M630 220 L720 300" class="arrow" />
+        
+        <!-- ARROWS: USE CASES → REPOSITORY (Firebase) -->
+        <path d="M630 100 L720 280" class="arrow" />
+        <path d="M630 220 L720 300" class="arrow" />
+
+        <!-- ARROWS: USE CASES → BIOMETRIC -->
+        <path d="M630 340 L720 470" class="arrow" marker-end="url(#arrowhead-accent)" />
+        <path d="M630 340 L720 590" class="arrow" marker-end="url(#arrowhead-accent)" />
+        <path d="M630 340 L720 755" class="arrow" marker-end="url(#arrowhead-accent)" />
+
+        <!-- ARROWS: RemoteAuthRepository → RemoteAuthDataSource -->
+        <path d="M860 210 V230" class="arrow" />
+        
+        <!-- ARROWS: RemoteAuthDataSource → FirebaseAuthService -->
+        <path d="M860 510 L1000 330" class="arrow" marker-end="url(#arrowhead)" />
+
+        <!-- ARROWS: RemoteAuthDataSource → Local Backend API -->
+        <path d="M1000 130 L1060 130" class="arrow" marker-end="url(#arrowhead)" />
+        <path d="M1000 150 L1060 150" class="arrow" marker-end="url(#arrowhead)" />
+        <path d="M1000 170 L1060 170" class="arrow" marker-end="url(#arrowhead)" />
+
+        <!-- ARROWS: FirebaseAuthRepository → FirebaseAuthService -->
+        <path d="M1000 310 L1060 310" class="arrow" marker-end="url(#arrowhead)" />
+        <path d="M1000 320 L1060 320" class="arrow" marker-end="url(#arrowhead)" />
+        
+        <!-- ARROWS: FirebaseAuthRepository → Firestore -->
+        <path d="M1000 400 L1060 470" class="arrow" marker-end="url(#arrowhead)" />
+
+        <!-- ARROWS: AuthManager → FirebaseAuthService -->
+        <path d="M860 670 L1000 670 L1000 330" class="arrow" marker-end="url(#arrowhead)" />
+        
+        <!-- ARROWS: AuthManager → Keychain -->
+        <path d="M860 730 V730" class="arrow" />
+        <path d="M860 730 L1000 730 L1000 780" class="arrow" marker-end="url(#arrowhead)" />
+
+        <!-- ARROWS: BiometricAuthUseCase → LocalAuthentication -->
+        <path d="M1000 625 L1060 625" class="arrow" marker-end="url(#arrowhead)" />
+
+        <!-- CONDITIONAL FLOW LABELS -->
+        <text x="500" y="410" class="note">RepositoryAssembly chooses at runtime</text>
+        <text x="500" y="425" class="note">AppConfig.useLocalBackend || AppConfig.isLiveAPI</text>
+
+        <!-- Refresh Token Flow Annotation -->
+        <rect x="50" y="450" width="300" height="200" fill="none" stroke="#059669" stroke-width="1.5" stroke-dasharray="4,4" rx="8" />
+        <text x="200" y="470" class="box-text" style="fill:#059669;font-size:11px">REFRESH TOKEN MECHANISM (Both Paths)</text>
+        <text x="200" y="495" class="box-text" style="font-size:9px;fill:var(--muted)">1. AuthInterceptor detects 401</text>
+        <text x="200" y="510" class="box-text" style="font-size:9px;fill:var(--muted)">2. Calls AuthManager.refreshToken()</text>
+        <text x="200" y="525" class="box-text" style="font-size:9px;fill:var(--muted)">3. FirebaseAuthService.getIDTokenWithExpiry()</text>
+        <text x="200" y="540" class="box-text" style="font-size:9px;fill:var(--muted)">4. Firebase SDK auto-refreshes JWT</text>
+        <text x="200" y="555" class="box-text" style="font-size:9px;fill:var(--muted)">5. New token + expiry → Keychain</text>
+        <text x="200" y="570" class="box-text" style="font-size:9px;fill:var(--muted)">6. Retry original request</text>
+        <text x="200" y="590" class="box-text" style="font-size:9px;fill:#059669">Proactive: AuthManager.refreshTokenIfNeeded()</text>
+        <text x="200" y="605" class="box-text" style="font-size:9px;fill:#059669">runs 5 min before expiry</text>
+
+        <!-- Biometric Flow Annotation -->
+        <rect x="50" y="660" width="300" height="120" fill="none" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="4,4" rx="8" />
+        <text x="200" y="680" class="box-text" style="fill:#9333ea;font-size:11px">BIOMETRIC LOGIN FLOW</text>
+        <text x="200" y="705" class="box-text" style="font-size:9px;fill:var(--muted)">1. User enables in SettingsViewModel</text>
+        <text x="200" y="720" class="box-text" style="font-size:9px;fill:var(--muted)">2. After login: store email/password in Keychain</text>
+        <text x="200" y="735" class="box-text" style="font-size:9px;fill:var(--muted)">3. Next launch: FaceID/TouchID prompt</text>
+        <text x="200" y="750" class="box-text" style="font-size:9px;fill:var(--muted)">4. Success → auto-fill credentials → login()</text>
+        <text x="200" y="765" class="box-text" style="font-size:9px;fill:#9333ea">Works with BOTH backend configs</text>
+      </svg>
+    </div>
+
+    <div style="margin-top: 24px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;">
+      <h3 style="margin-top: 0;">Key Implementation Details</h3>
+      <h4>Refresh Token Mechanism (Local Backend)</h4>
+      <ul>
+        <li><strong>No backend refresh token endpoint used</strong> — the local backend doesn't issue its own refresh token (the <code>POST /v1/auth/refresh</code> endpoint exists but isn't called)</li>
+        <li><strong>Firebase ID token IS the access token</strong> — both configs use Firebase's ID token (JWT, ~1hr expiry) as the Bearer token for all API calls</li>
+        <li><strong>Firebase SDK handles rotation</strong> — <code>user.getIDToken()</code> automatically refreshes if expired; we just call it</li>
+        <li><strong>Expiry extracted from JWT</strong> — <code>FirebaseAuthService.extractExpiryFromToken()</code> decodes the <code>exp</code> claim from the JWT payload</li>
+        <li><strong>Proactive refresh</strong> — <code>AuthManager.refreshTokenIfNeeded()</code> checks if token expires within 5 minutes and refreshes preemptively</li>
+        <li><strong>Interceptor-based retry</strong> — <code>AuthInterceptor</code> catches 401, calls <code>refreshToken()</code>, retries once</li>
+      </ul>
+      <h4>Dual Backend Configuration</h4>
+      <pre style="background: #1e293b; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px;">// RepositoryAssembly.swift
+let useRemote = AppConfig.shared.useLocalBackend || AppConfig.shared.isLiveAPI
+
+container.register(AuthRepositoryProtocol.self) { resolver in
+    if useRemote {
+        return AuthRepository(
+            remoteDataSource: RemoteAuthDataSource(
+                networkService: resolver.resolve(NetworkServiceProtocol.self)!
+            )
+        )
+    }
+    return FirebaseAuthRepository()  // Firebase production
+}</pre>
+    </div>
+  </div>
+</body>
+</html>
