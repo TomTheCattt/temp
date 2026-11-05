@@ -20,6 +20,16 @@ final class RepositoryAssembly: Assembly {
     func assemble(container: Container) {
         let useRemote = AppConfig.shared.useLocalBackend || AppConfig.shared.isLiveAPI
 
+        // MARK: UploadDataSource (shared across repositories)
+
+        if useRemote {
+            container.register(RemoteUploadDataSource.self) { resolver in
+                RemoteUploadDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            }.inObjectScope(.container)
+        }
+
         // MARK: AuthRepository
 
         container.register(AuthRepositoryProtocol.self) { resolver in
@@ -67,7 +77,7 @@ final class RepositoryAssembly: Assembly {
                     remoteDataSource: RemoteStoryDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
                     ),
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    uploadDataSource: resolver.resolve(RemoteUploadDataSource.self)!
                 )
             }
             return FirebaseStoryRepository()
@@ -120,7 +130,7 @@ final class RepositoryAssembly: Assembly {
                     remoteDataSource: RemoteReelDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
                     ),
-                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                    uploadDataSource: resolver.resolve(RemoteUploadDataSource.self)!
                 )
             }
             return FirebaseReelRepository()

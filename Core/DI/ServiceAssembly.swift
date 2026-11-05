@@ -17,7 +17,7 @@ final class ServiceAssembly: Assembly {
 
         // MARK: KeychainManager
 
-        container.register(KeychainManager.self) { _ in
+        container.register(KeychainManagerProtocol.self) { _ in
             KeychainManager()
         }.inObjectScope(.container)
 
@@ -25,7 +25,8 @@ final class ServiceAssembly: Assembly {
 
         container.register(AuthManagerProtocol.self) { resolver in
             AuthManager(
-                keychainManager: resolver.resolve(KeychainManager.self)!
+                keychainManager: resolver.resolve(KeychainManagerProtocol.self)!,
+                networkService: resolver.resolve(NetworkServiceProtocol.self)!
             )
         }.inObjectScope(.container)
 
@@ -40,7 +41,7 @@ final class ServiceAssembly: Assembly {
 
         // MARK: BiometricAuthenticator
 
-        container.register(BiometricAuthenticator.self) { _ in
+        container.register(BiometricAuthenticating.self) { _ in
             BiometricAuthenticator()
         }.inObjectScope(.container)
 
@@ -61,6 +62,15 @@ final class ServiceAssembly: Assembly {
         container.register(WebSocketMessageHandler.self) { resolver in
             WebSocketMessageHandler(
                 webSocketService: resolver.resolve(WebSocketServiceProtocol.self)!
+            )
+        }.inObjectScope(.container)
+
+        // MARK: WebSocketConnectionManager
+
+        container.register(WebSocketConnectionManagerProtocol.self) { resolver in
+            WebSocketConnectionManager(
+                webSocketService: resolver.resolve(WebSocketServiceProtocol.self)!,
+                authManager: resolver.resolve(AuthManagerProtocol.self)!
             )
         }.inObjectScope(.container)
 

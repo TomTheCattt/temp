@@ -29,9 +29,18 @@ final class UseCaseAssembly: Assembly {
             )
         }
 
-        container.register(ChangePasswordUseCaseProtocol.self) { _ in
-            ChangePasswordUseCase(firebaseAuth: FirebaseAuthService.shared)
+        container.register(ChangePasswordUseCaseProtocol.self) { resolver in
+            ChangePasswordUseCase(
+                authRepository: resolver.resolve(AuthRepositoryProtocol.self)!
+            )
         }
+
+        container.register(BiometricAuthUseCaseProtocol.self) { resolver in
+            BiometricAuthUseCase(
+                biometricAuthenticator: resolver.resolve(BiometricAuthenticating.self)!,
+                keychainManager: resolver.resolve(KeychainManagerProtocol.self)!
+            )
+        }.inObjectScope(.container)
 
         // MARK: Feed
 

@@ -22,7 +22,9 @@ final class ViewModelAssembly: Assembly {
         container.register(AuthViewModel.self) { resolver in
             AuthViewModel(
                 loginUseCase: resolver.resolve(LoginUseCaseProtocol.self)!,
-                registerUseCase: resolver.resolve(RegisterUseCaseProtocol.self)!
+                registerUseCase: resolver.resolve(RegisterUseCaseProtocol.self)!,
+                biometricAuthUseCase: resolver.resolve(BiometricAuthUseCaseProtocol.self)!,
+                webSocketConnectionManager: resolver.resolve(WebSocketConnectionManagerProtocol.self)!
             )
         }
 
@@ -111,8 +113,9 @@ final class ViewModelAssembly: Assembly {
             SettingsViewModel(
                 authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
                 userRepository: resolver.resolve(UserRepositoryProtocol.self)!,
-                biometricAuthenticator: resolver.resolve(BiometricAuthenticator.self)!,
-                keychainManager: resolver.resolve(KeychainManager.self)!
+                biometricAuthUseCase: resolver.resolve(BiometricAuthUseCaseProtocol.self)!,
+                keychainManager: resolver.resolve(KeychainManagerProtocol.self)!,
+                webSocketConnectionManager: resolver.resolve(WebSocketConnectionManagerProtocol.self)!
             )
         }
 
