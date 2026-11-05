@@ -36,22 +36,25 @@ final class SettingsViewModel {
 
     private let authRepository: AuthRepositoryProtocol
     private let userRepository: UserRepositoryProtocol
-    private let biometricAuthenticator: BiometricAuthenticating
+    private let biometricAuthUseCase: BiometricAuthUseCaseProtocol
     private let keychainManager: KeychainManagerProtocol
+    private let webSocketConnectionManager: WebSocketConnectionManagerProtocol
 
     // MARK: - Init
 
     init(
         authRepository: AuthRepositoryProtocol,
         userRepository: UserRepositoryProtocol,
-        biometricAuthenticator: BiometricAuthenticating,
-        keychainManager: KeychainManagerProtocol
+        biometricAuthUseCase: BiometricAuthUseCaseProtocol,
+        keychainManager: KeychainManagerProtocol,
+        webSocketConnectionManager: WebSocketConnectionManagerProtocol
     ) {
         self.authRepository = authRepository
         self.userRepository = userRepository
-        self.biometricAuthenticator = biometricAuthenticator
+        self.biometricAuthUseCase = biometricAuthUseCase
         self.keychainManager = keychainManager
-        self.isBiometricEnabled = keychainManager.get(key: KeychainKeys.biometricEnabled) == "true"
+        self.webSocketConnectionManager = webSocketConnectionManager
+        self.isBiometricEnabled = biometricAuthUseCase.isBiometricEnabled
     }
 
     // MARK: - Actions
@@ -67,9 +70,14 @@ final class SettingsViewModel {
     func logout() async {
         isLoggingOut = true
         // TODO: Implement logout logic from scratch
+        try? await authRepository.logout()
         SessionStore.shared.clear()
         AppRouter.shared.isAuthenticated = false
         AppRouter.shared.reset()
+
+        // Disconnect WebSocket
+        webSocketConnectionManager.handleAuthStateChange(isAuthenticated: false)
+
         isLoggingOut = false
     }
 
@@ -79,7 +87,17 @@ final class SettingsViewModel {
 
     func setBiometricEnabled(_ enabled: Bool) async {
         isBiometricEnabled = enabled
-        // TODO: Implement biometric settings logic from scratch
+        biometricAuthUseCase.setBiometricEnabled(enabled)
+
+        // Sync with backend
+        do {
+            let patch = UserSettingsPatch(language: nil, biometricEnabled: enabled, pushEnabled: nil, darkMode: nil)
+            _ = try await userRepository.updateSettings(patch)
+        } catch {
+            // Revert on failure
+            isBiometricEnabled = !enabled
+            biometricAuthUseCase.setBiometricEnabled(!enabled)
+        }
     }
 
     func clearCache() {
