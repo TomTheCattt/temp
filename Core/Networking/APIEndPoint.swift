@@ -25,7 +25,6 @@ protocol APIEndpoint {
 }
 
 extension APIEndpoint {
-    // P1 FIX: Replace force unwrap with fatalError + descriptive message
     var baseURL: URL {
         guard let url = URL(string: AppConfig.shared.baseURL) else {
             fatalError("[APIEndpoint] Invalid baseURL: '\(AppConfig.shared.baseURL)'. Check xcconfig / build settings.")
@@ -64,559 +63,200 @@ nonisolated struct APIEnvelope<T: Decodable & Sendable>: Decodable, Sendable {
     let message: String?
 }
 
-// MARK: - Example Endpoints
+// MARK: - Auth Endpoints (Better Auth - Email/Password)
 
 enum AuthEndpoint: APIEndpoint {
-    case login(idToken: String)
-    case register(idToken: String, name: String, phone: String?)
-    case refreshToken(token: String)
+    case register(email: String, password: String, username: String, fullName: String, phone: String?)
+    case login(email: String, password: String)
     case logout
-    case forgotPassword(phoneNumber: String)
-    case resetPassword(token: String, password: String)
+    case logoutAllDevices
+    case me
+    case refresh
+    case forgotPassword(email: String)
     case verifyEmail(token: String)
     case resendVerification(email: String)
     case changePassword(currentPassword: String, newPassword: String)
 
     var path: String {
         switch self {
-        case .register:     return "/v1/auth/register"
-        case .login:        return "/v1/auth/login"
-        case .refreshToken: return "/v1/auth/refresh"
-        case .logout:       return "/v1/auth/logout-all-devices"
-        case .forgotPassword:      return "/v1/auth/forgot-password/phone"
-        case .resetPassword:       return "/v1/auth/reset-password"
-        case .verifyEmail:         return "/v1/auth/verify-email"
-        case .resendVerification:  return "/v1/auth/resend-verification"
-        case .changePassword:      return "/v1/auth/change-password"
+        case .register: return "/v1/auth/register"
+        case .login: return "/v1/auth/login"
+        case .logout: return "/v1/auth/logout"
+        case .logoutAllDevices: return "/v1/auth/logout-all-devices"
+        case .me: return "/v1/auth/me"
+        case .refresh: return "/v1/auth/refresh"
+        case .forgotPassword: return "/v1/auth/forgot-password"
+        case .verifyEmail: return "/v1/auth/verify-email"
+        case .resendVerification: return "/v1/auth/resend-verification"
+        case .changePassword: return "/v1/auth/change-password"
         }
     }
 
-    var method: HTTPMethod {
-        switch self {
-        case .register,
-             .login,
-             .refreshToken,
-             .logout,
-             .forgotPassword,
-             .resetPassword,
-             .verifyEmail,
-             .resendVerification,
-             .changePassword:
-            return .post
-        }
-    }
+    var method: HTTPMethod { .post }
 
     var parameters: Parameters? {
         switch self {
-        case .login(let idToken):
-            return ["idToken": idToken]
-        case .register(let idToken, let name, let phone):
-            var params: Parameters = ["idToken": idToken, "name": name]
+        case .register(let email, let password, let username, let fullName, let phone):
+            var params: Parameters = [
+                "email": email,
+                "password": password,
+                "username": username,
+                "fullName": fullName
+            ]
             if let phone { params["phone"] = phone }
             return params
-        case .refreshToken(let token):
-            return ["refreshToken": token]
-        case .logout:
+        case .login(let email, let password):
+            return ["email": email, "password": password]
+        case .logout, .logoutAllDevices, .me, .refresh:
             return nil
-        case .forgotPassword(let phoneNumber):
-            return ["phone_number": phoneNumber]
-        case .resetPassword(let token, let password):
-            return ["token": token, "password": password]
+        case .forgotPassword(let email):
+            return ["email": email]
         case .verifyEmail(let token):
             return ["token": token]
         case .resendVerification(let email):
             return ["email": email]
         case .changePassword(let currentPassword, let newPassword):
-            return ["current_password": currentPassword, "new_password": newPassword]
+            return ["currentPassword": currentPassword, "newPassword": newPassword]
         }
     }
 }
 
+// MARK: - User Endpoints
+
 enum UserEndpoint: APIEndpoint {
-    case profile
-    case updateProfile(name: String)
-    case settings
-    case updateSettings(language: String?, biometricEnabled: Bool?, pushEnabled: Bool?, darkMode: Bool?)
+    // Current user endpoints (use /v1/user/)
+    case profile                    // GET /v1/user/profile (iOS alias for /v1/user/me)
+    case updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?)  // PUT /v1/user/profile
+    case settings                   // GET /v1/user/settings
+    case updateSettings(language: String?, biometricEnabled: Bool?, pushEnabled: Bool?, darkMode: Bool?)  // PUT /v1/user/settings
+    case closeFriends               // GET /v1/user/close-friends (iOS alias for /v1/users/me/close-friends)
+    case addCloseFriend(userId: String)  // POST /v1/user/close-friends/{userId} (iOS alias)
+    case removeCloseFriend(userId: String)  // DELETE /v1/user/close-friends/{userId} (iOS alias)
+    case blockedUsers(page: Int, perPage: Int)  // GET /v1/user/blocked (iOS alias for /v1/users/me/blocked)
+    case deviceTokens               // GET /v1/user/device-tokens (iOS alias for /v1/users/me/device-token)
+    case addDeviceToken(token: String, platform: String)  // POST /v1/user/device-tokens (iOS alias)
+
+    // Public/Other user endpoints (use /v1/users/)
+    case publicProfile(userId: String)  // GET /v1/users/{userId}
+    case follow(userId: String)         // POST /v1/users/{userId}/follow
+    case unfollow(userId: String)       // DELETE /v1/users/{userId}/follow
+    case block(userId: String)          // POST /v1/users/{userId}/block
+    case unblock(userId: String)        // DELETE /v1/users/{userId}/block
+    case followers(userId: String, page: Int, perPage: Int)  // GET /v1/users/{userId}/followers
+    case following(userId: String, page: Int, perPage: Int)  // GET /v1/users/{userId}/following
+    case search(query: String, page: Int, perPage: Int)      // GET /v1/users/search
+    case suggested(page: Int, perPage: Int)                  // GET /v1/users/suggested
 
     var path: String {
         switch self {
-        case .profile, .updateProfile:
-            return "/v1/user/profile"
-        case .settings, .updateSettings:
-            return "/v1/user/settings"
+        // Current user endpoints (/v1/user/)
+        case .profile, .updateProfile: return "/v1/user/profile"
+        case .settings, .updateSettings: return "/v1/user/settings"
+        case .closeFriends: return "/v1/user/close-friends"
+        case .addCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
+        case .removeCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
+        case .blockedUsers: return "/v1/user/blocked"
+        case .deviceTokens: return "/v1/user/device-tokens"
+        case .addDeviceToken: return "/v1/user/device-tokens"
+
+        // Public/Other user endpoints (/v1/users/)
+        case .publicProfile(let userId): return "/v1/users/\(userId)"
+        case .follow(let userId): return "/v1/users/\(userId)/follow"
+        case .unfollow(let userId): return "/v1/users/\(userId)/follow"
+        case .block(let userId): return "/v1/users/\(userId)/block"
+        case .unblock(let userId): return "/v1/users/\(userId)/block"
+        case .followers(let userId, _, _): return "/v1/users/\(userId)/followers"
+        case .following(let userId, _, _): return "/v1/users/\(userId)/following"
+        case .search: return "/v1/users/search"
+        case .suggested: return "/v1/users/suggested"
         }
     }
 
     var method: HTTPMethod {
         switch self {
-        case .profile, .settings:
+        case .profile, .settings, .followers, .following, .search, .suggested, .closeFriends, .blockedUsers, .deviceTokens, .publicProfile:
             return .get
         case .updateProfile, .updateSettings:
             return .put
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .profile, .settings:
-            return nil
-        case .updateProfile(let name):
-            return ["name": name]
-        case .updateSettings(let language, let biometricEnabled, let pushEnabled, let darkMode):
-            var params: Parameters = [:]
-            if let language { params["language"] = language }
-            if let biometricEnabled { params["biometric_enabled"] = biometricEnabled }
-            if let pushEnabled { params["push_enabled"] = pushEnabled }
-            if let darkMode { params["dark_mode"] = darkMode }
-            return params
-        }
-    }
-}
-
-enum HomeEndpoint: APIEndpoint {
-    case summary
-
-    var path: String { "/v1/home/summary" }
-    var method: HTTPMethod { .get }
-}
-
-enum AccountsEndpoint: APIEndpoint {
-    case list
-    case detail(id: String)
-    case transactions(accountId: String, page: Int, perPage: Int)
-
-    var path: String {
-        switch self {
-        case .list:
-            return "/v1/accounts"
-        case .detail(let id):
-            return "/v1/accounts/\(id)"
-        case .transactions(let accountId, _, _):
-            return "/v1/accounts/\(accountId)/transactions"
-        }
-    }
-
-    var method: HTTPMethod { .get }
-
-    var parameters: Parameters? {
-        switch self {
-        case .transactions(_, let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .list, .detail:
-            return nil
-        }
-    }
-}
-
-enum CardsEndpoint: APIEndpoint {
-    case list
-    case detail(id: String)
-
-    var path: String {
-        switch self {
-        case .list:
-            return "/v1/cards"
-        case .detail(let id):
-            return "/v1/cards/\(id)"
-        }
-    }
-
-    var method: HTTPMethod { .get }
-}
-
-enum TransfersEndpoint: APIEndpoint {
-    case validate(fromAccountId: String, toAccountNo: String, beneficiaryName: String, amountMinor: Int, toBankCode: String?)
-    case confirm(
-        fromAccountId: String,
-        toAccountNo: String,
-        beneficiaryName: String,
-        amountMinor: Int,
-        toBankCode: String?,
-        description: String?,
-        idempotencyKey: String
-    )
-    case detail(id: String)
-
-    var path: String {
-        switch self {
-        case .validate:
-            return "/v1/transfers/validate"
-        case .confirm:
-            return "/v1/transfers/confirm"
-        case .detail(let id):
-            return "/v1/transfers/\(id)"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .detail:
-            return .get
-        case .validate, .confirm:
+        case .follow, .block, .addCloseFriend, .addDeviceToken:
             return .post
-        }
-    }
-
-    var headers: HTTPHeaders? {
-        switch self {
-        case .confirm(_, _, _, _, _, _, let idempotencyKey):
-            return ["Idempotency-Key": idempotencyKey]
-        default:
-            return nil
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .validate(let fromAccountId, let toAccountNo, let beneficiaryName, let amountMinor, let toBankCode):
-            var params: Parameters = [
-                "from_account_id": fromAccountId,
-                "to_account_no": toAccountNo,
-                "beneficiary_name": beneficiaryName,
-                "amount_minor": amountMinor
-            ]
-            if let toBankCode { params["to_bank_code"] = toBankCode }
-            return params
-        case .confirm(let fromAccountId, let toAccountNo, let beneficiaryName, let amountMinor, let toBankCode, let description, _):
-            var params: Parameters = [
-                "from_account_id": fromAccountId,
-                "to_account_no": toAccountNo,
-                "beneficiary_name": beneficiaryName,
-                "amount_minor": amountMinor
-            ]
-            if let toBankCode { params["to_bank_code"] = toBankCode }
-            if let description { params["description"] = description }
-            return params
-        case .detail:
-            return nil
-        }
-    }
-}
-
-enum WithdrawalsEndpoint: APIEndpoint {
-    case validate(accountId: String, amountMinor: Int, methodValue: String)
-    case confirm(accountId: String, amountMinor: Int, methodValue: String, idempotencyKey: String)
-    case detail(id: String)
-
-    var path: String {
-        switch self {
-        case .validate:
-            return "/v1/withdrawals/validate"
-        case .confirm:
-            return "/v1/withdrawals/confirm"
-        case .detail(let id):
-            return "/v1/withdrawals/\(id)"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .detail:
-            return .get
-        case .validate, .confirm:
-            return .post
-        }
-    }
-
-    var headers: HTTPHeaders? {
-        switch self {
-        case .confirm(_, _, _, let idempotencyKey):
-            return ["Idempotency-Key": idempotencyKey]
-        default:
-            return nil
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .validate(let accountId, let amountMinor, let methodValue),
-             .confirm(let accountId, let amountMinor, let methodValue, _):
-            return [
-                "account_id": accountId,
-                "amount_minor": amountMinor,
-                "method": methodValue
-            ]
-        case .detail:
-            return nil
-        }
-    }
-}
-
-enum BillsEndpoint: APIEndpoint {
-    case categories
-    case list(page: Int, perPage: Int)
-    case detail(id: String)
-    case query(categoryCode: String, providerCode: String, customerCode: String)
-    case pay(billId: String, accountId: String, idempotencyKey: String)
-
-    var path: String {
-        switch self {
-        case .categories:
-            return "/v1/bills/categories"
-        case .list:
-            return "/v1/bills"
-        case .detail(let id):
-            return "/v1/bills/\(id)"
-        case .query:
-            return "/v1/bills/query"
-        case .pay:
-            return "/v1/bills/pay"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .categories, .list, .detail:
-            return .get
-        case .query, .pay:
-            return .post
-        }
-    }
-
-    var headers: HTTPHeaders? {
-        switch self {
-        case .pay(_, _, let idempotencyKey):
-            return ["Idempotency-Key": idempotencyKey]
-        default:
-            return nil
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .list(let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .query(let categoryCode, let providerCode, let customerCode):
-            return [
-                "category_code": categoryCode,
-                "provider_code": providerCode,
-                "customer_code": customerCode
-            ]
-        case .pay(let billId, let accountId, _):
-            return ["bill_id": billId, "account_id": accountId]
-        case .categories, .detail:
-            return nil
-        }
-    }
-}
-
-enum RechargesEndpoint: APIEndpoint {
-    case validate(phoneNumber: String, carrierCode: String, amountMinor: Int)
-    case confirm(phoneNumber: String, carrierCode: String, amountMinor: Int, accountId: String, idempotencyKey: String)
-    case detail(id: String)
-
-    var path: String {
-        switch self {
-        case .validate:
-            return "/v1/recharges/validate"
-        case .confirm:
-            return "/v1/recharges/confirm"
-        case .detail(let id):
-            return "/v1/recharges/\(id)"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .detail:
-            return .get
-        case .validate, .confirm:
-            return .post
-        }
-    }
-
-    var headers: HTTPHeaders? {
-        switch self {
-        case .confirm(_, _, _, _, let idempotencyKey):
-            return ["Idempotency-Key": idempotencyKey]
-        default:
-            return nil
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .validate(let phoneNumber, let carrierCode, let amountMinor):
-            return [
-                "phone_number": phoneNumber,
-                "carrier_code": carrierCode,
-                "amount_minor": amountMinor
-            ]
-        case .confirm(let phoneNumber, let carrierCode, let amountMinor, let accountId, _):
-            return [
-                "phone_number": phoneNumber,
-                "carrier_code": carrierCode,
-                "amount_minor": amountMinor,
-                "account_id": accountId
-            ]
-        case .detail:
-            return nil
-        }
-    }
-}
-
-enum SavingsEndpoint: APIEndpoint {
-    case rates
-    case products
-    case open(accountId: String, tenorMonths: Int, principalMinor: Int, idempotencyKey: String)
-    case listOrders
-    case detail(id: String)
-
-    var path: String {
-        switch self {
-        case .rates:
-            return "/v1/savings/rates"
-        case .products:
-            return "/v1/savings/products"
-        case .open:
-            return "/v1/savings/open"
-        case .listOrders:
-            return "/v1/savings"
-        case .detail(let id):
-            return "/v1/savings/\(id)"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .open:
-            return .post
-        default:
-            return .get
-        }
-    }
-
-    var headers: HTTPHeaders? {
-        switch self {
-        case .open(_, _, _, let idempotencyKey):
-            return ["Idempotency-Key": idempotencyKey]
-        default:
-            return nil
-        }
-    }
-
-    var parameters: Parameters? {
-        switch self {
-        case .open(let accountId, let tenorMonths, let principalMinor, _):
-            return [
-                "account_id": accountId,
-                "tenor_months": tenorMonths,
-                "principal_minor": principalMinor
-            ]
-        default:
-            return nil
-        }
-    }
-}
-
-enum BeneficiariesEndpoint: APIEndpoint {
-    case list(page: Int, perPage: Int)
-    case create(nickname: String, bankCode: String, accountNo: String, holderName: String)
-    case detail(id: String)
-    case update(id: String, nickname: String?, isFavorite: Bool?)
-    case delete(id: String)
-
-    var path: String {
-        switch self {
-        case .list, .create:
-            return "/v1/beneficiaries"
-        case .detail(let id), .update(let id, _, _), .delete(let id):
-            return "/v1/beneficiaries/\(id)"
-        }
-    }
-
-    var method: HTTPMethod {
-        switch self {
-        case .list, .detail:
-            return .get
-        case .create:
-            return .post
-        case .update:
-            return .put
-        case .delete:
+        case .unfollow, .unblock, .removeCloseFriend:
             return .delete
         }
     }
 
     var parameters: Parameters? {
         switch self {
-        case .list(let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .create(let nickname, let bankCode, let accountNo, let holderName):
-            return [
-                "nickname": nickname,
-                "bank_code": bankCode,
-                "account_no": accountNo,
-                "holder_name": holderName
-            ]
-        case .update(_, let nickname, let isFavorite):
-            var params: Parameters = [:]
-            if let nickname { params["nickname"] = nickname }
-            if let isFavorite { params["is_favorite"] = isFavorite }
-            return params
-        case .detail, .delete:
+        case .profile, .settings, .follow, .unfollow, .block, .unblock, .addCloseFriend, .removeCloseFriend, .closeFriends, .deviceTokens, .publicProfile:
             return nil
+        case .updateProfile(let fullName, let username, let bio, let website, let phone, let avatarUrl):
+            var params: Parameters = [:]
+            if let fullName { params["fullName"] = fullName }
+            if let username { params["username"] = username }
+            if let bio { params["bio"] = bio }
+            if let website { params["website"] = website }
+            if let phone { params["phone"] = phone }
+            if let avatarUrl { params["avatarUrl"] = avatarUrl }
+            return params
+        case .updateSettings(let language, let biometricEnabled, let pushEnabled, let darkMode):
+            var params: Parameters = [:]
+            if let language { params["language"] = language }
+            if let biometricEnabled { params["biometricEnabled"] = biometricEnabled }
+            if let pushEnabled { params["pushEnabled"] = pushEnabled }
+            if let darkMode { params["darkMode"] = darkMode }
+            return params
+        case .followers(_, let page, let perPage), .following(_, let page, let perPage), .blockedUsers(let page, let perPage):
+            return ["page": page, "perPage": perPage]
+        case .search(let query, let page, let perPage):
+            return ["q": query, "page": page, "perPage": perPage]
+        case .suggested(let page, let perPage):
+            return ["page": page, "perPage": perPage]
+        case .addDeviceToken(let token, let platform):
+            return ["token": token, "platform": platform]
         }
     }
 }
 
-enum MessagesEndpoint: APIEndpoint {
-    case list(page: Int, perPage: Int)
-    case markRead(id: String)
+// MARK: - Upload Endpoints
+
+enum UploadEndpoint: APIEndpoint {
+    case presignedUrl(filename: String, contentType: String, folder: String?)
+    case confirmUpload(uploadId: String)
 
     var path: String {
         switch self {
-        case .list:
-            return "/v1/messages"
-        case .markRead(let id):
-            return "/v1/messages/\(id)/read"
+        case .presignedUrl: return "/v1/upload/presigned-url"
+        case .confirmUpload(let uploadId): return "/v1/upload/\(uploadId)/confirm"
         }
     }
 
-    var method: HTTPMethod {
-        switch self {
-        case .list:
-            return .get
-        case .markRead:
-            return .post
-        }
-    }
+    var method: HTTPMethod { .post }
 
     var parameters: Parameters? {
         switch self {
-        case .list(let page, let perPage):
-            return ["page": page, "per_page": perPage]
-        case .markRead:
+        case .presignedUrl(let filename, let contentType, let folder):
+            var params: Parameters = ["filename": filename, "contentType": contentType]
+            if let folder { params["folder"] = folder }
+            return params
+        case .confirmUpload:
             return nil
         }
     }
 }
 
-enum ReportsEndpoint: APIEndpoint {
-    case transactions(page: Int, perPage: Int, from: String?, to: String?, type: String?)
-    case summary(from: String, to: String)
+// MARK: - WebSocket Endpoint
 
-    var path: String {
-        switch self {
-        case .transactions:
-            return "/v1/reports/transactions"
-        case .summary:
-            return "/v1/reports/summary"
-        }
-    }
+enum WebSocketEndpoint: APIEndpoint {
+    case connect(token: String)
+
+    var path: String { "/ws" }
 
     var method: HTTPMethod { .get }
 
     var parameters: Parameters? {
         switch self {
-        case .transactions(let page, let perPage, let from, let to, let type):
-            var params: Parameters = ["page": page, "per_page": perPage]
-            if let from { params["from"] = from }
-            if let to { params["to"] = to }
-            if let type { params["type"] = type }
-            return params
-        case .summary(let from, let to):
-            return ["from": from, "to": to]
+        case .connect(let token):
+            return ["token": token]
         }
     }
 }
