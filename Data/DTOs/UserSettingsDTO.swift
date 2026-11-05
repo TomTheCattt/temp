@@ -30,3 +30,27 @@ nonisolated struct UserSettingsDTO: Decodable, Sendable {
 nonisolated struct UserSettingsWrapperDTO: Decodable, Sendable {
     let settings: UserSettingsDTO
 }
+
+/// Patch model for partial settings updates (PUT /v1/users/me/settings).
+/// All fields are optional - only provided fields will be updated.
+nonisolated struct UserSettingsPatch: Encodable, Sendable {
+    let language: String?
+    let biometricEnabled: Bool?
+    let pushEnabled: Bool?
+    let darkMode: Bool?
+}
+
+// MARK: - DeviceTokensDTO
+
+/// Response for device tokens list.
+nonisolated struct DeviceTokensDTO: Decodable, Sendable {
+    let tokens: [DeviceTokenDTO]
+}
+
+/// Individual device token.
+nonisolated struct DeviceTokenDTO: Decodable, Sendable {
+    let id: String
+    let token: String
+    let platform: String
+    let createdAt: String
+}
