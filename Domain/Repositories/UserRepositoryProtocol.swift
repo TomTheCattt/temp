@@ -21,7 +21,7 @@ protocol UserRepositoryProtocol: Sendable {
     func searchUsers(query: String, page: Int, perPage: Int) async throws -> [User]
 
     /// Update the current user's profile.
-    func updateProfile(name: String?, bio: String?, website: String?) async throws -> User
+    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User
 
     /// Update the current user's private-account setting.
     func setPrivateAccount(_ isPrivate: Bool) async throws -> User
@@ -64,4 +64,10 @@ protocol UserRepositoryProtocol: Sendable {
 
     /// Fetch suggested users.
     func fetchSuggested(page: Int, perPage: Int) async throws -> [User]
+
+    /// Fetch the current user's device tokens for push notifications.
+    func fetchDeviceTokens() async throws -> [DeviceToken]
+
+    /// Add a device token for push notifications.
+    func addDeviceToken(token: String, platform: String) async throws
 }

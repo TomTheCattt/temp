@@ -10,14 +10,20 @@ import Foundation
 // MARK: - UpdateProfileInput
 
 struct UpdateProfileInput: Sendable {
-    let name: String?
+    let fullName: String?
+    let username: String?
     let bio: String?
     let website: String?
+    let phone: String?
+    let avatarUrl: String?
 
-    init(name: String? = nil, bio: String? = nil, website: String? = nil) {
-        self.name = name
+    init(fullName: String? = nil, username: String? = nil, bio: String? = nil, website: String? = nil, phone: String? = nil, avatarUrl: String? = nil) {
+        self.fullName = fullName
+        self.username = username
         self.bio = bio
         self.website = website
+        self.phone = phone
+        self.avatarUrl = avatarUrl
     }
 }
 
@@ -41,6 +47,15 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
             throw UpdateProfileError.bioTooLong
         }
 
+        // Validate username if provided (alphanumeric + underscore, 3-30 chars)
+        if let username = input.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
+            let usernameRegex = "^[a-zA-Z0-9_]{3,30}$"
+            let predicate = NSPredicate(format: "SELF MATCHES %@", usernameRegex)
+            if !predicate.evaluate(with: username) {
+                throw UpdateProfileError.invalidUsername
+            }
+        }
+
         // Validate and normalize website URL if provided
         let cleanedWebsite: String?
         if let website = input.website?.trimmingCharacters(in: .whitespacesAndNewlines), !website.isEmpty {
@@ -56,10 +71,21 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
             cleanedWebsite = nil
         }
 
+        // Validate phone if provided (basic format)
+        let cleanedPhone: String?
+        if let phone = input.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
+            cleanedPhone = phone
+        } else {
+            cleanedPhone = nil
+        }
+
         return try await userRepository.updateProfile(
-            name: input.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+            fullName: input.fullName?.trimmingCharacters(in: .whitespacesAndNewlines),
+            username: input.username?.trimmingCharacters(in: .whitespacesAndNewlines),
             bio: input.bio,
-            website: cleanedWebsite
+            website: cleanedWebsite,
+            phone: cleanedPhone,
+            avatarUrl: input.avatarUrl
         )
     }
 }
@@ -69,11 +95,13 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
 private enum UpdateProfileError: LocalizedError {
     case bioTooLong
     case invalidWebsite
+    case invalidUsername
 
     var errorDescription: String? {
         switch self {
         case .bioTooLong:      return "Bio must be 150 characters or less."
         case .invalidWebsite:  return "Invalid website URL."
+        case .invalidUsername: return "Username must be 3-30 characters and can only contain letters, numbers, and underscores."
         }
     }
 }
