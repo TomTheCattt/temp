@@ -9,86 +9,78 @@ import Foundation
 
 // MARK: - RemoteAuthDataSource
 
-/// Handles authentication flow:
-/// 1. Authenticate with Firebase Auth SDK (get ID token)
-/// 2. Send ID token to backend for verification + user profile creation/lookup
+/// Handles authentication flow with Better Auth backend:
+/// 1. Direct email/password authentication (no Firebase)
+/// 2. Backend issues its own access/refresh tokens (JWT)
 final class RemoteAuthDataSource: @unchecked Sendable {
 
     private let networkService: NetworkServiceProtocol
-    private let firebaseAuth: FirebaseAuthServiceProtocol
 
-    init(
-        networkService: NetworkServiceProtocol,
-        firebaseAuth: FirebaseAuthServiceProtocol = FirebaseAuthService.shared
-    ) {
+    init(networkService: NetworkServiceProtocol) {
         self.networkService = networkService
-        self.firebaseAuth = firebaseAuth
     }
 
     // MARK: - Login
 
-    /// Sign in with Firebase Auth, then send ID token to backend.
+    /// Sign in with email/password via Better Auth backend.
     func login(email: String, password: String) async throws -> AuthSession {
-        // Step 1: Authenticate with Firebase
-        let firebaseResult = try await firebaseAuth.signIn(email: email, password: password)
-
-        // Step 2: Send ID token to backend for verification
         let dto: AuthResponseDTO = try await networkService.requestEnvelope(
-            AuthEndpoint.login(idToken: firebaseResult.idToken)
+            AuthEndpoint.login(email: email, password: password)
         )
 
-        // Use Firebase ID token as access token for subsequent API calls
-        return AuthSession(
-            accessToken: firebaseResult.idToken,
-            refreshToken: "",
-            user: UserMapper.toEntity(dto.user),
-            expiresAt: nil
-        )
+        return dto.toAuthSession()
     }
 
     // MARK: - Register
 
-    /// Create account with Firebase Auth, then register on backend.
+    /// Create account with email/password via Better Auth backend.
     func register(name: String, email: String, password: String, phone: String?) async throws -> AuthSession {
-        // Step 1: Create account with Firebase
-        let firebaseResult = try await firebaseAuth.createAccount(email: email, password: password)
-
-        // Step 2: Register user on backend with ID token + profile info
         let dto: AuthResponseDTO = try await networkService.requestEnvelope(
-            AuthEndpoint.register(idToken: firebaseResult.idToken, name: name, phone: phone)
+            AuthEndpoint.register(email: email, password: password, username: name, fullName: name, phone: phone)
         )
 
-        // Use Firebase ID token as access token for subsequent API calls
-        return AuthSession(
-            accessToken: firebaseResult.idToken,
-            refreshToken: "",
-            user: UserMapper.toEntity(dto.user),
-            expiresAt: nil
-        )
+        return dto.toAuthSession()
     }
 
     // MARK: - Refresh Token
 
-    /// Get a fresh Firebase ID token (auto-refreshes if expired).
+    /// Get a fresh access token from the backend using the refresh token.
     func refreshToken() async throws -> String {
-        try await firebaseAuth.getIDToken()
+        let dto: RefreshTokenDTO = try await networkService.requestEnvelope(
+            AuthEndpoint.refresh
+        )
+        return dto.accessToken
+    }
+
+    /// Get a fresh access token with expiry info.
+    func refreshTokenWithExpiry() async throws -> (token: String, expiresAt: Date?) {
+        let dto: RefreshTokenDTO = try await networkService.requestEnvelope(
+            AuthEndpoint.refresh
+        )
+        let expiresAt = dto.expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        return (dto.accessToken, expiresAt)
     }
 
     // MARK: - Logout
 
     func logout() async throws {
         try await networkService.requestVoid(AuthEndpoint.logout)
-        try firebaseAuth.signOut()
     }
 
-    // MARK: - Other
+    func logoutAllDevices() async throws {
+        try await networkService.requestVoid(AuthEndpoint.logoutAllDevices)
+    }
 
-    func forgotPassword(phoneNumber: String) async throws {
-        try await networkService.requestVoid(AuthEndpoint.forgotPassword(phoneNumber: phoneNumber))
+    // MARK: - Password & Email
+
+    func forgotPassword(email: String) async throws {
+        try await networkService.requestVoid(AuthEndpoint.forgotPassword(email: email))
     }
 
     func resetPassword(token: String, newPassword: String) async throws {
-        try await networkService.requestVoid(AuthEndpoint.resetPassword(token: token, password: newPassword))
+        // Note: Backend uses verify-email + change-password flow
+        // This is kept for compatibility but may not be used
+        try await networkService.requestVoid(AuthEndpoint.verifyEmail(token: token))
     }
 
     func verifyEmail(token: String) async throws {
@@ -102,23 +94,39 @@ final class RemoteAuthDataSource: @unchecked Sendable {
     func changePassword(currentPassword: String, newPassword: String) async throws {
         try await networkService.requestVoid(AuthEndpoint.changePassword(currentPassword: currentPassword, newPassword: newPassword))
     }
+
+    // MARK: - Get Current User
+
+    func getCurrentUser() async throws -> UserDTO {
+        let dto: UserDTO = try await networkService.requestEnvelope(AuthEndpoint.me)
+        return dto
+    }
 }
 
-// MARK: - AuthResponseDTO
+// MARK: - DTOs
 
 /// DTO for auth API responses (login, register).
-/// Backend verifies Firebase ID token and returns user profile.
+/// Better Auth backend returns access/refresh tokens and user profile.
 nonisolated struct AuthResponseDTO: Decodable, Sendable {
     let user: UserDTO
-    let accessToken: String?   // Optional: backend may issue its own session token
-    let refreshToken: String?  // Optional: backend may issue its own refresh token
+    let accessToken: String
+    let refreshToken: String
+    let expiresAt: Int?  // Unix timestamp
 
     func toAuthSession() -> AuthSession {
-        AuthSession(
-            accessToken: accessToken ?? "",
-            refreshToken: refreshToken ?? "",
+        let expiresAtDate = expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        return AuthSession(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
             user: UserMapper.toEntity(user),
-            expiresAt: nil
+            expiresAt: expiresAtDate
         )
     }
+}
+
+/// DTO for token refresh response.
+nonisolated struct RefreshTokenDTO: Decodable, Sendable {
+    let accessToken: String
+    let refreshToken: String?
+    let expiresAt: Int?
 }
