@@ -13,6 +13,12 @@ import Combine
 
 protocol NetworkServiceProtocol: Sendable {
 
+    /// The underlying Alamofire Session for custom requests.
+    var session: Session { get }
+
+    /// The JSON decoder used for decoding responses.
+    var decoder: JSONDecoder { get }
+
     /// Perform a request and decode the response into `T`.
     nonisolated func request<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
@@ -46,14 +52,15 @@ protocol NetworkServiceProtocol: Sendable {
 
 final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
-    private let session: Session
-    private let logger = AppLogger.network
-    private let decoder: JSONDecoder = {
+    let session: Session
+    let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601WithFractionalSeconds
         return decoder
     }()
+
+    private let logger = AppLogger.network
 
     init(session: Session) {
         self.session = session
