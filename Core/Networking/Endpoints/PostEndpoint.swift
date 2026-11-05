@@ -23,6 +23,8 @@ enum PostEndpoint: APIEndpoint {
     case unlike(id: String)
     case save(id: String)
     case unsave(id: String)
+    case comments(postId: String, page: Int, perPage: Int)
+    case addComment(postId: String, text: String, parentId: String?)
 
     var path: String {
         switch self {
@@ -38,14 +40,16 @@ enum PostEndpoint: APIEndpoint {
         case .unlike(let id):                   return "/v1/posts/\(id)/like"
         case .save(let id):                     return "/v1/posts/\(id)/save"
         case .unsave(let id):                   return "/v1/posts/\(id)/save"
+        case .comments(let postId, _, _):       return "/v1/posts/\(postId)/comments"
+        case .addComment(let postId, _, _):     return "/v1/posts/\(postId)/comments"
         }
     }
 
     var method: HTTPMethod {
         switch self {
-        case .feed, .explore, .savedPosts, .userPosts, .detail:
+        case .feed, .explore, .savedPosts, .userPosts, .detail, .comments:
             return .get
-        case .create, .like, .save:
+        case .create, .like, .save, .addComment:
             return .post
         case .update:
             return .put
@@ -59,7 +63,8 @@ enum PostEndpoint: APIEndpoint {
         case .feed(let page, let perPage),
              .explore(let page, let perPage),
              .savedPosts(let page, let perPage),
-             .userPosts(_, let page, let perPage):
+             .userPosts(_, let page, let perPage),
+             .comments(_, let page, let perPage):
             return ["page": page, "perPage": perPage]
         case .create(let caption, let locationName, let locationLat, let locationLng, let media):
             var params: Parameters = ["media": media]
@@ -75,6 +80,10 @@ enum PostEndpoint: APIEndpoint {
             if let locationName { params["locationName"] = locationName }
             if let locationLat { params["locationLat"] = locationLat }
             if let locationLng { params["locationLng"] = locationLng }
+            return params
+        case .addComment(_, let text, let parentId):
+            var params: Parameters = ["text": text]
+            if let parentId { params["parentId"] = parentId }
             return params
         case .detail, .delete, .like, .unlike, .save, .unsave:
             return nil
