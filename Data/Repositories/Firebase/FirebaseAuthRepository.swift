@@ -73,7 +73,7 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             accessToken: authResult.idToken,
             refreshToken: "",
             user: user,
-            expiresAt: nil
+            expiresAt: authResult.expiresAt
         )
     }
 
@@ -119,14 +119,14 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             accessToken: authResult.idToken,
             refreshToken: "",
             user: newUser,
-            expiresAt: nil
+            expiresAt: authResult.expiresAt
         )
     }
 
     // MARK: - Refresh Token
 
     func refreshToken() async throws -> AuthSession {
-        let idToken = try await firebaseAuth.getIDToken()
+        let (idToken, expiresAt) = try await firebaseAuth.getIDTokenWithExpiry()
         let currentUser: User
         if let sessionUser = await MainActor.run(body: { SessionStore.shared.currentUser }) {
             currentUser = sessionUser
@@ -140,7 +140,7 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             accessToken: idToken,
             refreshToken: "",
             user: currentUser,
-            expiresAt: nil
+            expiresAt: expiresAt
         )
     }
 
@@ -156,14 +156,8 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
 
     // MARK: - Password Management
 
-    func forgotPassword(phoneNumber: String) async throws {
-        if phoneNumber.contains("@") {
-            try await Auth.auth().sendPasswordReset(withEmail: phoneNumber)
-        } else if let userEmail = Auth.auth().currentUser?.email {
-            try await Auth.auth().sendPasswordReset(withEmail: userEmail)
-        } else {
-            logger.info("Password reset requested for phone or placeholder: \(phoneNumber)")
-        }
+    func forgotPassword(email: String) async throws {
+        try await Auth.auth().sendPasswordReset(withEmail: email)
     }
 
     func resetPassword(token: String, newPassword: String) async throws {

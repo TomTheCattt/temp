@@ -24,7 +24,7 @@ protocol AuthRepositoryProtocol: Sendable {
     func logout() async throws
 
     /// Send a forgot-password request.
-    func forgotPassword(phoneNumber: String) async throws
+    func forgotPassword(email: String) async throws
 
     /// Reset password with OTP token.
     func resetPassword(token: String, newPassword: String) async throws

@@ -42,8 +42,8 @@ final class AuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
         try await remoteDataSource.logout()
     }
 
-    func forgotPassword(phoneNumber: String) async throws {
-        try await remoteDataSource.forgotPassword(phoneNumber: phoneNumber)
+    func forgotPassword(email: String) async throws {
+        try await remoteDataSource.forgotPassword(email: email)
     }
 
     func resetPassword(token: String, newPassword: String) async throws {
