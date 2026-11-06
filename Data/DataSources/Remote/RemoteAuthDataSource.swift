@@ -164,7 +164,7 @@ final class RemoteAuthDataSource: @unchecked Sendable {
     }
 
     /// Parse Better Auth cookies from cookie string
-    /// Expected cookies: better-auth.access_token, better-auth.refresh_token, better-auth.session
+    /// Expected cookies (with instagram-clone prefix): instagram-clone.session_token, instagram-clone.refresh_token, instagram-clone.session
     private func parseCookies(_ cookieString: String) -> (accessToken: String, refreshToken: String, expiresAt: Date?) {
         var accessToken = ""
         var refreshToken = ""
@@ -178,11 +178,11 @@ final class RemoteAuthDataSource: @unchecked Sendable {
             let value = parts[1].trimmingCharacters(in: .whitespaces)
 
             switch name {
-            case "better-auth.access_token":
+            case "instagram-clone.session_token":
                 accessToken = value
-            case "better-auth.refresh_token":
+            case "instagram-clone.refresh_token":
                 refreshToken = value
-            case "better-auth.session":
+            case "instagram-clone.session":
                 // Session cookie may contain expiry info
                 // Value format: session_data|expiry_timestamp
                 let sessionParts = value.split(separator: "|")
@@ -208,7 +208,7 @@ final class RemoteAuthDataSource: @unchecked Sendable {
             guard parts.count == 2 else { continue }
             let name = parts[0].trimmingCharacters(in: .whitespaces)
             let value = parts[1].trimmingCharacters(in: .whitespaces)
-            if name == "better-auth.access_token" {
+            if name == "instagram-clone.session_token" {
                 return value
             }
         }
