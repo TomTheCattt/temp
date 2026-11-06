@@ -12,17 +12,23 @@ import Foundation
 final class AuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteAuthDataSource
+    private let authManager: AuthManagerProtocol
 
-    init(remoteDataSource: RemoteAuthDataSource) {
+    init(remoteDataSource: RemoteAuthDataSource, authManager: AuthManagerProtocol) {
         self.remoteDataSource = remoteDataSource
+        self.authManager = authManager
     }
 
     func login(email: String, password: String) async throws -> AuthSession {
-        try await remoteDataSource.login(email: email, password: password)
+        let session = try await remoteDataSource.login(email: email, password: password)
+        authManager.storeSession(session)
+        return session
     }
 
     func register(name: String, email: String, password: String, phone: String) async throws -> AuthSession {
-        try await remoteDataSource.register(name: name, email: email, password: password, phone: phone)
+        let session = try await remoteDataSource.register(name: name, email: email, password: password, phone: phone)
+        authManager.storeSession(session)
+        return session
     }
 
     func refreshToken() async throws -> AuthSession {

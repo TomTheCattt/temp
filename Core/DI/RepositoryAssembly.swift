@@ -37,7 +37,8 @@ final class RepositoryAssembly: Assembly {
                 return AuthRepository(
                     remoteDataSource: RemoteAuthDataSource(
                         networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                    )
+                    ),
+                    authManager: resolver.resolve(AuthManagerProtocol.self)!
                 )
             }
             return FirebaseAuthRepository()
