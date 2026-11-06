@@ -30,6 +30,12 @@ protocol NetworkServiceProtocol: Sendable {
         _ endpoint: APIEndpoint
     ) async throws -> sending T
 
+    /// Perform a request expecting the standard server envelope `APIEnvelope<T>`,
+    /// and return both the `data` field and the HTTP response for header/cookie extraction.
+    nonisolated func requestEnvelopeWithResponse<T: Decodable & Sendable>(
+        _ endpoint: APIEndpoint
+    ) async throws -> (data: T, response: HTTPURLResponse)
+
     /// Perform a request with no expected response body (e.g. DELETE, 204).
     nonisolated func requestVoid(
         _ endpoint: APIEndpoint
@@ -92,6 +98,13 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     nonisolated func requestEnvelope<T: Decodable & Sendable>(
         _ endpoint: APIEndpoint
     ) async throws -> sending T {
+        let result: (data: T, response: HTTPURLResponse) = try await requestEnvelopeWithResponse(endpoint)
+        return result.data
+    }
+
+    nonisolated func requestEnvelopeWithResponse<T: Decodable & Sendable>(
+        _ endpoint: APIEndpoint
+    ) async throws -> (data: T, response: HTTPURLResponse) {
         let urlRequest = try await endpoint.asURLRequest()
 
         let response = await session
@@ -108,7 +121,10 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
                 }
                 throw APIError.unknown(response.response?.statusCode)
             }
-            return data
+            guard let httpResponse = response.response else {
+                throw APIError.unknown(nil)
+            }
+            return (data, httpResponse)
         case .failure(let afError):
             throw await mapError(afError, response: response.response)
         }
