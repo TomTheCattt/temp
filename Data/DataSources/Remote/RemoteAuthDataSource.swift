@@ -24,72 +24,41 @@ final class RemoteAuthDataSource: @unchecked Sendable {
 
     /// Sign in with email/password via Better Auth backend.
     func login(email: String, password: String) async throws -> AuthSession {
-        let (loginResponse, httpResponse) = try await networkService.requestEnvelopeWithResponse(
+        let authResponse: AuthResponseDTO = try await networkService.requestEnvelope(
             AuthEndpoint.login(email: email, password: password)
-        ) as (LoginResponseDTO, HTTPURLResponse)
-
-        // Extract tokens from Set-Cookie headers (Better Auth uses HTTP-only cookies)
-        let (accessToken, refreshToken, expiresAt) = extractTokens(from: httpResponse)
-
-        // Use sessionToken from response body as accessToken if cookie extraction fails
-        // Backend returns sessionToken in response body for Bearer token auth
-        let finalAccessToken = accessToken.isEmpty ? loginResponse.sessionToken : accessToken
-
-        return AuthSession(
-            accessToken: finalAccessToken,
-            refreshToken: refreshToken,
-            user: UserMapper.toEntity(loginResponse.user),
-            expiresAt: expiresAt
         )
+
+        // Backend now returns accessToken, refreshToken, expiresAt in response body
+        return authResponse.toAuthSession()
     }
 
     // MARK: - Register
 
     /// Create account with email/password via Better Auth backend.
     func register(name: String, email: String, password: String, phone: String?) async throws -> AuthSession {
-        let (loginResponse, httpResponse) = try await networkService.requestEnvelopeWithResponse(
+        let authResponse: AuthResponseDTO = try await networkService.requestEnvelope(
             AuthEndpoint.register(email: email, password: password, username: name, fullName: name, phone: phone)
-        ) as (LoginResponseDTO, HTTPURLResponse)
-
-        // Extract tokens from Set-Cookie headers (Better Auth uses HTTP-only cookies)
-        let (accessToken, refreshToken, expiresAt) = extractTokens(from: httpResponse)
-
-        // Use sessionToken from response body as accessToken if cookie extraction fails
-        // Backend returns sessionToken in response body for Bearer token auth
-        let finalAccessToken = accessToken.isEmpty ? loginResponse.sessionToken : accessToken
-
-        return AuthSession(
-            accessToken: finalAccessToken,
-            refreshToken: refreshToken,
-            user: UserMapper.toEntity(loginResponse.user),
-            expiresAt: expiresAt
         )
+
+        // Backend now returns accessToken, refreshToken, expiresAt in response body
+        return authResponse.toAuthSession()
     }
 
     // MARK: - Refresh Token
 
     /// Get a fresh access token from the backend using the refresh token.
     func refreshToken() async throws -> String {
-        let (dto, httpResponse) = try await networkService.requestEnvelopeWithResponse(
-            AuthEndpoint.refresh
-        ) as (RefreshTokenDTO, HTTPURLResponse)
+        let dto: RefreshTokenDTO = try await networkService.requestEnvelope(AuthEndpoint.refresh)
 
-        // Update tokens from cookies if present
-        if let newAccessToken = extractAccessToken(from: httpResponse) {
-            return newAccessToken
-        }
+        // Backend returns accessToken, refreshToken, expiresAt
         return dto.accessToken
     }
 
     /// Get a fresh access token with expiry info.
     func refreshTokenWithExpiry() async throws -> (token: String, expiresAt: Date?) {
-        let (dto, httpResponse) = try await networkService.requestEnvelopeWithResponse(
-            AuthEndpoint.refresh
-        ) as (RefreshTokenDTO, HTTPURLResponse)
-
-        let newAccessToken = extractAccessToken(from: httpResponse) ?? dto.accessToken
+        let dto: RefreshTokenDTO = try await networkService.requestEnvelope(AuthEndpoint.refresh)
         let expiresAt = dto.expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
-        return (newAccessToken, expiresAt)
+        return (dto.accessToken, expiresAt)
     }
 
     // MARK: - Logout
@@ -131,96 +100,6 @@ final class RemoteAuthDataSource: @unchecked Sendable {
     func getCurrentUser() async throws -> UserDTO {
         let dto: UserDTO = try await networkService.requestEnvelope(AuthEndpoint.me)
         return dto
-    }
-
-    // MARK: - Private Helpers
-
-    /// Extract tokens from Set-Cookie headers (Better Auth format)
-    private func extractTokens(from response: HTTPURLResponse) -> (accessToken: String, refreshToken: String, expiresAt: Date?) {
-        guard let cookieHeader = response.allHeaderFields["Set-Cookie"] as? String else {
-            // Fallback: try to get from multiple Set-Cookie headers
-            return extractTokensFromMultipleHeaders(response)
-        }
-        return parseCookies(cookieHeader)
-    }
-
-    /// Extract tokens from multiple Set-Cookie headers
-    private func extractTokensFromMultipleHeaders(_ response: HTTPURLResponse) -> (accessToken: String, refreshToken: String, expiresAt: Date?) {
-        var accessToken = ""
-        var refreshToken = ""
-        var expiresAt: Date?
-
-        // Check all header fields for Set-Cookie
-        for (key, value) in response.allHeaderFields {
-            if let keyString = key as? String,
-               keyString.lowercased() == "set-cookie",
-               let cookieString = value as? String {
-                let (at, rt, exp) = parseCookies(cookieString)
-                if !at.isEmpty { accessToken = at }
-                if !rt.isEmpty { refreshToken = rt }
-                if exp != nil { expiresAt = exp }
-            }
-        }
-
-        // If still empty, try to get from response cookies (if Alamofire stores them)
-        if accessToken.isEmpty || refreshToken.isEmpty {
-            // Note: Alamofire doesn't automatically store HTTP-only cookies from response
-            // They are only in the Set-Cookie headers
-        }
-
-        return (accessToken, refreshToken, expiresAt)
-    }
-
-    /// Parse Better Auth cookies from cookie string
-    /// Expected cookies (with instagram-clone prefix): instagram-clone.session_token, instagram-clone.refresh_token, instagram-clone.session
-    private func parseCookies(_ cookieString: String) -> (accessToken: String, refreshToken: String, expiresAt: Date?) {
-        var accessToken = ""
-        var refreshToken = ""
-        var expiresAt: Date?
-
-        let cookies = cookieString.components(separatedBy: "; ")
-        for cookie in cookies {
-            let parts = cookie.components(separatedBy: "=")
-            guard parts.count == 2 else { continue }
-            let name = parts[0].trimmingCharacters(in: .whitespaces)
-            let value = parts[1].trimmingCharacters(in: .whitespaces)
-
-            switch name {
-            case "instagram-clone.session_token":
-                accessToken = value
-            case "instagram-clone.refresh_token":
-                refreshToken = value
-            case "instagram-clone.session":
-                // Session cookie may contain expiry info
-                // Value format: session_data|expiry_timestamp
-                let sessionParts = value.split(separator: "|")
-                if sessionParts.count == 2, let timestamp = Int(sessionParts[1]) {
-                    expiresAt = Date(timeIntervalSince1970: TimeInterval(timestamp))
-                }
-            default:
-                break
-            }
-        }
-
-        return (accessToken, refreshToken, expiresAt)
-    }
-
-    /// Extract only access token from response cookies
-    private func extractAccessToken(from response: HTTPURLResponse) -> String? {
-        guard let cookieHeader = response.allHeaderFields["Set-Cookie"] as? String else {
-            return nil
-        }
-        let cookies = cookieHeader.components(separatedBy: "; ")
-        for cookie in cookies {
-            let parts = cookie.components(separatedBy: "=")
-            guard parts.count == 2 else { continue }
-            let name = parts[0].trimmingCharacters(in: .whitespaces)
-            let value = parts[1].trimmingCharacters(in: .whitespaces)
-            if name == "instagram-clone.session_token" {
-                return value
-            }
-        }
-        return nil
     }
 }
 
