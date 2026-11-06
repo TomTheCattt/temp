@@ -12,20 +12,21 @@ import OSLog
 // MARK: - AuthInterceptor
 
 final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
-    private let authManager: AuthManagerProtocol
+    private let authManagerProvider: @Sendable () -> AuthManagerProtocol?
     private let logger = AppLogger.network
-    
-    init(authManager: AuthManagerProtocol) {
-        self.authManager = authManager
+
+    init(authManagerProvider: @escaping @Sendable () -> AuthManagerProtocol?) {
+        self.authManagerProvider = authManagerProvider
     }
-    
+
     // MARK: - Adapt
-    
+
     @MainActor func adapt(_ urlRequest: URLRequest,
                for session: Session,
                completion: @escaping (Result<URLRequest, any Error>) -> Void) {
         var request = urlRequest
-        if let token = authManager.accessToken {
+        if let authManager = authManagerProvider(),
+           let token = authManager.accessToken {
             request.setValue("Bearer \(token)",
                              forHTTPHeaderField: "Authorization")
         }
@@ -34,7 +35,7 @@ final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
         request.setValue(AppConfig.shared.environment.rawValue, forHTTPHeaderField: "X-Environment")
         completion(.success(request))
     }
-    
+
     // MARK: Retry
 
     func retry(_ request: Request,
@@ -51,7 +52,12 @@ final class AuthInterceptor: @preconcurrency RequestInterceptor, Sendable {
         }
 
         let completionBox = RetryCompletionBox(completion)
-        Task { [authManager, logger] in
+        Task { [authManagerProvider, logger] in
+            guard let authManager = authManagerProvider() else {
+                logger.error("AuthManager not available for token refresh")
+                await completionBox.call(.doNotRetryWithError(APIError.unauthorized))
+                return
+            }
             do {
                 // refreshToken() is NOT @MainActor — safe to call from background Task
                 try await authManager.refreshToken()

@@ -2,7 +2,7 @@
 //  NetworkAssembly.swift
 //  Instagram
 //
-//  Created by Kiro on 26/7/26.
+//  Created by Nguyễn Việt Anh on 26/7/26.
 //
 
 import Foundation
@@ -20,10 +20,12 @@ final class NetworkAssembly: Assembly {
 
         // MARK: Alamofire Session
 
-        container.register(Session.self) { _ in
-            let interceptor = AuthInterceptor(
-                authManager: container.resolve(AuthManagerProtocol.self)!
-            )
+        container.register(Session.self) { resolver in
+            // Use a closure to break circular dependency:
+            // AuthManager → NetworkService → Session → AuthInterceptor → AuthManager
+            // The closure will resolve AuthManagerProtocol lazily when needed
+            let authManagerProvider: @Sendable () -> AuthManagerProtocol? = { resolver.resolve(AuthManagerProtocol.self) }
+            let interceptor = AuthInterceptor(authManagerProvider: authManagerProvider)
             let monitor = NetworkEventMonitor()
 
             let configuration = URLSessionConfiguration.af.default
