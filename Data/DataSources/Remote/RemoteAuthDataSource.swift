@@ -24,17 +24,21 @@ final class RemoteAuthDataSource: @unchecked Sendable {
 
     /// Sign in with email/password via Better Auth backend.
     func login(email: String, password: String) async throws -> AuthSession {
-        let (userDTO, httpResponse) = try await networkService.requestEnvelopeWithResponse(
+        let (loginResponse, httpResponse) = try await networkService.requestEnvelopeWithResponse(
             AuthEndpoint.login(email: email, password: password)
-        ) as (UserDTO, HTTPURLResponse)
+        ) as (LoginResponseDTO, HTTPURLResponse)
 
         // Extract tokens from Set-Cookie headers (Better Auth uses HTTP-only cookies)
         let (accessToken, refreshToken, expiresAt) = extractTokens(from: httpResponse)
 
+        // Use sessionToken from response body as accessToken if cookie extraction fails
+        // Backend returns sessionToken in response body for Bearer token auth
+        let finalAccessToken = accessToken.isEmpty ? loginResponse.sessionToken : accessToken
+
         return AuthSession(
-            accessToken: accessToken,
+            accessToken: finalAccessToken,
             refreshToken: refreshToken,
-            user: UserMapper.toEntity(userDTO),
+            user: UserMapper.toEntity(loginResponse.user),
             expiresAt: expiresAt
         )
     }
@@ -43,17 +47,21 @@ final class RemoteAuthDataSource: @unchecked Sendable {
 
     /// Create account with email/password via Better Auth backend.
     func register(name: String, email: String, password: String, phone: String?) async throws -> AuthSession {
-        let (userDTO, httpResponse) = try await networkService.requestEnvelopeWithResponse(
+        let (loginResponse, httpResponse) = try await networkService.requestEnvelopeWithResponse(
             AuthEndpoint.register(email: email, password: password, username: name, fullName: name, phone: phone)
-        ) as (UserDTO, HTTPURLResponse)
+        ) as (LoginResponseDTO, HTTPURLResponse)
 
         // Extract tokens from Set-Cookie headers (Better Auth uses HTTP-only cookies)
         let (accessToken, refreshToken, expiresAt) = extractTokens(from: httpResponse)
 
+        // Use sessionToken from response body as accessToken if cookie extraction fails
+        // Backend returns sessionToken in response body for Bearer token auth
+        let finalAccessToken = accessToken.isEmpty ? loginResponse.sessionToken : accessToken
+
         return AuthSession(
-            accessToken: accessToken,
+            accessToken: finalAccessToken,
             refreshToken: refreshToken,
-            user: UserMapper.toEntity(userDTO),
+            user: UserMapper.toEntity(loginResponse.user),
             expiresAt: expiresAt
         )
     }

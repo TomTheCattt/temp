@@ -51,3 +51,12 @@ nonisolated struct PaginatedUsersDTO: Decodable, Sendable {
     let total: Int
     let hasMore: Bool
 }
+
+// MARK: - LoginResponseDTO
+
+/// Response from BE login/register endpoints.
+/// Matches: { "user": UserDTO, "sessionToken": String }
+nonisolated struct LoginResponseDTO: Decodable, Sendable {
+    let user: UserDTO
+    let sessionToken: String
+}
