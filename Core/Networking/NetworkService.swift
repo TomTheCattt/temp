@@ -79,17 +79,27 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     ) async throws -> sending T {
         let urlRequest = try await endpoint.asURLRequest()
 
-        let response = await session
+        let dataResponse = await session
             .request(urlRequest)
             .validate(statusCode: 200..<300)
-            .serializingDecodable(T.self, decoder: decoder)
+            .serializingData()
             .response
 
-        switch response.result {
-        case .success(let value):
-            return value
-        case .failure(let afError):
-            throw await mapError(afError, response: response.response)
+        guard let httpResponse = dataResponse.response else {
+            throw APIError.unknown(nil)
+        }
+
+        guard let responseData = dataResponse.data else {
+            throw APIError.unknown(httpResponse.statusCode)
+        }
+
+        do {
+            return try decoder.decode(T.self, from: responseData)
+        } catch {
+            if let responseString = String(data: responseData, encoding: .utf8) {
+                logger.error("❌ Decode failed for \(urlRequest.url?.absoluteString ?? "unknown"): \(responseString)")
+            }
+            throw mapError(error, response: httpResponse)
         }
     }
 
@@ -107,26 +117,37 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     ) async throws -> (data: T, response: HTTPURLResponse) {
         let urlRequest = try await endpoint.asURLRequest()
 
-        let response = await session
+        // First get raw data to enable logging on decode failure
+        let dataResponse = await session
             .request(urlRequest)
             .validate(statusCode: 200..<300)
-            .serializingDecodable(APIEnvelope<T>.self, decoder: decoder)
+            .serializingData()
             .response
 
-        switch response.result {
-        case .success(let envelope):
+        guard let httpResponse = dataResponse.response else {
+            throw APIError.unknown(nil)
+        }
+
+        guard let responseData = dataResponse.data else {
+            throw APIError.unknown(httpResponse.statusCode)
+        }
+
+        // Decode manually so we can log raw response on failure
+        do {
+            let envelope = try decoder.decode(APIEnvelope<T>.self, from: responseData)
             guard let data = envelope.data else {
                 if let errorMessage = envelope.error ?? envelope.message {
                     throw APIError.serverError(errorMessage)
                 }
-                throw APIError.unknown(response.response?.statusCode)
-            }
-            guard let httpResponse = response.response else {
-                throw APIError.unknown(nil)
+                throw APIError.unknown(httpResponse.statusCode)
             }
             return (data, httpResponse)
-        case .failure(let afError):
-            throw await mapError(afError, response: response.response)
+        } catch {
+            // Log raw response for debugging
+            if let responseString = String(data: responseData, encoding: .utf8) {
+                logger.error("❌ Decode failed for \(urlRequest.url?.absoluteString ?? "unknown"): \(responseString)")
+            }
+            throw mapError(error, response: httpResponse)
         }
     }
 
@@ -144,7 +165,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
             .response
 
         if let afError = response.error {
-            throw await mapError(afError, response: response.response)
+            throw mapError(afError, response: response.response)
         }
     }
 
@@ -156,17 +177,27 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     ) async throws -> sending T {
         let urlRequest = try await endpoint.asURLRequest()
 
-        let response = await session
+        let dataResponse = await session
             .upload(multipartFormData: multipartFormData, with: urlRequest)
             .validate(statusCode: 200..<300)
-            .serializingDecodable(T.self, decoder: decoder)
+            .serializingData()
             .response
 
-        switch response.result {
-        case .success(let value):
-            return value
-        case .failure(let afError):
-            throw await mapError(afError, response: response.response)
+        guard let httpResponse = dataResponse.response else {
+            throw APIError.unknown(nil)
+        }
+
+        guard let responseData = dataResponse.data else {
+            throw APIError.unknown(httpResponse.statusCode)
+        }
+
+        do {
+            return try decoder.decode(T.self, from: responseData)
+        } catch {
+            if let responseString = String(data: responseData, encoding: .utf8) {
+                logger.error("❌ Decode failed for \(urlRequest.url?.absoluteString ?? "unknown"): \(responseString)")
+            }
+            throw mapError(error, response: httpResponse)
         }
     }
 
@@ -199,13 +230,21 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
 
     // MARK: - Error Mapping
 
-    private func mapError(_ afError: AFError, response: HTTPURLResponse?) -> APIError {
+    nonisolated private func mapError(_ error: Error, response: HTTPURLResponse?) -> APIError {
         // Detect global, cross-cutting HTTP states and route them to AppState.
         // This is intentionally non-invasive: we still return the normal mapped
         // APIError so existing error handling/return flow is unaffected.
         detectGlobalState(from: response)
 
-        let apiError = APIError.from(afError, response: response)
+        let apiError: APIError
+        if let afError = error as? AFError {
+            apiError = APIError.from(afError, response: response)
+        } else if error is APIError {
+            apiError = error as! APIError
+        } else {
+            // For manual decoding errors and other errors
+            apiError = APIError.decodingError(error)
+        }
         logger.error("API Error: \(apiError.localizedDescription)")
         return apiError
     }
@@ -214,7 +253,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     /// - 503 Service Unavailable → maintenance mode
     /// - 426 Upgrade Required     → force update
     /// Flags are published on `AppState.shared` (main actor). No APIError cases are added.
-    private func detectGlobalState(from response: HTTPURLResponse?) {
+    nonisolated private func detectGlobalState(from response: HTTPURLResponse?) {
         guard let statusCode = response?.statusCode else { return }
         switch statusCode {
         case 503:

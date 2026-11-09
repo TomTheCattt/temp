@@ -73,7 +73,7 @@ extension Error {
         return L10n.Error.generic
     }
 
-    static func from(_ error: AFError, response: HTTPURLResponse?) -> APIError {
+    nonisolated static func from(_ error: AFError, response: HTTPURLResponse?) -> APIError {
         if let code = response?.statusCode {
             switch code {
             case 401: return .unauthorized
