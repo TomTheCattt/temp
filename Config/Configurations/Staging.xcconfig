@@ -14,7 +14,7 @@ APP_NAME = Instagram (Staging)
 
 // Backend Type Selection: "firebase" or "live" (Custom REST API)
 // Decoupled: easily switchable when backend is finalized without touching Swift code.
-BACKEND_TYPE = firebase
+BACKEND_TYPE = live
 APP_BASE_URL = https:$(SLASH)/staging-api.example.com
 
 // Logging & Debugging (Enabled for QA testing on TestFlight)

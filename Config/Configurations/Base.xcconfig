@@ -19,4 +19,4 @@ SWIFT_VERSION = 5.0
 APP_STORE_URL = https:$(SLASH)/apps.apple.com/app/id000000000
 
 // Default Fallback Backend
-DEFAULT_BACKEND_TYPE = firebase
+DEFAULT_BACKEND_TYPE = live
