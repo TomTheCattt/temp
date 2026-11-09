@@ -69,7 +69,7 @@ final class RemotePostDataSource: @unchecked Sendable {
     func createPost(caption: String?, mediaData: [Data], location: PostLocation?) async throws -> Post {
         // Step 1: Upload media files using presigned URLs
         var mediaItems: [[String: Any]] = []
-        for (index, data) in mediaData.enumerated() {
+        for (_, data) in mediaData.enumerated() {
             if isVideoData(data) {
                 let uploadResult = try await uploadDataSource.uploadPresigned(
                     data: data,
