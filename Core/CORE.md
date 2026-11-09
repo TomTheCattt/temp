@@ -189,7 +189,7 @@ Concrete HTTP client implementation.
 | `upload<T>(_:multipartFormData:)` | Upload multipart form data |
 | `download(_:to:)` | Download file về temporary URL |
 
-- JSONDecoder: `convertFromSnakeCase` + `iso8601WithFractionalSeconds`
+- JSONDecoder: `useDefaultKeys` + `iso8601WithFractionalSeconds` (BE returns camelCase)
 - Combine support: `requestPublisher<T>`, `requestEnvelopePublisher<T>`
 
 ### RequestInterceptor.swift

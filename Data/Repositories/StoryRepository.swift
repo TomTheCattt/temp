@@ -33,10 +33,10 @@ final class StoryRepository: StoryRepositoryProtocol, @unchecked Sendable {
 
     func createStory(mediaData: Data, type: StoryItem.MediaType, duration: TimeInterval) async throws -> Story {
         // Step 1: Upload media using presigned URL
-        let uploadResult = try await uploadDataSource.upload(
+        let category: RemoteUploadDataSource.UploadCategory = type == .video ? .story : .story
+        let uploadResult = try await uploadDataSource.uploadPresigned(
             data: mediaData,
-            category: type == .video ? .story : .story,
-            filename: type == .video ? "story.mp4" : "story.jpg"
+            category: category
         )
 
         // Step 2: Create story with uploaded URL
