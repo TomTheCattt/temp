@@ -20,8 +20,11 @@ protocol UserRepositoryProtocol: Sendable {
     /// Search users by query string.
     func searchUsers(query: String, page: Int, perPage: Int) async throws -> [User]
 
-    /// Update the current user's profile.
-    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User
+    /// Update the current user's profile (name only - uses /v1/user/profile alias).
+    func updateProfileName(_ name: String) async throws -> User
+
+    /// Update the current user's full profile (uses /v1/users/me canonical endpoint).
+    func updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?) async throws -> User
 
     /// Update the current user's private-account setting.
     func setPrivateAccount(_ isPrivate: Bool) async throws -> User
@@ -70,4 +73,7 @@ protocol UserRepositoryProtocol: Sendable {
 
     /// Add a device token for push notifications.
     func addDeviceToken(token: String, platform: String) async throws
+
+    /// Remove a device token for push notifications.
+    func deleteDeviceToken(token: String) async throws
 }

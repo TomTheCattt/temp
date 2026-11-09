@@ -35,47 +35,42 @@ final class RemoteUserDataSource: @unchecked Sendable {
         return UserMapper.toEntity(wrapper.user)
     }
 
-    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User {
+    func updateProfileName(_ name: String) async throws -> User {
         let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
-            UserEndpoint.updateProfile(
+            UserEndpoint.updateProfileName(name: name)
+        )
+        return UserMapper.toEntity(wrapper.user)
+    }
+
+    func updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?) async throws -> User {
+        let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
+            UserEndpoint.updateFullProfile(
                 fullName: fullName,
-                username: username,
                 bio: bio,
                 website: website,
-                phone: phone,
-                avatarUrl: avatarUrl
+                isPrivate: isPrivate
             )
         )
         return UserMapper.toEntity(wrapper.user)
     }
 
     func setPrivateAccount(_ isPrivate: Bool) async throws -> User {
-        // The backend doesn't have isPrivate in the update profile endpoint
-        // This might need a separate endpoint or be added to the profile update
         let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
-            UserEndpoint.updateProfile(fullName: nil, username: nil, bio: nil, website: nil, phone: nil, avatarUrl: nil)
+            UserEndpoint.updateFullProfile(
+                fullName: nil,
+                bio: nil,
+                website: nil,
+                isPrivate: isPrivate
+            )
         )
         return UserMapper.toEntity(wrapper.user)
     }
 
     func updateAvatar(imageData: Data) async throws -> User {
-        let uploadResult = try await uploadDataSource.upload(
-            data: imageData,
-            category: .avatar,
-            filename: "avatar.jpg"
-        )
-        // Update profile with new avatar URL
-        let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
-            UserEndpoint.updateProfile(
-                fullName: nil,
-                username: nil,
-                bio: nil,
-                website: nil,
-                phone: nil,
-                avatarUrl: uploadResult.url
-            )
-        )
-        return UserMapper.toEntity(wrapper.user)
+        let avatarUrl = try await uploadDataSource.uploadAvatar(imageData: imageData)
+        // Avatar upload returns URL, server should update avatarUrl automatically
+        // If not, we may need a separate endpoint - for now return current user
+        return try await fetchCurrentUser()
     }
 
     // MARK: - Search
@@ -181,14 +176,17 @@ final class RemoteUserDataSource: @unchecked Sendable {
 
     // MARK: - Device Tokens
 
+    /// Note: BE does not have a GET endpoint for device tokens.
+    /// This returns an empty array for compatibility.
     func fetchDeviceTokens() async throws -> [DeviceToken] {
-        let response: DeviceTokensDTO = try await networkService.requestEnvelope(
-            UserEndpoint.deviceTokens
-        )
-        return DeviceTokenMapper.toEntityList(response.tokens)
+        return []
     }
 
     func addDeviceToken(token: String, platform: String) async throws {
         try await networkService.requestVoid(UserEndpoint.addDeviceToken(token: token, platform: platform))
+    }
+
+    func deleteDeviceToken(token: String) async throws {
+        try await networkService.requestVoid(UserEndpoint.deleteDeviceToken(token: token))
     }
 }

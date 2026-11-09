@@ -29,14 +29,16 @@ final class UserRepository: UserRepositoryProtocol, @unchecked Sendable {
         try await remoteDataSource.searchUsers(query: query, page: page, perPage: perPage)
     }
 
-    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User {
-        try await remoteDataSource.updateProfile(
+    func updateProfileName(_ name: String) async throws -> User {
+        try await remoteDataSource.updateProfileName(name)
+    }
+
+    func updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?) async throws -> User {
+        try await remoteDataSource.updateFullProfile(
             fullName: fullName,
-            username: username,
             bio: bio,
             website: website,
-            phone: phone,
-            avatarUrl: avatarUrl
+            isPrivate: isPrivate
         )
     }
 
@@ -102,5 +104,9 @@ final class UserRepository: UserRepositoryProtocol, @unchecked Sendable {
 
     func addDeviceToken(token: String, platform: String) async throws {
         try await remoteDataSource.addDeviceToken(token: token, platform: platform)
+    }
+
+    func deleteDeviceToken(token: String) async throws {
+        try await remoteDataSource.deleteDeviceToken(token: token)
     }
 }
