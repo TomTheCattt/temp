@@ -35,6 +35,10 @@ final class ExploreViewModel {
         }
     }
 
+    // Cursor-based pagination
+    private var nextCursor: String?
+    private var hasMore = true
+
     // MARK: - Filtered Explore Posts
 
     var filteredExplorePosts: [Post] {
@@ -112,20 +116,24 @@ final class ExploreViewModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            explorePosts = try await postRepository.fetchExplorePosts(page: 1, perPage: 24)
+            let result = try await postRepository.fetchExplorePosts(cursor: nil, perPage: 24)
+            explorePosts = result.posts
+            nextCursor = result.nextCursor
+            hasMore = result.hasMore
         } catch {
             AppLogger.general.error("Failed to load explore posts: \(error.localizedDescription)")
         }
     }
 
     func loadMoreExplore() async {
-        guard !isLoadingMore, !isLoading else { return }
+        guard !isLoadingMore, !isLoading, hasMore, let cursor = nextCursor else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let nextPage = (explorePosts.count / 24) + 1
-            let morePosts = try await postRepository.fetchExplorePosts(page: nextPage, perPage: 24)
-            explorePosts.append(contentsOf: morePosts)
+            let result = try await postRepository.fetchExplorePosts(cursor: cursor, perPage: 24)
+            explorePosts.append(contentsOf: result.posts)
+            nextCursor = result.nextCursor
+            hasMore = result.hasMore
         } catch {
             AppLogger.general.error("Failed to load more explore posts: \(error.localizedDescription)")
         }

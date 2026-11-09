@@ -20,6 +20,8 @@ final class SavedPostsViewModel {
 
     private let postRepository: PostRepositoryProtocol
     private var didLoad = false
+    private var nextCursor: String?
+    private var hasMore = true
 
     init(postRepository: PostRepositoryProtocol) {
         self.postRepository = postRepository
@@ -33,7 +35,17 @@ final class SavedPostsViewModel {
         errorMessage = nil
 
         do {
-            posts = try await postRepository.fetchSavedPosts(page: 1, perPage: 30)
+            let cursor = reset ? nil : nextCursor
+            let result = try await postRepository.fetchSavedPosts(cursor: cursor, perPage: 30)
+
+            if reset {
+                posts = result.posts
+            } else {
+                posts.append(contentsOf: result.posts)
+            }
+
+            nextCursor = result.nextCursor
+            hasMore = result.hasMore
             didLoad = true
         } catch {
             errorMessage = error.userMessage
