@@ -76,7 +76,7 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
         isConnecting = true
         defer { isConnecting = false }
 
-        // Build WebSocket URL with token
+        // Build WebSocket URL with token as query parameter (BE expects ?token=xxx)
         let wsEndpoint = WebSocketEndpoint.connect(token: accessToken)
         do {
             let urlRequest = try wsEndpoint.asURLRequest()
@@ -85,8 +85,9 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
                 return
             }
 
-            var headers: [String: String] = [:]
-            urlRequest.allHTTPHeaderFields?.forEach { headers[$0.key] = $0.value }
+            // The token is already in the URL as query parameter from WebSocketEndpoint.parameters
+            // Don't send token in headers - BE validates via query param
+            let headers: [String: String] = [:]
 
             AppLogger.network.info("Connecting WebSocket to \(url.absoluteString)")
             await webSocketService.connect(url: url, headers: headers)

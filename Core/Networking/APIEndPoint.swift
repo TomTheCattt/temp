@@ -126,15 +126,18 @@ enum AuthEndpoint: APIEndpoint {
 enum UserEndpoint: APIEndpoint {
     // Current user endpoints (use /v1/user/)
     case profile                    // GET /v1/user/profile (iOS alias for /v1/user/me)
-    case updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?)  // PUT /v1/user/profile
+    case updateProfileName(name: String)  // PUT /v1/user/profile (iOS alias - accepts { name } only)
     case settings                   // GET /v1/user/settings
     case updateSettings(language: String?, biometricEnabled: Bool?, pushEnabled: Bool?, darkMode: Bool?)  // PUT /v1/user/settings
     case closeFriends               // GET /v1/user/close-friends (iOS alias for /v1/users/me/close-friends)
     case addCloseFriend(userId: String)  // POST /v1/user/close-friends/{userId} (iOS alias)
     case removeCloseFriend(userId: String)  // DELETE /v1/user/close-friends/{userId} (iOS alias)
     case blockedUsers(page: Int, perPage: Int)  // GET /v1/user/blocked (iOS alias for /v1/users/me/blocked)
-    case deviceTokens               // GET /v1/user/device-tokens (iOS alias for /v1/users/me/device-token)
-    case addDeviceToken(token: String, platform: String)  // POST /v1/user/device-tokens (iOS alias)
+    case addDeviceToken(token: String, platform: String)  // POST /v1/user/me/device-token
+    case deleteDeviceToken(token: String)                 // DELETE /v1/user/me/device-token
+
+    // Full profile update (use /v1/users/me - canonical endpoint)
+    case updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?)  // PUT /v1/users/me
 
     // Public/Other user endpoints (use /v1/users/)
     case publicProfile(userId: String)  // GET /v1/users/{userId}
@@ -150,14 +153,18 @@ enum UserEndpoint: APIEndpoint {
     var path: String {
         switch self {
         // Current user endpoints (/v1/user/)
-        case .profile, .updateProfile: return "/v1/user/profile"
+        case .profile: return "/v1/user/profile"
+        case .updateProfileName: return "/v1/user/profile"
         case .settings, .updateSettings: return "/v1/user/settings"
         case .closeFriends: return "/v1/user/close-friends"
         case .addCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
         case .removeCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
         case .blockedUsers: return "/v1/user/blocked"
-        case .deviceTokens: return "/v1/user/device-tokens"
-        case .addDeviceToken: return "/v1/user/device-tokens"
+        case .addDeviceToken: return "/v1/user/me/device-token"
+        case .deleteDeviceToken: return "/v1/user/me/device-token"
+
+        // Full profile update (canonical endpoint)
+        case .updateFullProfile: return "/v1/users/me"
 
         // Public/Other user endpoints (/v1/users/)
         case .publicProfile(let userId): return "/v1/users/\(userId)"
@@ -174,36 +181,36 @@ enum UserEndpoint: APIEndpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .profile, .settings, .followers, .following, .search, .suggested, .closeFriends, .blockedUsers, .deviceTokens, .publicProfile:
+        case .profile, .settings, .followers, .following, .search, .suggested, .closeFriends, .blockedUsers, .publicProfile:
             return .get
-        case .updateProfile, .updateSettings:
+        case .updateProfileName, .updateSettings, .updateFullProfile:
             return .put
         case .follow, .block, .addCloseFriend, .addDeviceToken:
             return .post
-        case .unfollow, .unblock, .removeCloseFriend:
+        case .unfollow, .unblock, .removeCloseFriend, .deleteDeviceToken:
             return .delete
         }
     }
 
     var parameters: Parameters? {
         switch self {
-        case .profile, .settings, .follow, .unfollow, .block, .unblock, .addCloseFriend, .removeCloseFriend, .closeFriends, .deviceTokens, .publicProfile:
+        case .profile, .settings, .follow, .unfollow, .block, .unblock, .addCloseFriend, .removeCloseFriend, .closeFriends, .publicProfile:
             return nil
-        case .updateProfile(let fullName, let username, let bio, let website, let phone, let avatarUrl):
-            var params: Parameters = [:]
-            if let fullName { params["fullName"] = fullName }
-            if let username { params["username"] = username }
-            if let bio { params["bio"] = bio }
-            if let website { params["website"] = website }
-            if let phone { params["phone"] = phone }
-            if let avatarUrl { params["avatarUrl"] = avatarUrl }
-            return params
+        case .updateProfileName(let name):
+            return ["name": name]
         case .updateSettings(let language, let biometricEnabled, let pushEnabled, let darkMode):
             var params: Parameters = [:]
             if let language { params["language"] = language }
             if let biometricEnabled { params["biometricEnabled"] = biometricEnabled }
             if let pushEnabled { params["pushEnabled"] = pushEnabled }
             if let darkMode { params["darkMode"] = darkMode }
+            return params
+        case .updateFullProfile(let fullName, let bio, let website, let isPrivate):
+            var params: Parameters = [:]
+            if let fullName { params["fullName"] = fullName }
+            if let bio { params["bio"] = bio }
+            if let website { params["website"] = website }
+            if let isPrivate { params["isPrivate"] = isPrivate }
             return params
         case .followers(_, let page, let perPage), .following(_, let page, let perPage), .blockedUsers(let page, let perPage):
             return ["page": page, "perPage": perPage]
@@ -213,6 +220,8 @@ enum UserEndpoint: APIEndpoint {
             return ["page": page, "perPage": perPage]
         case .addDeviceToken(let token, let platform):
             return ["token": token, "platform": platform]
+        case .deleteDeviceToken(let token):
+            return ["token": token]
         }
     }
 }
@@ -220,27 +229,79 @@ enum UserEndpoint: APIEndpoint {
 // MARK: - Upload Endpoints
 
 enum UploadEndpoint: APIEndpoint {
-    case presignedUrl(filename: String, contentType: String, folder: String?)
-    case confirmUpload(uploadId: String)
+    // Presigned URL flow (for large files - direct to S3)
+    case presign(contentType: String, maxSize: Int?, prefix: String?)      // POST /v1/upload/presign
+    case confirm(pendingUploadId: String, targetType: String, targetId: String?)  // POST /v1/upload/confirm
+
+    // Direct multipart uploads (for smaller files)
+    case uploadImage(data: Data, filename: String)   // POST /v1/upload/image
+    case uploadVideo(data: Data, filename: String)   // POST /v1/upload/video
+    case uploadAvatar(data: Data, filename: String)  // POST /v1/upload/avatar
+
+    // Pending upload management
+    case getPendingStatus(pendingUploadId: String)   // GET /v1/upload/pending/:id
+    case deletePending(pendingUploadId: String)      // DELETE /v1/upload/pending/:id
 
     var path: String {
         switch self {
-        case .presignedUrl: return "/v1/upload/presigned-url"
-        case .confirmUpload(let uploadId): return "/v1/upload/\(uploadId)/confirm"
+        case .presign: return "/v1/upload/presign"
+        case .confirm: return "/v1/upload/confirm"
+        case .uploadImage: return "/v1/upload/image"
+        case .uploadVideo: return "/v1/upload/video"
+        case .uploadAvatar: return "/v1/upload/avatar"
+        case .getPendingStatus(let id): return "/v1/upload/pending/\(id)"
+        case .deletePending(let id): return "/v1/upload/pending/\(id)"
         }
     }
 
-    var method: HTTPMethod { .post }
+    var method: HTTPMethod {
+        switch self {
+        case .presign, .confirm, .uploadImage, .uploadVideo, .uploadAvatar:
+            return .post
+        case .getPendingStatus:
+            return .get
+        case .deletePending:
+            return .delete
+        }
+    }
 
     var parameters: Parameters? {
         switch self {
-        case .presignedUrl(let filename, let contentType, let folder):
-            var params: Parameters = ["filename": filename, "contentType": contentType]
-            if let folder { params["folder"] = folder }
+        case .presign(let contentType, let maxSize, let prefix):
+            var params: Parameters = ["contentType": contentType]
+            if let maxSize { params["maxSize"] = maxSize }
+            if let prefix { params["prefix"] = prefix }
             return params
-        case .confirmUpload:
+        case .confirm(let pendingUploadId, let targetType, let targetId):
+            var params: Parameters = ["pendingUploadId": pendingUploadId, "targetType": targetType]
+            if let targetId { params["targetId"] = targetId }
+            return params
+        case .getPendingStatus, .deletePending:
+            return nil
+        case .uploadImage, .uploadVideo, .uploadAvatar:
+            // Multipart uploads handled separately, not via parameters
             return nil
         }
+    }
+
+    var encoding: ParameterEncoding {
+        switch self {
+        case .uploadImage, .uploadVideo, .uploadAvatar:
+            return MultipartEncoding()  // Custom encoding for multipart
+        default:
+            return JSONEncoding.default
+        }
+    }
+}
+
+// MARK: - Multipart Encoding Helper
+
+/// Custom encoding for multipart/form-data uploads
+private struct MultipartEncoding: ParameterEncoding {
+    func encode(_ urlRequest: URLRequest, with parameters: Parameters?) throws -> URLRequest {
+        // The actual multipart body is built in NetworkService.requestMultipart
+        // This is a placeholder - the real encoding happens in the network service
+        return urlRequest
     }
 }
 
