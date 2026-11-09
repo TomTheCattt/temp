@@ -17,19 +17,19 @@ actor FirebaseReelDataSource {
 
     init() {}
 
-    func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
-        _ = page
+    func fetchReels(cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchReels logic from scratch
-        return []
+        return ([], nil, false)
     }
 
-    func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
+    func fetchUserReels(userId: String, cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
         _ = userId
-        _ = page
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchUserReels logic from scratch
-        return []
+        return ([], nil, false)
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {

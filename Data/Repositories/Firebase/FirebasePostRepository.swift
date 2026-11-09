@@ -19,12 +19,12 @@ final class FirebasePostRepository: PostRepositoryProtocol, @unchecked Sendable 
 
     // MARK: - Feed
 
-    func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
-        try await dataSource.fetchFeed(page: page, perPage: perPage)
+    func fetchFeed(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        try await dataSource.fetchFeed(cursor: cursor, perPage: perPage)
     }
 
-    func fetchUserPosts(userId: String, page: Int, perPage: Int) async throws -> [Post] {
-        try await dataSource.fetchUserPosts(userId: userId, page: page, perPage: perPage)
+    func fetchUserPosts(userId: String, cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        try await dataSource.fetchUserPosts(userId: userId, cursor: cursor, perPage: perPage)
     }
 
     func fetchPost(id: String) async throws -> Post {
@@ -65,11 +65,11 @@ final class FirebasePostRepository: PostRepositoryProtocol, @unchecked Sendable 
 
     // MARK: - Saved / Explore
 
-    func fetchSavedPosts(page: Int, perPage: Int) async throws -> [Post] {
-        try await dataSource.fetchSavedPosts(page: page, perPage: perPage)
+    func fetchSavedPosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        try await dataSource.fetchSavedPosts(cursor: cursor, perPage: perPage)
     }
 
-    func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
-        try await dataSource.fetchExplorePosts(page: page, perPage: perPage)
+    func fetchExplorePosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        try await dataSource.fetchExplorePosts(cursor: cursor, perPage: perPage)
     }
 }

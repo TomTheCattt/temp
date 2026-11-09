@@ -17,19 +17,19 @@ actor FirebasePostDataSource {
 
     init() {}
 
-    func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
-        _ = page
+    func fetchFeed(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchFeed logic from scratch
-        return []
+        return ([], nil, false)
     }
 
-    func fetchUserPosts(userId: String, page: Int, perPage: Int) async throws -> [Post] {
+    func fetchUserPosts(userId: String, cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         _ = userId
-        _ = page
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchUserPosts logic from scratch
-        return []
+        return ([], nil, false)
     }
 
     func fetchPost(id: String) async throws -> Post {
@@ -143,17 +143,17 @@ actor FirebasePostDataSource {
         // TODO: Implement unsavePost logic from scratch
     }
 
-    func fetchSavedPosts(page: Int, perPage: Int) async throws -> [Post] {
-        _ = page
+    func fetchSavedPosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchSavedPosts logic from scratch
-        return []
+        return ([], nil, false)
     }
 
-    func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
-        _ = page
+    func fetchExplorePosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        _ = cursor
         _ = perPage
         // TODO: Implement fetchExplorePosts logic from scratch
-        return []
+        return ([], nil, false)
     }
 }
