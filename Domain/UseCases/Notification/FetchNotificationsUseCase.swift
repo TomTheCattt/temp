@@ -23,7 +23,7 @@ final class FetchNotificationsUseCase: FetchNotificationsUseCaseProtocol, Sendab
 
     func execute(_ input: PaginationInput) async throws -> [AppNotification] {
         try await notificationRepository.fetchNotifications(
-            page: input.page,
+            page: input.page ?? 1,
             perPage: input.perPage
         )
     }
