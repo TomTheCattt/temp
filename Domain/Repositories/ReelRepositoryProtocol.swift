@@ -11,11 +11,15 @@ import Foundation
 
 protocol ReelRepositoryProtocol: Sendable {
 
-    /// Fetch reels feed (paginated).
-    func fetchReels(page: Int, perPage: Int) async throws -> [Reel]
+    /// Fetch reels feed (cursor-paginated).
+    /// - Parameters:
+    ///   - cursor: ISO timestamp cursor for pagination (nil for first page)
+    ///   - perPage: Number of items per page (default 20)
+    /// - Returns: Tuple of (reels, nextCursor, hasMore)
+    func fetchReels(cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool)
 
-    /// Fetch reels for a specific user.
-    func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel]
+    /// Fetch reels for a specific user (cursor-paginated).
+    func fetchUserReels(userId: String, cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool)
 
     /// Create a new reel.
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel

@@ -10,7 +10,7 @@ import Foundation
 // MARK: - FetchReelsUseCase
 
 protocol FetchReelsUseCaseProtocol: Sendable {
-    func execute(_ input: PaginationInput) async throws -> [Reel]
+    func execute(_ input: PaginationInput) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool)
 }
 
 final class FetchReelsUseCase: FetchReelsUseCaseProtocol, Sendable {
@@ -21,7 +21,7 @@ final class FetchReelsUseCase: FetchReelsUseCaseProtocol, Sendable {
         self.reelRepository = reelRepository
     }
 
-    func execute(_ input: PaginationInput) async throws -> [Reel] {
-        try await reelRepository.fetchReels(page: input.page, perPage: input.perPage)
+    func execute(_ input: PaginationInput) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
+        try await reelRepository.fetchReels(cursor: input.cursor, perPage: input.perPage)
     }
 }

@@ -10,7 +10,7 @@ import Foundation
 // MARK: - FetchFeedUseCase
 
 protocol FetchFeedUseCaseProtocol: Sendable {
-    func execute(_ input: PaginationInput) async throws -> [Post]
+    func execute(_ input: PaginationInput) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
 }
 
 final class FetchFeedUseCase: FetchFeedUseCaseProtocol, Sendable {
@@ -21,7 +21,7 @@ final class FetchFeedUseCase: FetchFeedUseCaseProtocol, Sendable {
         self.postRepository = postRepository
     }
 
-    func execute(_ input: PaginationInput) async throws -> [Post] {
-        try await postRepository.fetchFeed(page: input.page, perPage: input.perPage)
+    func execute(_ input: PaginationInput) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
+        try await postRepository.fetchFeed(cursor: input.cursor, perPage: input.perPage)
     }
 }

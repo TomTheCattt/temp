@@ -11,11 +11,15 @@ import Foundation
 
 protocol PostRepositoryProtocol: Sendable {
 
-    /// Fetch the home feed.
-    func fetchFeed(page: Int, perPage: Int) async throws -> [Post]
+    /// Fetch the home feed with cursor-based pagination.
+    /// - Parameters:
+    ///   - cursor: ISO timestamp cursor for pagination (nil for first page)
+    ///   - perPage: Number of items per page (default 20)
+    /// - Returns: Tuple of (posts, nextCursor, hasMore)
+    func fetchFeed(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
 
-    /// Fetch posts for a user's profile grid.
-    func fetchUserPosts(userId: String, page: Int, perPage: Int) async throws -> [Post]
+    /// Fetch posts for a user's profile grid with cursor-based pagination.
+    func fetchUserPosts(userId: String, cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
 
     /// Fetch a single post by ID.
     func fetchPost(id: String) async throws -> Post
@@ -42,9 +46,9 @@ protocol PostRepositoryProtocol: Sendable {
     /// Unsave a post.
     func unsavePost(id: String) async throws
 
-    /// Fetch saved posts.
-    func fetchSavedPosts(page: Int, perPage: Int) async throws -> [Post]
+    /// Fetch saved posts with cursor-based pagination.
+    func fetchSavedPosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
 
-    /// Fetch posts for the Explore grid.
-    func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post]
+    /// Fetch posts for the Explore grid with cursor-based pagination.
+    func fetchExplorePosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
 }

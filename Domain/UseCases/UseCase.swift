@@ -35,12 +35,23 @@ struct NoInput: Sendable {}
 // MARK: - PaginationInput
 
 /// Common pagination input reusable across use cases.
+/// Supports both page-based and cursor-based pagination.
 struct PaginationInput: Sendable {
-    let page: Int
+    let page: Int?
+    let cursor: String?
     let perPage: Int
 
+    // Page-based initializer (legacy)
     init(page: Int = 1, perPage: Int = 20) {
         self.page = page
+        self.cursor = nil
+        self.perPage = perPage
+    }
+
+    // Cursor-based initializer
+    init(cursor: String? = nil, perPage: Int = 20) {
+        self.page = nil
+        self.cursor = cursor
         self.perPage = perPage
     }
 }

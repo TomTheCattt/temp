@@ -19,18 +19,18 @@ final class RemoteReelDataSource: @unchecked Sendable {
 
     // MARK: - Feed
 
-    func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
+    func fetchReels(cursor: String? = nil, perPage: Int = 20) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedReelsDTO = try await networkService.requestEnvelope(
-            ReelEndpoint.feed(page: page, perPage: perPage)
+            ReelEndpoint.feed(cursor: cursor, perPage: perPage)
         )
-        return ReelMapper.toEntityList(response.items)
+        return (ReelMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
-    func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
+    func fetchUserReels(userId: String, cursor: String? = nil, perPage: Int = 20) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedReelsDTO = try await networkService.requestEnvelope(
-            ReelEndpoint.userReels(userId: userId, page: page, perPage: perPage)
+            ReelEndpoint.userReels(userId: userId, cursor: cursor, perPage: perPage)
         )
-        return ReelMapper.toEntityList(response.items)
+        return (ReelMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
     // MARK: - Like / Unlike

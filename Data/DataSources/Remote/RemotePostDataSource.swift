@@ -21,38 +21,38 @@ final class RemotePostDataSource: @unchecked Sendable {
 
     // MARK: - Feed
 
-    func fetchFeed(page: Int, perPage: Int) async throws -> [Post] {
+    func fetchFeed(cursor: String? = nil, perPage: Int = 20) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedPostsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.feed(page: page, perPage: perPage)
+            PostEndpoint.feed(cursor: cursor, perPage: perPage)
         )
-        return PostMapper.toEntityList(response.items)
+        return (PostMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
     // MARK: - Explore
 
-    func fetchExplorePosts(page: Int, perPage: Int) async throws -> [Post] {
+    func fetchExplorePosts(cursor: String? = nil, perPage: Int = 20) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedPostsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.explore(page: page, perPage: perPage)
+            PostEndpoint.explore(cursor: cursor, perPage: perPage)
         )
-        return PostMapper.toEntityList(response.items)
+        return (PostMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
     // MARK: - Saved
 
-    func fetchSavedPosts(page: Int, perPage: Int) async throws -> [Post] {
+    func fetchSavedPosts(cursor: String? = nil, perPage: Int = 20) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedPostsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.savedPosts(page: page, perPage: perPage)
+            PostEndpoint.savedPosts(cursor: cursor, perPage: perPage)
         )
-        return PostMapper.toEntityList(response.items)
+        return (PostMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
     // MARK: - User Posts
 
-    func fetchUserPosts(userId: String, page: Int, perPage: Int) async throws -> [Post] {
+    func fetchUserPosts(userId: String, cursor: String? = nil, perPage: Int = 20) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedPostsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.userPosts(userId: userId, page: page, perPage: perPage)
+            PostEndpoint.userPosts(userId: userId, cursor: cursor, perPage: perPage)
         )
-        return PostMapper.toEntityList(response.items)
+        return (PostMapper.toEntityList(response.items), response.nextCursor, response.hasMore)
     }
 
     // MARK: - Detail
@@ -71,10 +71,9 @@ final class RemotePostDataSource: @unchecked Sendable {
         var mediaItems: [[String: Any]] = []
         for (index, data) in mediaData.enumerated() {
             if isVideoData(data) {
-                let uploadResult = try await uploadDataSource.upload(
+                let uploadResult = try await uploadDataSource.uploadPresigned(
                     data: data,
-                    category: .video,
-                    filename: "video_\(index).mp4"
+                    category: .video
                 )
                 var item: [String: Any] = [
                     "url": uploadResult.url,
@@ -86,10 +85,9 @@ final class RemotePostDataSource: @unchecked Sendable {
                 if let pendingId = uploadResult.uploadId as String? { item["pendingUploadId"] = pendingId }
                 mediaItems.append(item)
             } else {
-                let uploadResult = try await uploadDataSource.upload(
+                let uploadResult = try await uploadDataSource.uploadPresigned(
                     data: data,
-                    category: .image,
-                    filename: "image_\(index).jpg"
+                    category: .image
                 )
                 var item: [String: Any] = [
                     "url": uploadResult.url,
@@ -154,9 +152,9 @@ final class RemotePostDataSource: @unchecked Sendable {
 
     // MARK: - Comments
 
-    func fetchComments(postId: String, page: Int, perPage: Int) async throws -> [Comment] {
+    func fetchComments(postId: String, cursor: String? = nil, perPage: Int = 20) async throws -> [Comment] {
         let response: PaginatedCommentsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.comments(postId: postId, page: page, perPage: perPage)
+            PostEndpoint.comments(postId: postId, cursor: cursor, perPage: perPage)
         )
         return CommentMapper.toEntityList(response.items)
     }

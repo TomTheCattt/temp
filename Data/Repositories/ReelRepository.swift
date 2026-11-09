@@ -22,20 +22,19 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
         self.uploadDataSource = uploadDataSource
     }
 
-    func fetchReels(page: Int, perPage: Int) async throws -> [Reel] {
-        try await remoteDataSource.fetchReels(page: page, perPage: perPage)
+    func fetchReels(cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
+        try await remoteDataSource.fetchReels(cursor: cursor, perPage: perPage)
     }
 
-    func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> [Reel] {
-        try await remoteDataSource.fetchUserReels(userId: userId, page: page, perPage: perPage)
+    func fetchUserReels(userId: String, cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
+        try await remoteDataSource.fetchUserReels(userId: userId, cursor: cursor, perPage: perPage)
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
         // Step 1: Upload video using presigned URL
-        let uploadResult = try await uploadDataSource.upload(
+        let uploadResult = try await uploadDataSource.uploadPresigned(
             data: videoData,
-            category: .reel,
-            filename: "reel.mp4"
+            category: .reel
         )
 
         // Step 2: Create reel with uploaded URL
