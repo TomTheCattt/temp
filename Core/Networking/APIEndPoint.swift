@@ -298,10 +298,10 @@ enum UploadEndpoint: APIEndpoint {
 
 /// Custom encoding for multipart/form-data uploads
 private struct MultipartEncoding: ParameterEncoding {
-    func encode(_ urlRequest: URLRequest, with parameters: Parameters?) throws -> URLRequest {
+    func encode(_ urlRequest: any URLRequestConvertible, with parameters: Parameters?) throws -> URLRequest {
         // The actual multipart body is built in NetworkService.requestMultipart
         // This is a placeholder - the real encoding happens in the network service
-        return urlRequest
+        return try urlRequest.asURLRequest()
     }
 }
 
