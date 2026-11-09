@@ -170,7 +170,7 @@ final class AuthManager: AuthManagerProtocol {
     // Reuse the decoder from NetworkService
     private var decoder: JSONDecoder {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.keyDecodingStrategy = .useDefaultKeys
         decoder.dateDecodingStrategy = .iso8601WithFractionalSeconds
         return decoder
     }

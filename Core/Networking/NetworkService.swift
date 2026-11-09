@@ -61,7 +61,7 @@ final class NetworkService: NetworkServiceProtocol, @unchecked Sendable {
     let session: Session
     let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.keyDecodingStrategy = .useDefaultKeys
         decoder.dateDecodingStrategy = .iso8601WithFractionalSeconds
         return decoder
     }()
