@@ -144,11 +144,11 @@ struct AppConfig {
                 // Replace port with WebSocket port
                 var components = URLComponents(string: normalized)
                 components?.port = 8788
-                return components?.string ?? "ws://localhost:8788"
+                return components?.string ?? "http://localhost:8788"
             }
             // Auto-detect: Simulator uses localhost, physical device uses LAN IP
             #if targetEnvironment(simulator)
-            return "ws://localhost:8788"
+            return "http://localhost:8788"
             #else
             return "ws://192.168.1.107:8788"
             #endif

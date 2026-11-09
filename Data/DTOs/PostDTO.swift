@@ -15,20 +15,31 @@ nonisolated struct PostDTO: Decodable, Sendable {
     let authorId: String
     let caption: String?
     let locationName: String?
-    let locationLat: Double?
-    let locationLng: Double?
+    let locationLat: String?
+    let locationLng: String?
     let likesCount: Int
     let commentsCount: Int
     let isSponsored: Bool
     let createdAt: String
     let updatedAt: String?
-    let author: UserDTO
+    var author: PostUserDTO
     let mediaItems: [MediaItemDTO]
     let isLiked: Bool?
     let isSaved: Bool?
 }
 
 // MARK: - MediaItemDTO
+
+nonisolated struct PostUserDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let isVerified: Bool?
+    let isFollowing: Bool?
+    let avatarUrl: String?
+}
+
+// MARK: - PostUserDTO
 
 nonisolated struct MediaItemDTO: Decodable, Sendable {
     let id: String

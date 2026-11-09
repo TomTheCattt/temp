@@ -1,6 +1,6 @@
 # API Response Reference
 
-**Base URL:** `http://localhost:3000` (configurable via `AppConfig.baseURL`)
+**Base URL:** `http://localhost:8787` (configurable via `AppConfig.baseURL`)
 
 **Authentication:** All authenticated endpoints require header: `Authorization: Bearer <Better Auth Access Token>`
 
@@ -1652,7 +1652,7 @@ Common error codes:
 
 ## WebSocket
 
-Connect to: `ws://localhost:3000/ws?token=<access_token>`
+Connect to: `ws://localhost:8788/ws?token=<access_token>`
 
 > **Important:** Token is passed as query parameter `?token=xxx`, NOT in headers.
 

@@ -18,7 +18,7 @@ enum AppConstants {
         static let bundleID           = Bundle.main.bundleIdentifier ?? "com.tomthecat.InstagramClone"
         static let coreDataModelName  = "AppModel"
         static let deepLinkScheme     = "myapp"   // myapp://path
-        static let universalLinkHost  = "http://localhost:3000"
+        static let universalLinkHost  = "http://localhost:8787"
     }
     
     enum Storage {

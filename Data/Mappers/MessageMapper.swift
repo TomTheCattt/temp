@@ -14,7 +14,7 @@ nonisolated enum MessageMapper {
     // MARK: - Conversation
 
     static func toConversation(_ dto: ConversationDTO, currentUserId: String) -> Conversation {
-        let participants = dto.members.map { UserMapper.toEntity($0.user) }
+        let participants = dto.members.map { $0.user }
         let lastMessage = dto.lastMessage.map { toMessage($0, members: dto.members) }
 
         // Use backend-provided values for mute and unread count
@@ -45,8 +45,8 @@ nonisolated enum MessageMapper {
         let sender: User
         if let senderDTO = dto.sender {
             sender = UserMapper.toEntity(senderDTO)
-        } else if let member = members?.first(where: { $0.userId == dto.senderId }) {
-            sender = UserMapper.toEntity(member.user)
+        } else if let member = members?.first(where: { $0.id == dto.senderId }) {
+            sender = member.user
         } else {
             sender = User(
                 id: dto.senderId,

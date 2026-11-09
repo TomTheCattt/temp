@@ -65,4 +65,4 @@ Config/
 | `Instagram (Dev)` | `Debug` | `dev` | `firebase` |
 | `Instagram (Staging)` | `Staging` | `staging` | `firebase` |
 | `Instagram (Prod)` / `Instagram` | `Release` | `prod` | `firebase` |
-| `Instagram (Local BE)` | `Debug` | `dev` | `live` (`localhost:3000`) |
+| `Instagram (Local BE)` | `Debug` | `dev` | `live` (`localhost:8787`) |

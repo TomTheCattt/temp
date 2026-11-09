@@ -14,7 +14,7 @@ nonisolated enum PostMapper {
     static func toEntity(_ dto: PostDTO) -> Post {
         Post(
             id: dto.id,
-            author: UserMapper.toEntity(dto.author),
+            author: toPostUser(dto.author),
             caption: dto.caption,
             mediaItems: dto.mediaItems.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).map { toMediaItem($0) },
             location: toLocation(name: dto.locationName, lat: dto.locationLat, lng: dto.locationLng),
@@ -44,15 +44,39 @@ nonisolated enum PostMapper {
             duration: dto.duration
         )
     }
+    
+    // MARK: - PostUser
+
+    private static func toPostUser(_ dto: PostUserDTO) -> User {
+        User(
+            id: dto.id,
+            username: dto.username ?? "",
+            fullName: dto.fullName ?? "",
+            email: "",
+            phone: "",
+            avatarURL: dto.avatarUrl.flatMap { URL(string: $0) },
+            bio: "",
+            website: "",
+            isVerified: dto.isVerified ?? false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: dto.isFollowing ?? false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
+    }
 
     // MARK: - Location
 
-    private static func toLocation(name: String?, lat: Double?, lng: Double?) -> PostLocation? {
+    private static func toLocation(name: String?, lat: String?, lng: String?) -> PostLocation? {
         guard let name else { return nil }
         return PostLocation(
             name: name,
-            latitude: lat,
-            longitude: lng
+            latitude: Double(lat ?? "0.0"),
+            longitude: Double(lng ?? "0.0")
         )
     }
 }

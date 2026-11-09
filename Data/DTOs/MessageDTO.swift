@@ -28,12 +28,32 @@ nonisolated struct ConversationDTO: Decodable, Sendable {
 
 nonisolated struct ConversationMemberDTO: Decodable, Sendable {
     let id: String
-    let conversationId: String
-    let userId: String
-    let isMuted: Bool
-    let lastReadAt: String?
-    let joinedAt: String
-    let user: UserDTO
+    let username: String?
+    let fullName: String?
+    let isVerified: Bool?
+    let avatarUrl: String?
+    
+    var user: User {
+        return User(
+            id: id,
+            username: username ?? "",
+            fullName: fullName ?? "",
+            email: nil,
+            phone: nil,
+            avatarURL: URL(string: avatarUrl ?? ""),
+            bio: nil,
+            website: nil,
+            isVerified: isVerified ?? false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
+    }
 }
 
 // MARK: - MessageDTO
@@ -53,6 +73,9 @@ nonisolated struct MessageDTO: Decodable, Sendable {
     let status: String          // "SENT" | "DELIVERED" | "READ" (uppercase)
     let createdAt: String
     let sender: UserDTO?        // Present in message detail, absent in conversation list
+    let lastReadAt: String?
+    let isMuted: Bool?
+    let unreadCount: Int?
 }
 
 // MARK: - ConversationWrapperDTO
