@@ -18,7 +18,10 @@ nonisolated struct ConversationDTO: Decodable, Sendable {
     let createdAt: String
     let updatedAt: String
     let members: [ConversationMemberDTO]
-    let messages: [MessageDTO]?     // Last message(s) included in list response
+    let lastMessage: MessageDTO?
+    let lastReadAt: String?
+    let isMuted: Bool
+    let unreadCount: Int
 }
 
 // MARK: - ConversationMemberDTO

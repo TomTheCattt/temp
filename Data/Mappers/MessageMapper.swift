@@ -15,22 +15,11 @@ nonisolated enum MessageMapper {
 
     static func toConversation(_ dto: ConversationDTO, currentUserId: String) -> Conversation {
         let participants = dto.members.map { UserMapper.toEntity($0.user) }
-        let lastMessage = dto.messages?.first.map { toMessage($0, members: dto.members) }
+        let lastMessage = dto.lastMessage.map { toMessage($0, members: dto.members) }
 
-        // Determine if muted for current user
-        let isMuted = dto.members.first(where: { $0.userId == currentUserId })?.isMuted ?? false
-
-        // Calculate unread count: messages after lastReadAt for current user
-        let currentMember = dto.members.first(where: { $0.userId == currentUserId })
-        let unreadCount: Int
-        if let lastReadAt = currentMember?.lastReadAt {
-            let lastReadDate = DateMapper.toDate(lastReadAt)
-            unreadCount = dto.messages?.filter {
-                DateMapper.toDate($0.createdAt) > lastReadDate && $0.senderId != currentUserId
-            }.count ?? 0
-        } else {
-            unreadCount = dto.messages?.filter { $0.senderId != currentUserId }.count ?? 0
-        }
+        // Use backend-provided values for mute and unread count
+        let isMuted = dto.isMuted
+        let unreadCount = dto.unreadCount
 
         return Conversation(
             id: dto.id,

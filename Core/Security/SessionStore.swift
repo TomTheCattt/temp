@@ -54,7 +54,12 @@ final class SessionStore: SessionStoreProtocol {
     @discardableResult
     func restoreSession() -> User? {
         guard let data = UserDefaults.standard.data(forKey: sessionUserKey),
-              let user = try? JSONDecoder().decode(User.self, from: data) else {
+              let user = try? {
+                  let decoder = JSONDecoder()
+                  decoder.keyDecodingStrategy = .useDefaultKeys
+                  decoder.dateDecodingStrategy = .iso8601WithFractionalSeconds
+                  return try decoder.decode(User.self, from: data)
+              }() else {
             return nil
         }
         currentUserId = user.id

@@ -123,7 +123,10 @@ final class OfflineMessageQueue: ObservableObject {
 
         do {
             let data = try Data(contentsOf: queueURL)
-            queue = try JSONDecoder().decode([QueuedMessage].self, from: data)
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .useDefaultKeys
+            decoder.dateDecodingStrategy = .iso8601WithFractionalSeconds
+            queue = try decoder.decode([QueuedMessage].self, from: data)
             updatePendingCount()
         } catch {
             print("Failed to load offline message queue: \(error)")

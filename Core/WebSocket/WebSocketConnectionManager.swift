@@ -77,23 +77,22 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
         defer { isConnecting = false }
 
         // Build WebSocket URL with token as query parameter (BE expects ?token=xxx)
-        let wsEndpoint = WebSocketEndpoint.connect(token: accessToken)
-        do {
-            let urlRequest = try wsEndpoint.asURLRequest()
-            guard let url = urlRequest.url else {
-                AppLogger.network.error("Invalid WebSocket URL")
-                return
-            }
+        // Use dedicated wsBaseURL from AppConfig (separate port from API)
+        let wsBaseURL = AppConfig.shared.wsBaseURL
+        var components = URLComponents(string: wsBaseURL)!
+        components.path = "/ws"
+        components.queryItems = [URLQueryItem(name: "token", value: accessToken)]
 
-            // The token is already in the URL as query parameter from WebSocketEndpoint.parameters
-            // Don't send token in headers - BE validates via query param
-            let headers: [String: String] = [:]
-
-            AppLogger.network.info("Connecting WebSocket to \(url.absoluteString)")
-            await webSocketService.connect(url: url, headers: headers)
-        } catch {
-            AppLogger.network.error("Failed to build WebSocket URL: \(error.localizedDescription)")
+        guard let url = components.url else {
+            AppLogger.network.error("Invalid WebSocket URL")
+            return
         }
+
+        // Don't send token in headers - BE validates via query param
+        let headers: [String: String] = [:]
+
+        AppLogger.network.info("Connecting WebSocket to \(url.absoluteString)")
+        await webSocketService.connect(url: url, headers: headers)
     }
 
     func disconnect() async {

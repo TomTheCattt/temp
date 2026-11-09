@@ -125,9 +125,9 @@ struct AppConfig {
             }
             // Auto-detect: Simulator uses localhost, physical device uses LAN IP
             #if targetEnvironment(simulator)
-            return "http://localhost:3000"
+            return "http://localhost:8787"
             #else
-            return "http://192.168.1.107:3000"
+            return "http://192.168.1.107:8787"
             #endif
         }
         if let raw = Bundle.main.infoDictionary?[ConfigKey.baseURL] as? String,
@@ -135,6 +135,32 @@ struct AppConfig {
             return normalized
         }
         return "https://api.example.com"
+    }
+
+    /// WebSocket base URL (different port from API)
+    var wsBaseURL: String {
+        if useLocalBackend {
+            if let localBaseURL, let normalized = normalizedBaseURL(localBaseURL) {
+                // Replace port with WebSocket port
+                var components = URLComponents(string: normalized)
+                components?.port = 8788
+                return components?.string ?? "ws://localhost:8788"
+            }
+            // Auto-detect: Simulator uses localhost, physical device uses LAN IP
+            #if targetEnvironment(simulator)
+            return "ws://localhost:8788"
+            #else
+            return "ws://192.168.1.107:8788"
+            #endif
+        }
+        if let raw = Bundle.main.infoDictionary?[ConfigKey.baseURL] as? String,
+           let normalized = normalizedBaseURL(raw) {
+            var components = URLComponents(string: normalized)
+            components?.port = 443 // wss default
+            components?.scheme = "wss"
+            return components?.string ?? "wss://api.example.com"
+        }
+        return "wss://api.example.com"
     }
 
     var isDebug: Bool { environment.isDebugLoggingEnabled || useLocalBackend }
