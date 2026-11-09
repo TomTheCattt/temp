@@ -176,7 +176,13 @@ class CallService: CallServiceProtocol, @unchecked Sendable {
         self.mediaPipeline = mediaPipeline ?? DefaultCallMediaPipeline.shared
         self.signalingHandler = signalingHandler
             ?? DIContainer.shared.resolveOptional(CallSignalingHandlerProtocol.self)
-            ?? FirebaseCallSignalingHandler.shared
+            ?? WebSocketCallSignalingHandler(
+                messageHandler: DIContainer.shared.resolveOptional(WebSocketMessageHandler.self)
+                    ?? WebSocketMessageHandler(
+                        webSocketService: DIContainer.shared.resolveOptional(WebSocketServiceProtocol.self)
+                            ?? WebSocketService()
+                    )
+            )
         self.customConnectionChanges = connectionChanges
         subscribeToCallKitEvents()
         subscribeToSignaling()
@@ -549,19 +555,15 @@ class CallService: CallServiceProtocol, @unchecked Sendable {
     // MARK: - Simulate Incoming Call (Testing / Debug)
 
     func simulateIncomingCall(fromUserId: String, name: String, hasVideo: Bool) async {
-        if let firebase = signalingHandler as? FirebaseCallSignalingHandler {
-            firebase.simulateIncomingCall(fromUserId: fromUserId, name: name, hasVideo: hasVideo)
-        } else {
-            let signal = CallSignal.callIncoming(
-                callId: UUID().uuidString,
-                fromUserId: fromUserId,
-                toUserId: SessionStore.shared.currentUserId,
-                callType: hasVideo ? .video : .audio,
-                callerName: name,
-                avatarURL: nil
-            )
-            await handleIncomingCall(signal: signal, callerName: name)
-        }
+        let signal = CallSignal.callIncoming(
+            callId: UUID().uuidString,
+            fromUserId: fromUserId,
+            toUserId: SessionStore.shared.currentUserId,
+            callType: hasVideo ? .video : .audio,
+            callerName: name,
+            avatarURL: nil
+        )
+        await handleIncomingCall(signal: signal, callerName: name)
     }
 
     // MARK: - Private: End Call Cleanup
