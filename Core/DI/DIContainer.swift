@@ -34,16 +34,8 @@ final class DIContainer: @unchecked Sendable {
 
     private func logConfiguration() {
         let config = AppConfig.shared
-        let mode: String
-        let backend: String
-        switch config.apiMode {
-        case .firebase:
-            mode = "FIREBASE"
-            backend = "FIREBASE CLOUD (Firestore + Storage)"
-        case .live:
-            mode = "LIVE"
-            backend = config.useLocalBackend ? "LOCAL (\(config.baseURL))" : "REMOTE (\(config.baseURL))"
-        }
+        let mode = "LIVE"
+        let backend = config.useLocalBackend ? "LOCAL (\(config.baseURL))" : "REMOTE (\(config.baseURL))"
         AppLogger.general.info("🚀 [DIContainer] API Mode: \(mode) | Backend: \(backend) | Env: \(config.environment.rawValue)")
     }
 
