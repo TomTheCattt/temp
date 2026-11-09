@@ -105,14 +105,9 @@ final class ServiceAssembly: Assembly {
         // MARK: CallSignalingHandlerProtocol
 
         container.register(CallSignalingHandlerProtocol.self) { resolver in
-            switch AppConfig.shared.callBackendMode {
-            case .firebase:
-                return FirebaseCallSignalingHandler.shared
-            case .webSocket:
-                let wsHandler = resolver.resolve(WebSocketMessageHandler.self)
-                    ?? WebSocketMessageHandler(webSocketService: resolver.resolve(WebSocketServiceProtocol.self) ?? WebSocketService())
-                return WebSocketCallSignalingHandler(messageHandler: wsHandler)
-            }
+            let wsHandler = resolver.resolve(WebSocketMessageHandler.self)
+                ?? WebSocketMessageHandler(webSocketService: resolver.resolve(WebSocketServiceProtocol.self) ?? WebSocketService())
+            return WebSocketCallSignalingHandler(messageHandler: wsHandler)
         }.inObjectScope(.container)
 
         // MARK: CallService
