@@ -11,10 +11,11 @@ import Alamofire
 // MARK: - PostEndpoint
 
 enum PostEndpoint: APIEndpoint {
-    case feed(page: Int, perPage: Int)
-    case explore(page: Int, perPage: Int)
-    case savedPosts(page: Int, perPage: Int)
-    case userPosts(userId: String, page: Int, perPage: Int)
+    // Cursor-based pagination (ISO timestamp cursor)
+    case feed(cursor: String?, perPage: Int)
+    case explore(cursor: String?, perPage: Int)
+    case savedPosts(cursor: String?, perPage: Int)
+    case userPosts(userId: String, cursor: String?, perPage: Int)
     case detail(id: String)
     case create(caption: String?, locationName: String?, locationLat: Double?, locationLng: Double?, media: [[String: Any]])
     case update(id: String, caption: String?, locationName: String?, locationLat: Double?, locationLng: Double?)
@@ -23,25 +24,25 @@ enum PostEndpoint: APIEndpoint {
     case unlike(id: String)
     case save(id: String)
     case unsave(id: String)
-    case comments(postId: String, page: Int, perPage: Int)
+    case comments(postId: String, cursor: String?, perPage: Int)
     case addComment(postId: String, text: String, parentId: String?)
 
     var path: String {
         switch self {
-        case .feed:                             return "/v1/posts/feed"
-        case .explore:                          return "/v1/posts/explore"
-        case .savedPosts:                       return "/v1/posts/saved"
-        case .userPosts(let userId, _, _):      return "/v1/posts/user/\(userId)"
-        case .detail(let id):                   return "/v1/posts/\(id)"
-        case .create:                           return "/v1/posts"
-        case .update(let id, _, _, _, _):       return "/v1/posts/\(id)"
-        case .delete(let id):                   return "/v1/posts/\(id)"
-        case .like(let id):                     return "/v1/posts/\(id)/like"
-        case .unlike(let id):                   return "/v1/posts/\(id)/like"
-        case .save(let id):                     return "/v1/posts/\(id)/save"
-        case .unsave(let id):                   return "/v1/posts/\(id)/save"
-        case .comments(let postId, _, _):       return "/v1/posts/\(postId)/comments"
-        case .addComment(let postId, _, _):     return "/v1/posts/\(postId)/comments"
+        case .feed:                              return "/v1/posts/feed"
+        case .explore:                           return "/v1/posts/explore"
+        case .savedPosts:                        return "/v1/posts/saved"
+        case .userPosts(let userId, _, _):       return "/v1/posts/user/\(userId)"
+        case .detail(let id):                    return "/v1/posts/\(id)"
+        case .create:                            return "/v1/posts"
+        case .update(let id, _, _, _, _):        return "/v1/posts/\(id)"
+        case .delete(let id):                    return "/v1/posts/\(id)"
+        case .like(let id):                      return "/v1/posts/\(id)/like"
+        case .unlike(let id):                    return "/v1/posts/\(id)/like"
+        case .save(let id):                      return "/v1/posts/\(id)/save"
+        case .unsave(let id):                    return "/v1/posts/\(id)/save"
+        case .comments(let postId, _, _):        return "/v1/posts/\(postId)/comments"
+        case .addComment(let postId, _, _):      return "/v1/posts/\(postId)/comments"
         }
     }
 
@@ -60,12 +61,14 @@ enum PostEndpoint: APIEndpoint {
 
     var parameters: Parameters? {
         switch self {
-        case .feed(let page, let perPage),
-             .explore(let page, let perPage),
-             .savedPosts(let page, let perPage),
-             .userPosts(_, let page, let perPage),
-             .comments(_, let page, let perPage):
-            return ["page": page, "perPage": perPage]
+        case .feed(let cursor, let perPage),
+             .explore(let cursor, let perPage),
+             .savedPosts(let cursor, let perPage),
+             .userPosts(_, let cursor, let perPage),
+             .comments(_, let cursor, let perPage):
+            var params: Parameters = ["perPage": perPage]
+            if let cursor { params["cursor"] = cursor }
+            return params
         case .create(let caption, let locationName, let locationLat, let locationLng, let media):
             var params: Parameters = ["media": media]
             if let caption { params["caption"] = caption }

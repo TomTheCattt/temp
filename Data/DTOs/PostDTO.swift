@@ -51,11 +51,10 @@ nonisolated struct PostWrapperDTO: Decodable, Sendable {
 
 // MARK: - PaginatedPostsDTO
 
-/// Wrapper for paginated post list responses.
+/// Wrapper for cursor-paginated post list responses.
+/// BE returns: { items: [...], nextCursor: "2026-08-04T14:37:10.661Z" | null, hasMore: true }
 nonisolated struct PaginatedPostsDTO: Decodable, Sendable {
     let items: [PostDTO]
-    let page: Int
-    let perPage: Int
-    let total: Int
+    let nextCursor: String?
     let hasMore: Bool
 }

@@ -41,11 +41,10 @@ nonisolated struct ReelWrapperDTO: Decodable, Sendable {
 
 // MARK: - PaginatedReelsDTO
 
-/// Wrapper for paginated reel list responses.
+/// Wrapper for cursor-paginated reel list responses.
+/// BE returns: { items: [...], nextCursor: "2026-08-04T14:37:10.661Z" | null, hasMore: true }
 nonisolated struct PaginatedReelsDTO: Decodable, Sendable {
     let items: [ReelDTO]
-    let page: Int
-    let perPage: Int
-    let total: Int
+    let nextCursor: String?
     let hasMore: Bool
 }

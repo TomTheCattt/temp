@@ -11,8 +11,9 @@ import Alamofire
 // MARK: - ReelEndpoint
 
 enum ReelEndpoint: APIEndpoint {
-    case feed(page: Int, perPage: Int)
-    case userReels(userId: String, page: Int, perPage: Int)
+    // Cursor-based pagination (ISO timestamp cursor)
+    case feed(cursor: String?, perPage: Int)
+    case userReels(userId: String, cursor: String?, perPage: Int)
     case create(videoUrl: String, thumbnailUrl: String?, caption: String?, duration: Double, audioName: String?, audioArtist: String?)
     case like(id: String)
     case unlike(id: String)
@@ -23,15 +24,15 @@ enum ReelEndpoint: APIEndpoint {
 
     var path: String {
         switch self {
-        case .feed:                     return "/v1/reels/feed"
+        case .feed:                      return "/v1/reels/feed"
         case .userReels(let userId, _, _): return "/v1/reels/user/\(userId)"
-        case .create:                   return "/v1/reels"
-        case .like(let id):             return "/v1/reels/\(id)/like"
-        case .unlike(let id):           return "/v1/reels/\(id)/like"
-        case .save(let id):             return "/v1/reels/\(id)/save"
-        case .unsave(let id):           return "/v1/reels/\(id)/save"
-        case .view(let id):             return "/v1/reels/\(id)/view"
-        case .delete(let id):           return "/v1/reels/\(id)"
+        case .create:                    return "/v1/reels"
+        case .like(let id):              return "/v1/reels/\(id)/like"
+        case .unlike(let id):            return "/v1/reels/\(id)/like"
+        case .save(let id):              return "/v1/reels/\(id)/save"
+        case .unsave(let id):            return "/v1/reels/\(id)/save"
+        case .view(let id):              return "/v1/reels/\(id)/view"
+        case .delete(let id):            return "/v1/reels/\(id)"
         }
     }
 
@@ -48,10 +49,11 @@ enum ReelEndpoint: APIEndpoint {
 
     var parameters: Parameters? {
         switch self {
-        case .feed(let page, let perPage):
-            return ["page": page, "perPage": perPage]
-        case .userReels(_, let page, let perPage):
-            return ["page": page, "perPage": perPage]
+        case .feed(let cursor, let perPage),
+             .userReels(_, let cursor, let perPage):
+            var params: Parameters = ["perPage": perPage]
+            if let cursor { params["cursor"] = cursor }
+            return params
         case .create(let videoUrl, let thumbnailUrl, let caption, let duration, let audioName, let audioArtist):
             var params: Parameters = [
                 "videoUrl": videoUrl,
