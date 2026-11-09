@@ -33,15 +33,16 @@ final class FirebaseUserRepository: UserRepositoryProtocol, @unchecked Sendable 
         try await dataSource.searchUsers(query: query, page: page, perPage: perPage)
     }
 
-    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User {
-        // Firebase implementation - map the new parameters to the data source
-        try await dataSource.updateProfile(
+    func updateProfileName(_ name: String) async throws -> User {
+        try await dataSource.updateProfileName(name)
+    }
+
+    func updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?) async throws -> User {
+        try await dataSource.updateFullProfile(
             fullName: fullName,
-            username: username,
             bio: bio,
             website: website,
-            phone: phone,
-            avatarUrl: avatarUrl
+            isPrivate: isPrivate
         )
     }
 
@@ -115,6 +116,10 @@ final class FirebaseUserRepository: UserRepositoryProtocol, @unchecked Sendable 
     }
 
     func addDeviceToken(token: String, platform: String) async throws {
+        // TODO: Implement when Firebase supports device tokens
+    }
+
+    func deleteDeviceToken(token: String) async throws {
         // TODO: Implement when Firebase supports device tokens
     }
 }

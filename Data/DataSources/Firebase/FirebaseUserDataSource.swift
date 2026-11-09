@@ -69,14 +69,18 @@ actor FirebaseUserDataSource {
         return []
     }
 
-    func updateProfile(fullName: String?, username: String?, bio: String?, website: String?, phone: String?, avatarUrl: String?) async throws -> User {
+    func updateProfileName(_ name: String) async throws -> User {
+        _ = name
+        // TODO: Implement updateProfileName logic from scratch
+        return try await fetchCurrentUser()
+    }
+
+    func updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?) async throws -> User {
         _ = fullName
-        _ = username
         _ = bio
         _ = website
-        _ = phone
-        _ = avatarUrl
-        // TODO: Implement updateProfile logic from scratch
+        _ = isPrivate
+        // TODO: Implement updateFullProfile logic from scratch
         return try await fetchCurrentUser()
     }
 
@@ -181,6 +185,10 @@ actor FirebaseUserDataSource {
     }
 
     func addDeviceToken(token: String, platform: String) async throws {
+        // TODO: Implement when Firebase supports device tokens
+    }
+
+    func deleteDeviceToken(token: String) async throws {
         // TODO: Implement when Firebase supports device tokens
     }
 }
