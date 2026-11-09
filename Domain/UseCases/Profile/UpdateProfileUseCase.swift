@@ -9,28 +9,35 @@ import Foundation
 
 // MARK: - UpdateProfileInput
 
-struct UpdateProfileInput: Sendable {
+/// Input for updating the display name (uses /v1/user/profile alias - accepts { name } only)
+struct UpdateProfileNameInput: Sendable {
+    let name: String
+
+    init(name: String) {
+        self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+/// Input for updating the full profile (uses /v1/users/me canonical endpoint)
+struct UpdateFullProfileInput: Sendable {
     let fullName: String?
-    let username: String?
     let bio: String?
     let website: String?
-    let phone: String?
-    let avatarUrl: String?
+    let isPrivate: Bool?
 
-    init(fullName: String? = nil, username: String? = nil, bio: String? = nil, website: String? = nil, phone: String? = nil, avatarUrl: String? = nil) {
-        self.fullName = fullName
-        self.username = username
+    init(fullName: String? = nil, bio: String? = nil, website: String? = nil, isPrivate: Bool? = nil) {
+        self.fullName = fullName?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.bio = bio
-        self.website = website
-        self.phone = phone
-        self.avatarUrl = avatarUrl
+        self.website = website?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.isPrivate = isPrivate
     }
 }
 
 // MARK: - UpdateProfileUseCase
 
 protocol UpdateProfileUseCaseProtocol: Sendable {
-    func execute(_ input: UpdateProfileInput) async throws -> User
+    func updateName(_ input: UpdateProfileNameInput) async throws -> User
+    func updateFullProfile(_ input: UpdateFullProfileInput) async throws -> User
 }
 
 final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
@@ -41,24 +48,22 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
         self.userRepository = userRepository
     }
 
-    func execute(_ input: UpdateProfileInput) async throws -> User {
+    func updateName(_ input: UpdateProfileNameInput) async throws -> User {
+        guard !input.name.isEmpty else {
+            throw UpdateProfileError.emptyName
+        }
+        return try await userRepository.updateProfileName(input.name)
+    }
+
+    func updateFullProfile(_ input: UpdateFullProfileInput) async throws -> User {
         // Validate bio length
         if let bio = input.bio, bio.count > 150 {
             throw UpdateProfileError.bioTooLong
         }
 
-        // Validate username if provided (alphanumeric + underscore, 3-30 chars)
-        if let username = input.username?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty {
-            let usernameRegex = "^[a-zA-Z0-9_]{3,30}$"
-            let predicate = NSPredicate(format: "SELF MATCHES %@", usernameRegex)
-            if !predicate.evaluate(with: username) {
-                throw UpdateProfileError.invalidUsername
-            }
-        }
-
         // Validate and normalize website URL if provided
         let cleanedWebsite: String?
-        if let website = input.website?.trimmingCharacters(in: .whitespacesAndNewlines), !website.isEmpty {
+        if let website = input.website, !website.isEmpty {
             let formatted = (website.lowercased().hasPrefix("http://") || website.lowercased().hasPrefix("https://"))
                 ? website
                 : "https://" + website
@@ -71,21 +76,11 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
             cleanedWebsite = nil
         }
 
-        // Validate phone if provided (basic format)
-        let cleanedPhone: String?
-        if let phone = input.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
-            cleanedPhone = phone
-        } else {
-            cleanedPhone = nil
-        }
-
-        return try await userRepository.updateProfile(
-            fullName: input.fullName?.trimmingCharacters(in: .whitespacesAndNewlines),
-            username: input.username?.trimmingCharacters(in: .whitespacesAndNewlines),
+        return try await userRepository.updateFullProfile(
+            fullName: input.fullName,
             bio: input.bio,
             website: cleanedWebsite,
-            phone: cleanedPhone,
-            avatarUrl: input.avatarUrl
+            isPrivate: input.isPrivate
         )
     }
 }
@@ -95,13 +90,13 @@ final class UpdateProfileUseCase: UpdateProfileUseCaseProtocol, Sendable {
 private enum UpdateProfileError: LocalizedError {
     case bioTooLong
     case invalidWebsite
-    case invalidUsername
+    case emptyName
 
     var errorDescription: String? {
         switch self {
         case .bioTooLong:      return "Bio must be 150 characters or less."
         case .invalidWebsite:  return "Invalid website URL."
-        case .invalidUsername: return "Username must be 3-30 characters and can only contain letters, numbers, and underscores."
+        case .emptyName:       return "Name cannot be empty."
         }
     }
 }
