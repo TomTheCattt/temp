@@ -144,7 +144,7 @@ enum CallSignal: Sendable, Equatable {
 
 // MARK: - CallSignalingHandlerProtocol
 
-/// Protocol abstracting call signaling transport (Firebase, WebSocket, etc.).
+/// Protocol abstracting call signaling transport (WebSocket).
 protocol CallSignalingHandlerProtocol: AnyObject, Sendable {
     func connect() async throws
     func disconnect()
