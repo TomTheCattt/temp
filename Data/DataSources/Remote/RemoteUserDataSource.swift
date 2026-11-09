@@ -67,7 +67,7 @@ final class RemoteUserDataSource: @unchecked Sendable {
     }
 
     func updateAvatar(imageData: Data) async throws -> User {
-        let avatarUrl = try await uploadDataSource.uploadAvatar(imageData: imageData)
+        _ = try await uploadDataSource.uploadAvatar(data: imageData)
         // Avatar upload returns URL, server should update avatarUrl automatically
         // If not, we may need a separate endpoint - for now return current user
         return try await fetchCurrentUser()
