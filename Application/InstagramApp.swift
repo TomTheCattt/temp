@@ -111,22 +111,90 @@ struct InstagramApp: App {
     }
 
     /// Restores authentication state on app launch for non-Firebase backends.
-    /// Checks if valid tokens exist in Keychain and connects WebSocket if authenticated.
+    /// Checks if valid tokens exist in Keychain, validates with backend, fetches fresh profile, and connects WebSocket if authenticated.
     private func restoreAuthenticationState() {
         Task { @MainActor in
             // Resolve AuthManager to check authentication state
             let authManager = DIContainer.shared.resolve(AuthManagerProtocol.self)
 
             if authManager.isAuthenticated {
-                AppLogger.auth.info("Restored authentication state from Keychain")
-                AppRouter.shared.isAuthenticated = true
+                AppLogger.auth.info("Restored authentication state from Keychain, validating with backend...")
 
-                // Connect WebSocket
-                let wsManager = DIContainer.shared.resolve(WebSocketConnectionManagerProtocol.self)
-                wsManager.handleAuthStateChange(isAuthenticated: true)
+                do {
+                    // Validate token with backend and fetch fresh user profile
+                    let user = try await authManager.validateTokenAndFetchProfile()
+                    if let user = user {
+                        AppLogger.auth.info("Token validated successfully for user: \(user.username)")
+                        AppRouter.shared.isAuthenticated = true
+
+                        // Connect WebSocket
+                        let wsManager = DIContainer.shared.resolve(WebSocketConnectionManagerProtocol.self)
+                        wsManager.handleAuthStateChange(isAuthenticated: true)
+
+                        // Register device token for push notifications
+                        await registerDeviceTokenIfNeeded()
+
+                        // Initialize offline message queue (auto-processes on network changes)
+                        initializeOfflineMessageQueue()
+
+                        // Fetch initial unread counts
+                        await fetchInitialUnreadCounts()
+                    } else {
+                        // Token validation failed - logout
+                        AppLogger.auth.notice("Token validation returned no user, logging out")
+                        authManager.logout(reason: .sessionExpired)
+                    }
+                } catch {
+                    // Token validation or refresh failed - logout
+                    AppLogger.auth.error("Token validation failed: \(error.localizedDescription)")
+                    authManager.logout(reason: .sessionExpired)
+                }
             } else {
                 AppLogger.auth.info("No valid authentication state found")
             }
+        }
+    }
+
+    /// Register device token with backend for push notifications.
+    private func registerDeviceTokenIfNeeded() async {
+        // Get APNs device token and register with backend
+        if let deviceToken = PushNotificationService.shared.deviceToken {
+            do {
+                try await DIContainer.shared.resolve(UserRepositoryProtocol.self).addDeviceToken(
+                    token: deviceToken,
+                    platform: "ios"
+                )
+                AppLogger.general.info("Device token registered with backend")
+            } catch {
+                AppLogger.general.error("Failed to register device token: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Ensure offline message queue is initialized (auto-starts on network changes).
+    private func initializeOfflineMessageQueue() {
+        // OfflineMessageQueue.shared is a singleton that auto-initializes on first access
+        // and observes network changes via observeNetwork()
+        _ = OfflineMessageQueue.shared
+    }
+
+    /// Fetch initial unread counts for chat and notifications.
+    private func fetchInitialUnreadCounts() async {
+        do {
+            // Fetch unread notification count
+            let notificationCount = try await DIContainer.shared.resolve(FetchUnreadNotificationCountUseCaseProtocol.self).execute()
+            AppState.shared.setUnreadNotificationCount(notificationCount)
+
+            // Fetch unread chat count
+            let chatRepository = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+            let chatCount = try await chatRepository.getUnreadConversationsCount()
+            AppState.shared.setUnreadChatCount(chatCount)
+
+            // Set badge count
+            let totalUnread = notificationCount + chatCount
+            try await UNUserNotificationCenter.current().setBadgeCount(totalUnread)
+        } catch {
+            AppLogger.general.error("Failed to fetch initial unread counts: \(error.localizedDescription)")
         }
     }
 }

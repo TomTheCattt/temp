@@ -49,19 +49,60 @@ final class PostDetailViewModel {
     // MARK: - Actions
 
     func loadPost() async {
-        // TODO: Implement loadPost logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let input = FetchPostDetailInput(postId: postId)
+            post = try await fetchPostDetailUseCase.execute(input)
+            // Load initial comments
+            await loadComments()
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to load post: \(error.localizedDescription)")
+        }
     }
 
     func loadComments() async {
-        // TODO: Implement loadComments logic from scratch
+        guard !isLoadingComments else { return }
+        isLoadingComments = true
+        defer { isLoadingComments = false }
+
+        do {
+            let input = FetchCommentsInput(postId: postId, page: 1, perPage: 20)
+            comments = try await fetchCommentsUseCase.execute(input)
+        } catch {
+            AppLogger.general.error("Failed to load comments: \(error.localizedDescription)")
+        }
     }
 
     func toggleLike() async {
-        // TODO: Implement toggleLike logic from scratch
+        guard let post = post else { return }
+        do {
+            let newLikeState = !post.isLiked
+            try await toggleLikeUseCase.execute(ToggleLikeInput(postId: post.id, isCurrentlyLiked: post.isLiked))
+            // Update local state optimistically using helper method
+            self.post = self.post?.withLike(newLikeState)
+        } catch {
+            AppLogger.general.error("Failed to toggle like: \(error.localizedDescription)")
+        }
     }
 
     func addComment(text: String) async {
-        _ = text
-        // TODO: Implement addComment logic from scratch
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 2200 else { return }
+
+        do {
+            let input = AddCommentInput(postId: postId, text: trimmed)
+            let newComment = try await addCommentUseCase.execute(input)
+            // Update local state optimistically
+            comments.insert(newComment, at: 0)
+            // Note: Post commentsCount is immutable, so it won't be updated optimistically
+            // The count will be correct after the next refresh
+        } catch {
+            AppLogger.general.error("Failed to add comment: \(error.localizedDescription)")
+        }
     }
 }

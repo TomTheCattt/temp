@@ -20,6 +20,7 @@ protocol AuthManagerProtocol: AnyObject, Sendable {
     func storeSession(_ session: AuthSession)
     func refreshToken() async throws
     func refreshTokenIfNeeded() async throws
+    func validateTokenAndFetchProfile() async throws -> User?
     func logout(reason: LogoutReason)
 }
 
@@ -39,8 +40,6 @@ enum LogoutReason: Sendable {
     /// Session expired / token refresh failed (forced) — notify the user.
     case sessionExpired
 }
-
-// MARK: - AuthManager
 
 /// Manages authentication state.
 /// Access and refresh tokens are stored securely in Keychain.
@@ -66,6 +65,48 @@ final class AuthManager: AuthManagerProtocol {
         self.keychainManager = keychainManager
         self.networkService = networkService
         loadStoredTokens()
+    }
+
+    // MARK: - Token Validation & Session Restoration
+
+    /// Validate the current access token with the backend and fetch fresh user profile.
+    /// Call this on app launch after loading stored tokens.
+    func validateTokenAndFetchProfile() async throws -> User? {
+        guard let _ = accessToken else {
+            throw APIError.unauthorized
+        }
+
+        do {
+            // Try to fetch current user profile - this validates the token
+            let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
+                UserEndpoint.profile
+            )
+            let user = UserMapper.toEntity(wrapper.user)
+
+            // Update SessionStore with fresh user data
+            SessionStore.shared.setSession(user: user)
+
+            // Refresh token if needed after successful validation
+            try await refreshTokenIfNeeded()
+
+            return user
+        } catch {
+            // Token is invalid or expired - try to refresh
+            do {
+                try await refreshToken()
+                // Retry fetching profile with new token
+                let wrapper: UserWrapperDTO = try await networkService.requestEnvelope(
+                    UserEndpoint.profile
+                )
+                let user = UserMapper.toEntity(wrapper.user)
+                SessionStore.shared.setSession(user: user)
+                return user
+            } catch {
+                // Refresh failed - logout
+                logout(reason: .sessionExpired)
+                throw APIError.unauthorized
+            }
+        }
     }
 
     // MARK: - Store Session

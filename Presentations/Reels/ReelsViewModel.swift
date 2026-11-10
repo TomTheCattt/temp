@@ -61,35 +61,114 @@ final class ReelsViewModel {
     // MARK: - Actions
 
     func loadReels() async {
-        // TODO: Implement loadReels logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let result = try await fetchReelsUseCase.execute(PaginationInput(cursor: nil, perPage: 20))
+            reels = result.reels
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to load reels: \(error.localizedDescription)")
+        }
     }
 
     func setFeedMode(_ mode: FeedMode) {
         feedMode = mode
-        // TODO: Implement setFeedMode filtering logic from scratch
+        // Reload reels with new feed mode
+        Task {
+            await loadReels()
+        }
     }
 
     func loadMore() async {
-        // TODO: Implement loadMore reels logic from scratch
+        guard !isLoadingMore, !isLoading, !reels.isEmpty else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            // Use the last reel's createdAt as cursor for cursor-based pagination
+            let cursor = reels.last?.createdAt.iso8601String
+            let result = try await fetchReelsUseCase.execute(PaginationInput(cursor: cursor, perPage: 20))
+            reels.append(contentsOf: result.reels)
+        } catch {
+            AppLogger.general.error("Failed to load more reels: \(error.localizedDescription)")
+        }
     }
 
     func onCurrentReelChanged(to id: String?) {
         currentReelId = id
-        // TODO: Implement onCurrentReelChanged prefetch and video buffering logic from scratch
+        // Prefetch next reel if we're near the end
+        if let id = id,
+           let index = reels.firstIndex(where: { $0.id == id }),
+           index >= reels.count - 3 {
+            Task { await loadMore() }
+        }
     }
 
     func toggleLike(for reel: Reel) async {
-        _ = reel
-        // TODO: Implement toggleLike logic from scratch
+        do {
+            try await toggleLikeReelUseCase.execute(ToggleLikeReelInput(reelId: reel.id, isCurrentlyLiked: reel.isLiked))
+            // Update local state optimistically using helper method
+            if let index = reels.firstIndex(where: { $0.id == reel.id }) {
+                reels[index] = reels[index].togglingLike()
+            }
+        } catch {
+            AppLogger.general.error("Failed to toggle reel like: \(error.localizedDescription)")
+        }
     }
 
     func toggleSave(for reel: Reel) async {
-        _ = reel
-        // TODO: Implement toggleSave logic from scratch
+        do {
+            if reel.isSaved {
+                try await reelRepository.unsaveReel(id: reel.id)
+            } else {
+                try await reelRepository.saveReel(id: reel.id)
+            }
+            // Update local state optimistically using helper method
+            if let index = reels.firstIndex(where: { $0.id == reel.id }) {
+                reels[index] = reels[index].togglingSave()
+            }
+        } catch {
+            AppLogger.general.error("Failed to toggle reel save: \(error.localizedDescription)")
+        }
     }
 
     func followAuthor(of reel: Reel) async {
-        _ = reel
-        // TODO: Implement followAuthor logic from scratch
+        do {
+            let isFollowing = reel.author.isFollowing
+            let input = ToggleFollowInput(userId: reel.author.id, isCurrentlyFollowing: isFollowing)
+            try await toggleFollowUseCase.execute(input)
+            // Update local state optimistically by updating the author
+            if let index = reels.firstIndex(where: { $0.id == reel.id }) {
+                var updatedAuthor = reel.author
+                updatedAuthor.isFollowing = !isFollowing
+                let newFollowersCount = reel.author.followersCount + (isFollowing ? -1 : 1)
+                updatedAuthor = User(
+                    id: reel.author.id,
+                    username: reel.author.username,
+                    fullName: reel.author.fullName,
+                    email: reel.author.email,
+                    phone: reel.author.phone,
+                    avatarURL: reel.author.avatarURL,
+                    bio: reel.author.bio,
+                    website: reel.author.website,
+                    isVerified: reel.author.isVerified,
+                    isPrivate: reel.author.isPrivate,
+                    followersCount: newFollowersCount,
+                    followingCount: reel.author.followingCount,
+                    postsCount: reel.author.postsCount,
+                    createdAt: reel.author.createdAt,
+                    isFollowing: !isFollowing,
+                    isFollowedBy: reel.author.isFollowedBy,
+                    isBlocked: reel.author.isBlocked
+                )
+                reels[index] = reels[index].withAuthor(updatedAuthor)
+            }
+        } catch {
+            AppLogger.general.error("Failed to follow author: \(error.localizedDescription)")
+        }
     }
 }

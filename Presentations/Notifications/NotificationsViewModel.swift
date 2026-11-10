@@ -36,10 +36,37 @@ final class NotificationsViewModel {
     // MARK: - Actions
 
     func loadNotifications() async {
-        // TODO: Implement loadNotifications logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let notifications = try await fetchNotificationsUseCase.execute(PaginationInput(page: 1, perPage: 20))
+            self.notifications = notifications
+        } catch {
+            AppLogger.general.error("Failed to load notifications: \(error.localizedDescription)")
+        }
     }
 
     func markAllAsRead() async {
-        // TODO: Implement markAllAsRead logic from scratch
+        do {
+            try await markNotificationsAsReadUseCase.execute()
+            // Update local state by creating new notification instances with isRead = true
+            self.notifications = notifications.map { notification in
+                AppNotification(
+                    id: notification.id,
+                    type: notification.type,
+                    actor: notification.actor,
+                    postId: notification.postId,
+                    postThumbnailURL: notification.postThumbnailURL,
+                    commentText: notification.commentText,
+                    isRead: true,
+                    createdAt: notification.createdAt
+                )
+            }
+            AppState.shared.setUnreadNotificationCount(0)
+        } catch {
+            AppLogger.general.error("Failed to mark all notifications as read: \(error.localizedDescription)")
+        }
     }
 }

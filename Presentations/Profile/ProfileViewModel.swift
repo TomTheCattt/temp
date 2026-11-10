@@ -68,19 +68,90 @@ final class ProfileViewModel {
     // MARK: - Actions
 
     func loadProfile() async {
-        // TODO: Implement loadProfile logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let input = FetchProfileInput(userId: userId)
+            let user = try await fetchProfileUseCase.execute(input)
+            self.user = user
+
+            // Load posts for the profile grid
+            let postsResult = try await postRepository.fetchUserPosts(userId: user.id, cursor: nil, perPage: 24)
+            self.posts = postsResult.posts
+
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to load profile: \(error.localizedDescription)")
+        }
     }
 
     func loadReelsIfNeeded() async {
-        // TODO: Implement loadReelsIfNeeded logic from scratch
+        guard !isLoadingReels, reels.isEmpty, let user = user else { return }
+        isLoadingReels = true
+        defer { isLoadingReels = false }
+
+        do {
+            let result = try await reelRepository.fetchUserReels(userId: user.id, cursor: nil, perPage: 24)
+            self.reels = result.reels
+        } catch {
+            AppLogger.general.error("Failed to load reels: \(error.localizedDescription)")
+        }
     }
 
     func toggleFollow() async {
-        // TODO: Implement toggleFollow logic from scratch
+        guard let user = user else { return }
+        let wasFollowing = user.isFollowing
+
+        do {
+            // Use ToggleFollowInput with correct parameters
+            let input = ToggleFollowInput(userId: user.id, isCurrentlyFollowing: wasFollowing)
+            try await toggleFollowUseCase.execute(input)
+
+            // Update local state optimistically by reconstructing User
+            var updatedUser = user
+            updatedUser.isFollowing = !wasFollowing
+            // Since followersCount is immutable, we reconstruct the user with updated count
+            let newFollowersCount = user.followersCount + (wasFollowing ? -1 : 1)
+            updatedUser = User(
+                id: user.id,
+                username: user.username,
+                fullName: user.fullName,
+                email: user.email,
+                phone: user.phone,
+                avatarURL: user.avatarURL,
+                bio: user.bio,
+                website: user.website,
+                isVerified: user.isVerified,
+                isPrivate: user.isPrivate,
+                followersCount: newFollowersCount,
+                followingCount: user.followingCount,
+                postsCount: user.postsCount,
+                createdAt: user.createdAt,
+                isFollowing: !wasFollowing,
+                isFollowedBy: user.isFollowedBy,
+                isBlocked: user.isBlocked
+            )
+            self.user = updatedUser
+
+            // Also update SessionStore if this is the current user
+            if isCurrentUser {
+                SessionStore.shared.setSession(user: updatedUser)
+            }
+        } catch {
+            AppLogger.general.error("Failed to toggle follow: \(error.localizedDescription)")
+        }
     }
 
     func applyUpdatedUser(_ updatedUser: User) {
-        _ = updatedUser
-        // TODO: Implement applyUpdatedUser logic from scratch
+        // Only update if it's the same user
+        if user?.id == updatedUser.id {
+            self.user = updatedUser
+            if isCurrentUser {
+                SessionStore.shared.setSession(user: updatedUser)
+            }
+        }
     }
 }
