@@ -15,11 +15,17 @@ nonisolated struct PostDTO: Decodable, Sendable {
     let authorId: String
     let caption: String?
     let locationName: String?
-    let locationLat: String?
-    let locationLng: String?
+    let locationLat: Double?
+    let locationLng: Double?
     let likesCount: Int
     let commentsCount: Int
+    let sharesCount: Int
+    let savesCount: Int
+    let viewsCount: Int
     let isSponsored: Bool
+    let sponsorUserId: String?
+    let audience: String? // "PUBLIC" | "FOLLOWERS" | "CLOSE_FRIENDS"
+    let closeFriendsOnly: Bool
     let createdAt: String
     let updatedAt: String?
     var author: PostUserDTO
@@ -36,6 +42,7 @@ nonisolated struct PostUserDTO: Decodable, Sendable {
     let fullName: String?
     let isVerified: Bool?
     let isFollowing: Bool?
+    let isPrivate: Bool?
     let avatarUrl: String?
 }
 
@@ -62,10 +69,15 @@ nonisolated struct PostWrapperDTO: Decodable, Sendable {
 
 // MARK: - PaginatedPostsDTO
 
-/// Wrapper for cursor-paginated post list responses.
+/// Wrapper for cursor-paginated post list responses (feeds).
 /// BE returns: { items: [...], nextCursor: "2026-08-04T14:37:10.661Z" | null, hasMore: true }
+/// For offset-paginated responses (user posts): { items: [...], page: 1, perPage: 20, total: 100, hasMore: true }
 nonisolated struct PaginatedPostsDTO: Decodable, Sendable {
     let items: [PostDTO]
     let nextCursor: String?
     let hasMore: Bool
+    // Offset pagination fields
+    let page: Int?
+    let perPage: Int?
+    let total: Int?
 }

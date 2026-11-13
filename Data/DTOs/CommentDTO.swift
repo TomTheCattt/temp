@@ -18,7 +18,7 @@ nonisolated struct CommentDTO: Decodable, Sendable {
     let parentId: String?
     let likesCount: Int
     let createdAt: String
-    let author: UserDTO
+    let author: CommentAuthorDTO
     let replies: [CommentDTO]?
     let isLiked: Bool?
 }
@@ -32,11 +32,25 @@ nonisolated struct CommentWrapperDTO: Decodable, Sendable {
 
 // MARK: - PaginatedCommentsDTO
 
-/// Wrapper for paginated comment list responses.
+/// Wrapper for offset-paginated comment list responses.
+/// BE returns: { items: [...], page: 1, perPage: 20, total: 100, hasMore: true }
 nonisolated struct PaginatedCommentsDTO: Decodable, Sendable {
     let items: [CommentDTO]
     let page: Int
     let perPage: Int
     let total: Int
     let hasMore: Bool
+}
+
+// MARK: - CommentAuthorDTO
+
+/// Lightweight user object returned in comment contexts.
+/// BE returns: id, username, fullName, avatarUrl, isVerified, isFollowing
+nonisolated struct CommentAuthorDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let isVerified: Bool?
+    let isFollowing: Bool?
 }

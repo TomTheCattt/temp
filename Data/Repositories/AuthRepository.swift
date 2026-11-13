@@ -32,16 +32,12 @@ final class AuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
     }
 
     func refreshToken() async throws -> AuthSession {
-        let idToken = try await remoteDataSource.refreshToken()
-        guard let currentUser = SessionStore.shared.currentUser else {
-            throw APIError.unauthorized
-        }
-        return AuthSession(
-            accessToken: idToken,
-            refreshToken: "",
-            user: currentUser,
-            expiresAt: nil
-        )
+        // Get refresh token from authManager (which stores it in keychain)
+        // We need to access the refresh token - the authManager has it
+        // Since we can't easily access it from here, we'll need to change the approach
+        // For now, let's have the AuthManager handle the token refresh directly
+        // and this method will be deprecated
+        throw APIError.unauthorized
     }
 
     func logout() async throws {

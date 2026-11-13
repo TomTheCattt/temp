@@ -26,20 +26,20 @@ final class RemoteMessageDataSource: @unchecked Sendable {
         return MessageMapper.toConversationList(response.items, currentUserId: currentUserId)
     }
 
-    func createConversation(participantIds: [String], groupName: String?) async throws -> Conversation {
+    func createConversation(participantIds: [String], groupName: String?, groupAvatar: String?) async throws -> Conversation {
         let wrapper: ConversationWrapperDTO = try await networkService.requestEnvelope(
-            ConversationEndpoint.create(participantIds: participantIds, groupName: groupName)
+            ConversationEndpoint.create(participantIds: participantIds, groupName: groupName, groupAvatar: groupAvatar)
         )
         return MessageMapper.toConversation(wrapper.conversation, currentUserId: "")
     }
 
     // MARK: - Messages
 
-    func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {
+    func fetchMessages(conversationId: String, cursor: String?, perPage: Int) async throws -> (messages: [Message], nextCursor: String?, hasMore: Bool) {
         let response: PaginatedMessagesDTO = try await networkService.requestEnvelope(
-            ConversationEndpoint.messages(conversationId: conversationId, page: page, perPage: perPage)
+            ConversationEndpoint.messages(conversationId: conversationId, cursor: cursor, perPage: perPage)
         )
-        return MessageMapper.toMessageList(response.items)
+        return (MessageMapper.toMessageList(response.items), response.nextCursor, response.hasMore ?? false)
     }
 
     func sendTextMessage(conversationId: String, text: String, replyToId: String?) async throws -> Message {
@@ -68,5 +68,35 @@ final class RemoteMessageDataSource: @unchecked Sendable {
 
     func deleteMessage(messageId: String) async throws {
         try await networkService.requestVoid(ConversationEndpoint.deleteMessage(messageId: messageId))
+    }
+
+    // MARK: - Group Chat
+
+    func createGroupConversation(participantIds: [String], name: String?) async throws -> Conversation {
+        let wrapper: ConversationWrapperDTO = try await networkService.requestEnvelope(
+            ConversationEndpoint.createGroup(participantIds: participantIds, groupName: name)
+        )
+        return MessageMapper.toConversation(wrapper.conversation, currentUserId: "")
+    }
+
+    func fetchGroupDetails(id: String) async throws -> GroupDetails {
+        let dto: GroupDetailsDTO = try await networkService.requestEnvelope(
+            ConversationEndpoint.fetchGroupDetails(conversationId: id)
+        )
+        return MessageMapper.toGroupDetails(dto)
+    }
+
+    func updateGroupMuteSettings(id: String, muteMessages: Bool, muteCalls: Bool) async throws {
+        try await networkService.requestVoid(
+            ConversationEndpoint.updateGroupMuteSettings(conversationId: id, muteMessages: muteMessages, muteCalls: muteCalls)
+        )
+    }
+
+    func leaveGroupConversation(id: String) async throws {
+        try await networkService.requestVoid(ConversationEndpoint.leaveGroup(conversationId: id))
+    }
+
+    func deleteGroupConversation(id: String) async throws {
+        try await networkService.requestVoid(ConversationEndpoint.deleteGroup(conversationId: id))
     }
 }

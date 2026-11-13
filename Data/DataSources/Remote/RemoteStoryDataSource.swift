@@ -55,4 +55,52 @@ final class RemoteStoryDataSource: @unchecked Sendable {
     func deleteStory(id: String) async throws {
         try await networkService.requestVoid(StoryEndpoint.delete(id: id))
     }
+
+    // MARK: - Comments
+
+    func fetchStoryComments(storyId: String, page: Int, perPage: Int) async throws -> (comments: [Comment], page: Int, perPage: Int, total: Int, hasMore: Bool) {
+        let response: PaginatedCommentsDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.comments(storyId: storyId, page: page, perPage: perPage)
+        )
+        return (CommentMapper.toEntityList(response.items), response.page, response.perPage, response.total, response.hasMore)
+    }
+
+    func addStoryComment(storyId: String, text: String, parentId: String?) async throws -> Comment {
+        let wrapper: CommentWrapperDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.addComment(storyId: storyId, text: text, parentId: parentId)
+        )
+        return CommentMapper.toEntity(wrapper.comment)
+    }
+
+    func deleteStoryComment(storyId: String, commentId: String) async throws {
+        try await networkService.requestVoid(StoryEndpoint.deleteComment(storyId: storyId, commentId: commentId))
+    }
+
+    // MARK: - Replies
+
+    func fetchStoryReplies(storyId: String) async throws -> StoryRepliesResult {
+        let wrapper: StoryRepliesResultWrapperDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.fetchReplies(storyId: storyId)
+        )
+        return StoryMapper.toStoryRepliesResult(wrapper.replies)
+    }
+
+    func addStoryReply(storyId: String, text: String) async throws -> StoryReply {
+        let wrapper: StoryReplyWrapperDTO = try await networkService.requestEnvelope(
+            StoryEndpoint.addReply(storyId: storyId, text: text)
+        )
+        return StoryMapper.toStoryReply(wrapper.reply)
+    }
+
+    func deleteStoryReply(replyId: String) async throws {
+        try await networkService.requestVoid(StoryEndpoint.deleteReply(replyId: replyId))
+    }
+
+    func deleteAllStoryReplies(storyId: String) async throws {
+        try await networkService.requestVoid(StoryEndpoint.deleteAllReplies(storyId: storyId))
+    }
+
+    func setStoryRepliesEnabled(storyId: String, enabled: Bool) async throws {
+        try await networkService.requestVoid(StoryEndpoint.setRepliesEnabled(storyId: storyId, enabled: enabled))
+    }
 }

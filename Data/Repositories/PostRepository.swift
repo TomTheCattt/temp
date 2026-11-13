@@ -72,4 +72,14 @@ final class PostRepository: PostRepositoryProtocol, @unchecked Sendable {
     func fetchExplorePosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool) {
         try await remoteDataSource.fetchExplorePosts(cursor: cursor, perPage: perPage)
     }
+
+    // MARK: - Comments
+
+    func fetchComments(postId: String, page: Int, perPage: Int) async throws -> (comments: [Comment], page: Int, perPage: Int, total: Int, hasMore: Bool) {
+        try await remoteDataSource.fetchComments(postId: postId, page: page, perPage: perPage)
+    }
+
+    func addComment(postId: String, text: String, parentId: String?) async throws -> Comment {
+        try await remoteDataSource.addComment(postId: postId, text: text, parentId: parentId)
+    }
 }

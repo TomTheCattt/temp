@@ -72,10 +72,23 @@ nonisolated struct MessageDTO: Decodable, Sendable {
     let replyToId: String?
     let status: String          // "SENT" | "DELIVERED" | "READ" (uppercase)
     let createdAt: String
-    let sender: UserDTO?        // Present in message detail, absent in conversation list
+    let sender: MessageSenderDTO?        // Present in message detail, absent in conversation list
     let lastReadAt: String?
     let isMuted: Bool?
     let unreadCount: Int?
+}
+
+// MARK: - MessageSenderDTO
+
+/// Lightweight user object returned in message contexts.
+/// BE returns: id, username, fullName, avatarUrl, isVerified, isFollowing
+nonisolated struct MessageSenderDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let isVerified: Bool?
+    let isFollowing: Bool?
 }
 
 // MARK: - ConversationWrapperDTO
@@ -96,18 +109,48 @@ nonisolated struct MessageWrapperDTO: Decodable, Sendable {
 
 nonisolated struct PaginatedConversationsDTO: Decodable, Sendable {
     let items: [ConversationDTO]
-    let page: Int
-    let perPage: Int
-    let total: Int
-    let hasMore: Bool
+    let page: Int?
+    let perPage: Int?
+    let total: Int?
+    let hasMore: Bool?
+    let nextCursor: String?
 }
 
 // MARK: - PaginatedMessagesDTO
 
 nonisolated struct PaginatedMessagesDTO: Decodable, Sendable {
     let items: [MessageDTO]
-    let page: Int
-    let perPage: Int
-    let total: Int
-    let hasMore: Bool
+    let page: Int?
+    let perPage: Int?
+    let total: Int?
+    let hasMore: Bool?
+    let nextCursor: String?
+}
+
+// MARK: - GroupDetailsDTO
+
+nonisolated struct GroupDetailsDTO: Decodable, Sendable {
+    let name: String?
+    let avatarUrl: String?
+    let members: [GroupMemberDTO]
+    let adminIds: [String]
+    let sharedMedia: [SharedMediaDTO]
+    let muteMessages: Bool
+    let muteCalls: Bool
+}
+
+nonisolated struct GroupMemberDTO: Decodable, Sendable {
+    let id: String
+    let username: String
+    let fullName: String?
+    let avatarUrl: String?
+    let isCurrentUser: Bool
+}
+
+nonisolated struct SharedMediaDTO: Decodable, Sendable {
+    let id: String
+    let type: String
+    let thumbnailUrl: String?
+    let mediaUrl: String
+    let isVideo: Bool
 }

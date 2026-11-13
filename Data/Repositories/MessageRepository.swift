@@ -12,18 +12,20 @@ import Foundation
 final class MessageRepository: MessageRepositoryProtocol, @unchecked Sendable {
 
     private let remoteDataSource: RemoteMessageDataSource
+    private let sessionStore: SessionStoreProtocol
 
-    init(remoteDataSource: RemoteMessageDataSource) {
+    init(remoteDataSource: RemoteMessageDataSource, sessionStore: SessionStoreProtocol) {
         self.remoteDataSource = remoteDataSource
+        self.sessionStore = sessionStore
     }
 
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation] {
-        let currentUserId = SessionStore.shared.currentUserId
+        let currentUserId = await MainActor.run { sessionStore.currentUserId }
         return try await remoteDataSource.fetchConversations(page: page, perPage: perPage, currentUserId: currentUserId)
     }
 
-    func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message] {
-        try await remoteDataSource.fetchMessages(conversationId: conversationId, page: page, perPage: perPage)
+    func fetchMessages(conversationId: String, cursor: String?, perPage: Int) async throws -> (messages: [Message], nextCursor: String?, hasMore: Bool) {
+        try await remoteDataSource.fetchMessages(conversationId: conversationId, cursor: cursor, perPage: perPage)
     }
 
     func sendMessage(conversationId: String, content: MessageContent) async throws -> Message {
@@ -47,8 +49,8 @@ final class MessageRepository: MessageRepositoryProtocol, @unchecked Sendable {
         }
     }
 
-    func createConversation(participantIds: [String]) async throws -> Conversation {
-        try await remoteDataSource.createConversation(participantIds: participantIds, groupName: nil)
+    func createConversation(participantIds: [String], groupName: String? = nil, groupAvatar: String? = nil) async throws -> Conversation {
+        try await remoteDataSource.createConversation(participantIds: participantIds, groupName: groupName, groupAvatar: groupAvatar)
     }
 
     func markAsRead(conversationId: String) async throws {
@@ -61,5 +63,57 @@ final class MessageRepository: MessageRepositoryProtocol, @unchecked Sendable {
 
     func muteConversation(id: String, mute: Bool) async throws {
         try await remoteDataSource.muteConversation(conversationId: id, mute: mute)
+    }
+
+    func markAsUnread(conversationId: String) async throws {
+        // Not implemented in remote data source yet
+    }
+
+    func getUnreadConversationsCount() async throws -> Int {
+        return 0
+    }
+
+    func deleteConversation(id: String) async throws {
+        // Not implemented in remote data source yet
+    }
+
+    func addReaction(messageId: String, emoji: String) async throws {
+        // Not implemented in remote data source yet
+    }
+
+    func fetchNotes() async throws -> [InstagramNote] {
+        return []
+    }
+
+    func saveNote(text: String) async throws -> InstagramNote {
+        throw NSError(domain: "MessageRepository", code: -1, userInfo: [NSLocalizedDescriptionKey: "saveNote not implemented"])
+    }
+
+    func detachMessageListener(for conversationId: String) async {
+        // Not implemented in remote data source yet
+    }
+
+    func resetSession() async {
+        // Not implemented in remote data source yet
+    }
+
+    func createGroupConversation(participantIds: [String], name: String?) async throws -> Conversation {
+        try await remoteDataSource.createGroupConversation(participantIds: participantIds, name: name)
+    }
+
+    func fetchGroupDetails(id: String) async throws -> GroupDetails {
+        try await remoteDataSource.fetchGroupDetails(id: id)
+    }
+
+    func updateGroupMuteSettings(id: String, muteMessages: Bool, muteCalls: Bool) async throws {
+        try await remoteDataSource.updateGroupMuteSettings(id: id, muteMessages: muteMessages, muteCalls: muteCalls)
+    }
+
+    func leaveGroupConversation(id: String) async throws {
+        try await remoteDataSource.leaveGroupConversation(id: id)
+    }
+
+    func deleteGroupConversation(id: String) async throws {
+        try await remoteDataSource.deleteGroupConversation(id: id)
     }
 }

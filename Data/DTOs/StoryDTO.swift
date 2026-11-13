@@ -15,9 +15,51 @@ nonisolated struct StoryDTO: Decodable, Sendable {
     let authorId: String
     let createdAt: String
     let expiresAt: String
-    let author: UserDTO?     // Present in feed, absent in user-specific items
+    let author: UserStoryDTO?     // Present in feed, absent in user-specific items
     let items: [StoryItemDTO]
     let views: [StoryViewDTO]?  // Array of views; non-empty means current user has viewed
+}
+
+// MARK: - StoryReplyDTO
+
+/// API response model for Story Reply.
+nonisolated struct StoryReplyDTO: Decodable, Sendable {
+    let id: String
+    let storyId: String
+    let userId: String
+    let text: String
+    let createdAt: String
+    let user: CommentAuthorDTO
+    let reactions: [StoryReactionDTO]?
+}
+
+/// API response model for Story Reply Reaction.
+nonisolated struct StoryReactionDTO: Decodable, Sendable {
+    let id: String
+    let emoji: String
+    let userId: String
+}
+
+// MARK: - StoryRepliesResultDTO
+
+nonisolated struct StoryRepliesResultDTO: Decodable, Sendable {
+    let replies: [StoryReplyDTO]
+    let isCurrentUserOwner: Bool
+    let areRepliesEnabled: Bool
+}
+
+// MARK: - StoryReplyWrapperDTO
+
+/// Wrapper for single story reply response: `{ "reply": {...} }` inside data envelope.
+nonisolated struct StoryReplyWrapperDTO: Decodable, Sendable {
+    let reply: StoryReplyDTO
+}
+
+// MARK: - StoryRepliesResultWrapperDTO
+
+/// Wrapper for story replies result response.
+nonisolated struct StoryRepliesResultWrapperDTO: Decodable, Sendable {
+    let replies: StoryRepliesResultDTO
 }
 
 // MARK: - StoryItemDTO
@@ -32,6 +74,16 @@ nonisolated struct StoryItemDTO: Decodable, Sendable {
     let stickerType: String?    // "poll" | "question" | "mention" | "hashtag" | "location" | "link" | "music"
     let stickerData: String?    // JSON string
     let createdAt: String
+}
+
+// MARK: - UserStoryDTO
+
+nonisolated struct UserStoryDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let isVerified: Bool?
 }
 
 // MARK: - StoryViewDTO

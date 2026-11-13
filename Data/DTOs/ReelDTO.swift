@@ -21,15 +21,28 @@ nonisolated struct ReelDTO: Decodable, Sendable {
     let audioArtist: String?
     let audioCoverUrl: String?
     let isOriginalAudio: Bool?
-    let duration: Double
-    let likesCount: Int
-    let commentsCount: Int
-    let sharesCount: Int
-    let viewsCount: Int
+    let duration: String?
+    let likesCount: Int?
+    let commentsCount: Int?
+    let sharesCount: Int?
+    let viewsCount: Int?
     let createdAt: String
-    let author: UserDTO
+    let author: ReelAuthorDTO
     let isLiked: Bool?
     let isSaved: Bool?
+}
+
+// MARK: - ReelAuthorDTO
+
+/// Lightweight user object returned in reel contexts.
+/// BE returns: id, username, fullName, avatarUrl, isVerified, isFollowing
+nonisolated struct ReelAuthorDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let isVerified: Bool?
+    let isFollowing: Bool?
 }
 
 // MARK: - ReelWrapperDTO
@@ -41,10 +54,15 @@ nonisolated struct ReelWrapperDTO: Decodable, Sendable {
 
 // MARK: - PaginatedReelsDTO
 
-/// Wrapper for cursor-paginated reel list responses.
-/// BE returns: { items: [...], nextCursor: "2026-08-04T14:37:10.661Z" | null, hasMore: true }
+/// Wrapper for paginated reel list responses.
+/// For cursor-based (feed): { items: [...], nextCursor: "2026-08-04T14:37:10.661Z" | null, hasMore: true }
+/// For offset-based (user reels): { items: [...], page: 1, perPage: 20, total: 100, hasMore: true }
 nonisolated struct PaginatedReelsDTO: Decodable, Sendable {
     let items: [ReelDTO]
     let nextCursor: String?
     let hasMore: Bool
+    // Offset pagination fields
+    let page: Int?
+    let perPage: Int?
+    let total: Int?
 }

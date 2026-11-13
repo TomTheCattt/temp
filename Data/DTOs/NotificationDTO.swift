@@ -20,7 +20,7 @@ nonisolated struct NotificationDTO: Decodable, Sendable {
     let commentText: String?
     let isRead: Bool
     let createdAt: String
-    let actor: UserDTO
+    let actor: NotificationActorDTO
 }
 
 // MARK: - PaginatedNotificationsDTO
@@ -37,4 +37,17 @@ nonisolated struct PaginatedNotificationsDTO: Decodable, Sendable {
 
 nonisolated struct UnreadCountDTO: Decodable, Sendable {
     let count: Int
+}
+
+// MARK: - NotificationActorDTO
+
+/// Lightweight user object returned in notification contexts.
+/// BE returns: id, username, fullName, avatarUrl, isVerified, isFollowing
+nonisolated struct NotificationActorDTO: Decodable, Sendable {
+    let id: String
+    let username: String?
+    let fullName: String?
+    let avatarUrl: String?
+    let isVerified: Bool?
+    let isFollowing: Bool?
 }

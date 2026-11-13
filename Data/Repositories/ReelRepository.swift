@@ -26,8 +26,12 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
         try await remoteDataSource.fetchReels(cursor: cursor, perPage: perPage)
     }
 
-    func fetchUserReels(userId: String, cursor: String?, perPage: Int) async throws -> (reels: [Reel], nextCursor: String?, hasMore: Bool) {
-        try await remoteDataSource.fetchUserReels(userId: userId, cursor: cursor, perPage: perPage)
+    func fetchReel(id: String) async throws -> Reel {
+        try await remoteDataSource.fetchReel(reelId: id)
+    }
+
+    func fetchUserReels(userId: String, page: Int, perPage: Int) async throws -> (reels: [Reel], page: Int, perPage: Int, total: Int, hasMore: Bool) {
+        try await remoteDataSource.fetchUserReels(userId: userId, page: page, perPage: perPage)
     }
 
     func createReel(videoData: Data, caption: String?, audioTrackId: String?) async throws -> Reel {
@@ -44,7 +48,9 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
             caption: caption,
             duration: uploadResult.duration ?? 15,
             audioName: nil,
-            audioArtist: nil
+            audioArtist: nil,
+            audioCoverUrl: nil,
+            isOriginalAudio: nil
         )
     }
 
@@ -66,5 +72,19 @@ final class ReelRepository: ReelRepositoryProtocol, @unchecked Sendable {
 
     func deleteReel(id: String) async throws {
         try await remoteDataSource.deleteReel(id: id)
+    }
+
+    // MARK: - Comments
+
+    func fetchReelComments(reelId: String, page: Int, perPage: Int) async throws -> (comments: [Comment], page: Int, perPage: Int, total: Int, hasMore: Bool) {
+        try await remoteDataSource.fetchReelComments(reelId: reelId, page: page, perPage: perPage)
+    }
+
+    func addReelComment(reelId: String, text: String, parentId: String?) async throws -> Comment {
+        try await remoteDataSource.addReelComment(reelId: reelId, text: text, parentId: parentId)
+    }
+
+    func deleteReelComment(reelId: String, commentId: String) async throws {
+        try await remoteDataSource.deleteReelComment(reelId: reelId, commentId: commentId)
     }
 }

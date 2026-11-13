@@ -44,7 +44,7 @@ nonisolated enum MessageMapper {
         // Resolve sender from dto.sender or from members list
         let sender: User
         if let senderDTO = dto.sender {
-            sender = UserMapper.toEntity(senderDTO)
+            sender = toUser(senderDTO)
         } else if let member = members?.first(where: { $0.id == dto.senderId }) {
             sender = member.user
         } else {
@@ -153,5 +153,72 @@ nonisolated enum MessageMapper {
         case .reel(let reelId):         return reelId
         case .like:                     return ""
         }
+    }
+
+    // MARK: - Group Details
+
+    static func toGroupDetails(_ dto: GroupDetailsDTO) -> GroupDetails {
+        let members = dto.members.map { member in
+            GroupMember(
+                id: member.id,
+                username: member.username,
+                fullName: member.fullName ?? "",
+                avatarURL: member.avatarUrl.flatMap { URL(string: $0) },
+                isCurrentUser: member.isCurrentUser
+            )
+        }
+
+        let sharedMedia = dto.sharedMedia.map { media in
+            let mediaType: SharedMediaItem.MediaType
+            switch media.type.uppercased() {
+            case "VIDEO":
+                mediaType = .video
+            case "LINK":
+                mediaType = .link
+            default:
+                mediaType = .image
+            }
+            return SharedMediaItem(
+                id: media.id,
+                type: mediaType,
+                thumbnailURL: media.thumbnailUrl.flatMap { URL(string: $0) },
+                mediaURL: URL(string: media.mediaUrl) ?? URL(string: "about:blank")!,
+                isVideo: media.isVideo
+            )
+        }
+
+        return GroupDetails(
+            name: dto.name,
+            avatarURL: dto.avatarUrl.flatMap { URL(string: $0) },
+            members: members,
+            adminIds: dto.adminIds,
+            sharedMedia: sharedMedia,
+            muteMessages: dto.muteMessages,
+            muteCalls: dto.muteCalls
+        )
+    }
+
+    // MARK: - User Mapping
+
+    private static func toUser(_ dto: MessageSenderDTO) -> User {
+        User(
+            id: dto.id,
+            username: dto.username ?? "",
+            fullName: dto.fullName ?? "",
+            email: nil,
+            phone: nil,
+            avatarURL: dto.avatarUrl.flatMap { URL(string: $0) },
+            bio: nil,
+            website: nil,
+            isVerified: dto.isVerified ?? false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: dto.isFollowing ?? false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
     }
 }

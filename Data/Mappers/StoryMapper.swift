@@ -15,7 +15,7 @@ nonisolated enum StoryMapper {
         // Determine author: from nested object or create minimal from authorId
         let author: User
         if let authorDTO = dto.author {
-            author = UserMapper.toEntity(authorDTO)
+            author = toUserStory(authorDTO)
         } else {
             author = User(
                 id: dto.authorId,
@@ -75,6 +75,60 @@ nonisolated enum StoryMapper {
             duration: dto.duration,
             createdAt: DateMapper.toDate(dto.createdAt),
             sticker: sticker
+        )
+    }
+
+    private static func toUserStory(_ dto: UserStoryDTO) -> User {
+        User(
+            id: dto.id,
+            username: dto.username ?? "",
+            fullName: dto.fullName ?? "",
+            email: nil,
+            phone: nil,
+            avatarURL: dto.avatarUrl.flatMap { URL(string: $0) },
+            bio: nil,
+            website: nil,
+            isVerified: dto.isVerified ?? false,
+            isPrivate: false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: .now,
+            isFollowing: false,
+            isFollowedBy: false,
+            isBlocked: false
+        )
+    }
+
+    // MARK: - StoryReply
+
+    static func toStoryReply(_ dto: StoryReplyDTO) -> StoryReply {
+        let user = CommentMapper.toUser(dto.user)
+        let reactions = dto.reactions?.map { toStoryReaction($0) } ?? []
+
+        return StoryReply(
+            id: dto.id,
+            user: user,
+            text: dto.text,
+            createdAt: DateMapper.toDate(dto.createdAt),
+            reactions: reactions
+        )
+    }
+
+    static func toStoryReaction(_ dto: StoryReactionDTO) -> StoryReaction {
+        return StoryReaction(
+            id: dto.id,
+            emoji: dto.emoji,
+            userId: dto.userId
+        )
+    }
+
+    static func toStoryRepliesResult(_ dto: StoryRepliesResultDTO) -> StoryRepliesResult {
+        let replies = dto.replies.map { toStoryReply($0) }
+        return StoryRepliesResult(
+            replies: replies,
+            isCurrentUserOwner: dto.isCurrentUserOwner,
+            areRepliesEnabled: dto.areRepliesEnabled
         )
     }
 }

@@ -58,7 +58,7 @@ nonisolated enum PostMapper {
             bio: "",
             website: "",
             isVerified: dto.isVerified ?? false,
-            isPrivate: false,
+            isPrivate: dto.isPrivate ?? false,
             followersCount: 0,
             followingCount: 0,
             postsCount: 0,
@@ -71,12 +71,12 @@ nonisolated enum PostMapper {
 
     // MARK: - Location
 
-    private static func toLocation(name: String?, lat: String?, lng: String?) -> PostLocation? {
+    private static func toLocation(name: String?, lat: Double?, lng: Double?) -> PostLocation? {
         guard let name else { return nil }
         return PostLocation(
             name: name,
-            latitude: Double(lat ?? "0.0"),
-            longitude: Double(lng ?? "0.0")
+            latitude: lat,
+            longitude: lng
         )
     }
 }

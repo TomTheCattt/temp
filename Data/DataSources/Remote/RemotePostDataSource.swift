@@ -152,11 +152,11 @@ final class RemotePostDataSource: @unchecked Sendable {
 
     // MARK: - Comments
 
-    func fetchComments(postId: String, cursor: String? = nil, perPage: Int = 20) async throws -> [Comment] {
+    func fetchComments(postId: String, page: Int = 1, perPage: Int = 20) async throws -> (comments: [Comment], page: Int, perPage: Int, total: Int, hasMore: Bool) {
         let response: PaginatedCommentsDTO = try await networkService.requestEnvelope(
-            PostEndpoint.comments(postId: postId, cursor: cursor, perPage: perPage)
+            PostEndpoint.comments(postId: postId, page: page, perPage: perPage)
         )
-        return CommentMapper.toEntityList(response.items)
+        return (CommentMapper.toEntityList(response.items), response.page, response.perPage, response.total, response.hasMore)
     }
 
     func addComment(postId: String, text: String, parentId: String?) async throws -> Comment {
