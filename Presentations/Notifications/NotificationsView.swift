@@ -145,6 +145,16 @@ private struct NotificationRow: View {
             return username + Text(L10n.Notifications.mentionedInStory).font(DS.Font.subheadline)
         case .liveVideo:
             return username + Text(L10n.Notifications.liveVideo).font(DS.Font.subheadline)
+        case .message:
+            return username + Text(L10n.Notifications.newMessage).font(DS.Font.subheadline)
+        case .call:
+            return username + Text(L10n.Notifications.call).font(DS.Font.subheadline)
+        case .live:
+            return username + Text(L10n.Notifications.live).font(DS.Font.subheadline)
+        case .newReel:
+            return username + Text(L10n.Notifications.newReel).font(DS.Font.subheadline)
+        case .newStory:
+            return username + Text(L10n.Notifications.newStory).font(DS.Font.subheadline)
         }
     }
 

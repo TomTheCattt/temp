@@ -13,7 +13,7 @@ import NukeUI
 struct ExploreView: View {
 
     @State private var viewModel = ExploreViewModel(
-        postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self),
+        fetchExplorePostsUseCase: DIContainer.shared.resolve(FetchExplorePostsUseCaseProtocol.self),
         searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self)
     )
 

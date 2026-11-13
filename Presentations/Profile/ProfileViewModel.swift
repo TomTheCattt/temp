@@ -40,8 +40,8 @@ final class ProfileViewModel {
 
     private let fetchProfileUseCase: FetchProfileUseCaseProtocol
     private let toggleFollowUseCase: ToggleFollowUseCaseProtocol
-    private let postRepository: PostRepositoryProtocol
-    private let reelRepository: ReelRepositoryProtocol
+    private let fetchUserPostsUseCase: FetchUserPostsUseCaseProtocol
+    private let fetchUserReelsUseCase: FetchUserReelsUseCaseProtocol
 
     // MARK: - Init
 
@@ -49,14 +49,14 @@ final class ProfileViewModel {
         userId: String?,
         fetchProfileUseCase: FetchProfileUseCaseProtocol,
         toggleFollowUseCase: ToggleFollowUseCaseProtocol,
-        postRepository: PostRepositoryProtocol,
-        reelRepository: ReelRepositoryProtocol
+        fetchUserPostsUseCase: FetchUserPostsUseCaseProtocol,
+        fetchUserReelsUseCase: FetchUserReelsUseCaseProtocol
     ) {
         self.userId = userId
         self.fetchProfileUseCase = fetchProfileUseCase
         self.toggleFollowUseCase = toggleFollowUseCase
-        self.postRepository = postRepository
-        self.reelRepository = reelRepository
+        self.fetchUserPostsUseCase = fetchUserPostsUseCase
+        self.fetchUserReelsUseCase = fetchUserReelsUseCase
 
         let currentUserId = SessionStore.shared.currentUserId
         let isMe = (userId == nil || userId == currentUserId)
@@ -79,7 +79,7 @@ final class ProfileViewModel {
             self.user = user
 
             // Load posts for the profile grid
-            let postsResult = try await postRepository.fetchUserPosts(userId: user.id, cursor: nil, perPage: 24)
+            let postsResult = try await fetchUserPostsUseCase.execute(userId: user.id, cursor: nil, perPage: 24)
             self.posts = postsResult.posts
 
         } catch {
@@ -94,7 +94,7 @@ final class ProfileViewModel {
         defer { isLoadingReels = false }
 
         do {
-            let result = try await reelRepository.fetchUserReels(userId: user.id, cursor: nil, perPage: 24)
+            let result = try await fetchUserReelsUseCase.execute(userId: user.id, page: 1, perPage: 24)
             self.reels = result.reels
         } catch {
             AppLogger.general.error("Failed to load reels: \(error.localizedDescription)")

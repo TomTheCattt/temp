@@ -368,7 +368,12 @@ struct StoryViewerView: View {
     private var myStoryBottomBar: some View {
         HStack(spacing: DS.Spacing.md) {
             // Viewers info (left side)
-            Button(action: {}) {
+            Button {
+                if let story = viewModel.currentStory {
+                    viewModel.pause()
+                    AppRouter.shared.push(.storyReplies(storyId: story.id))
+                }
+            } label: {
                 HStack(spacing: DS.Spacing.xs) {
                     // Stacked viewer avatars
                     ZStack {

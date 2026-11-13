@@ -24,18 +24,15 @@ final class LikesListViewModel {
 
     // MARK: - Dependencies
 
-    private let userRepository: UserRepositoryProtocol
     private let toggleFollowUseCase: ToggleFollowUseCaseProtocol
 
     // MARK: - Init
 
     init(
         postId: String,
-        userRepository: UserRepositoryProtocol,
         toggleFollowUseCase: ToggleFollowUseCaseProtocol
     ) {
         self.postId = postId
-        self.userRepository = userRepository
         self.toggleFollowUseCase = toggleFollowUseCase
     }
 

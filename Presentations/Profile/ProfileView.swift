@@ -23,8 +23,8 @@ struct ProfileView: View {
             userId: userId,
             fetchProfileUseCase: DIContainer.shared.resolve(FetchProfileUseCaseProtocol.self),
             toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self),
-            postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self),
-            reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
+            fetchUserPostsUseCase: DIContainer.shared.resolve(FetchUserPostsUseCaseProtocol.self),
+            fetchUserReelsUseCase: DIContainer.shared.resolve(FetchUserReelsUseCaseProtocol.self)
         ))
     }
 

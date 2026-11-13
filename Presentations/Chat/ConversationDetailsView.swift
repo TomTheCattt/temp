@@ -19,7 +19,7 @@ struct ConversationDetailsView: View {
     @State private var isMutedCalls: Bool = false
     @State private var showDeleteConfirmation: Bool = false
 
-    private let messageRepository: MessageRepositoryProtocol = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+    private let manageConversationUseCase: ManageConversationUseCaseProtocol = DIContainer.shared.resolve(ManageConversationUseCaseProtocol.self)
 
     var body: some View {
         ScrollView {
@@ -64,7 +64,7 @@ struct ConversationDetailsView: View {
             Button("Xóa cuộc trò chuyện", role: .destructive) {
                 HapticFeedbackSafe.impact(.medium)
                 Task {
-                    try? await messageRepository.deleteConversation(id: conversationId)
+                    try? await manageConversationUseCase.deleteConversation(id: conversationId)
                     AppRouter.shared.pop(count: 2)
                     ToastManager.shared.info("Đã xóa cuộc trò chuyện")
                 }
@@ -186,7 +186,7 @@ struct ConversationDetailsView: View {
             }
             .tint(ColorTokens.brandBlue)
             .onChange(of: isMutedMessages) { _, newValue in
-                Task { try? await messageRepository.muteConversation(id: conversationId, mute: newValue) }
+                Task { try? await manageConversationUseCase.muteConversation(id: conversationId, mute: newValue) }
             }
 
             Toggle(isOn: $isMutedCalls) {

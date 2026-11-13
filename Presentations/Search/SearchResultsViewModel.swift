@@ -52,18 +52,15 @@ final class SearchResultsViewModel {
     // MARK: - Dependencies
 
     private let searchUsersUseCase: SearchUsersUseCaseProtocol
-    private let postRepository: PostRepositoryProtocol
 
     // MARK: - Init
 
     init(
         query: String,
-        searchUsersUseCase: SearchUsersUseCaseProtocol,
-        postRepository: PostRepositoryProtocol
+        searchUsersUseCase: SearchUsersUseCaseProtocol
     ) {
         self.query = query
         self.searchUsersUseCase = searchUsersUseCase
-        self.postRepository = postRepository
     }
 
     // MARK: - Actions

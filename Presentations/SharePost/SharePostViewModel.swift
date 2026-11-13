@@ -24,19 +24,19 @@ final class SharePostViewModel {
 
     // MARK: - Dependencies
 
-    private let userRepository: UserRepositoryProtocol
-    private let messageRepository: MessageRepositoryProtocol
+    private let fetchSuggestedUsersUseCase: FetchSuggestedUsersUseCaseProtocol?
+    private let manageConversationUseCase: ManageConversationUseCaseProtocol?
 
     // MARK: - Init
 
     init(
         postId: String,
-        userRepository: UserRepositoryProtocol,
-        messageRepository: MessageRepositoryProtocol
+        fetchSuggestedUsersUseCase: FetchSuggestedUsersUseCaseProtocol? = nil,
+        manageConversationUseCase: ManageConversationUseCaseProtocol? = nil
     ) {
         self.postId = postId
-        self.userRepository = userRepository
-        self.messageRepository = messageRepository
+        self.fetchSuggestedUsersUseCase = fetchSuggestedUsersUseCase
+        self.manageConversationUseCase = manageConversationUseCase
     }
 
     // MARK: - Actions

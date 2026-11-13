@@ -53,7 +53,7 @@ final class ExploreViewModel {
 
     // MARK: - Dependencies
 
-    private let postRepository: PostRepositoryProtocol
+    private let fetchExplorePostsUseCase: FetchExplorePostsUseCaseProtocol
     private let searchUsersUseCase: SearchUsersUseCaseProtocol
     private let searchSubject = PassthroughSubject<String, Never>()
     private var cancellables = Set<AnyCancellable>()
@@ -61,10 +61,10 @@ final class ExploreViewModel {
     // MARK: - Init
 
     init(
-        postRepository: PostRepositoryProtocol,
+        fetchExplorePostsUseCase: FetchExplorePostsUseCaseProtocol,
         searchUsersUseCase: SearchUsersUseCaseProtocol
     ) {
-        self.postRepository = postRepository
+        self.fetchExplorePostsUseCase = fetchExplorePostsUseCase
         self.searchUsersUseCase = searchUsersUseCase
         setupSearchPipeline()
     }
@@ -116,7 +116,7 @@ final class ExploreViewModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            let result = try await postRepository.fetchExplorePosts(cursor: nil, perPage: 24)
+            let result = try await fetchExplorePostsUseCase.execute(cursor: nil, perPage: 24)
             explorePosts = result.posts
             nextCursor = result.nextCursor
             hasMore = result.hasMore
@@ -130,7 +130,7 @@ final class ExploreViewModel {
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let result = try await postRepository.fetchExplorePosts(cursor: cursor, perPage: 24)
+            let result = try await fetchExplorePostsUseCase.execute(cursor: cursor, perPage: 24)
             explorePosts.append(contentsOf: result.posts)
             nextCursor = result.nextCursor
             hasMore = result.hasMore

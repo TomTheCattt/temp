@@ -99,12 +99,20 @@ final class DirectMessagesViewModel {
 
     // MARK: - Dependencies
 
-    private let messageRepository: MessageRepositoryProtocol
+    private let fetchConversationsUseCase: FetchConversationsUseCaseProtocol
+    private let manageConversationUseCase: ManageConversationUseCaseProtocol
+    private let notesUseCase: NotesUseCaseProtocol
 
     // MARK: - Init
 
-    init(messageRepository: MessageRepositoryProtocol) {
-        self.messageRepository = messageRepository
+    init(
+        fetchConversationsUseCase: FetchConversationsUseCaseProtocol,
+        manageConversationUseCase: ManageConversationUseCaseProtocol,
+        notesUseCase: NotesUseCaseProtocol
+    ) {
+        self.fetchConversationsUseCase = fetchConversationsUseCase
+        self.manageConversationUseCase = manageConversationUseCase
+        self.notesUseCase = notesUseCase
     }
 
     // MARK: - Sync & Refresh
@@ -131,7 +139,7 @@ final class DirectMessagesViewModel {
         }
 
         do {
-            let fetched = try await messageRepository.fetchConversations(page: currentPage, perPage: perPage)
+            let fetched = try await fetchConversationsUseCase.execute(page: currentPage, perPage: perPage)
 
             await MainActor.run {
                 if currentPage == 1 {
@@ -162,7 +170,7 @@ final class DirectMessagesViewModel {
     /// Mark conversation as read
     func markAsRead(conversationId: String) async {
         do {
-            try await messageRepository.markAsRead(conversationId: conversationId)
+            try await manageConversationUseCase.markAsRead(conversationId: conversationId)
 
             await MainActor.run {
                 // Update local unread count
@@ -192,7 +200,7 @@ final class DirectMessagesViewModel {
     func deleteConversation(id: String) {
         Task {
             do {
-                try await messageRepository.deleteConversation(id: id)
+                try await manageConversationUseCase.deleteConversation(id: id)
 
                 await MainActor.run {
                     conversations.removeAll { $0.id == id }
@@ -213,7 +221,7 @@ final class DirectMessagesViewModel {
             let newMuted = !currentMuted
 
             do {
-                try await messageRepository.muteConversation(id: id, mute: newMuted)
+                try await manageConversationUseCase.muteConversation(id: id, mute: newMuted)
 
                 await MainActor.run {
                     let conv = conversations[index]
@@ -247,9 +255,9 @@ final class DirectMessagesViewModel {
             // Use markAsRead or markAsUnread based on current state
             do {
                 if newUnreadCount == 0 {
-                    try await messageRepository.markAsRead(conversationId: id)
+                    try await manageConversationUseCase.markAsRead(conversationId: id)
                 } else {
-                    try await messageRepository.markAsUnread(conversationId: id)
+                    try await manageConversationUseCase.markAsUnread(conversationId: id)
                 }
 
                 await MainActor.run {
@@ -278,7 +286,7 @@ final class DirectMessagesViewModel {
     func addOrUpdateNote(text: String) {
         Task {
             do {
-                let note = try await messageRepository.saveNote(text: text)
+                let note = try await notesUseCase.saveNote(text: text)
 
                 await MainActor.run {
                     // Update or insert the note
@@ -299,7 +307,7 @@ final class DirectMessagesViewModel {
     /// Load notes for the current user and following friends
     func loadNotes() async {
         do {
-            let fetchedNotes = try await messageRepository.fetchNotes()
+            let fetchedNotes = try await notesUseCase.fetchNotes()
 
             await MainActor.run {
                 notes = fetchedNotes

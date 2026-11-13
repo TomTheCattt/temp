@@ -21,15 +21,10 @@ final class HashtagViewModel {
 
     let hashtagName: String
 
-    // MARK: - Dependencies
-
-    private let postRepository: PostRepositoryProtocol
-
     // MARK: - Init
 
-    init(hashtagName: String, postRepository: PostRepositoryProtocol) {
+    init(hashtagName: String) {
         self.hashtagName = hashtagName
-        self.postRepository = postRepository
     }
 
     // MARK: - Actions

@@ -1,9 +1,9 @@
 //
-//  CommentsViewModel.swift
-//  Instagram
-//
-//  Created by Kiro on 28/7/26.
-//
+ //  CommentsViewModel.swift
+ //  Instagram
+ //
+ //  Created by Kiro on 28/7/26.
+ //
 
 import Foundation
 
@@ -20,8 +20,10 @@ final class CommentsViewModel {
     var isSending = false
     var errorMessage: String?
     var replyingTo: Comment?
+    var currentPage = 1
+    var hasMore = false
 
-    let postId: String
+    let contentId: String
 
     // MARK: - Dependencies
 
@@ -35,7 +37,7 @@ final class CommentsViewModel {
         fetchCommentsUseCase: FetchCommentsUseCaseProtocol,
         addCommentUseCase: AddCommentUseCaseProtocol
     ) {
-        self.postId = postId
+        self.contentId = postId
         self.fetchCommentsUseCase = fetchCommentsUseCase
         self.addCommentUseCase = addCommentUseCase
     }
@@ -43,16 +45,60 @@ final class CommentsViewModel {
     // MARK: - Actions
 
     func loadComments() async {
-        // TODO: Implement loadComments logic from scratch
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            // Detect content type from ID prefix
+            let contentType: FetchCommentsInput.ContentType = contentId.hasPrefix("reel-") ? .reel : .post
+            currentPage = 1
+            let input = FetchCommentsInput(contentId: contentId, contentType: contentType, page: currentPage, perPage: 20)
+            let output = try await fetchCommentsUseCase.execute(input)
+            comments = output.comments
+            hasMore = output.hasMore
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to load comments: \(error.localizedDescription)")
+        }
     }
 
     func loadMore() async {
-        // TODO: Implement loadMore comments logic from scratch
+        guard !isLoading, hasMore else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let contentType: FetchCommentsInput.ContentType = contentId.hasPrefix("reel-") ? .reel : .post
+            currentPage += 1
+            let input = FetchCommentsInput(contentId: contentId, contentType: contentType, page: currentPage, perPage: 20)
+            let output = try await fetchCommentsUseCase.execute(input)
+            comments.append(contentsOf: output.comments)
+            hasMore = output.hasMore
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to load more comments: \(error.localizedDescription)")
+        }
     }
 
     func addComment(text: String) async {
-        _ = text
-        // TODO: Implement addComment logic from scratch
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 2200 else { return }
+
+        isSending = true
+        defer { isSending = false }
+
+        do {
+            // Detect content type from ID prefix
+            let contentType: AddCommentInput.ContentType = contentId.hasPrefix("reel-") ? .reel : .post
+            let input = AddCommentInput(contentId: contentId, contentType: contentType, text: trimmed)
+            let newComment = try await addCommentUseCase.execute(input)
+            comments.insert(newComment, at: 0)
+        } catch {
+            errorMessage = error.localizedDescription
+            AppLogger.general.error("Failed to add comment: \(error.localizedDescription)")
+        }
     }
 
     func handleReply(to comment: Comment) {

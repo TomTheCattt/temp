@@ -8,61 +8,6 @@
 import SwiftUI
 import NukeUI
 
-// MARK: - BlockedAccountsViewModel
-
-@MainActor
-@Observable
-final class BlockedAccountsViewModel {
-
-    private(set) var users: [User] = []
-    private(set) var isLoading = false
-    private(set) var errorMessage: String?
-    private(set) var pendingUnblockIds: Set<String> = []
-
-    private let userRepository: UserRepositoryProtocol
-    private var didLoad = false
-
-    init(userRepository: UserRepositoryProtocol) {
-        self.userRepository = userRepository
-    }
-
-    func loadBlockedUsers(reset: Bool = false) async {
-        guard !isLoading else { return }
-        if didLoad && !reset { return }
-
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            users = try await userRepository.fetchBlockedUsers(page: 1, perPage: 50)
-            didLoad = true
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        isLoading = false
-    }
-
-    func unblock(_ user: User) async {
-        guard !pendingUnblockIds.contains(user.id) else { return }
-        pendingUnblockIds.insert(user.id)
-
-        // Optimistic removal.
-        let index = users.firstIndex(where: { $0.id == user.id })
-        if let index { users.remove(at: index) }
-
-        do {
-            try await userRepository.unblock(userId: user.id)
-        } catch {
-            // Revert on failure.
-            if let index { users.insert(user, at: min(index, users.count)) }
-            ToastManager.shared.error(error.userMessage)
-        }
-
-        pendingUnblockIds.remove(user.id)
-    }
-}
-
 // MARK: - BlockedAccountsView
 
 struct BlockedAccountsView: View {

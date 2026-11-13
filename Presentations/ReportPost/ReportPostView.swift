@@ -7,34 +7,38 @@
 
 import SwiftUI
 
-// MARK: - ReportReason
+// MARK: - ReportReason UI Extensions
 
-enum ReportReason: String, CaseIterable, Identifiable {
-    case spam = "It's spam"
-    case nudity = "Nudity or sexual activity"
-    case hateSpeech = "Hate speech or symbols"
-    case violence = "Violence or dangerous organizations"
-    case bullying = "Bullying or harassment"
-    case falseInfo = "False information"
-    case scam = "Scam or fraud"
-    case intellectualProperty = "Intellectual property violation"
-    case selfHarm = "Suicide or self-injury"
-    case other = "Something else"
+extension ReportReason: Identifiable {
+    public var id: String { rawValue }
 
-    var id: String { rawValue }
+    var displayTitle: String {
+        switch self {
+        case .spam: return L10n.ReportPost.reasonSpam
+        case .inappropriateContent: return L10n.ReportPost.reasonInappropriate
+        case .harassment: return L10n.ReportPost.reasonHarassment
+        case .hateSpeech: return L10n.ReportPost.reasonHateSpeech
+        case .violence: return L10n.ReportPost.reasonViolence
+        case .sexualContent: return L10n.ReportPost.reasonSexualContent
+        case .selfHarm: return L10n.ReportPost.reasonSelfHarm
+        case .fakeAccount: return L10n.ReportPost.reasonFakeAccount
+        case .intellectualProperty: return L10n.ReportPost.reasonIntellectualProperty
+        case .other: return L10n.ReportPost.reasonOther
+        }
+    }
 
     var icon: String {
         switch self {
-        case .spam:                  return "xmark.circle"
-        case .nudity:                return "eye.slash"
-        case .hateSpeech:            return "exclamationmark.bubble"
-        case .violence:              return "flame"
-        case .bullying:              return "person.2.slash"
-        case .falseInfo:             return "info.circle"
-        case .scam:                  return "creditcard.trianglebadge.exclamationmark"
-        case .selfHarm:              return "heart.slash"
-        case .intellectualProperty:  return "doc.badge.ellipsis"
-        case .other:                 return "ellipsis.circle"
+        case .spam: return "xmark.circle"
+        case .inappropriateContent: return "eye.slash"
+        case .harassment: return "person.2.slash"
+        case .hateSpeech: return "exclamationmark.bubble"
+        case .violence: return "flame"
+        case .sexualContent: return "eye.slash"
+        case .selfHarm: return "heart.slash"
+        case .fakeAccount: return "person.badge.questionmark"
+        case .intellectualProperty: return "doc.badge.ellipsis"
+        case .other: return "ellipsis.circle"
         }
     }
 }
@@ -80,7 +84,7 @@ struct ReportPostView: View {
                             InstagramIcon(.system(name: reason.icon), size: DS.Size.iconDefault, color: .primary)
                                 .frame(width: DS.Size.iconDefault)
 
-                            Text(reason.rawValue)
+                            Text(reason.displayTitle)
                                 .font(DS.Font.subheadline)
                                 .foregroundStyle(.primary)
 

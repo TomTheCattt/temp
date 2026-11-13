@@ -63,6 +63,11 @@ enum AppTab: Int, CaseIterable, Identifiable {
 
 /// All navigatable routes in the app (push navigation).
 enum AppRoute: Hashable {
+    // Auth
+    case forgotPassword
+    case verifyEmail(token: String? = nil)
+    case resetPassword(token: String)
+
     // Profile
     case userProfile(userId: String)
     case followers(userId: String)
@@ -78,6 +83,7 @@ enum AppRoute: Hashable {
     case termsOfService
     case privacyPolicy
     case openSourceLicenses
+    case notificationPreferences
 
     // Feed / Post
     case postDetail(postId: String)
@@ -89,11 +95,22 @@ enum AppRoute: Hashable {
     case directMessages
     case conversation(conversationId: String, recipient: User? = nil)
     case conversationDetails(conversationId: String, recipient: User? = nil)
+    case groupChatCreate
+    case groupChatDetails(conversationId: String)
 
     // Explore
     case searchResults(query: String)
     case hashtag(name: String)
     case location(name: String)
+
+    // Stories
+    case storyReplies(storyId: String)
+
+    // Reels
+    case reelDetail(reelId: String)
+
+    // Calls
+    case callHistory
 }
 
 // MARK: - AppSheet

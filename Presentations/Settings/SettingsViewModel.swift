@@ -34,8 +34,8 @@ final class SettingsViewModel {
 
     // MARK: - Dependencies
 
-    private let authRepository: AuthRepositoryProtocol
-    private let userRepository: UserRepositoryProtocol
+    private let logoutUseCase: LogoutUseCaseProtocol
+    private let userSettingsUseCase: UserSettingsUseCaseProtocol
     private let biometricAuthUseCase: BiometricAuthUseCaseProtocol
     private let keychainManager: KeychainManagerProtocol
     private let webSocketConnectionManager: WebSocketConnectionManagerProtocol
@@ -43,14 +43,14 @@ final class SettingsViewModel {
     // MARK: - Init
 
     init(
-        authRepository: AuthRepositoryProtocol,
-        userRepository: UserRepositoryProtocol,
+        logoutUseCase: LogoutUseCaseProtocol,
+        userSettingsUseCase: UserSettingsUseCaseProtocol,
         biometricAuthUseCase: BiometricAuthUseCaseProtocol,
         keychainManager: KeychainManagerProtocol,
         webSocketConnectionManager: WebSocketConnectionManagerProtocol
     ) {
-        self.authRepository = authRepository
-        self.userRepository = userRepository
+        self.logoutUseCase = logoutUseCase
+        self.userSettingsUseCase = userSettingsUseCase
         self.biometricAuthUseCase = biometricAuthUseCase
         self.keychainManager = keychainManager
         self.webSocketConnectionManager = webSocketConnectionManager
@@ -69,8 +69,7 @@ final class SettingsViewModel {
 
     func logout() async {
         isLoggingOut = true
-        // TODO: Implement logout logic from scratch
-        try? await authRepository.logout()
+        try? await logoutUseCase.execute()
         SessionStore.shared.clear()
         AppRouter.shared.isAuthenticated = false
         AppRouter.shared.reset()
@@ -92,7 +91,7 @@ final class SettingsViewModel {
         // Sync with backend
         do {
             let patch = UserSettingsPatch(language: nil, biometricEnabled: enabled, pushEnabled: nil, darkMode: nil)
-            _ = try await userRepository.updateSettings(patch)
+            _ = try await userSettingsUseCase.updateSettings(patch)
         } catch {
             // Revert on failure
             isBiometricEnabled = !enabled

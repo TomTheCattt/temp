@@ -12,9 +12,7 @@ import NukeUI
 
 struct DirectMessagesView: View {
 
-    @State private var viewModel = DirectMessagesViewModel(
-        messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
-    )
+    @State private var viewModel = DIContainer.shared.resolve(DirectMessagesViewModel.self)
 
     @State private var isScrolled: Bool = false
     @State private var showNotePrompt: Bool = false

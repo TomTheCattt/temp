@@ -86,7 +86,6 @@ final class StoryCameraViewModel {
 
     // MARK: - Dependencies
 
-    private let storyRepository: StoryRepositoryProtocol
     let cameraService: CameraService = .shared
     private let photoLibraryService: PhotoLibraryServiceProtocol = PhotoLibraryService.shared
 
@@ -96,9 +95,7 @@ final class StoryCameraViewModel {
 
     // MARK: - Init
 
-    init(storyRepository: StoryRepositoryProtocol) {
-        self.storyRepository = storyRepository
-    }
+    init() {}
 
     // MARK: - Permissions
 

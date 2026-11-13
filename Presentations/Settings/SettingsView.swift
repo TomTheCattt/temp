@@ -130,6 +130,10 @@ struct SettingsView: View {
                         Task { await viewModel.persistSettings() }
                     }
             }
+
+            NavigationLink(value: AppRoute.notificationPreferences) {
+                Label(L10n.NotificationPreferences.title, systemImage: "slider.horizontal.3")
+            }
         }
     }
 

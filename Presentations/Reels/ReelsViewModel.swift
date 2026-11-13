@@ -42,7 +42,7 @@ final class ReelsViewModel {
     private let fetchReelsUseCase: FetchReelsUseCaseProtocol
     private let toggleLikeReelUseCase: ToggleLikeReelUseCaseProtocol
     private let toggleFollowUseCase: ToggleFollowUseCaseProtocol
-    private let reelRepository: ReelRepositoryProtocol
+    private let toggleSaveReelUseCase: ToggleSaveReelUseCaseProtocol
 
     // MARK: - Init
 
@@ -50,12 +50,12 @@ final class ReelsViewModel {
         fetchReelsUseCase: FetchReelsUseCaseProtocol,
         toggleLikeReelUseCase: ToggleLikeReelUseCaseProtocol,
         toggleFollowUseCase: ToggleFollowUseCaseProtocol,
-        reelRepository: ReelRepositoryProtocol
+        toggleSaveReelUseCase: ToggleSaveReelUseCaseProtocol
     ) {
         self.fetchReelsUseCase = fetchReelsUseCase
         self.toggleLikeReelUseCase = toggleLikeReelUseCase
         self.toggleFollowUseCase = toggleFollowUseCase
-        self.reelRepository = reelRepository
+        self.toggleSaveReelUseCase = toggleSaveReelUseCase
     }
 
     // MARK: - Actions
@@ -122,11 +122,7 @@ final class ReelsViewModel {
 
     func toggleSave(for reel: Reel) async {
         do {
-            if reel.isSaved {
-                try await reelRepository.unsaveReel(id: reel.id)
-            } else {
-                try await reelRepository.saveReel(id: reel.id)
-            }
+            try await toggleSaveReelUseCase.execute(reelId: reel.id, shouldSave: !reel.isSaved)
             // Update local state optimistically using helper method
             if let index = reels.firstIndex(where: { $0.id == reel.id }) {
                 reels[index] = reels[index].togglingSave()

@@ -1,9 +1,9 @@
 //
-//  PostDetailViewModel.swift
-//  Instagram
-//
-//  Created by Kiro on 28/7/26.
-//
+ //  PostDetailViewModel.swift
+ //  Instagram
+ //
+ //  Created by Kiro on 28/7/26.
+ //
 
 import Foundation
 
@@ -20,6 +20,8 @@ final class PostDetailViewModel {
     var isLoading = false
     var isLoadingComments = false
     var errorMessage: String?
+    var currentCommentPage = 1
+    var hasMoreComments = false
 
     let postId: String
 
@@ -71,10 +73,32 @@ final class PostDetailViewModel {
         defer { isLoadingComments = false }
 
         do {
-            let input = FetchCommentsInput(postId: postId, page: 1, perPage: 20)
-            comments = try await fetchCommentsUseCase.execute(input)
+            // Detect content type from ID prefix
+            let contentType: FetchCommentsInput.ContentType = postId.hasPrefix("reel-") ? .reel : .post
+            currentCommentPage = 1
+            let input = FetchCommentsInput(contentId: postId, contentType: contentType, page: currentCommentPage, perPage: 20)
+            let output = try await fetchCommentsUseCase.execute(input)
+            comments = output.comments
+            hasMoreComments = output.hasMore
         } catch {
             AppLogger.general.error("Failed to load comments: \(error.localizedDescription)")
+        }
+    }
+
+    func loadMoreComments() async {
+        guard !isLoadingComments, hasMoreComments else { return }
+        isLoadingComments = true
+        defer { isLoadingComments = false }
+
+        do {
+            let contentType: FetchCommentsInput.ContentType = postId.hasPrefix("reel-") ? .reel : .post
+            currentCommentPage += 1
+            let input = FetchCommentsInput(contentId: postId, contentType: contentType, page: currentCommentPage, perPage: 20)
+            let output = try await fetchCommentsUseCase.execute(input)
+            comments.append(contentsOf: output.comments)
+            hasMoreComments = output.hasMore
+        } catch {
+            AppLogger.general.error("Failed to load more comments: \(error.localizedDescription)")
         }
     }
 
@@ -95,7 +119,9 @@ final class PostDetailViewModel {
         guard !trimmed.isEmpty, trimmed.count <= 2200 else { return }
 
         do {
-            let input = AddCommentInput(postId: postId, text: trimmed)
+            // Detect content type from ID prefix
+            let contentType: AddCommentInput.ContentType = postId.hasPrefix("reel-") ? .reel : .post
+            let input = AddCommentInput(contentId: postId, contentType: contentType, text: trimmed)
             let newComment = try await addCommentUseCase.execute(input)
             // Update local state optimistically
             comments.insert(newComment, at: 0)

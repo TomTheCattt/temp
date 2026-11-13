@@ -13,6 +13,7 @@ import Pow
 struct LoginView: View {
 
     @State private var viewModel: AuthViewModel
+    @State private var router = AppRouter.shared
 
     init(viewModel: AuthViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -51,7 +52,7 @@ struct LoginView: View {
                 // MARK: Forgot Password
                 if viewModel.isLoginMode {
                     Button {
-                        // TODO: Forgot password action
+                        router.push(.forgotPassword)
                     } label: {
                         Text(L10n.Auth.forgotPassword)
                             .font(DS.Font.headline)

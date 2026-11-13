@@ -194,7 +194,6 @@ struct MainTabView: View {
             LikesListView(
                 viewModel: LikesListViewModel(
                     postId: postId,
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self),
                     toggleFollowUseCase: DIContainer.shared.resolve(ToggleFollowUseCaseProtocol.self)
                 )
             )
@@ -213,7 +212,7 @@ struct MainTabView: View {
                     recipient: recipient,
                     fetchMessagesUseCase: DIContainer.shared.resolve(FetchMessagesUseCaseProtocol.self),
                     sendMessageUseCase: DIContainer.shared.resolve(SendMessageUseCaseProtocol.self),
-                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self),
+                    manageMessageUseCase: DIContainer.shared.resolve(ManageMessageUseCaseProtocol.self),
                     chatSyncService: DIContainer.shared.resolve(ChatSyncService.self)
                 )
             )
@@ -225,47 +224,34 @@ struct MainTabView: View {
             SearchResultsView(
                 viewModel: SearchResultsViewModel(
                     query: query,
-                    searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self),
-                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
+                    searchUsersUseCase: DIContainer.shared.resolve(SearchUsersUseCaseProtocol.self)
                 )
             )
 
         case .hashtag(let name):
             HashtagView(
-                viewModel: HashtagViewModel(
-                    hashtagName: name,
-                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
-                )
+                viewModel: HashtagViewModel(hashtagName: name)
             )
 
         case .location(let name):
             LocationView(
-                viewModel: LocationViewModel(
-                    locationName: name,
-                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
-                )
+                viewModel: LocationViewModel(locationName: name)
             )
 
         // Settings Sub-screens
         case .savedPosts:
             SavedPostsView(
-                viewModel: SavedPostsViewModel(
-                    postRepository: DIContainer.shared.resolve(PostRepositoryProtocol.self)
-                )
+                viewModel: DIContainer.shared.resolve(SavedPostsViewModel.self)
             )
 
         case .closeFriends:
             CloseFriendsView(
-                viewModel: CloseFriendsViewModel(
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
-                )
+                viewModel: DIContainer.shared.resolve(CloseFriendsViewModel.self)
             )
 
         case .blockedAccounts:
             BlockedAccountsView(
-                viewModel: BlockedAccountsViewModel(
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
-                )
+                viewModel: DIContainer.shared.resolve(BlockedAccountsViewModel.self)
             )
 
         case .changePassword:
@@ -282,6 +268,54 @@ struct MainTabView: View {
 
         case .openSourceLicenses:
             OpenSourceLicensesView()
+
+        // Auth
+        case .forgotPassword:
+            ForgotPasswordView(
+                viewModel: ForgotPasswordViewModel(
+                    forgotPasswordUseCase: DIContainer.shared.resolve(ForgotPasswordUseCaseProtocol.self)
+                )
+            )
+
+        case .verifyEmail(let token):
+            VerifyEmailView(
+                viewModel: VerifyEmailViewModel(
+                    verifyEmailUseCase: DIContainer.shared.resolve(VerifyEmailUseCaseProtocol.self),
+                    resendVerificationUseCase: DIContainer.shared.resolve(ResendVerificationUseCaseProtocol.self),
+                    token: token
+                )
+            )
+
+        case .resetPassword(let token):
+            ResetPasswordView(
+                viewModel: ResetPasswordViewModel(
+                    resetPasswordUseCase: DIContainer.shared.resolve(ResetPasswordUseCaseProtocol.self),
+                    token: token
+                )
+            )
+
+        // Settings Sub-screens
+        case .notificationPreferences:
+            NotificationPreferencesView()
+
+        // Stories
+        case .storyReplies(let storyId):
+            StoryRepliesView(storyId: storyId)
+
+        // Reels
+        case .reelDetail(let reelId):
+            ReelDetailView(reelId: reelId)
+
+        // Calls
+        case .callHistory:
+            CallHistoryView()
+
+        // Groups
+        case .groupChatCreate:
+            GroupChatCreateView()
+
+        case .groupChatDetails(let conversationId):
+            GroupChatDetailsView(conversationId: conversationId)
         }
     }
     .toolbar(.hidden, for: .tabBar)
@@ -306,18 +340,15 @@ struct MainTabView: View {
 
         case .editProfile:
             EditProfileView(
-                viewModel: EditProfileViewModel(
-                    updateProfileUseCase: DIContainer.shared.resolve(UpdateProfileUseCaseProtocol.self),
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self)
-                )
+                viewModel: DIContainer.shared.resolve(EditProfileViewModel.self)
             )
 
         case .sharePost(let postId):
             SharePostView(
                 viewModel: SharePostViewModel(
                     postId: postId,
-                    userRepository: DIContainer.shared.resolve(UserRepositoryProtocol.self),
-                    messageRepository: DIContainer.shared.resolve(MessageRepositoryProtocol.self)
+                    fetchSuggestedUsersUseCase: DIContainer.shared.resolve(FetchSuggestedUsersUseCaseProtocol.self),
+                    manageConversationUseCase: DIContainer.shared.resolve(ManageConversationUseCaseProtocol.self)
                 )
             )
 
@@ -360,9 +391,7 @@ struct MainTabView: View {
         switch fullScreen {
         case .camera:
             StoryCameraView(
-                viewModel: StoryCameraViewModel(
-                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
-                )
+                viewModel: StoryCameraViewModel()
             )
 
         case .mediaViewer(let url):
@@ -373,9 +402,7 @@ struct MainTabView: View {
 
         case .storyCamera:
             StoryCameraView(
-                viewModel: StoryCameraViewModel(
-                    storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
-                )
+                viewModel: StoryCameraViewModel()
             )
 
         case .storyViewer(let userId):
@@ -423,8 +450,8 @@ struct MainTabView: View {
     // MARK: - Badge Sync
 
     private func loadInitialUnreadBadge() async {
-        let repo = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
-        if let count = try? await repo.getUnreadConversationsCount() {
+        let chatUseCase = DIContainer.shared.resolve(FetchUnreadChatCountUseCaseProtocol.self)
+        if let count = try? await chatUseCase.execute() {
             await MainActor.run {
                 appState.setUnreadChatCount(count)
                 #if !targetEnvironment(simulator)

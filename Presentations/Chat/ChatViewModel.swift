@@ -22,7 +22,7 @@ final class ChatViewModel {
     var isSending = false
     var errorMessage: String?
 
-    var currentPage = 1
+    var currentCursor: String?
     var hasMorePages = false
 
     var recipient: User?
@@ -45,7 +45,7 @@ final class ChatViewModel {
 
     private let fetchMessagesUseCase: FetchMessagesUseCaseProtocol
     private let sendMessageUseCase: SendMessageUseCaseProtocol
-    private let messageRepository: MessageRepositoryProtocol
+    private let manageMessageUseCase: ManageMessageUseCaseProtocol
     private let chatSyncService: ChatSyncService
 
     // MARK: - Private State
@@ -62,7 +62,7 @@ final class ChatViewModel {
         recipient: User? = nil,
         fetchMessagesUseCase: FetchMessagesUseCaseProtocol,
         sendMessageUseCase: SendMessageUseCaseProtocol,
-        messageRepository: MessageRepositoryProtocol,
+        manageMessageUseCase: ManageMessageUseCaseProtocol,
         chatSyncService: ChatSyncService
     ) {
         self.conversationId = conversationId
@@ -70,7 +70,7 @@ final class ChatViewModel {
         self.recipient = recipient
         self.fetchMessagesUseCase = fetchMessagesUseCase
         self.sendMessageUseCase = sendMessageUseCase
-        self.messageRepository = messageRepository
+        self.manageMessageUseCase = manageMessageUseCase
         self.chatSyncService = chatSyncService
 
         // Set up offline message queue send handler
@@ -189,21 +189,22 @@ final class ChatViewModel {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
-        currentPage = 1
+        currentCursor = nil
 
         Task {
             do {
-                let input = FetchMessagesInput(conversationId: conversationId, page: 1, perPage: 30)
-                let fetchedMessages = try await fetchMessagesUseCase.execute(input)
+                let input = FetchMessagesInput(conversationId: conversationId, cursor: nil, perPage: 30)
+                let output = try await fetchMessagesUseCase.execute(input)
 
                 await MainActor.run {
                     // Deduplicate with any pending optimistic messages
-                    self.messages = self.mergeMessages(existing: self.messages, new: fetchedMessages)
-                    self.hasMorePages = fetchedMessages.count >= 30
+                    self.messages = self.mergeMessages(existing: self.messages, new: output.messages)
+                    self.currentCursor = output.nextCursor
+                    self.hasMorePages = output.hasMore
                     self.isLoading = false
                 }
                 // Preload media for loaded messages
-                preloadMedia(for: fetchedMessages)
+                preloadMedia(for: output.messages)
             } catch {
                 await MainActor.run {
                     self.errorMessage = error.userMessage
@@ -214,27 +215,26 @@ final class ChatViewModel {
     }
 
     func loadMoreMessages() {
-        guard !isLoadingMore && hasMorePages else { return }
+        guard !isLoadingMore && hasMorePages, let cursor = currentCursor else { return }
         loadMoreTask?.cancel()
 
         loadMoreTask = Task {
             await MainActor.run { self.isLoadingMore = true }
 
             do {
-                let nextPage = currentPage + 1
-                let input = FetchMessagesInput(conversationId: conversationId, page: nextPage, perPage: 30)
-                let fetchedMessages = try await fetchMessagesUseCase.execute(input)
+                let input = FetchMessagesInput(conversationId: conversationId, cursor: cursor, perPage: 30)
+                let output = try await fetchMessagesUseCase.execute(input)
 
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
                     // Prepend older messages
-                    self.messages = self.mergeMessages(existing: fetchedMessages, new: self.messages)
-                    self.currentPage = nextPage
-                    self.hasMorePages = fetchedMessages.count >= 30
+                    self.messages = self.mergeMessages(existing: output.messages, new: self.messages)
+                    self.currentCursor = output.nextCursor
+                    self.hasMorePages = output.hasMore
                     self.isLoadingMore = false
                 }
                 // Preload media for loaded messages
-                preloadMedia(for: fetchedMessages)
+                preloadMedia(for: output.messages)
             } catch {
                 await MainActor.run {
                     self.isLoadingMore = false
@@ -391,7 +391,7 @@ final class ChatViewModel {
 
         Task {
             do {
-                try await messageRepository.addReaction(messageId: messageId, emoji: emoji)
+                try await manageMessageUseCase.addReaction(messageId: messageId, emoji: emoji)
             } catch {
                 // Rollback on failure
                 await MainActor.run {
@@ -423,7 +423,7 @@ final class ChatViewModel {
 
         Task {
             do {
-                try await messageRepository.deleteMessage(id: id)
+                try await manageMessageUseCase.deleteMessage(id: id)
             } catch {
                 // Rollback - reinsert message
                 await MainActor.run {
@@ -884,7 +884,7 @@ final class ChatViewModel {
     func markAsRead() {
         Task {
             do {
-                try await messageRepository.markAsRead(conversationId: conversationId)
+                try await manageMessageUseCase.markAsRead(conversationId: conversationId)
             } catch {
                 // Silently fail - not critical
             }

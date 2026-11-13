@@ -38,16 +38,13 @@ final class EditProfileViewModel {
     // MARK: - Dependencies
 
     private let updateProfileUseCase: UpdateProfileUseCaseProtocol
-    private let userRepository: UserRepositoryProtocol
 
     // MARK: - Init
 
     init(
-        updateProfileUseCase: UpdateProfileUseCaseProtocol,
-        userRepository: UserRepositoryProtocol
+        updateProfileUseCase: UpdateProfileUseCaseProtocol
     ) {
         self.updateProfileUseCase = updateProfileUseCase
-        self.userRepository = userRepository
 
         if let currentUser = SessionStore.shared.currentUser {
             name = currentUser.fullName

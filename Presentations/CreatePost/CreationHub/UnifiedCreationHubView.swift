@@ -26,12 +26,8 @@ struct UnifiedCreationHubView: View {
         _postViewModel = State(initialValue: CreatePostViewModel(
             createPostUseCase: DIContainer.shared.resolve(CreatePostUseCaseProtocol.self)
         ))
-        _storyViewModel = State(initialValue: StoryCameraViewModel(
-            storyRepository: DIContainer.shared.resolve(StoryRepositoryProtocol.self)
-        ))
-        _reelViewModel = State(initialValue: CreateReelViewModel(
-            reelRepository: DIContainer.shared.resolve(ReelRepositoryProtocol.self)
-        ))
+        _storyViewModel = State(initialValue: StoryCameraViewModel())
+        _reelViewModel = State(initialValue: CreateReelViewModel())
     }
 
     private var shouldShowModeSwitcher: Bool {

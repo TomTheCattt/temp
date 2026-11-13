@@ -20,15 +20,10 @@ final class LocationViewModel {
 
     let locationName: String
 
-    // MARK: - Dependencies
-
-    private let postRepository: PostRepositoryProtocol
-
     // MARK: - Init
 
-    init(locationName: String, postRepository: PostRepositoryProtocol) {
+    init(locationName: String) {
         self.locationName = locationName
-        self.postRepository = postRepository
     }
 
     // MARK: - Actions

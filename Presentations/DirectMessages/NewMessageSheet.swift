@@ -19,8 +19,8 @@ struct NewMessageSheet: View {
     @State private var suggestedUsers: [User] = []
     @State private var isCreating = false
 
-    private let messageRepository: MessageRepositoryProtocol = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
-    private let userRepository: UserRepositoryProtocol = DIContainer.shared.resolve(UserRepositoryProtocol.self)
+    private let manageConversationUseCase: ManageConversationUseCaseProtocol = DIContainer.shared.resolve(ManageConversationUseCaseProtocol.self)
+    private let fetchSuggestedUsersUseCase: FetchSuggestedUsersUseCaseProtocol = DIContainer.shared.resolve(FetchSuggestedUsersUseCaseProtocol.self)
 
     var body: some View {
         NavigationStack {
@@ -202,7 +202,7 @@ struct NewMessageSheet: View {
 
     private func loadSuggestedUsers() {
         Task {
-            if let users = try? await userRepository.fetchSuggested(page: 1, perPage: 20) {
+            if let users = try? await fetchSuggestedUsersUseCase.execute(page: 1, perPage: 20) {
                 await MainActor.run {
                     self.suggestedUsers = users.filter { $0.id != SessionStore.shared.currentUserId }
                 }
@@ -218,7 +218,7 @@ struct NewMessageSheet: View {
         let firstUser = selectedUsers.first
 
         do {
-            let conv = try await messageRepository.createConversation(participantIds: userIds)
+            let conv = try await manageConversationUseCase.createConversation(participantIds: userIds, groupName: nil, groupAvatar: nil)
             dismiss()
             // Small delay for sheet dismiss animation
             try? await Task.sleep(nanoseconds: 300_000_000)

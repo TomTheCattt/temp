@@ -149,16 +149,13 @@ final class CreateReelViewModel {
 
     // MARK: - Dependencies
 
-    private let reelRepository: ReelRepositoryProtocol
     private let photoLibraryService: PhotoLibraryServiceProtocol
 
     // MARK: - Init
 
     init(
-        reelRepository: ReelRepositoryProtocol,
         photoLibraryService: PhotoLibraryServiceProtocol? = nil
     ) {
-        self.reelRepository = reelRepository
         self.photoLibraryService = photoLibraryService ?? DIContainer.shared.resolve(PhotoLibraryServiceProtocol.self)
     }
 
