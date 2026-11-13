@@ -42,6 +42,7 @@ enum L10n {
         static let sharedContent = String(localized: "common.sharedContent")
         static let yes = String(localized: "common.yes")
         static let no = String(localized: "common.no")
+        static let seeAll = String(localized: "common.seeAll")
 
         /// Formatted "X likes" label (reused app-wide).
         static func likesCount(_ count: Int) -> String {
@@ -187,6 +188,11 @@ enum L10n {
         static let taggedInPost = String(localized: "notifications.taggedInPost")
         static let mentionedInStory = String(localized: "notifications.mentionedInStory")
         static let liveVideo = String(localized: "notifications.liveVideo")
+        static let newMessage = String(localized: "notifications.newMessage", defaultValue: "New message")
+        static let call = String(localized: "notifications.call", defaultValue: "Call")
+        static let live = String(localized: "notifications.live", defaultValue: "Live")
+        static let newReel = String(localized: "notifications.newReel", defaultValue: "New Reel")
+        static let newStory = String(localized: "notifications.newStory", defaultValue: "New Story")
 
         static func commented(_ text: String) -> String {
             String(format: String(localized: "notifications.commented"), text)
@@ -477,6 +483,16 @@ enum L10n {
         static let question = String(localized: "reportPost.question")
         static let submittedTitle = String(localized: "reportPost.submittedTitle")
         static let submittedMessage = String(localized: "reportPost.submittedMessage")
+        static let reasonSpam = String(localized: "reportPost.reasonSpam")
+        static let reasonInappropriate = String(localized: "reportPost.reasonInappropriate")
+        static let reasonHarassment = String(localized: "reportPost.reasonHarassment")
+        static let reasonHateSpeech = String(localized: "reportPost.reasonHateSpeech")
+        static let reasonViolence = String(localized: "reportPost.reasonViolence")
+        static let reasonSexualContent = String(localized: "reportPost.reasonSexualContent")
+        static let reasonSelfHarm = String(localized: "reportPost.reasonSelfHarm")
+        static let reasonFakeAccount = String(localized: "reportPost.reasonFakeAccount")
+        static let reasonIntellectualProperty = String(localized: "reportPost.reasonIntellectualProperty")
+        static let reasonOther = String(localized: "reportPost.reasonOther")
     }
 
     // MARK: - Call
@@ -509,5 +525,143 @@ enum L10n {
         static let alreadyInCall = String(localized: "call.alreadyInCall", defaultValue: "Bạn đang trong một cuộc gọi khác")
         static let incomingVideoCall = String(localized: "call.incomingVideoCall", defaultValue: "Cuộc gọi video đến...")
         static let incomingAudioCall = String(localized: "call.incomingAudioCall", defaultValue: "Cuộc gọi thoại đến...")
+    }
+
+    // MARK: - Forgot Password
+
+    enum ForgotPassword {
+        static let title = String(localized: "forgotPassword.title", defaultValue: "Quên mật khẩu")
+        static let description = String(localized: "forgotPassword.description", defaultValue: "Nhập email của bạn để nhận liên kết đặt lại mật khẩu.")
+        static let emailPlaceholder = String(localized: "forgotPassword.emailPlaceholder", defaultValue: "Email")
+        static let sendButton = String(localized: "forgotPassword.sendButton", defaultValue: "Gửi liên kết")
+        static let backToLogin = String(localized: "forgotPassword.backToLogin", defaultValue: "Quay lại đăng nhập")
+        static let navTitle = String(localized: "forgotPassword.navTitle", defaultValue: "Quên mật khẩu")
+        static let successTitle = String(localized: "forgotPassword.successTitle", defaultValue: "Đã gửi email")
+        static let successMessage = String(localized: "forgotPassword.successMessage", defaultValue: "Chúng tôi đã gửi liên kết đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư.")
+    }
+
+    // MARK: - Verify Email
+
+    enum VerifyEmail {
+        static let title = String(localized: "verifyEmail.title", defaultValue: "Xác minh email")
+        static let description = String(localized: "verifyEmail.description", defaultValue: "Nhập mã xác minh đã gửi đến email của bạn.")
+        static let tokenPlaceholder = String(localized: "verifyEmail.tokenPlaceholder", defaultValue: "Mã xác minh")
+        static let verifyButton = String(localized: "verifyEmail.verifyButton", defaultValue: "Xác minh")
+        static let submitButton = String(localized: "verifyEmail.submitButton", defaultValue: "Gửi")
+        static let backToLogin = String(localized: "verifyEmail.backToLogin", defaultValue: "Quay lại đăng nhập")
+        static let navTitle = String(localized: "verifyEmail.navTitle", defaultValue: "Xác minh email")
+        static let didNotReceive = String(localized: "verifyEmail.didNotReceive", defaultValue: "Không nhận được email?")
+        static let resendButton = String(localized: "verifyEmail.resendButton", defaultValue: "Gửi lại")
+        static let resentSuccess = String(localized: "verifyEmail.resentSuccess", defaultValue: "Đã gửi lại email xác minh")
+        static let successTitle = String(localized: "verifyEmail.successTitle", defaultValue: "Email đã được xác minh")
+        static let successMessage = String(localized: "verifyEmail.successMessage", defaultValue: "Tài khoản của bạn đã được xác minh thành công.")
+        static let invalidToken = String(localized: "verifyEmail.invalidToken", defaultValue: "Mã xác minh không hợp lệ")
+    }
+
+    // MARK: - Reset Password
+
+    enum ResetPassword {
+        static let title = String(localized: "resetPassword.title", defaultValue: "Đặt lại mật khẩu")
+        static let description = String(localized: "resetPassword.description", defaultValue: "Nhập mật khẩu mới cho tài khoản của bạn.")
+        static let newPasswordPlaceholder = String(localized: "resetPassword.newPasswordPlaceholder", defaultValue: "Mật khẩu mới")
+        static let confirmPasswordPlaceholder = String(localized: "resetPassword.confirmPasswordPlaceholder", defaultValue: "Xác nhận mật khẩu")
+        static let resetButton = String(localized: "resetPassword.resetButton", defaultValue: "Đặt lại")
+        static let backToLogin = String(localized: "resetPassword.backToLogin", defaultValue: "Quay lại đăng nhập")
+        static let navTitle = String(localized: "resetPassword.navTitle", defaultValue: "Đặt lại mật khẩu")
+        static let successTitle = String(localized: "resetPassword.successTitle", defaultValue: "Mật khẩu đã được đặt lại")
+        static let successMessage = String(localized: "resetPassword.successMessage", defaultValue: "Mật khẩu của bạn đã được cập nhật thành công.")
+    }
+
+    // MARK: - Notification Preferences
+
+    enum NotificationPreferences {
+        static let title = String(localized: "notificationPreferences.title", defaultValue: "Cài đặt thông báo")
+        static let whatYouSee = String(localized: "notificationPreferences.whatYouSee", defaultValue: "Những gì bạn thấy")
+        static let interactions = String(localized: "notificationPreferences.interactions", defaultValue: "Tương tác")
+        static let messagesCalls = String(localized: "notificationPreferences.messagesCalls", defaultValue: "Tin nhắn và cuộc gọi")
+        static let liveIGTV = String(localized: "notificationPreferences.liveIGTV", defaultValue: "Trực tiếp & IGTV")
+        static let other = String(localized: "notificationPreferences.other", defaultValue: "Khác")
+        static let deliveryMethods = String(localized: "notificationPreferences.deliveryMethods", defaultValue: "Phương thức gửi")
+        static let emailSMSTitle = String(localized: "notificationPreferences.emailSMSTitle", defaultValue: "Email & SMS")
+        static let pushTitle = String(localized: "notificationPreferences.pushTitle", defaultValue: "Thông báo đẩy")
+        static let emailSettings = String(localized: "notificationPreferences.emailSettings", defaultValue: "Cài đặt Email")
+        static let smsSettings = String(localized: "notificationPreferences.smsSettings", defaultValue: "Cài đặt SMS")
+        static let pushSettings = String(localized: "notificationPreferences.pushSettings", defaultValue: "Cài đặt Push")
+        static let pushCategories = String(localized: "notificationPreferences.pushCategories", defaultValue: "Danh mục Push")
+        static let pushEnabled = String(localized: "notificationPreferences.pushEnabled", defaultValue: "Bật thông báo đẩy")
+        static let pushEnabledSubtitle = String(localized: "notificationPreferences.pushEnabledSubtitle", defaultValue: "Nhận thông báo trên thiết bị")
+        static let emailNotifications = String(localized: "notificationPreferences.emailNotifications", defaultValue: "Thông báo qua Email")
+        static let pushNotifications = String(localized: "notificationPreferences.pushNotifications", defaultValue: "Thông báo đẩy")
+        static let frequency = String(localized: "notificationPreferences.frequency", defaultValue: "Tần suất")
+    }
+
+    // MARK: - Story Replies
+
+    enum StoryReplies {
+        static let title = String(localized: "storyReplies.title", defaultValue: "Phản hồi")
+        static let emptyTitle = String(localized: "storyReplies.emptyTitle", defaultValue: "Chưa có phản hồi")
+        static let emptyMessage = String(localized: "storyReplies.emptyMessage", defaultValue: "Khi có người phản hồi tin của bạn, sẽ hiển thị ở đây.")
+        static let replyPlaceholder = String(localized: "storyReplies.replyPlaceholder", defaultValue: "Gửi tin nhắn...")
+        static let deleteAll = String(localized: "storyReplies.deleteAll", defaultValue: "Xóa tất cả")
+        static let turnOffReplies = String(localized: "storyReplies.turnOffReplies", defaultValue: "Tắt phản hồi")
+        static let turnOnReplies = String(localized: "storyReplies.turnOnReplies", defaultValue: "Bật phản hồi")
+    }
+
+    // MARK: - Reel Detail
+
+    enum ReelDetail {
+        static let title = String(localized: "reelDetail.title", defaultValue: "Thước phim")
+        static let delete = String(localized: "reelDetail.delete", defaultValue: "Xóa")
+    }
+
+    // MARK: - Call History
+
+    enum CallHistory {
+        static let title = String(localized: "callHistory.title", defaultValue: "Lịch sử cuộc gọi")
+        static let emptyTitle = String(localized: "callHistory.emptyTitle", defaultValue: "Chưa có cuộc gọi")
+        static let emptyMessage = String(localized: "callHistory.emptyMessage", defaultValue: "Các cuộc gọi video và thoại sẽ hiển thị ở đây.")
+        static let missed = String(localized: "callHistory.missed", defaultValue: "Nhỡ")
+        static let completed = String(localized: "callHistory.completed", defaultValue: "Đã kết thúc")
+        static let details = String(localized: "callHistory.details", defaultValue: "Chi tiết")
+        static let callType = String(localized: "callHistory.callType", defaultValue: "Loại cuộc gọi")
+        static let direction = String(localized: "callHistory.direction", defaultValue: "Hướng")
+        static let date = String(localized: "callHistory.date", defaultValue: "Ngày giờ")
+        static let duration = String(localized: "callHistory.duration", defaultValue: "Thời lượng")
+        static let status = String(localized: "callHistory.status", defaultValue: "Trạng thái")
+        static let clearAll = String(localized: "callHistory.clearAll", defaultValue: "Xóa tất cả")
+        static let detailTitle = String(localized: "callHistory.detailTitle", defaultValue: "Chi tiết cuộc gọi")
+        static let videoCall = String(localized: "callHistory.videoCall", defaultValue: "Gọi video")
+        static let audioCall = String(localized: "callHistory.audioCall", defaultValue: "Gọi thoại")
+    }
+
+    // MARK: - Group Chat
+
+    enum GroupChat {
+        static let createTitle = String(localized: "groupChat.createTitle", defaultValue: "Tạo nhóm")
+        static let detailsTitle = String(localized: "groupChat.detailsTitle", defaultValue: "Chi tiết nhóm")
+        static let searchPlaceholder = String(localized: "groupChat.searchPlaceholder", defaultValue: "Tìm kiếm người dùng")
+        static let suggested = String(localized: "groupChat.suggested", defaultValue: "Đề xuất")
+        static let allUsers = String(localized: "groupChat.allUsers", defaultValue: "Tất cả người dùng")
+        static let selectedUsers = String(localized: "groupChat.selectedUsers", defaultValue: "Đã chọn")
+        static let noResults = String(localized: "groupChat.noResults", defaultValue: "Không tìm thấy người dùng")
+        static let noResultsMessage = String(localized: "groupChat.noResultsMessage", defaultValue: "Thử tìm kiếm với tên khác.")
+        static let memberCount = String(localized: "groupChat.memberCount", defaultValue: "{0} thành viên")
+        static let members = String(localized: "groupChat.members", defaultValue: "Thành viên")
+        static let admin = String(localized: "groupChat.admin", defaultValue: "Quản trị viên")
+        static let mediaLinks = String(localized: "groupChat.mediaLinks", defaultValue: "File phương tiện & liên kết")
+        static let editGroupName = String(localized: "groupChat.editGroupName", defaultValue: "Sửa tên nhóm")
+        static let changeGroupPhoto = String(localized: "groupChat.changeGroupPhoto", defaultValue: "Đổi ảnh nhóm")
+        static let viewMembers = String(localized: "groupChat.viewMembers", defaultValue: "Xem thành viên")
+        static let addMembers = String(localized: "groupChat.addMembers", defaultValue: "Thêm thành viên")
+        static let reportGroup = String(localized: "groupChat.reportGroup", defaultValue: "Báo cáo nhóm")
+        static let deleteGroup = String(localized: "groupChat.deleteGroup", defaultValue: "Xóa nhóm")
+        static let leaveGroup = String(localized: "groupChat.leaveGroup", defaultValue: "Rời nhóm")
+        static let leaveConfirmation = String(localized: "groupChat.leaveConfirmation", defaultValue: "Bạn có chắc muốn rời khỏi nhóm này?")
+        static let deleteConfirmation = String(localized: "groupChat.deleteConfirmation", defaultValue: "Bạn có chắc muốn xóa nhóm này? Hành động này không thể hoàn tác.")
+        static let muteMessages = String(localized: "groupChat.muteMessages", defaultValue: "Tắt thông báo tin nhắn")
+        static let muteMessagesSubtitle = String(localized: "groupChat.muteMessagesSubtitle", defaultValue: "Bạn sẽ không nhận được thông báo tin nhắn mới")
+        static let muteCalls = String(localized: "groupChat.muteCalls", defaultValue: "Tắt thông báo cuộc gọi")
+        static let muteCallsSubtitle = String(localized: "groupChat.muteCallsSubtitle", defaultValue: "Bạn sẽ không nhận được thông báo cuộc gọi mới")
+        static let tapToEdit = String(localized: "groupChat.tapToEdit", defaultValue: "Chạm để chỉnh sửa")
     }
 }

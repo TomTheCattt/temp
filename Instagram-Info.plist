@@ -14,6 +14,10 @@
 	<string>$(APP_STORE_URL)</string>
 	<key>ENABLE_DEBUG_LOGGING</key>
 	<string>$(ENABLE_DEBUG_LOGGING)</string>
+	<key>APP_USE_LOCAL_BACKEND</key>
+	<string>$(APP_USE_LOCAL_BACKEND)</string>
+	<key>APP_LOCAL_BASE_URL</key>
+	<string>$(APP_LOCAL_BASE_URL)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInMedia</key>

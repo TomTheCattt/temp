@@ -169,6 +169,9 @@
         }
       }
     },
+    "·" : {
+
+    },
     "· %@" : {
       "localizations" : {
         "en" : {
@@ -200,6 +203,9 @@
           }
         }
       }
+    },
+    "@%@ " : {
+
     },
     "@%@ · Instagram" : {
 
@@ -372,6 +378,9 @@
       }
     },
     "%lld%%" : {
+
+    },
+    "+%lld" : {
 
     },
     "❤️" : {
@@ -1376,6 +1385,171 @@
         }
       }
     },
+    "callHistory.audioCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gọi thoại"
+          }
+        }
+      }
+    },
+    "callHistory.callType" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Loại cuộc gọi"
+          }
+        }
+      }
+    },
+    "callHistory.clearAll" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xóa tất cả"
+          }
+        }
+      }
+    },
+    "callHistory.completed" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đã kết thúc"
+          }
+        }
+      }
+    },
+    "callHistory.date" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ngày giờ"
+          }
+        }
+      }
+    },
+    "callHistory.details" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chi tiết"
+          }
+        }
+      }
+    },
+    "callHistory.detailTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chi tiết cuộc gọi"
+          }
+        }
+      }
+    },
+    "callHistory.direction" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hướng"
+          }
+        }
+      }
+    },
+    "callHistory.duration" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thời lượng"
+          }
+        }
+      }
+    },
+    "callHistory.emptyMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Các cuộc gọi video và thoại sẽ hiển thị ở đây."
+          }
+        }
+      }
+    },
+    "callHistory.emptyTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chưa có cuộc gọi"
+          }
+        }
+      }
+    },
+    "callHistory.missed" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nhỡ"
+          }
+        }
+      }
+    },
+    "callHistory.status" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trạng thái"
+          }
+        }
+      }
+    },
+    "callHistory.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lịch sử cuộc gọi"
+          }
+        }
+      }
+    },
+    "callHistory.videoCall" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gọi video"
+          }
+        }
+      }
+    },
     "Camera Access Required" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2193,6 +2367,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tìm kiếm"
+          }
+        }
+      }
+    },
+    "common.seeAll" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See All"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xem tất cả"
           }
         }
       }
@@ -3845,6 +4036,94 @@
         }
       }
     },
+    "forgotPassword.backToLogin" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quay lại đăng nhập"
+          }
+        }
+      }
+    },
+    "forgotPassword.description" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nhập email của bạn để nhận liên kết đặt lại mật khẩu."
+          }
+        }
+      }
+    },
+    "forgotPassword.emailPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "forgotPassword.navTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quên mật khẩu"
+          }
+        }
+      }
+    },
+    "forgotPassword.sendButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gửi liên kết"
+          }
+        }
+      }
+    },
+    "forgotPassword.successMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chúng tôi đã gửi liên kết đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư."
+          }
+        }
+      }
+    },
+    "forgotPassword.successTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đã gửi email"
+          }
+        }
+      }
+    },
+    "forgotPassword.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quên mật khẩu"
+          }
+        }
+      }
+    },
     "Ghép ảnh (Layout)" : {
 
     },
@@ -3873,6 +4152,292 @@
     },
     "Gợi ý" : {
 
+    },
+    "groupChat.addMembers" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thêm thành viên"
+          }
+        }
+      }
+    },
+    "groupChat.admin" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quản trị viên"
+          }
+        }
+      }
+    },
+    "groupChat.allUsers" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tất cả người dùng"
+          }
+        }
+      }
+    },
+    "groupChat.changeGroupPhoto" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đổi ảnh nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.createTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tạo nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.deleteConfirmation" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bạn có chắc muốn xóa nhóm này? Hành động này không thể hoàn tác."
+          }
+        }
+      }
+    },
+    "groupChat.deleteGroup" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xóa nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.detailsTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chi tiết nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.editGroupName" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sửa tên nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.leaveConfirmation" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bạn có chắc muốn rời khỏi nhóm này?"
+          }
+        }
+      }
+    },
+    "groupChat.leaveGroup" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rời nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.mediaLinks" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "File phương tiện & liên kết"
+          }
+        }
+      }
+    },
+    "groupChat.memberCount" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "{0} thành viên"
+          }
+        }
+      }
+    },
+    "groupChat.members" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thành viên"
+          }
+        }
+      }
+    },
+    "groupChat.muteCalls" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tắt thông báo cuộc gọi"
+          }
+        }
+      }
+    },
+    "groupChat.muteCallsSubtitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bạn sẽ không nhận được thông báo cuộc gọi mới"
+          }
+        }
+      }
+    },
+    "groupChat.muteMessages" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tắt thông báo tin nhắn"
+          }
+        }
+      }
+    },
+    "groupChat.muteMessagesSubtitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bạn sẽ không nhận được thông báo tin nhắn mới"
+          }
+        }
+      }
+    },
+    "groupChat.noResults" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Không tìm thấy người dùng"
+          }
+        }
+      }
+    },
+    "groupChat.noResultsMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thử tìm kiếm với tên khác."
+          }
+        }
+      }
+    },
+    "groupChat.reportGroup" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Báo cáo nhóm"
+          }
+        }
+      }
+    },
+    "groupChat.searchPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tìm kiếm người dùng"
+          }
+        }
+      }
+    },
+    "groupChat.selectedUsers" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đã chọn"
+          }
+        }
+      }
+    },
+    "groupChat.suggested" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đề xuất"
+          }
+        }
+      }
+    },
+    "groupChat.tapToEdit" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chạm để chỉnh sửa"
+          }
+        }
+      }
+    },
+    "groupChat.viewMembers" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xem thành viên"
+          }
+        }
+      }
     },
     "Gửi lại" : {
 
@@ -4433,6 +4998,204 @@
         }
       }
     },
+    "notificationPreferences.deliveryMethods" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Phương thức gửi"
+          }
+        }
+      }
+    },
+    "notificationPreferences.emailNotifications" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thông báo qua Email"
+          }
+        }
+      }
+    },
+    "notificationPreferences.emailSettings" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cài đặt Email"
+          }
+        }
+      }
+    },
+    "notificationPreferences.emailSMSTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Email & SMS"
+          }
+        }
+      }
+    },
+    "notificationPreferences.frequency" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tần suất"
+          }
+        }
+      }
+    },
+    "notificationPreferences.interactions" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tương tác"
+          }
+        }
+      }
+    },
+    "notificationPreferences.liveIGTV" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trực tiếp & IGTV"
+          }
+        }
+      }
+    },
+    "notificationPreferences.messagesCalls" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tin nhắn và cuộc gọi"
+          }
+        }
+      }
+    },
+    "notificationPreferences.other" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Khác"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushCategories" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Danh mục Push"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushEnabled" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bật thông báo đẩy"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushEnabledSubtitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nhận thông báo trên thiết bị"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushNotifications" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thông báo đẩy"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushSettings" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cài đặt Push"
+          }
+        }
+      }
+    },
+    "notificationPreferences.pushTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thông báo đẩy"
+          }
+        }
+      }
+    },
+    "notificationPreferences.smsSettings" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cài đặt SMS"
+          }
+        }
+      }
+    },
+    "notificationPreferences.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cài đặt thông báo"
+          }
+        }
+      }
+    },
+    "notificationPreferences.whatYouSee" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Những gì bạn thấy"
+          }
+        }
+      }
+    },
     "Notifications" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4446,6 +5209,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Thông báo"
+          }
+        }
+      }
+    },
+    "notifications.call" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Call"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuộc gọi"
           }
         }
       }
@@ -4501,6 +5281,23 @@
         }
       }
     },
+    "notifications.live" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trực tiếp"
+          }
+        }
+      }
+    },
     "notifications.liveVideo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4548,6 +5345,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : " đã nhắc đến bạn trong story."
+          }
+        }
+      }
+    },
+    "notifications.newMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New message"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tin nhắn mới"
+          }
+        }
+      }
+    },
+    "notifications.newReel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Reel"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thước phim mới"
+          }
+        }
+      }
+    },
+    "notifications.newStory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Story"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tin mới"
           }
         }
       }
@@ -5009,6 +5857,28 @@
     "Reel Camera (Simulator)" : {
 
     },
+    "reelDetail.delete" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xóa"
+          }
+        }
+      }
+    },
+    "reelDetail.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thước phim"
+          }
+        }
+      }
+    },
     "reels.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5128,6 +5998,176 @@
         }
       }
     },
+    "reportPost.reasonFakeAccount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fake Account"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tài khoản giả mạo"
+          }
+        }
+      }
+    },
+    "reportPost.reasonHarassment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Harassment"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quấy rối"
+          }
+        }
+      }
+    },
+    "reportPost.reasonHateSpeech" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hate Speech"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lời nói ghét"
+          }
+        }
+      }
+    },
+    "reportPost.reasonInappropriate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inappropriate Content"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nội dung không phù hợp"
+          }
+        }
+      }
+    },
+    "reportPost.reasonIntellectualProperty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intellectual Property"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sở hữu trí tuệ"
+          }
+        }
+      }
+    },
+    "reportPost.reasonOther" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khác"
+          }
+        }
+      }
+    },
+    "reportPost.reasonSelfHarm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Self-Harm"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tự gây thương tích"
+          }
+        }
+      }
+    },
+    "reportPost.reasonSexualContent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sexual Content"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nội dung tình dục"
+          }
+        }
+      }
+    },
+    "reportPost.reasonSpam" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spam"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spam"
+          }
+        }
+      }
+    },
+    "reportPost.reasonViolence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Violence"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạo lực"
+          }
+        }
+      }
+    },
     "reportPost.submittedMessage" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5175,6 +6215,105 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Báo cáo"
+          }
+        }
+      }
+    },
+    "resetPassword.backToLogin" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quay lại đăng nhập"
+          }
+        }
+      }
+    },
+    "resetPassword.confirmPasswordPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xác nhận mật khẩu"
+          }
+        }
+      }
+    },
+    "resetPassword.description" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nhập mật khẩu mới cho tài khoản của bạn."
+          }
+        }
+      }
+    },
+    "resetPassword.navTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đặt lại mật khẩu"
+          }
+        }
+      }
+    },
+    "resetPassword.newPasswordPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mật khẩu mới"
+          }
+        }
+      }
+    },
+    "resetPassword.resetButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đặt lại"
+          }
+        }
+      }
+    },
+    "resetPassword.successMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mật khẩu của bạn đã được cập nhật thành công."
+          }
+        }
+      }
+    },
+    "resetPassword.successTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mật khẩu đã được đặt lại"
+          }
+        }
+      }
+    },
+    "resetPassword.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đặt lại mật khẩu"
           }
         }
       }
@@ -6586,6 +7725,83 @@
         }
       }
     },
+    "storyReplies.deleteAll" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xóa tất cả"
+          }
+        }
+      }
+    },
+    "storyReplies.emptyMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Khi có người phản hồi tin của bạn, sẽ hiển thị ở đây."
+          }
+        }
+      }
+    },
+    "storyReplies.emptyTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chưa có phản hồi"
+          }
+        }
+      }
+    },
+    "storyReplies.replyPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gửi tin nhắn..."
+          }
+        }
+      }
+    },
+    "storyReplies.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Phản hồi"
+          }
+        }
+      }
+    },
+    "storyReplies.turnOffReplies" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tắt phản hồi"
+          }
+        }
+      }
+    },
+    "storyReplies.turnOnReplies" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bật phản hồi"
+          }
+        }
+      }
+    },
     "Sửa ảnh bìa" : {
 
     },
@@ -6910,6 +8126,149 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tên người dùng"
+          }
+        }
+      }
+    },
+    "verifyEmail.backToLogin" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quay lại đăng nhập"
+          }
+        }
+      }
+    },
+    "verifyEmail.description" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nhập mã xác minh đã gửi đến email của bạn."
+          }
+        }
+      }
+    },
+    "verifyEmail.didNotReceive" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Không nhận được email?"
+          }
+        }
+      }
+    },
+    "verifyEmail.invalidToken" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mã xác minh không hợp lệ"
+          }
+        }
+      }
+    },
+    "verifyEmail.navTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xác minh email"
+          }
+        }
+      }
+    },
+    "verifyEmail.resendButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gửi lại"
+          }
+        }
+      }
+    },
+    "verifyEmail.resentSuccess" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Đã gửi lại email xác minh"
+          }
+        }
+      }
+    },
+    "verifyEmail.submitButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gửi"
+          }
+        }
+      }
+    },
+    "verifyEmail.successMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tài khoản của bạn đã được xác minh thành công."
+          }
+        }
+      }
+    },
+    "verifyEmail.successTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Email đã được xác minh"
+          }
+        }
+      }
+    },
+    "verifyEmail.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xác minh email"
+          }
+        }
+      }
+    },
+    "verifyEmail.tokenPlaceholder" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mã xác minh"
+          }
+        }
+      }
+    },
+    "verifyEmail.verifyButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Xác minh"
           }
         }
       }

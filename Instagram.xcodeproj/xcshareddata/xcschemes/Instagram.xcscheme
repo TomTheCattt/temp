@@ -70,17 +70,12 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "BACKEND_TYPE"
-            value = "firebase"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "API_MODE"
-            value = "firebase"
+            value = "live"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "APP_USE_LOCAL_BACKEND"
-            value = "0"
+            value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

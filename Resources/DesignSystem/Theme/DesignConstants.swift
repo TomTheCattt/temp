@@ -237,6 +237,10 @@ enum DS {
         static let title = AppTypography.title2Bold
         /// 15pt regular — section title regular variant.
         static let titleRegular = AppTypography.title2Regular
+        /// Alias for title2Bold (15pt bold — section titles).
+        static let title2 = AppTypography.title2Bold
+        /// Alias for title2Regular (15pt regular — section title regular variant).
+        static let title2Regular = AppTypography.title2Regular
         /// 14pt bold — sub-titles.
         static let title3 = AppTypography.title3Bold
         /// 14pt regular — sub-title regular variant.

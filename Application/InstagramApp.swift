@@ -86,7 +86,7 @@ struct InstagramApp: App {
     private func syncMessagesForConversation(_ conversationId: String) async {
         do {
             let messageRepository = DIContainer.shared.resolve(MessageRepositoryProtocol.self)
-            _ = try await messageRepository.fetchMessages(conversationId: conversationId, page: 1, perPage: 50)
+            _ = try await messageRepository.fetchMessages(conversationId: conversationId, cursor: nil, perPage: 50)
             // Also update unread badge
             if let count = try? await messageRepository.getUnreadConversationsCount() {
                 AppState.shared.setUnreadChatCount(count)

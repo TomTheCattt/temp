@@ -37,7 +37,6 @@
 		80887F64300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */; };
 		80887F65300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */; };
 		80887F66300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */; };
-		80887F67300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */; };
 		80887F68300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */; };
 		80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */; };
 		80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */; };
@@ -82,7 +81,6 @@
 		80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/CallVideoCaptureControllerTests.swift; sourceTree = "<group>"; };
 		80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/ChatViewModelTests.swift; sourceTree = "<group>"; };
 		80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/DirectMessagesViewModelTests.swift; sourceTree = "<group>"; };
-		80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/FirebaseMessageDataSourceTests.swift; sourceTree = "<group>"; };
 		80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/MessageEntityTests.swift; sourceTree = "<group>"; };
 		80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/VoIPPushServiceTests.swift; sourceTree = "<group>"; };
 		80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/WebSocketServiceTests.swift; sourceTree = "<group>"; };
@@ -108,6 +106,13 @@
 			);
 			target = 80887F0F300D4ECD007EF3E5 /* Instagram */;
 		};
+		80A1B2C3D4E5F60708090A0B /* Exceptions for "Application" folder in "Instagram" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Calling/Info.plist,
+			);
+			target = 80887F0F300D4ECD007EF3E5 /* Instagram */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -118,6 +123,9 @@
 		};
 		80887F12300D4ECD007EF3E5 /* Application */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				80A1B2C3D4E5F60708090A0B /* Exceptions for "Application" folder in "Instagram" target */,
+			);
 			path = Application;
 			sourceTree = "<group>";
 		};
@@ -162,6 +170,11 @@
 		80887F29300D523A007EF3E5 /* Documentations */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Documentations;
+			sourceTree = "<group>";
+		};
+		80887F30300D530A007EF3E5 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -222,6 +235,7 @@
 				80CONFIG0400000000000004 /* Config/Configurations/Secrets.xcconfig.template */,
 				FB2723CD301B601A00CE68FE /* Instagram-Info.plist */,
 				80887F29300D523A007EF3E5 /* Documentations */,
+				80887F30300D530A007EF3E5 /* Shared */,
 				80887F28300D5229007EF3E5 /* Persistence */,
 				80887F23300D5147007EF3E5 /* Config */,
 				80887F22300D4F8C007EF3E5 /* Common */,
@@ -248,7 +262,6 @@
 				80887F54300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift */,
 				80887F55300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift */,
 				80887F56300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift */,
-				80887F57300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift */,
 				80887F58300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift */,
 				80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */,
 				80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */,
@@ -284,6 +297,7 @@
 				80887F23300D5147007EF3E5 /* Config */,
 				80887F28300D5229007EF3E5 /* Persistence */,
 				80887F29300D523A007EF3E5 /* Documentations */,
+				80887F30300D530A007EF3E5 /* Shared */,
 			);
 			name = Instagram;
 			packageProductDependencies = (
@@ -410,7 +424,6 @@
 				80887F64300D4ECD007EF3E5 /* InstagramTests/CallVideoCaptureControllerTests.swift in Sources */,
 				80887F65300D4ECD007EF3E5 /* InstagramTests/ChatViewModelTests.swift in Sources */,
 				80887F66300D4ECD007EF3E5 /* InstagramTests/DirectMessagesViewModelTests.swift in Sources */,
-				80887F67300D4ECD007EF3E5 /* InstagramTests/FirebaseMessageDataSourceTests.swift in Sources */,
 				80887F68300D4ECD007EF3E5 /* InstagramTests/MessageEntityTests.swift in Sources */,
 				80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */,
 				80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */,
