@@ -11,20 +11,28 @@ import Foundation
 
 struct FetchMessagesInput: Sendable {
     let conversationId: String
-    let page: Int
+    let cursor: String?
     let perPage: Int
 
-    init(conversationId: String, page: Int = 1, perPage: Int = 30) {
+    init(conversationId: String, cursor: String? = nil, perPage: Int = 30) {
         self.conversationId = conversationId
-        self.page = page
+        self.cursor = cursor
         self.perPage = perPage
     }
+}
+
+// MARK: - FetchMessagesOutput
+
+struct FetchMessagesOutput: Sendable {
+    let messages: [Message]
+    let nextCursor: String?
+    let hasMore: Bool
 }
 
 // MARK: - FetchMessagesUseCase
 
 protocol FetchMessagesUseCaseProtocol: Sendable {
-    func execute(_ input: FetchMessagesInput) async throws -> [Message]
+    func execute(_ input: FetchMessagesInput) async throws -> FetchMessagesOutput
 }
 
 final class FetchMessagesUseCase: FetchMessagesUseCaseProtocol, Sendable {
@@ -35,11 +43,16 @@ final class FetchMessagesUseCase: FetchMessagesUseCaseProtocol, Sendable {
         self.messageRepository = messageRepository
     }
 
-    func execute(_ input: FetchMessagesInput) async throws -> [Message] {
-        try await messageRepository.fetchMessages(
+    func execute(_ input: FetchMessagesInput) async throws -> FetchMessagesOutput {
+        let result = try await messageRepository.fetchMessages(
             conversationId: input.conversationId,
-            page: input.page,
+            cursor: input.cursor,
             perPage: input.perPage
+        )
+        return FetchMessagesOutput(
+            messages: result.messages,
+            nextCursor: result.nextCursor,
+            hasMore: result.hasMore
         )
     }
 }

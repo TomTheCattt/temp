@@ -17,9 +17,6 @@ protocol AuthRepositoryProtocol: Sendable {
     /// Register a new account.
     func register(name: String, email: String, password: String, phone: String) async throws -> AuthSession
 
-    /// Refresh the current access token.
-    func refreshToken() async throws -> AuthSession
-
     /// Logout the current session.
     func logout() async throws
 

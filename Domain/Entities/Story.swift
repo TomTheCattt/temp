@@ -50,3 +50,27 @@ nonisolated struct StoryStickerInfo: Hashable, Sendable {
         case music
     }
 }
+
+// MARK: - StoryReply & StoryReaction
+
+nonisolated struct StoryReaction: Identifiable, Hashable, Sendable {
+    let id: String
+    let emoji: String
+    let userId: String
+}
+
+nonisolated struct StoryReply: Identifiable, Hashable, Sendable {
+    let id: String
+    let user: User
+    let text: String
+    let createdAt: Date
+    var reactions: [StoryReaction]
+
+    init(id: String, user: User, text: String, createdAt: Date, reactions: [StoryReaction] = []) {
+        self.id = id
+        self.user = user
+        self.text = text
+        self.createdAt = createdAt
+        self.reactions = reactions
+    }
+}

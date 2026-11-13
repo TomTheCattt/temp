@@ -14,14 +14,29 @@ protocol MessageRepositoryProtocol: Sendable {
     /// Fetch list of conversations.
     func fetchConversations(page: Int, perPage: Int) async throws -> [Conversation]
 
-    /// Fetch messages in a conversation.
-    func fetchMessages(conversationId: String, page: Int, perPage: Int) async throws -> [Message]
+    /// Fetch messages in a conversation (cursor-based pagination).
+    func fetchMessages(conversationId: String, cursor: String?, perPage: Int) async throws -> (messages: [Message], nextCursor: String?, hasMore: Bool)
 
     /// Send a message.
     func sendMessage(conversationId: String, content: MessageContent) async throws -> Message
 
     /// Create a new conversation (DM).
-    func createConversation(participantIds: [String]) async throws -> Conversation
+    func createConversation(participantIds: [String], groupName: String?, groupAvatar: String?) async throws -> Conversation
+
+    /// Create a new group conversation.
+    func createGroupConversation(participantIds: [String], name: String?) async throws -> Conversation
+
+    /// Fetch group conversation details.
+    func fetchGroupDetails(id: String) async throws -> GroupDetails
+
+    /// Update group mute settings.
+    func updateGroupMuteSettings(id: String, muteMessages: Bool, muteCalls: Bool) async throws
+
+    /// Leave a group conversation.
+    func leaveGroupConversation(id: String) async throws
+
+    /// Delete a group conversation.
+    func deleteGroupConversation(id: String) async throws
 
     /// Mark messages as read.
     func markAsRead(conversationId: String) async throws

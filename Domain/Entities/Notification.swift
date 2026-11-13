@@ -20,16 +20,3 @@ nonisolated struct AppNotification: Identifiable, Hashable, Sendable {
     let isRead: Bool
     let createdAt: Date
 }
-
-// MARK: - NotificationType
-
-nonisolated enum NotificationType: String, Sendable, Hashable {
-    case like
-    case comment
-    case follow
-    case followRequest
-    case mention
-    case taggedInPost
-    case storyMention
-    case liveVideo
-}

@@ -185,3 +185,41 @@ nonisolated struct InstagramNote: Identifiable, Hashable, Sendable {
     let isCurrentUser: Bool
 }
 
+// MARK: - GroupDetails
+
+nonisolated struct GroupDetails: Sendable {
+    let name: String?
+    let avatarURL: URL?
+    let members: [GroupMember]
+    let adminIds: [String]
+    let sharedMedia: [SharedMediaItem]
+    let muteMessages: Bool
+    let muteCalls: Bool
+}
+
+// MARK: - GroupMember
+
+nonisolated struct GroupMember: Identifiable, Sendable {
+    let id: String
+    let username: String
+    let fullName: String
+    let avatarURL: URL?
+    let isCurrentUser: Bool
+}
+
+// MARK: - SharedMediaItem
+
+nonisolated struct SharedMediaItem: Identifiable, Sendable {
+    let id: String
+    let type: MediaType
+    let thumbnailURL: URL?
+    let mediaURL: URL
+    let isVideo: Bool
+
+    enum MediaType: Sendable {
+        case image
+        case video
+        case link
+    }
+}
+

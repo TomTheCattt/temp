@@ -43,7 +43,7 @@ final class ViewModelAssembly: Assembly {
 
         container.register(ExploreViewModel.self) { resolver in
             ExploreViewModel(
-                postRepository: resolver.resolve(PostRepositoryProtocol.self)!,
+                fetchExplorePostsUseCase: resolver.resolve(FetchExplorePostsUseCaseProtocol.self)!,
                 searchUsersUseCase: resolver.resolve(SearchUsersUseCaseProtocol.self)!
             )
         }
@@ -61,20 +61,24 @@ final class ViewModelAssembly: Assembly {
 
         container.register(DirectMessagesViewModel.self) { resolver in
             DirectMessagesViewModel(
-                messageRepository: resolver.resolve(MessageRepositoryProtocol.self)!
+                fetchConversationsUseCase: resolver.resolve(FetchConversationsUseCaseProtocol.self)!,
+                manageConversationUseCase: resolver.resolve(ManageConversationUseCaseProtocol.self)!,
+                notesUseCase: resolver.resolve(NotesUseCaseProtocol.self)!
             )
         }
 
         // MARK: ChatViewModel
 
         container.register(ChatViewModel.self) { resolver in
-            ChatViewModel(
+            let sessionStore = resolver.resolve(SessionStoreProtocol.self)
+            let currentUserId = sessionStore?.currentUserId ?? ""
+            return ChatViewModel(
                 conversationId: "",
-                currentUserId: SessionStore.shared.currentUserId,
+                currentUserId: currentUserId,
                 recipient: nil,
                 fetchMessagesUseCase: resolver.resolve(FetchMessagesUseCaseProtocol.self)!,
                 sendMessageUseCase: resolver.resolve(SendMessageUseCaseProtocol.self)!,
-                messageRepository: resolver.resolve(MessageRepositoryProtocol.self)!,
+                manageMessageUseCase: resolver.resolve(ManageMessageUseCaseProtocol.self)!,
                 chatSyncService: resolver.resolve(ChatSyncService.self)!
             )
         }
@@ -86,7 +90,7 @@ final class ViewModelAssembly: Assembly {
                 fetchReelsUseCase: resolver.resolve(FetchReelsUseCaseProtocol.self)!,
                 toggleLikeReelUseCase: resolver.resolve(ToggleLikeReelUseCaseProtocol.self)!,
                 toggleFollowUseCase: resolver.resolve(ToggleFollowUseCaseProtocol.self)!,
-                reelRepository: resolver.resolve(ReelRepositoryProtocol.self)!
+                toggleSaveReelUseCase: resolver.resolve(ToggleSaveReelUseCaseProtocol.self)!
             )
         }
 
@@ -102,8 +106,7 @@ final class ViewModelAssembly: Assembly {
 
         container.register(EditProfileViewModel.self) { resolver in
             EditProfileViewModel(
-                updateProfileUseCase: resolver.resolve(UpdateProfileUseCaseProtocol.self)!,
-                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+                updateProfileUseCase: resolver.resolve(UpdateProfileUseCaseProtocol.self)!
             )
         }
 
@@ -111,10 +114,10 @@ final class ViewModelAssembly: Assembly {
 
         container.register(SettingsViewModel.self) { resolver in
             SettingsViewModel(
-                authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
-                userRepository: resolver.resolve(UserRepositoryProtocol.self)!,
+                logoutUseCase: resolver.resolve(LogoutUseCaseProtocol.self)!,
+                userSettingsUseCase: resolver.resolve(UserSettingsUseCaseProtocol.self)!,
                 biometricAuthUseCase: resolver.resolve(BiometricAuthUseCaseProtocol.self)!,
-                keychainManager: resolver.resolve(KeychainManagerProtocol.self)!,
+                keychainManager: resolver.resolve(KeychainManagerProtocol.self)! ,
                 webSocketConnectionManager: resolver.resolve(WebSocketConnectionManagerProtocol.self)!
             )
         }
@@ -123,7 +126,7 @@ final class ViewModelAssembly: Assembly {
 
         container.register(SavedPostsViewModel.self) { resolver in
             SavedPostsViewModel(
-                postRepository: resolver.resolve(PostRepositoryProtocol.self)!
+                fetchSavedPostsUseCase: resolver.resolve(FetchSavedPostsUseCaseProtocol.self)!
             )
         }
 
@@ -131,7 +134,7 @@ final class ViewModelAssembly: Assembly {
 
         container.register(BlockedAccountsViewModel.self) { resolver in
             BlockedAccountsViewModel(
-                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+                blockedAccountsUseCase: resolver.resolve(BlockedAccountsUseCaseProtocol.self)!
             )
         }
 
@@ -139,7 +142,7 @@ final class ViewModelAssembly: Assembly {
 
         container.register(CloseFriendsViewModel.self) { resolver in
             CloseFriendsViewModel(
-                userRepository: resolver.resolve(UserRepositoryProtocol.self)!
+                closeFriendsUseCase: resolver.resolve(CloseFriendsUseCaseProtocol.self)!
             )
         }
     }

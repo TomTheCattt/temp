@@ -15,6 +15,12 @@ final class ServiceAssembly: Assembly {
 
     func assemble(container: Container) {
 
+        // MARK: SessionStore
+
+        container.register(SessionStoreProtocol.self) { _ in
+            SessionStore.shared
+        }.inObjectScope(.container)
+
         // MARK: KeychainManager
 
         container.register(KeychainManagerProtocol.self) { _ in

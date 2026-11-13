@@ -21,7 +21,7 @@ nonisolated struct Reel: Identifiable, Hashable, Sendable {
     let commentsCount: Int
     let sharesCount: Int
     let viewsCount: Int
-    let duration: TimeInterval
+    let duration: String
     let isLiked: Bool
     let isSaved: Bool
     let createdAt: Date
@@ -38,7 +38,7 @@ nonisolated struct Reel: Identifiable, Hashable, Sendable {
         commentsCount: Int,
         sharesCount: Int,
         viewsCount: Int,
-        duration: TimeInterval,
+        duration: String,
         isLiked: Bool,
         isSaved: Bool,
         createdAt: Date

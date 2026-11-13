@@ -80,7 +80,8 @@ final class RepositoryAssembly: Assembly {
             MessageRepository(
                 remoteDataSource: RemoteMessageDataSource(
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
-                )
+                ),
+                sessionStore: resolver.resolve(SessionStoreProtocol.self)!
             )
         }.inObjectScope(.container)
 
@@ -102,6 +103,46 @@ final class RepositoryAssembly: Assembly {
                     networkService: resolver.resolve(NetworkServiceProtocol.self)!
                 ),
                 uploadDataSource: resolver.resolve(RemoteUploadDataSource.self)!
+            )
+        }.inObjectScope(.container)
+
+        // MARK: ReportRepository
+
+        container.register(ReportRepositoryProtocol.self) { resolver in
+            ReportRepository(
+                dataSource: RemoteReportDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
+        }.inObjectScope(.container)
+
+        // MARK: SearchRepository
+
+        container.register(SearchRepositoryProtocol.self) { resolver in
+            SearchRepository(
+                dataSource: RemoteSearchDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
+        }.inObjectScope(.container)
+
+        // MARK: CallRepository
+
+        container.register(CallRepositoryProtocol.self) { resolver in
+            CallRepository(
+                dataSource: RemoteCallDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
+            )
+        }.inObjectScope(.container)
+
+        // MARK: TusRepository
+
+        container.register(TusRepositoryProtocol.self) { resolver in
+            TusRepository(
+                dataSource: RemoteTusDataSource(
+                    networkService: resolver.resolve(NetworkServiceProtocol.self)!
+                )
             )
         }.inObjectScope(.container)
     }

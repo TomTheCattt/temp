@@ -76,7 +76,7 @@ Before making changes, consult these documents:
 
 ### Session & Identity (MUST follow)
 
-- Current user identity: ALWAYS use `SessionStore.shared.currentUserId` or `.currentUser`
+- Current user identity: Inject `SessionStoreProtocol` via DI in services/repositories or read `SessionStore.shared.currentUserId` / `.currentUser` in `@MainActor` presentation views.
 - NEVER reference `MockData.currentUser` outside of `Data/DataSources/Mock/` folder
 - Login flow MUST call `SessionStore.shared.setSession(user:)`
 - Logout flow MUST call `SessionStore.shared.clear()`

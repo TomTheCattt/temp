@@ -51,4 +51,10 @@ protocol PostRepositoryProtocol: Sendable {
 
     /// Fetch posts for the Explore grid with cursor-based pagination.
     func fetchExplorePosts(cursor: String?, perPage: Int) async throws -> (posts: [Post], nextCursor: String?, hasMore: Bool)
+
+    /// Fetch comments for a post with offset-based pagination.
+    func fetchComments(postId: String, page: Int, perPage: Int) async throws -> (comments: [Comment], page: Int, perPage: Int, total: Int, hasMore: Bool)
+
+    /// Add a comment to a post.
+    func addComment(postId: String, text: String, parentId: String?) async throws -> Comment
 }
