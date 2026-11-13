@@ -13,15 +13,22 @@ import Alamofire
 
 protocol WebSocketConnectionManagerProtocol: AnyObject, Sendable {
     var isConnected: Bool { get }
+    var connectionState: WebSocketConnectionState { get }
     func connect() async
     func disconnect() async
     func handleAuthStateChange(isAuthenticated: Bool)
+    func joinCall(callId: String, roomId: String) async
+    func leaveCall() async
+    func updateCallState(_ state: CallConnectionState) async
+    func setBackground(_ background: Bool) async
+    func setNetworkType(_ type: NetworkType) async
 }
 
 // MARK: - WebSocketConnectionManager
 
 /// Manages WebSocket connection lifecycle based on authentication state.
 /// Connects to Neon Functions WebSocket endpoint after authentication.
+/// Integrates with battery-optimized heartbeat and state machine.
 @MainActor
 final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, ObservableObject {
 
@@ -31,6 +38,10 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
 
     private var isConnecting = false
     private var currentAuthState = false
+    private var currentCallId: String?
+    private var currentRoomId: String?
+
+    @Published var connectionState: WebSocketConnectionState = .disconnected
 
     var isConnected: Bool { webSocketService.isConnected }
 
@@ -40,12 +51,26 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
     ) {
         self.webSocketService = webSocketService
         self.authManager = authManager
+        observeConnectionState()
         observeAuthState()
     }
 
+    private func observeConnectionState() {
+        webSocketService.eventPublisher
+            .compactMap { event -> WebSocketConnectionState? in
+                if case .stateChanged(let state) = event {
+                    return state
+                }
+                return nil
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.connectionState = state
+            }
+            .store(in: &cancellables)
+    }
+
     private func observeAuthState() {
-        // Observe AuthManager's isAuthenticated property changes
-        // Since AuthManager is @MainActor, we can observe it directly
         authManagerRefresh()
     }
 
@@ -93,10 +118,51 @@ final class WebSocketConnectionManager: WebSocketConnectionManagerProtocol, Obse
 
         AppLogger.network.info("Connecting WebSocket to \(url.absoluteString)")
         await webSocketService.connect(url: url, headers: headers)
+
+        // After connecting, if we have a pending call to join, join it
+        if let callId = currentCallId, let roomId = currentRoomId {
+            await joinCall(callId: callId, roomId: roomId)
+        }
     }
 
     func disconnect() async {
         AppLogger.network.info("Disconnecting WebSocket")
         await webSocketService.disconnect()
+        currentCallId = nil
+        currentRoomId = nil
+    }
+
+    func joinCall(callId: String, roomId: String) async {
+        currentCallId = callId
+        currentRoomId = roomId
+
+        if webSocketService.connectionState == .joined || webSocketService.connectionState == .authenticated {
+            AppLogger.network.info("Joining call: \(callId), room: \(roomId)")
+            await webSocketService.joinCall(callId: callId, roomId: roomId)
+            await webSocketService.updateCallState(.joined)
+        } else {
+            AppLogger.network.info("Call join queued, waiting for connection: \(callId)")
+        }
+    }
+
+    func leaveCall() async {
+        guard let callId = currentCallId else { return }
+        AppLogger.network.info("Leaving call: \(callId)")
+        await webSocketService.leaveCall()
+        await webSocketService.updateCallState(.authenticated)
+        currentCallId = nil
+        currentRoomId = nil
+    }
+
+    func updateCallState(_ state: CallConnectionState) async {
+        await webSocketService.updateCallState(state)
+    }
+
+    func setBackground(_ background: Bool) async {
+        await webSocketService.setBackground(background)
+    }
+
+    func setNetworkType(_ type: NetworkType) async {
+        await webSocketService.setNetworkType(type)
     }
 }

@@ -16,6 +16,10 @@ APP_NAME = Instagram (Dev)
 BACKEND_TYPE = live
 APP_BASE_URL = https:$(SLASH)/dev-api.example.com
 
+// Local Backend (for development)
+APP_USE_LOCAL_BACKEND = 1
+APP_LOCAL_BASE_URL = http://localhost:8787
+
 // Logging & Debugging
 ENABLE_DEBUG_LOGGING = YES
 

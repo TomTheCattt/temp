@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import SwiftUI
+import UIKit
 
 // MARK: - String Extensions
 
@@ -113,5 +114,16 @@ extension JSONDecoder.DateDecodingStrategy {
                 debugDescription: "Cannot decode date from: \(string)"
             )
         }
+    }
+}
+
+// MARK: - TimeInterval Extensions
+
+extension TimeInterval {
+    /// Formatted duration string (e.g., "1:30" for 90 seconds).
+    var formattedDuration: String {
+        let mins = Int(self) / 60
+        let secs = Int(self) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 }

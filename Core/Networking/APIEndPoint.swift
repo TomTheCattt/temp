@@ -71,7 +71,7 @@ enum AuthEndpoint: APIEndpoint {
     case logout
     case logoutAllDevices
     case me
-    case refresh
+    case refresh(refreshToken: String)
     case forgotPassword(email: String)
     case verifyEmail(token: String)
     case resendVerification(email: String)
@@ -94,6 +94,15 @@ enum AuthEndpoint: APIEndpoint {
 
     var method: HTTPMethod { .post }
 
+    var headers: HTTPHeaders? {
+        switch self {
+        case .refresh(let refreshToken):
+            return ["Authorization": "Bearer \(refreshToken)"]
+        default:
+            return nil
+        }
+    }
+
     var parameters: Parameters? {
         switch self {
         case .register(let email, let password, let username, let fullName, let phone):
@@ -107,8 +116,10 @@ enum AuthEndpoint: APIEndpoint {
             return params
         case .login(let email, let password):
             return ["email": email, "password": password]
-        case .logout, .logoutAllDevices, .me, .refresh:
+        case .logout, .logoutAllDevices, .me:
             return nil
+        case .refresh:
+            return nil // refreshToken sent in Authorization header
         case .forgotPassword(let email):
             return ["email": email]
         case .verifyEmail(let token):
@@ -139,16 +150,16 @@ enum UserEndpoint: APIEndpoint {
     // Full profile update (use /v1/users/me - canonical endpoint)
     case updateFullProfile(fullName: String?, bio: String?, website: String?, isPrivate: Bool?)  // PUT /v1/users/me
 
-    // Public/Other user endpoints (use /v1/users/)
-    case publicProfile(userId: String)  // GET /v1/users/{userId}
-    case follow(userId: String)         // POST /v1/users/{userId}/follow
-    case unfollow(userId: String)       // DELETE /v1/users/{userId}/follow
-    case block(userId: String)          // POST /v1/users/{userId}/block
-    case unblock(userId: String)        // DELETE /v1/users/{userId}/block
-    case followers(userId: String, page: Int, perPage: Int)  // GET /v1/users/{userId}/followers
-    case following(userId: String, page: Int, perPage: Int)  // GET /v1/users/{userId}/following
-    case search(query: String, page: Int, perPage: Int)      // GET /v1/users/search
-    case suggested(page: Int, perPage: Int)                  // GET /v1/users/suggested
+    // Public/Other user endpoints (use /v1/user/)
+    case publicProfile(userId: String)  // GET /v1/user/{userId}
+    case follow(userId: String)         // POST /v1/user/{userId}/follow
+    case unfollow(userId: String)       // DELETE /v1/user/{userId}/follow
+    case block(userId: String)          // POST /v1/user/{userId}/block
+    case unblock(userId: String)        // DELETE /v1/user/{userId}/block
+    case followers(userId: String, page: Int, perPage: Int)  // GET /v1/user/{userId}/followers
+    case following(userId: String, page: Int, perPage: Int)  // GET /v1/user/{userId}/following
+    case search(query: String, page: Int, perPage: Int)      // GET /v1/user/search
+    case suggested(page: Int, perPage: Int)                  // GET /v1/user/suggested
 
     var path: String {
         switch self {
@@ -156,26 +167,26 @@ enum UserEndpoint: APIEndpoint {
         case .profile: return "/v1/user/profile"
         case .updateProfileName: return "/v1/user/profile"
         case .settings, .updateSettings: return "/v1/user/settings"
-        case .closeFriends: return "/v1/user/close-friends"
-        case .addCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
-        case .removeCloseFriend(let userId): return "/v1/user/close-friends/\(userId)"
-        case .blockedUsers: return "/v1/user/blocked"
+        case .closeFriends: return "/v1/user/me/close-friends"
+        case .addCloseFriend(let userId): return "/v1/user/me/close-friends/\(userId)"
+        case .removeCloseFriend(let userId): return "/v1/user/me/close-friends/\(userId)"
+        case .blockedUsers: return "/v1/user/me/blocked"
         case .addDeviceToken: return "/v1/user/me/device-token"
         case .deleteDeviceToken: return "/v1/user/me/device-token"
 
         // Full profile update (canonical endpoint)
-        case .updateFullProfile: return "/v1/users/me"
+        case .updateFullProfile: return "/v1/user/me"
 
-        // Public/Other user endpoints (/v1/users/)
-        case .publicProfile(let userId): return "/v1/users/\(userId)"
-        case .follow(let userId): return "/v1/users/\(userId)/follow"
-        case .unfollow(let userId): return "/v1/users/\(userId)/follow"
-        case .block(let userId): return "/v1/users/\(userId)/block"
-        case .unblock(let userId): return "/v1/users/\(userId)/block"
-        case .followers(let userId, _, _): return "/v1/users/\(userId)/followers"
-        case .following(let userId, _, _): return "/v1/users/\(userId)/following"
-        case .search: return "/v1/users/search"
-        case .suggested: return "/v1/users/suggested"
+        // Public/Other user endpoints (/v1/user/)
+        case .publicProfile(let userId): return "/v1/user/\(userId)"
+        case .follow(let userId): return "/v1/user/\(userId)/follow"
+        case .unfollow(let userId): return "/v1/user/\(userId)/follow"
+        case .block(let userId): return "/v1/user/\(userId)/block"
+        case .unblock(let userId): return "/v1/user/\(userId)/block"
+        case .followers(let userId, _, _): return "/v1/user/\(userId)/followers"
+        case .following(let userId, _, _): return "/v1/user/\(userId)/following"
+        case .search: return "/v1/user/search"
+        case .suggested: return "/v1/user/suggested"
         }
     }
 

@@ -130,39 +130,19 @@ final class AuthManager: AuthManagerProtocol {
             throw APIError.unauthorized
         }
 
-        // Create a temporary request with the refresh token
-        let urlRequest = try AuthEndpoint.refresh.asURLRequest()
-        var request = urlRequest
-        request.setValue("Bearer \(currentRefreshToken)", forHTTPHeaderField: "Authorization")
+        // Use the network service method that sends refresh token in Authorization header (Bearer token)
+        let dto: RefreshTokenDTO = try await networkService.refreshAccessToken(refreshToken: currentRefreshToken)
 
-        let response = await networkService.session
-            .request(request)
-            .validate(statusCode: 200..<300)
-            .serializingDecodable(APIEnvelope<RefreshTokenDTO>.self, decoder: networkService.decoder)
-            .response
-
-        switch response.result {
-        case .success(let envelope):
-            guard let data = envelope.data else {
-                if let errorMessage = envelope.error ?? envelope.message {
-                    throw APIError.serverError(errorMessage)
-                }
-                throw APIError.unknown(response.response?.statusCode)
-            }
-            accessToken = data.accessToken
-            if let newRefreshToken = data.refreshToken {
-                refreshToken = newRefreshToken
-                keychainManager.set(value: newRefreshToken, key: KeychainKeys.refreshToken)
-            }
-            if let expiresAt = data.expiresAt {
-                tokenExpiry = Date(timeIntervalSince1970: TimeInterval(expiresAt))
-                keychainManager.set(value: String(expiresAt), key: KeychainKeys.tokenExpiry)
-            }
-            keychainManager.set(value: data.accessToken, key: KeychainKeys.accessToken)
-
-        case .failure(let afError):
-            throw mapError(afError, response: response.response)
+        accessToken = dto.accessToken
+        if let newRefreshToken = dto.refreshToken {
+            refreshToken = newRefreshToken
+            keychainManager.set(value: newRefreshToken, key: KeychainKeys.refreshToken)
         }
+        if let expiresAt = dto.expiresAt {
+            tokenExpiry = Date(timeIntervalSince1970: TimeInterval(expiresAt))
+            keychainManager.set(value: String(expiresAt), key: KeychainKeys.tokenExpiry)
+        }
+        keychainManager.set(value: dto.accessToken, key: KeychainKeys.accessToken)
     }
 
     /// Proactively refresh token if it's near expiry (within 5 minutes).

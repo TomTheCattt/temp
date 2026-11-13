@@ -47,7 +47,7 @@ struct CallSignalPayload: Sendable {
     let callId: String
     let fromUserId: String
     let toUserId: String
-    let callType: CallType
+    let callType: CallType  // Uses CallType from Shared/Enums
     let sdp: String?             // SDP offer/answer
     let iceCandidate: String?    // ICE candidate JSON
     let iceSdpMid: String?

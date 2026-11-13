@@ -37,7 +37,7 @@ final class VoIPPushService: NSObject, VoIPPushServiceProtocol, @unchecked Senda
     private(set) var voipToken: String?
     private let logger = AppLogger.general
 
-    internal override init() {
+    internal nonisolated override init() {
         super.init()
     }
 

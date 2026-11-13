@@ -11,7 +11,7 @@ import Alamofire
 // MARK: - PostEndpoint
 
 enum PostEndpoint: APIEndpoint {
-    // Cursor-based pagination (ISO timestamp cursor)
+    // Cursor-based pagination (ISO timestamp cursor) for feeds
     case feed(cursor: String?, perPage: Int)
     case explore(cursor: String?, perPage: Int)
     case savedPosts(cursor: String?, perPage: Int)
@@ -24,7 +24,8 @@ enum PostEndpoint: APIEndpoint {
     case unlike(id: String)
     case save(id: String)
     case unsave(id: String)
-    case comments(postId: String, cursor: String?, perPage: Int)
+    // Offset-based pagination for comments
+    case comments(postId: String, page: Int, perPage: Int)
     case addComment(postId: String, text: String, parentId: String?)
 
     var path: String {
@@ -63,12 +64,16 @@ enum PostEndpoint: APIEndpoint {
         switch self {
         case .feed(let cursor, let perPage),
              .explore(let cursor, let perPage),
-             .savedPosts(let cursor, let perPage),
-             .userPosts(_, let cursor, let perPage),
-             .comments(_, let cursor, let perPage):
+             .savedPosts(let cursor, let perPage):
             var params: Parameters = ["perPage": perPage]
             if let cursor { params["cursor"] = cursor }
             return params
+        case .userPosts(_, let cursor, let perPage):
+            var params: Parameters = ["perPage": perPage]
+            if let cursor { params["cursor"] = cursor }
+            return params
+        case .comments(_, let page, let perPage):
+            return ["page": page, "perPage": perPage]
         case .create(let caption, let locationName, let locationLat, let locationLng, let media):
             var params: Parameters = ["media": media]
             if let caption { params["caption"] = caption }

@@ -9,6 +9,7 @@ import Foundation
 import UserNotifications
 import UIKit
 import Combine
+import BackgroundTasks
 
 // MARK: - PushNotificationType
 
@@ -62,23 +63,36 @@ struct PushNotificationPayload: Sendable {
     }
 }
 
+// MARK: - BackgroundTaskIdentifier
+
+enum BackgroundTaskIdentifier: String {
+    case pushProcessing = "com.instagram.background.push-processing"
+    case badgeRefresh = "com.instagram.background.badge-refresh"
+    case silentSync = "com.instagram.background.silent-sync"
+}
+
 // MARK: - PushNotificationServiceProtocol
 
 protocol PushNotificationServiceProtocol: AnyObject {
     var deviceToken: String? { get }
     var notificationTapped: AnyPublisher<PushNotificationPayload, Never> { get }
+    var notificationReceived: AnyPublisher<PushNotificationPayload, Never> { get }
 
     func requestAuthorization() async -> Bool
     func registerForRemoteNotifications()
     func handleDeviceToken(_ token: Data)
     func handleNotificationReceived(userInfo: [AnyHashable: Any], completionHandler: @escaping (UIBackgroundFetchResult) -> Void)
     func handleNotificationTapped(response: UNNotificationResponse)
+    func handleSilentPush(userInfo: [AnyHashable: Any], completionHandler: @escaping (UIBackgroundFetchResult) -> Void)
+    func scheduleBackgroundRefresh()
+    func processPendingNotifications() async
 }
 
 // MARK: - PushNotificationService
 
 /// Manages regular (APNs) push notifications.
-/// Handles registration, permission, token management, and payload routing.
+/// Handles registration, permission, token management, payload routing,
+/// background processing, and silent push notifications.
 final class PushNotificationService: NSObject, PushNotificationServiceProtocol, @unchecked Sendable {
 
     static let shared = PushNotificationService()
@@ -117,6 +131,7 @@ final class PushNotificationService: NSObject, PushNotificationServiceProtocol, 
 
             if granted {
                 await setupNotificationCategories()
+                registerBackgroundTasks()
             }
             return granted
         } catch {
@@ -165,6 +180,22 @@ final class PushNotificationService: NSObject, PushNotificationServiceProtocol, 
         completionHandler(.newData)
     }
 
+    // MARK: - Silent Push Handling (Background Fetch)
+
+    func handleSilentPush(
+        userInfo: [AnyHashable: Any],
+        completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        let payload = PushNotificationPayload(userInfo: userInfo)
+        logger.info("Silent push received: type=\(payload.type.rawValue)")
+
+        // Process background tasks
+        Task {
+            await processBackgroundTask(payload)
+            completionHandler(.newData)
+        }
+    }
+
     // MARK: - Notification Tapped
 
     func handleNotificationTapped(response: UNNotificationResponse) {
@@ -173,6 +204,148 @@ final class PushNotificationService: NSObject, PushNotificationServiceProtocol, 
         logger.info("Push tapped: type=\(payload.type.rawValue)")
 
         notificationTappedSubject.send(payload)
+    }
+
+    // MARK: - Background Task Registration
+
+    private func registerBackgroundTasks() {
+        // Register background app refresh tasks
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: BackgroundTaskIdentifier.pushProcessing.rawValue,
+            using: nil
+        ) { task in
+            self.handleBackgroundPushProcessing(task: task as! BGAppRefreshTask)
+        }
+
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: BackgroundTaskIdentifier.badgeRefresh.rawValue,
+            using: nil
+        ) { task in
+            self.handleBackgroundBadgeRefresh(task: task as! BGAppRefreshTask)
+        }
+
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: BackgroundTaskIdentifier.silentSync.rawValue,
+            using: nil
+        ) { task in
+            self.handleBackgroundSilentSync(task: task as! BGAppRefreshTask)
+        }
+    }
+
+    /// Schedule background app refresh for push processing
+    func scheduleBackgroundRefresh() {
+        // Schedule push processing task
+        let pushTask = BGAppRefreshTaskRequest(identifier: BackgroundTaskIdentifier.pushProcessing.rawValue)
+        pushTask.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes
+
+        do {
+            try BGTaskScheduler.shared.submit(pushTask)
+            logger.info("Scheduled background push processing task")
+        } catch {
+            logger.error("Failed to schedule background push task: \(error.localizedDescription)")
+        }
+
+        // Schedule badge refresh
+        let badgeTask = BGAppRefreshTaskRequest(identifier: BackgroundTaskIdentifier.badgeRefresh.rawValue)
+        badgeTask.earliestBeginDate = Date(timeIntervalSinceNow: 30 * 60) // 30 minutes
+
+        do {
+            try BGTaskScheduler.shared.submit(badgeTask)
+            logger.info("Scheduled background badge refresh task")
+        } catch {
+            logger.error("Failed to schedule background badge task: \(error.localizedDescription)")
+        }
+
+        // Schedule silent sync
+        let syncTask = BGAppRefreshTaskRequest(identifier: BackgroundTaskIdentifier.silentSync.rawValue)
+        syncTask.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // 1 hour
+
+        do {
+            try BGTaskScheduler.shared.submit(syncTask)
+            logger.info("Scheduled background silent sync task")
+        } catch {
+            logger.error("Failed to schedule background sync task: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Background Task Handlers
+
+    private func handleBackgroundPushProcessing(task: BGAppRefreshTask) {
+        // Reschedule for next time
+        scheduleBackgroundRefresh()
+
+        // Set expiration handler
+        task.expirationHandler = {
+            self.logger.notice("Background push processing task expired")
+        }
+
+        Task {
+            await self.processPendingNotifications()
+            task.setTaskCompleted(success: true)
+        }
+    }
+
+    private func handleBackgroundBadgeRefresh(task: BGAppRefreshTask) {
+        // Reschedule for next time
+        // (scheduleBackgroundRefresh already reschedules all)
+
+        task.expirationHandler = {
+            self.logger.notice("Background badge refresh task expired")
+        }
+
+        Task {
+            await self.refreshBadgeCount()
+            task.setTaskCompleted(success: true)
+        }
+    }
+
+    private func handleBackgroundSilentSync(task: BGAppRefreshTask) {
+        task.expirationHandler = {
+            self.logger.notice("Background silent sync task expired")
+        }
+
+        Task {
+            await self.performSilentSync()
+            task.setTaskCompleted(success: true)
+        }
+    }
+
+    // MARK: - Background Processing
+
+    /// Process pending notifications stored locally
+    func processPendingNotifications() async {
+        // TODO: Implement local notification queue processing
+        // This would read from persistent storage and process any pending notifications
+        logger.info("Processing pending notifications")
+    }
+
+    /// Refresh badge count from server
+    private func refreshBadgeCount() async {
+        // TODO: Fetch unread count from server and update badge
+        logger.info("Refreshing badge count from server")
+    }
+
+    /// Perform silent sync of data
+    private func performSilentSync() async {
+        // TODO: Trigger data sync (messages, notifications, etc.)
+        logger.info("Performing silent sync")
+    }
+
+    /// Process a background task from silent push
+    private func processBackgroundTask(_ payload: PushNotificationPayload) async {
+        switch payload.type {
+        case .message:
+            // Trigger message sync
+            logger.info("Background: syncing messages")
+            // await MessageService.shared.syncMessages()
+
+        case .callMissed:
+            // Update call history
+            logger.info("Background: updating call history")
+
+        default:
+            break
+        }
     }
 
     // MARK: - Navigation from Notification
@@ -274,7 +447,21 @@ final class PushNotificationService: NSObject, PushNotificationServiceProtocol, 
             options: []
         )
 
-        center.setNotificationCategories([messageCategory, likeCategory, followCategory])
+        // Call missed category: call back
+        let callBackAction = UNNotificationAction(
+            identifier: "CALL_BACK_ACTION",
+            title: "Call Back",
+            options: .foreground
+        )
+
+        let callMissedCategory = UNNotificationCategory(
+            identifier: "CALL_MISSED",
+            actions: [callBackAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        center.setNotificationCategories([messageCategory, likeCategory, followCategory, callMissedCategory])
     }
 
     private func processSilentNotification(_ payload: PushNotificationPayload) {
@@ -307,12 +494,20 @@ extension PushNotificationService: UNUserNotificationCenterDelegate {
     }
 
     /// Called when user taps a notification.
-    func userNotificationCenter(
+    @objc func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         handleNotificationTapped(response: response)
+
+        // Handle reply action
+        if response.actionIdentifier == "REPLY_ACTION",
+           let textResponse = response as? UNTextInputNotificationResponse {
+            let userText = textResponse.userText
+            logger.info("Notification reply: \(userText)")
+            // TODO: Send reply via API
+        }
         completionHandler()
     }
 }

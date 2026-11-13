@@ -37,7 +37,7 @@ enum AppConstants {
 
     #if DEBUG
     enum TestAccount {
-        static let email = "tom@example.com"
+        static let email = "mylam1@example.com"
         static let password = "password123"
         static let username = "tomthecat"
         static let fullName = "Tom The Cat"

@@ -144,11 +144,12 @@ struct AppConfig {
                 // Replace port with WebSocket port
                 var components = URLComponents(string: normalized)
                 components?.port = 8788
-                return components?.string ?? "http://localhost:8788"
+                components?.scheme = "ws"
+                return components?.string ?? "ws://localhost:8788"
             }
             // Auto-detect: Simulator uses localhost, physical device uses LAN IP
             #if targetEnvironment(simulator)
-            return "http://localhost:8788"
+            return "ws://localhost:8788"
             #else
             return "ws://192.168.1.107:8788"
             #endif
@@ -218,4 +219,148 @@ struct AppConfig {
         }
         return trimmed
     }
+}
+
+// MARK: - Retry Policy
+
+struct RetryPolicy: Sendable {
+    let maxAttempts: Int
+    let baseDelay: TimeInterval
+    let maxDelay: TimeInterval
+    let jitterFactor: Double
+    let retryableStatusCodes: Set<Int>
+    let retryableErrors: Set<URLError.Code>
+
+    static let `default` = RetryPolicy(
+        maxAttempts: 3,
+        baseDelay: 0.5,
+        maxDelay: 8.0,
+        jitterFactor: 0.3,
+        retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+        retryableErrors: [
+            .timedOut,
+            .cannotConnectToHost,
+            .networkConnectionLost,
+            .dnsLookupFailed,
+            .notConnectedToInternet
+        ]
+    )
+
+    static let aggressive = RetryPolicy(
+        maxAttempts: 5,
+        baseDelay: 0.25,
+        maxDelay: 4.0,
+        jitterFactor: 0.5,
+        retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+        retryableErrors: [
+            .timedOut,
+            .cannotConnectToHost,
+            .networkConnectionLost,
+            .dnsLookupFailed,
+            .notConnectedToInternet
+        ]
+    )
+
+    static let none = RetryPolicy(
+        maxAttempts: 1,
+        baseDelay: 0,
+        maxDelay: 0,
+        jitterFactor: 0,
+        retryableStatusCodes: [],
+        retryableErrors: []
+    )
+
+    func delay(for attempt: Int) -> TimeInterval {
+        guard attempt > 0 else { return 0 }
+        let exponentialDelay = baseDelay * pow(2.0, Double(attempt - 1))
+        let cappedDelay = min(exponentialDelay, maxDelay)
+        let jitter = cappedDelay * jitterFactor * Double.random(in: -1...1)
+        return max(0, cappedDelay + jitter)
+    }
+
+    func shouldRetry(attempt: Int, error: Error?) -> Bool {
+        guard attempt < maxAttempts else { return false }
+        // Check for retryable HTTP status codes - these will be checked in NetworkService where AFError is available
+        if let urlError = error as? URLError,
+           retryableErrors.contains(urlError.code) {
+            return true
+        }
+        // For other errors, we'll check in NetworkService
+        return false
+    }
+}
+
+// MARK: - Rate Limit Policy
+
+struct RateLimitPolicy: Sendable {
+    let maxRequestsPerWindow: Int
+    let windowDuration: TimeInterval
+
+    static let `default` = RateLimitPolicy(
+        maxRequestsPerWindow: 60,
+        windowDuration: 60 // 60 requests per minute
+    )
+
+    static let strict = RateLimitPolicy(
+        maxRequestsPerWindow: 20,
+        windowDuration: 60
+    )
+
+    static let none = RateLimitPolicy(
+        maxRequestsPerWindow: Int.max,
+        windowDuration: 1
+    )
+}
+
+// MARK: - Circuit Breaker Policy
+
+struct CircuitBreakerPolicy: Sendable {
+    let failureThreshold: Int
+    let successThreshold: Int
+    let timeout: TimeInterval
+
+    static let `default` = CircuitBreakerPolicy(
+        failureThreshold: 5,
+        successThreshold: 2,
+        timeout: 30
+    )
+
+    static let disabled = CircuitBreakerPolicy(
+        failureThreshold: Int.max,
+        successThreshold: 1,
+        timeout: 0
+    )
+}
+
+// MARK: - Cache Policy
+
+enum CachePolicy: Sendable {
+    case none
+    case returnCacheDataElseLoad
+    case returnCacheDataDontLoad
+    case reloadIgnoringLocalCacheData
+    case reloadIgnoringLocalAndRemoteCacheData
+}
+
+// MARK: - Request Priority
+
+enum RequestPriority: Int, Sendable, Comparable {
+    case low = 0
+    case normal = 1
+    case high = 2
+    case critical = 3
+
+    static func < (lhs: RequestPriority, rhs: RequestPriority) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+// MARK: - AppConfig Extensions (Network Policies)
+
+extension AppConfig {
+    var retryPolicy: RetryPolicy { .default }
+    var rateLimitPolicy: RateLimitPolicy { .default }
+    var circuitBreakerPolicy: CircuitBreakerPolicy { .default }
+    var defaultCachePolicy: CachePolicy { .none }
+    var defaultRequestPriority: RequestPriority { .normal }
 }
