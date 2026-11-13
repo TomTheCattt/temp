@@ -18,11 +18,13 @@ import UIKit
 /// system call actions (answer, end, hold, mute).
 class CallManager: NSObject, @unchecked Sendable {
 
-    nonisolated(unsafe) static var shared = CallManager()
+    nonisolated(unsafe) static var shared: CallManager = {
+        MainActor.assumeIsolated { CallManager() }
+    }()
 
     /// Resets the shared instance for testing purposes.
     nonisolated static func resetSharedInstanceForTesting() {
-        shared = CallManager()
+        shared = MainActor.assumeIsolated { CallManager() }
     }
 
     // MARK: - Publishers
@@ -48,7 +50,8 @@ class CallManager: NSObject, @unchecked Sendable {
 
     // MARK: - Init
 
-    override init() {
+    @MainActor
+override init() {
         let configuration = CXProviderConfiguration()
         configuration.supportsVideo = true
         configuration.maximumCallGroups = 1

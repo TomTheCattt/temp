@@ -8,20 +8,10 @@
 import Foundation
 import Combine
 
-// MARK: - CallType Typealias
-
-typealias CallType = CallSignal.CallType
-
 // MARK: - CallSignal
 
 /// Domain model representing WebRTC call signaling events exchanged across transports.
 enum CallSignal: Sendable, Equatable {
-    /// Media type for call signaling.
-    enum CallType: String, Sendable, Codable, Equatable {
-        case audio
-        case video
-    }
-
     case callInitiate(callId: String, fromUserId: String, toUserId: String, callType: CallType)
     case callIncoming(callId: String, fromUserId: String, toUserId: String, callType: CallType, callerName: String? = nil, avatarURL: URL? = nil)
     case callOffer(callId: String, fromUserId: String, toUserId: String, sdp: String)

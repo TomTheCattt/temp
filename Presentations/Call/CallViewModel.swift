@@ -120,50 +120,138 @@ final class CallViewModel {
     // MARK: - Actions
 
     func onAppear() async {
-        // TODO: Implement call onAppear logic from scratch
+        // If we're in an incoming ringing state, start the incoming ringtone
+        if callState == .incomingRinging {
+            pipeline.startIncomingRingtone()
+        }
+
+        // If we're in outgoing ringing, start ringback
+        if callState == .ringing {
+            pipeline.startRingbackTone()
+        }
+
+        // If connected, ensure media is started
+        if callState == .connected {
+            await startMediaForConnectedCall()
+        }
     }
 
     func startOutgoingCall() async {
-        // TODO: Implement startOutgoingCall logic from scratch
+        guard callState == .idle,
+              let call = callService.currentCall,
+              call.isOutgoing else { return }
+
+        do {
+            // Start media pipeline
+            try await pipeline.startAudio()
+            if hasVideo && !isCameraOff {
+                try await pipeline.startVideo(isFront: isFrontCamera)
+            }
+
+            // Configure audio
+            pipeline.setSpeaker(isSpeakerOn)
+            pipeline.setMuted(isMuted)
+
+            // Send call initiate signal
+            _ = SessionStore.shared.currentUserId
+            try await callService.initiateCall(
+                to: call.remoteUserId,
+                name: call.remoteName,
+                avatarURL: call.remoteAvatarURL,
+                hasVideo: hasVideo
+            )
+        } catch {
+            logger.error("Failed to start outgoing call: \(error.localizedDescription)")
+            dismissCall()
+        }
     }
 
     // MARK: - User Controls
 
     func accept() async {
-        // TODO: Implement accept call logic from scratch
+        do {
+            try await callService.acceptIncomingCall()
+            await startMediaForConnectedCall()
+        } catch {
+            logger.error("Failed to accept call: \(error.localizedDescription)")
+            dismissCall()
+        }
     }
 
     func reject() async {
-        // TODO: Implement reject call logic from scratch
+        do {
+            try await callService.rejectIncomingCall()
+        } catch {
+            logger.error("Failed to reject call: \(error.localizedDescription)")
+        }
+        dismissCall()
     }
 
     func hangup() async {
-        // TODO: Implement hangup call logic from scratch
+        do {
+            try await callService.hangup()
+        } catch {
+            logger.error("Failed to hangup: \(error.localizedDescription)")
+        }
+        dismissCall()
     }
 
     func toggleMute() {
         isMuted.toggle()
-        // TODO: Implement toggleMute logic from scratch
+        pipeline.setMuted(isMuted)
+        callService.setMuted(isMuted)
     }
 
     func toggleSpeaker() {
         isSpeakerOn.toggle()
-        // TODO: Implement toggleSpeaker logic from scratch
+        pipeline.setSpeaker(isSpeakerOn)
+        callService.setSpeaker(isSpeakerOn)
     }
 
     func flipCamera() {
         isFrontCamera.toggle()
-        // TODO: Implement flipCamera logic from scratch
+        Task {
+            await pipeline.switchCamera(isFront: isFrontCamera)
+            await callService.flipCamera(isFront: isFrontCamera)
+        }
     }
 
     func toggleCamera() {
         isCameraOff.toggle()
-        // TODO: Implement toggleCamera logic from scratch
+        Task {
+            await callService.toggleCamera(isOff: isCameraOff)
+        }
     }
 
     func upgradeToVideo() {
+        guard !hasVideo, callState == .connected else { return }
         hasVideo = true
-        // TODO: Implement upgradeToVideo logic from scratch
+        Task {
+            do {
+                try await callService.upgradeToVideo()
+                if !isCameraOff {
+                    try await pipeline.startVideo(isFront: isFrontCamera)
+                }
+            } catch {
+                logger.error("Failed to upgrade to video: \(error.localizedDescription)")
+                hasVideo = false
+            }
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    private func startMediaForConnectedCall() async {
+        do {
+            try await pipeline.startAudio()
+            if hasVideo && !isCameraOff {
+                try await pipeline.startVideo(isFront: isFrontCamera)
+            }
+            pipeline.setSpeaker(isSpeakerOn)
+            pipeline.setMuted(isMuted)
+        } catch {
+            logger.error("Failed to start media for connected call: \(error.localizedDescription)")
+        }
     }
 
     func dismissCall() {

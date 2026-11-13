@@ -9,6 +9,7 @@ import Foundation
 import Combine
 internal import CallKit
 import AVFoundation
+import CoreMedia
 
 // MARK: - CallState
 
@@ -170,10 +171,19 @@ class CallService: CallServiceProtocol, @unchecked Sendable {
         callManager: CallManager? = nil,
         signalingHandler: CallSignalingHandlerProtocol? = nil,
         mediaPipeline: CallMediaPipelineProtocol? = nil,
-        connectionChanges: AsyncStream<Bool>? = nil
+        connectionChanges: AsyncStream<Bool>? = nil,
+        pipelineType: CallPipelineType = .automatic
     ) {
         self.callManager = callManager ?? CallManager.shared
-        self.mediaPipeline = mediaPipeline ?? DefaultCallMediaPipeline.shared
+
+        // Use factory to create pipeline if not provided
+        if let mediaPipeline = mediaPipeline {
+            self.mediaPipeline = mediaPipeline
+        } else {
+            CallMediaPipelineFactory.shared.setPipelineType(pipelineType)
+            self.mediaPipeline = CallMediaPipelineFactory.shared.makePipeline()
+        }
+
         self.signalingHandler = signalingHandler
             ?? DIContainer.shared.resolveOptional(CallSignalingHandlerProtocol.self)
             ?? WebSocketCallSignalingHandler(
