@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - DirectMessagesViewModel
 
@@ -102,6 +103,7 @@ final class DirectMessagesViewModel {
     private let fetchConversationsUseCase: FetchConversationsUseCaseProtocol
     private let manageConversationUseCase: ManageConversationUseCaseProtocol
     private let notesUseCase: NotesUseCaseProtocol
+    @ObservationIgnored private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
@@ -113,6 +115,34 @@ final class DirectMessagesViewModel {
         self.fetchConversationsUseCase = fetchConversationsUseCase
         self.manageConversationUseCase = manageConversationUseCase
         self.notesUseCase = notesUseCase
+        setupNotificationObservers()
+    }
+
+    private func setupNotificationObservers() {
+        NotificationCenter.default.publisher(for: .didUpdateConversations)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                guard let self else { return }
+                if let conversationId = notification.userInfo?["conversationId"] as? String {
+                    if let index = self.conversations.firstIndex(where: { $0.id == conversationId }) {
+                        let conv = self.conversations[index]
+                        if conv.unreadCount > 0 {
+                            self.conversations[index] = Conversation(
+                                id: conv.id,
+                                participants: conv.participants,
+                                lastMessage: conv.lastMessage,
+                                unreadCount: 0,
+                                isGroup: conv.isGroup,
+                                groupName: conv.groupName,
+                                groupAvatarURL: conv.groupAvatarURL,
+                                updatedAt: conv.updatedAt,
+                                isMuted: conv.isMuted
+                            )
+                        }
+                    }
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Sync & Refresh

@@ -15,35 +15,73 @@ nonisolated struct ConversationDTO: Decodable, Sendable {
     let isGroup: Bool
     let groupName: String?
     let groupAvatar: String?
+    let groupAvatarUrl: String?
+    let lastMessageText: String?
+    let lastMessageAt: String?
     let createdAt: String
     let updatedAt: String
     let members: [ConversationMemberDTO]
     let lastMessage: MessageDTO?
     let lastReadAt: String?
-    let isMuted: Bool
-    let unreadCount: Int
+    let isMuted: Bool?
+    let unreadCount: Int?
+
+    var resolvedGroupAvatarUrl: String? {
+        groupAvatarUrl ?? groupAvatar
+    }
 }
 
 // MARK: - ConversationMemberDTO
 
 nonisolated struct ConversationMemberDTO: Decodable, Sendable {
     let id: String
+    let userId: String?
+    let role: String?
+    let isMuted: Bool?
+    let lastReadAt: String?
+    let userSummary: UserAuthorSummaryDTO?
     let username: String?
     let fullName: String?
     let isVerified: Bool?
     let avatarUrl: String?
-    
-    var user: User {
-        return User(
-            id: id,
-            username: username ?? "",
-            fullName: fullName ?? "",
+
+    enum CodingKeys: String, CodingKey {
+        case id, userId, role, isMuted, lastReadAt
+        case userSummary = "user"
+        case username, fullName, isVerified, avatarUrl
+    }
+
+    var resolvedUserId: String {
+        userSummary?.id ?? userId ?? id
+    }
+
+    var resolvedUsername: String {
+        userSummary?.username ?? username ?? ""
+    }
+
+    var resolvedFullName: String {
+        userSummary?.fullName ?? fullName ?? ""
+    }
+
+    var resolvedAvatarUrl: String? {
+        userSummary?.avatarUrl ?? avatarUrl
+    }
+
+    var resolvedIsVerified: Bool {
+        userSummary?.isVerified ?? isVerified ?? false
+    }
+
+    var userEntity: User {
+        User(
+            id: resolvedUserId,
+            username: resolvedUsername,
+            fullName: resolvedFullName,
             email: nil,
             phone: nil,
-            avatarURL: URL(string: avatarUrl ?? ""),
+            avatarURL: resolvedAvatarUrl.flatMap { URL(string: $0) },
             bio: nil,
             website: nil,
-            isVerified: isVerified ?? false,
+            isVerified: resolvedIsVerified,
             isPrivate: false,
             followersCount: 0,
             followingCount: 0,
@@ -54,6 +92,19 @@ nonisolated struct ConversationMemberDTO: Decodable, Sendable {
             isBlocked: false
         )
     }
+
+    var user: User {
+        userEntity
+    }
+}
+
+// MARK: - MessageReactionDTO
+
+nonisolated struct MessageReactionDTO: Decodable, Sendable, Identifiable {
+    let id: String
+    let messageId: String
+    let userId: String
+    let emoji: String
 }
 
 // MARK: - MessageDTO
@@ -63,7 +114,7 @@ nonisolated struct MessageDTO: Decodable, Sendable {
     let id: String
     let conversationId: String
     let senderId: String
-    let contentType: String     // "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "POST" | "STORY" | "REEL" | "LIKE" (uppercase)
+    let contentType: String     // "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "POST_SHARE" | "STORY_SHARE" | "REEL_SHARE" | "VOICE" | "SYSTEM" (uppercase)
     let textContent: String?
     let mediaUrl: String?
     let mediaThumbnail: String?
@@ -71,8 +122,12 @@ nonisolated struct MessageDTO: Decodable, Sendable {
     let referenceId: String?    // Post/Story/Reel ID when sharing content
     let replyToId: String?
     let status: String          // "SENT" | "DELIVERED" | "READ" (uppercase)
+    let isEphemeral: Bool?
+    let isEdited: Bool?
+    let isUnsent: Bool?
     let createdAt: String
     let sender: MessageSenderDTO?        // Present in message detail, absent in conversation list
+    let reactions: [MessageReactionDTO]?
     let lastReadAt: String?
     let isMuted: Bool?
     let unreadCount: Int?

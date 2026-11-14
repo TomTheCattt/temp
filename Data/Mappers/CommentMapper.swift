@@ -12,12 +12,16 @@ import Foundation
 nonisolated enum CommentMapper {
 
     static func toEntity(_ dto: CommentDTO) -> Comment {
-        Comment(
+        let commentId = dto.resolvedCommentableId
+        return Comment(
             id: dto.id,
-            postId: dto.postId,
+            commentableType: dto.resolvedCommentableType,
+            commentableId: commentId,
+            postId: commentId,
             author: toAuthor(dto.author),
             text: dto.text,
             likesCount: dto.likesCount,
+            repliesCount: dto.repliesCount ?? (dto.replies?.count ?? 0),
             isLiked: dto.isLiked ?? false,
             replies: dto.replies?.map { toEntity($0) } ?? [],
             parentId: dto.parentId,

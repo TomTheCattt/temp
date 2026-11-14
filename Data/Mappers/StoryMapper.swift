@@ -12,13 +12,15 @@ import Foundation
 nonisolated enum StoryMapper {
 
     static func toEntity(_ dto: StoryDTO) -> Story {
+        let resolvedAuthorId = dto.authorId ?? dto.author?.id ?? ""
+
         // Determine author: from nested object or create minimal from authorId
         let author: User
         if let authorDTO = dto.author {
-            author = toUserStory(authorDTO)
+            author = toUserStory(authorDTO, fallbackId: resolvedAuthorId)
         } else {
             author = User(
-                id: dto.authorId,
+                id: resolvedAuthorId,
                 username: "",
                 fullName: "",
                 email: nil,
@@ -38,16 +40,23 @@ nonisolated enum StoryMapper {
             )
         }
 
-        // isViewed: if views array is non-empty, current user has viewed
-        let isViewed = !(dto.views ?? []).isEmpty
+        // isViewed: supports new backend viewed: Bool or fallback to non-empty views array
+        let isViewed = dto.viewed ?? (!(dto.views ?? []).isEmpty)
+
+        let createdAt = dto.createdAt.map { DateMapper.toDate($0) } ?? .now
+        let expiresAt = dto.expiresAt.map { DateMapper.toDate($0) } ?? Date(timeIntervalSinceNow: 86400)
 
         return Story(
             id: dto.id,
+            authorId: resolvedAuthorId,
             author: author,
-            items: dto.items.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).map { toStoryItem($0) },
+            items: dto.items.sorted(by: { ($0.sortOrder ?? 0) < ($1.sortOrder ?? 0) }).map { toStoryItem($0, storyCreatedAt: dto.createdAt) },
             isViewed: isViewed,
-            createdAt: DateMapper.toDate(dto.createdAt),
-            expiresAt: DateMapper.toDate(dto.expiresAt)
+            audience: dto.audience,
+            viewsCount: dto.viewsCount ?? 0,
+            repliesCount: dto.repliesCount ?? 0,
+            createdAt: createdAt,
+            expiresAt: expiresAt
         )
     }
 
@@ -57,7 +66,7 @@ nonisolated enum StoryMapper {
 
     // MARK: - StoryItem
 
-    private static func toStoryItem(_ dto: StoryItemDTO) -> StoryItem {
+    private static func toStoryItem(_ dto: StoryItemDTO, storyCreatedAt: String?) -> StoryItem {
         let mediaType: StoryItem.MediaType = dto.type.uppercased() == "VIDEO" ? .video : .image
 
         let sticker: StoryStickerInfo?
@@ -68,19 +77,31 @@ nonisolated enum StoryMapper {
             sticker = nil
         }
 
+        let createdAtDate: Date
+        if let itemCreated = dto.createdAt, !itemCreated.isEmpty {
+            createdAtDate = DateMapper.toDate(itemCreated)
+        } else if let storyCreated = storyCreatedAt, !storyCreated.isEmpty {
+            createdAtDate = DateMapper.toDate(storyCreated)
+        } else {
+            createdAtDate = .now
+        }
+
         return StoryItem(
             id: dto.id,
             mediaURL: URL(string: dto.mediaUrl) ?? URL(string: "about:blank")!,
+            thumbnailURL: dto.thumbnailUrl.flatMap { URL(string: $0) },
             type: mediaType,
             duration: dto.duration,
-            createdAt: DateMapper.toDate(dto.createdAt),
+            sortOrder: dto.sortOrder ?? 0,
+            createdAt: createdAtDate,
             sticker: sticker
         )
     }
 
-    private static func toUserStory(_ dto: UserStoryDTO) -> User {
-        User(
-            id: dto.id,
+    private static func toUserStory(_ dto: UserStoryDTO, fallbackId: String = "") -> User {
+        let resolvedId = (dto.id.isEmpty ? fallbackId : dto.id)
+        return User(
+            id: resolvedId,
             username: dto.username ?? "",
             fullName: dto.fullName ?? "",
             email: nil,

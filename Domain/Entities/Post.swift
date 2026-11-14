@@ -17,10 +17,51 @@ nonisolated struct Post: Identifiable, Hashable, Sendable {
     let location: PostLocation?
     let likesCount: Int
     let commentsCount: Int
+    let savesCount: Int
+    let viewsCount: Int
+    let audience: PostAudience?
+    let closeFriendsOnly: Bool
     let createdAt: Date
+    let updatedAt: Date?
     let isLiked: Bool
     let isSaved: Bool
     let isSponsored: Bool
+
+    init(
+        id: String,
+        author: User,
+        caption: String?,
+        mediaItems: [MediaItem],
+        location: PostLocation?,
+        likesCount: Int,
+        commentsCount: Int,
+        savesCount: Int = 0,
+        viewsCount: Int = 0,
+        audience: PostAudience? = nil,
+        closeFriendsOnly: Bool = false,
+        createdAt: Date,
+        updatedAt: Date? = nil,
+        isLiked: Bool,
+        isSaved: Bool,
+        isSponsored: Bool = false
+    ) {
+        self.id = id
+        self.author = author
+        self.caption = caption
+        self.mediaItems = mediaItems
+        self.location = location
+        self.likesCount = likesCount
+        self.commentsCount = commentsCount
+        self.savesCount = savesCount
+        self.viewsCount = viewsCount
+        self.audience = audience
+        self.closeFriendsOnly = closeFriendsOnly
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isLiked = isLiked
+        self.isSaved = isSaved
+        self.isSponsored = isSponsored
+    }
 }
 
 // MARK: - Post + Optimistic Update Helpers
@@ -37,7 +78,12 @@ extension Post {
             location: location,
             likesCount: likesCount + (liked ? 1 : -1),
             commentsCount: commentsCount,
+            savesCount: savesCount,
+            viewsCount: viewsCount,
+            audience: audience,
+            closeFriendsOnly: closeFriendsOnly,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             isLiked: liked,
             isSaved: isSaved,
             isSponsored: isSponsored
@@ -54,7 +100,12 @@ extension Post {
             location: location,
             likesCount: likesCount,
             commentsCount: commentsCount,
+            savesCount: savesCount + (saved ? 1 : -1),
+            viewsCount: viewsCount,
+            audience: audience,
+            closeFriendsOnly: closeFriendsOnly,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             isLiked: isLiked,
             isSaved: saved,
             isSponsored: isSponsored

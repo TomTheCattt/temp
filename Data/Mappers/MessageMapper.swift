@@ -18,8 +18,8 @@ nonisolated enum MessageMapper {
         let lastMessage = dto.lastMessage.map { toMessage($0, members: dto.members) }
 
         // Use backend-provided values for mute and unread count
-        let isMuted = dto.isMuted
-        let unreadCount = dto.unreadCount
+        let isMuted = dto.isMuted ?? false
+        let unreadCount = dto.unreadCount ?? 0
 
         return Conversation(
             id: dto.id,
@@ -28,7 +28,7 @@ nonisolated enum MessageMapper {
             unreadCount: unreadCount,
             isGroup: dto.isGroup,
             groupName: dto.groupName,
-            groupAvatarURL: dto.groupAvatar.flatMap { URL(string: $0) },
+            groupAvatarURL: dto.resolvedGroupAvatarUrl.flatMap { URL(string: $0) },
             updatedAt: DateMapper.toDate(dto.updatedAt),
             isMuted: isMuted
         )
@@ -45,7 +45,7 @@ nonisolated enum MessageMapper {
         let sender: User
         if let senderDTO = dto.sender {
             sender = toUser(senderDTO)
-        } else if let member = members?.first(where: { $0.id == dto.senderId }) {
+        } else if let member = members?.first(where: { $0.resolvedUserId == dto.senderId || $0.id == dto.senderId }) {
             sender = member.user
         } else {
             sender = User(
@@ -69,6 +69,13 @@ nonisolated enum MessageMapper {
             )
         }
 
+        var reactionDict: [String: String] = [:]
+        if let reactions = dto.reactions {
+            for reaction in reactions {
+                reactionDict[reaction.userId] = reaction.emoji
+            }
+        }
+
         return Message(
             id: dto.id,
             conversationId: dto.conversationId,
@@ -76,6 +83,7 @@ nonisolated enum MessageMapper {
             content: toMessageContent(dto),
             status: toMessageStatus(dto.status),
             replyToId: dto.replyToId,
+            reactions: reactionDict,
             createdAt: DateMapper.toDate(dto.createdAt)
         )
     }
@@ -97,14 +105,14 @@ nonisolated enum MessageMapper {
             let url = URL(string: dto.mediaUrl ?? "") ?? URL(string: "about:blank")!
             let thumb = dto.mediaThumbnail.flatMap { URL(string: $0) }
             return .video(url, thumbnailURL: thumb)
-        case "AUDIO":
+        case "AUDIO", "VOICE":
             let url = URL(string: dto.mediaUrl ?? "") ?? URL(string: "about:blank")!
             return .audio(url, duration: dto.mediaDuration ?? 0)
-        case "POST":
+        case "POST", "POST_SHARE":
             return .post(postId: dto.referenceId ?? dto.textContent ?? "")
-        case "STORY":
+        case "STORY", "STORY_SHARE":
             return .story(storyId: dto.referenceId ?? dto.textContent ?? "")
-        case "REEL":
+        case "REEL", "REEL_SHARE":
             return .reel(reelId: dto.referenceId ?? dto.textContent ?? "")
         case "LIKE":
             return .like

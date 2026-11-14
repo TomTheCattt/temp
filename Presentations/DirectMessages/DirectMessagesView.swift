@@ -63,6 +63,9 @@ struct DirectMessagesView: View {
                                 ConversationRow(conversation: conversation)
                                     .onTapGesture {
                                         HapticFeedbackSafe.impact(.light)
+                                        Task {
+                                            await viewModel.markAsRead(conversationId: conversation.id)
+                                        }
                                         AppRouter.shared.push(.conversation(conversationId: conversation.id, recipient: otherUser))
                                     }
                                     .contextMenu {
@@ -351,7 +354,13 @@ private struct ConversationRow: View {
         if conversation.isGroup {
             return conversation.groupName ?? "Nhóm"
         }
-        return otherUser?.username ?? "Unknown"
+        if let username = otherUser?.username, !username.isEmpty {
+            return username
+        }
+        if let fullName = otherUser?.fullName, !fullName.isEmpty {
+            return fullName
+        }
+        return "Người dùng"
     }
 
     private var isMessageFromCurrentUser: Bool {

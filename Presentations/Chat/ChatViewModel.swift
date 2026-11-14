@@ -93,6 +93,7 @@ final class ChatViewModel {
         chatSyncService.activateConversation(conversationId)
         subscribeToRealTimeUpdates()
         loadMessages()
+        markAsRead()
     }
 
     func onDisappear() {
@@ -885,6 +886,13 @@ final class ChatViewModel {
         Task {
             do {
                 try await manageMessageUseCase.markAsRead(conversationId: conversationId)
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .didUpdateConversations,
+                        object: nil,
+                        userInfo: ["conversationId": self.conversationId, "action": "markAsRead"]
+                    )
+                }
             } catch {
                 // Silently fail - not critical
             }

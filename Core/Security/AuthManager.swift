@@ -120,6 +120,7 @@ final class AuthManager: AuthManagerProtocol {
         if let expiry = session.expiresAt {
             keychainManager.set(value: String(expiry.timeIntervalSince1970), key: KeychainKeys.tokenExpiry)
         }
+        SessionStore.shared.setSession(user: session.user)
     }
 
     // MARK: - Refresh Token

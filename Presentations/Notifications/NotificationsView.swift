@@ -137,16 +137,34 @@ private struct NotificationRow: View {
             return username + Text(L10n.Notifications.startedFollowing).font(DS.Font.subheadline)
         case .followRequest:
             return username + Text(L10n.Notifications.followRequest).font(DS.Font.subheadline)
+        case .followAccept:
+            return username + Text(" accepted your follow request.").font(DS.Font.subheadline)
         case .mention:
             return username + Text(L10n.Notifications.mentionedInPost).font(DS.Font.subheadline)
         case .taggedInPost:
             return username + Text(L10n.Notifications.taggedInPost).font(DS.Font.subheadline)
+        case .taggedInComment:
+            return username + Text(" mentioned you in a comment.").font(DS.Font.subheadline)
+        case .taggedInStory:
+            return username + Text(" mentioned you in their story.").font(DS.Font.subheadline)
         case .storyMention:
             return username + Text(L10n.Notifications.mentionedInStory).font(DS.Font.subheadline)
+        case .storyReply:
+            let reply = notification.previewText ?? ""
+            return username + Text(" replied to your story: \(reply)").font(DS.Font.subheadline)
+        case .reelLike:
+            return username + Text(" liked your reel.").font(DS.Font.subheadline)
+        case .reelComment:
+            let comment = notification.previewText ?? ""
+            return username + Text(" commented on your reel: \(comment)").font(DS.Font.subheadline)
         case .liveVideo:
             return username + Text(L10n.Notifications.liveVideo).font(DS.Font.subheadline)
-        case .message:
+        case .liveJoin:
+            return username + Text(" joined your live video.").font(DS.Font.subheadline)
+        case .dmMessage, .message:
             return username + Text(L10n.Notifications.newMessage).font(DS.Font.subheadline)
+        case .dmReaction:
+            return username + Text(" reacted to your message.").font(DS.Font.subheadline)
         case .call:
             return username + Text(L10n.Notifications.call).font(DS.Font.subheadline)
         case .live:

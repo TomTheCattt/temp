@@ -33,6 +33,12 @@
         }
       }
     },
+    " accepted your follow request." : {
+
+    },
+    " commented on your reel: %@" : {
+
+    },
     " commented: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -50,6 +56,9 @@
         }
       }
     },
+    " joined your live video." : {
+
+    },
     " liked your post." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -66,6 +75,12 @@
           }
         }
       }
+    },
+    " liked your reel." : {
+
+    },
+    " mentioned you in a comment." : {
+
     },
     " mentioned you in a post." : {
       "extractionState" : "stale",
@@ -85,7 +100,6 @@
       }
     },
     " mentioned you in their story." : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -100,6 +114,12 @@
           }
         }
       }
+    },
+    " reacted to your message." : {
+
+    },
+    " replied to your story: %@" : {
+
     },
     " requested to follow you." : {
       "extractionState" : "stale",

@@ -15,7 +15,7 @@ nonisolated enum ReelMapper {
         let audioTrack: AudioTrack?
         if let audioName = dto.audioName {
             audioTrack = AudioTrack(
-                id: dto.id, // Use reel ID as audio track ID (BE doesn't provide separate audio ID)
+                id: dto.audioId ?? dto.id,
                 name: audioName,
                 artistName: dto.audioArtist ?? "",
                 coverURL: dto.audioCoverUrl.flatMap { URL(string: $0) },
@@ -23,6 +23,13 @@ nonisolated enum ReelMapper {
             )
         } else {
             audioTrack = nil
+        }
+
+        let durationDisplay: String
+        if let dbl = dto.duration {
+            durationDisplay = String(format: "%.1f", dbl)
+        } else {
+            durationDisplay = "0"
         }
 
         return Reel(
@@ -35,8 +42,12 @@ nonisolated enum ReelMapper {
             likesCount: dto.likesCount ?? 0,
             commentsCount: dto.commentsCount ?? 0,
             sharesCount: dto.sharesCount ?? 0,
+            savesCount: dto.savesCount ?? 0,
             viewsCount: dto.viewsCount ?? 0,
-            duration: dto.duration ?? "0",
+            duration: durationDisplay,
+            durationSeconds: dto.duration,
+            allowRemix: dto.allowRemix ?? true,
+            allowDownload: dto.allowDownload ?? true,
             isLiked: dto.isLiked ?? false,
             isSaved: dto.isSaved ?? false,
             createdAt: DateMapper.toDate(dto.createdAt)

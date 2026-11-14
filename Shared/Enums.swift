@@ -123,20 +123,95 @@ enum UploadTargetType: String, Codable, CaseIterable, Equatable {
 
 // MARK: - Notification Enums (if needed)
 
-enum NotificationType: String, Codable, CaseIterable, Equatable {
+enum NotificationType: String, Codable, CaseIterable, Equatable, Sendable {
     case like = "LIKE"
     case comment = "COMMENT"
     case follow = "FOLLOW"
     case followRequest = "FOLLOW_REQUEST"
+    case followAccept = "FOLLOW_ACCEPT"
     case mention = "MENTION"
     case taggedInPost = "TAGGED_IN_POST"
+    case taggedInComment = "TAGGED_IN_COMMENT"
+    case taggedInStory = "TAGGED_IN_STORY"
     case storyMention = "STORY_MENTION"
+    case storyReply = "STORY_REPLY"
+    case reelLike = "REEL_LIKE"
+    case reelComment = "REEL_COMMENT"
     case liveVideo = "LIVE_VIDEO"
+    case liveJoin = "LIVE_JOIN"
+    case dmMessage = "DM_MESSAGE"
+    case dmReaction = "DM_REACTION"
+
+    // Backward compatibility aliases
     case message = "MESSAGE"
     case call = "CALL"
     case live = "LIVE"
     case newReel = "NEW_REEL"
     case newStory = "NEW_STORY"
+}
+
+// MARK: - Device Platform
+
+enum DevicePlatform: String, Codable, CaseIterable, Equatable, Sendable {
+    case ios = "IOS"
+    case android = "ANDROID"
+    case web = "WEB"
+}
+
+// MARK: - Audience & Privacy Enums
+
+enum PostAudience: String, Codable, CaseIterable, Equatable, Sendable {
+    case publicAudience = "PUBLIC"
+    case followers = "FOLLOWERS"
+    case closeFriends = "CLOSE_FRIENDS"
+}
+
+enum FollowStatus: String, Codable, CaseIterable, Equatable, Sendable {
+    case pending = "PENDING"
+    case accepted = "ACCEPTED"
+    case blocked = "BLOCKED"
+}
+
+// MARK: - Polymorphic Interaction Enums
+
+enum CommentableType: String, Codable, CaseIterable, Equatable, Sendable {
+    case post = "POST"
+    case reel = "REEL"
+    case story = "STORY"
+}
+
+enum LikeableType: String, Codable, CaseIterable, Equatable, Sendable {
+    case post = "POST"
+    case reel = "REEL"
+    case comment = "COMMENT"
+    case story = "STORY"
+}
+
+// MARK: - Direct Message Enums
+
+enum MessageContentType: String, Codable, CaseIterable, Equatable, Sendable {
+    case text = "TEXT"
+    case image = "IMAGE"
+    case video = "VIDEO"
+    case audio = "AUDIO"
+    case file = "FILE"
+    case postShare = "POST_SHARE"
+    case reelShare = "REEL_SHARE"
+    case storyShare = "STORY_SHARE"
+    case profileShare = "PROFILE_SHARE"
+    case location = "LOCATION"
+    case contact = "CONTACT"
+    case voice = "VOICE"
+    case reply = "REPLY"
+    case system = "SYSTEM"
+}
+
+enum MessageDeliveryStatus: String, Codable, CaseIterable, Equatable, Sendable {
+    case sending = "SENDING"
+    case sent = "SENT"
+    case delivered = "DELIVERED"
+    case read = "READ"
+    case failed = "FAILED"
 }
 
 // MARK: - Auth Enums
@@ -158,9 +233,10 @@ enum UserPrivacy: String, Codable, CaseIterable, Equatable {
 
 // MARK: - Media Enums
 
-enum MediaType: String, Codable, CaseIterable, Equatable {
+enum MediaType: String, Codable, CaseIterable, Equatable, Sendable {
     case image = "IMAGE"
     case video = "VIDEO"
+    case carousel = "CAROUSEL"
     case audio = "AUDIO"
 }
 

@@ -14,6 +14,9 @@ import Foundation
 /// responses (or a partial PUT echo) decode safely; missing values fall back
 /// to the entity defaults during mapping.
 nonisolated struct UserSettingsDTO: Decodable, Sendable {
+    let language: String?
+    let darkMode: Bool?
+    let biometricEnabled: Bool?
     let pushEnabled: Bool?
     let likeNotifications: Bool?
     let commentNotifications: Bool?

@@ -12,13 +12,22 @@ import Foundation
 nonisolated enum NotificationMapper {
 
     static func toEntity(_ dto: NotificationDTO) -> AppNotification {
-        AppNotification(
+        let thumbUrl = dto.resolvedThumbnailUrl.flatMap { URL(string: $0) }
+        let preview = dto.resolvedPreviewText
+        let refId = dto.resolvedReferenceId
+
+        return AppNotification(
             id: dto.id,
             type: toNotificationType(dto.type),
             actor: toActor(dto.actor),
-            postId: dto.postId,
-            postThumbnailURL: dto.postThumbnailUrl.flatMap { URL(string: $0) },
-            commentText: dto.commentText,
+            referenceType: dto.referenceType,
+            referenceId: refId,
+            previewText: preview,
+            thumbnailURL: thumbUrl,
+            deepLink: dto.deepLink,
+            postId: refId,
+            postThumbnailURL: thumbUrl,
+            commentText: preview,
             isRead: dto.isRead,
             createdAt: DateMapper.toDate(dto.createdAt)
         )
@@ -32,20 +41,28 @@ nonisolated enum NotificationMapper {
 
     private static func toNotificationType(_ raw: String) -> NotificationType {
         switch raw.uppercased() {
-        case "LIKE":            return .like
-        case "COMMENT":         return .comment
-        case "FOLLOW":          return .follow
-        case "FOLLOW_REQUEST":  return .followRequest
-        case "MENTION":         return .mention
-        case "TAGGED_IN_POST":  return .taggedInPost
-        case "STORY_MENTION":   return .storyMention
-        case "LIVE_VIDEO":      return .liveVideo
-        case "MESSAGE":         return .message
-        case "CALL":            return .call
-        case "LIVE":            return .live
-        case "NEW_REEL":        return .newReel
-        case "NEW_STORY":       return .newStory
-        default:                return .like
+        case "LIKE":                 return .like
+        case "COMMENT":              return .comment
+        case "FOLLOW":               return .follow
+        case "FOLLOW_REQUEST":       return .followRequest
+        case "FOLLOW_ACCEPT":        return .followAccept
+        case "MENTION":              return .mention
+        case "TAGGED_IN_POST":       return .taggedInPost
+        case "TAGGED_IN_COMMENT":    return .taggedInComment
+        case "TAGGED_IN_STORY":      return .taggedInStory
+        case "STORY_MENTION":        return .storyMention
+        case "STORY_REPLY":          return .storyReply
+        case "REEL_LIKE":            return .reelLike
+        case "REEL_COMMENT":         return .reelComment
+        case "LIVE_VIDEO":           return .liveVideo
+        case "LIVE_JOIN":            return .liveJoin
+        case "DM_MESSAGE", "MESSAGE": return .dmMessage
+        case "DM_REACTION":          return .dmReaction
+        case "CALL":                 return .call
+        case "LIVE":                 return .live
+        case "NEW_REEL":             return .newReel
+        case "NEW_STORY":            return .newStory
+        default:                     return .like
         }
     }
 

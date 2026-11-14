@@ -75,7 +75,30 @@ final class StoryViewerViewModel {
     // MARK: - Actions
 
     func loadStories() async {
-        // TODO: Implement loadStories logic from scratch
+        guard stories.isEmpty else {
+            // Already populated via init
+            markCurrentStoryViewedIfNeeded()
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let fetched = try await fetchStoriesUseCase.execute()
+            self.stories = fetched
+
+            if let targetUserId, let index = fetched.firstIndex(where: { $0.author.id == targetUserId }) {
+                self.currentStoryIndex = index
+            } else {
+                self.currentStoryIndex = 0
+            }
+            self.currentItemIndex = 0
+            self.itemProgress = 0
+            markCurrentStoryViewedIfNeeded()
+        } catch {
+            self.stories = []
+        }
     }
 
     func goToNext() {
@@ -113,12 +136,42 @@ final class StoryViewerViewModel {
     }
 
     func markCurrentStoryViewedIfNeeded() {
-        // TODO: Implement markCurrentStoryViewedIfNeeded logic from scratch
+        guard let story = currentStory, !story.isViewed else { return }
+
+        // Optimistically mark as viewed in memory
+        stories[currentStoryIndex].isViewed = true
+
+        let storyId = story.id
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.markStoryViewedUseCase.execute(storyId: storyId)
+                NotificationCenter.default.post(name: .didUpdateStoryViewed, object: storyId)
+            } catch {
+                // Silently ignore view receipt failures
+            }
+        }
     }
 
     func deleteCurrentStory() async -> Bool {
-        // TODO: Implement deleteCurrentStory logic from scratch
-        return false
+        guard let story = currentStory else { return false }
+        do {
+            try await deleteStoryUseCase.execute(storyId: story.id)
+            stories.remove(at: currentStoryIndex)
+            NotificationCenter.default.post(name: .didCreateStory, object: nil)
+
+            if stories.isEmpty {
+                return true
+            }
+            if currentStoryIndex >= stories.count {
+                currentStoryIndex = max(0, stories.count - 1)
+            }
+            currentItemIndex = 0
+            itemProgress = 0
+            return false
+        } catch {
+            return false
+        }
     }
 
     func pause() {

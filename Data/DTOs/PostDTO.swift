@@ -32,9 +32,62 @@ nonisolated struct PostDTO: Decodable, Sendable {
     let mediaItems: [MediaItemDTO]
     let isLiked: Bool?
     let isSaved: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, authorId, caption, locationName, locationLat, locationLng
+        case likesCount, commentsCount, sharesCount, savesCount, viewsCount
+        case isSponsored, sponsorUserId, audience, closeFriendsOnly
+        case createdAt, updatedAt, author, mediaItems, isLiked, isSaved
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        authorId = try container.decodeIfPresent(String.self, forKey: .authorId) ?? ""
+        caption = try container.decodeIfPresent(String.self, forKey: .caption)
+        locationName = try container.decodeIfPresent(String.self, forKey: .locationName)
+
+        // Flexible decoding for locationLat: Double, String, or Int (supports Postgres Decimal/Numeric)
+        if let dbl = try? container.decodeIfPresent(Double.self, forKey: .locationLat) {
+            locationLat = dbl
+        } else if let str = try? container.decodeIfPresent(String.self, forKey: .locationLat), let parsed = Double(str) {
+            locationLat = parsed
+        } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .locationLat) {
+            locationLat = Double(intVal)
+        } else {
+            locationLat = nil
+        }
+
+        // Flexible decoding for locationLng: Double, String, or Int (supports Postgres Decimal/Numeric)
+        if let dbl = try? container.decodeIfPresent(Double.self, forKey: .locationLng) {
+            locationLng = dbl
+        } else if let str = try? container.decodeIfPresent(String.self, forKey: .locationLng), let parsed = Double(str) {
+            locationLng = parsed
+        } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .locationLng) {
+            locationLng = Double(intVal)
+        } else {
+            locationLng = nil
+        }
+
+        likesCount = (try? container.decodeIfPresent(Int.self, forKey: .likesCount)) ?? 0
+        commentsCount = (try? container.decodeIfPresent(Int.self, forKey: .commentsCount)) ?? 0
+        sharesCount = (try? container.decodeIfPresent(Int.self, forKey: .sharesCount)) ?? 0
+        savesCount = (try? container.decodeIfPresent(Int.self, forKey: .savesCount)) ?? 0
+        viewsCount = (try? container.decodeIfPresent(Int.self, forKey: .viewsCount)) ?? 0
+        isSponsored = (try? container.decodeIfPresent(Bool.self, forKey: .isSponsored)) ?? false
+        sponsorUserId = try container.decodeIfPresent(String.self, forKey: .sponsorUserId)
+        audience = try container.decodeIfPresent(String.self, forKey: .audience)
+        closeFriendsOnly = (try? container.decodeIfPresent(Bool.self, forKey: .closeFriendsOnly)) ?? false
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt) ?? ""
+        updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
+        author = try container.decode(PostUserDTO.self, forKey: .author)
+        mediaItems = (try? container.decodeIfPresent([MediaItemDTO].self, forKey: .mediaItems)) ?? []
+        isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked)
+        isSaved = try container.decodeIfPresent(Bool.self, forKey: .isSaved)
+    }
 }
 
-// MARK: - MediaItemDTO
+// MARK: - PostUserDTO
 
 nonisolated struct PostUserDTO: Decodable, Sendable {
     let id: String
@@ -46,7 +99,7 @@ nonisolated struct PostUserDTO: Decodable, Sendable {
     let avatarUrl: String?
 }
 
-// MARK: - PostUserDTO
+// MARK: - MediaItemDTO
 
 nonisolated struct MediaItemDTO: Decodable, Sendable {
     let id: String
@@ -58,6 +111,34 @@ nonisolated struct MediaItemDTO: Decodable, Sendable {
     let height: Int?
     let duration: Double?
     let sortOrder: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id, postId, url, thumbnailUrl, type, width, height, duration, sortOrder
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        postId = try container.decodeIfPresent(String.self, forKey: .postId)
+        url = try container.decodeIfPresent(String.self, forKey: .url) ?? ""
+        thumbnailUrl = try container.decodeIfPresent(String.self, forKey: .thumbnailUrl)
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "IMAGE"
+        width = try container.decodeIfPresent(Int.self, forKey: .width)
+        height = try container.decodeIfPresent(Int.self, forKey: .height)
+
+        // Flexible decoding for duration: Double, String, or Int
+        if let dbl = try? container.decodeIfPresent(Double.self, forKey: .duration) {
+            duration = dbl
+        } else if let intVal = try? container.decodeIfPresent(Int.self, forKey: .duration) {
+            duration = Double(intVal)
+        } else if let str = try? container.decodeIfPresent(String.self, forKey: .duration), let parsed = Double(str) {
+            duration = parsed
+        } else {
+            duration = nil
+        }
+
+        sortOrder = try container.decodeIfPresent(Int.self, forKey: .sortOrder)
+    }
 }
 
 // MARK: - PostWrapperDTO

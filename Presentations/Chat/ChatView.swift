@@ -154,15 +154,10 @@ struct ChatView: View {
                 HStack(spacing: DS.Spacing.xs) {
                     // Avatar (36x36) with Active Online Indicator
                     ZStack(alignment: .bottomTrailing) {
-                        LazyImage(url: viewModel.recipient?.avatarURL) { state in
-                            if let image = state.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                Circle().fill(ColorTokens.buttonSecondary)
-                            }
-                        }
-                        .frame(width: 36, height: 36)
-                        .clipShape(Circle())
+                        InstagramAvatarView(
+                            url: viewModel.recipient?.avatarURL,
+                            size: 36
+                        )
 
                         // Active Online Dot
                         Circle()
@@ -173,7 +168,12 @@ struct ChatView: View {
 
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 4) {
-                            Text(viewModel.recipient?.username ?? "User")
+                            let headerName: String = {
+                                if let uname = viewModel.recipient?.username, !uname.isEmpty { return uname }
+                                if let full = viewModel.recipient?.fullName, !full.isEmpty { return full }
+                                return "Trò chuyện"
+                            }()
+                            Text(headerName)
                                 .font(DS.Font.headline)
                                 .lineLimit(1)
 
@@ -587,9 +587,18 @@ private struct MessageSection: Identifiable {
             LazyImage(url: url) { state in
                 if let image = state.image {
                     image.resizable().scaledToFill()
+                } else if state.isLoading {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: DS.Radius.large)
+                            .fill(ColorTokens.backgroundSubtler)
+                        ProgressView()
+                    }
                 } else {
-                    RoundedRectangle(cornerRadius: DS.Radius.large)
-                        .fill(ColorTokens.backgroundSubtler)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: DS.Radius.large)
+                            .fill(ColorTokens.backgroundSubtler)
+                        InstagramIcon(.picture, size: 32, color: .secondary)
+                    }
                 }
             }
             .frame(width: DS.Size.chatImageBubble, height: DS.Size.chatImageBubble)
@@ -649,20 +658,19 @@ private struct MessageSection: Identifiable {
 
         case .video(let url, thumbnailURL: let thumb):
             ZStack {
-                if let thumbURL = thumb {
-                    LazyImage(url: thumbURL) { state in
-                        if let image = state.image {
-                            image.resizable().scaledToFill()
-                        } else {
+                let targetURL = thumb ?? url
+                LazyImage(url: targetURL) { state in
+                    if let image = state.image {
+                        image.resizable().scaledToFill()
+                    } else if state.isLoading {
+                        ZStack {
                             ColorTokens.backgroundSubtler
+                            ProgressView()
                         }
-                    }
-                } else {
-                    LazyImage(url: url) { state in
-                        if let image = state.image {
-                            image.resizable().scaledToFill()
-                        } else {
+                    } else {
+                        ZStack {
                             ColorTokens.backgroundSubtler
+                            InstagramIcon(.picture, size: 32, color: .secondary)
                         }
                     }
                 }

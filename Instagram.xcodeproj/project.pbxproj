@@ -41,6 +41,7 @@
 		80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */; };
 		80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */; };
 		80887F6B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */; };
+		80887F6C300D4ECD007EF3E5 /* InstagramTests/DataSchemaMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80887F5C300D4ECD007EF3E5 /* InstagramTests/DataSchemaMappingTests.swift */; };
 		80DAA3B530222E5A002DFE74 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 80DAA3B430222E5A002DFE74 /* GoogleService-Info.plist */; };
 		80DAA61130223402002DFE74 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61030223402002DFE74 /* FirebaseAuth */; };
 		80DAA61330223402002DFE74 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 80DAA61230223402002DFE74 /* FirebaseCore */; };
@@ -85,6 +86,7 @@
 		80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/VoIPPushServiceTests.swift; sourceTree = "<group>"; };
 		80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/WebSocketServiceTests.swift; sourceTree = "<group>"; };
 		80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/TestModels.swift; sourceTree = "<group>"; };
+		80887F5C300D4ECD007EF3E5 /* InstagramTests/DataSchemaMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstagramTests/DataSchemaMappingTests.swift; sourceTree = "<group>"; };
 		80CONFIG0100000000000001 /* Config/Configurations/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Base.xcconfig; sourceTree = "<group>"; };
 		80CONFIG0200000000000002 /* Config/Configurations/Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Debug.xcconfig; sourceTree = "<group>"; };
 		80CONFIG0300000000000003 /* Config/Configurations/Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Configurations/Release.xcconfig; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@
 				80887F59300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift */,
 				80887F5A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift */,
 				80887F5B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift */,
+				80887F5C300D4ECD007EF3E5 /* InstagramTests/DataSchemaMappingTests.swift */,
 			);
 			name = InstagramTests;
 			sourceTree = "<group>";
@@ -428,6 +431,7 @@
 				80887F69300D4ECD007EF3E5 /* InstagramTests/VoIPPushServiceTests.swift in Sources */,
 				80887F6A300D4ECD007EF3E5 /* InstagramTests/WebSocketServiceTests.swift in Sources */,
 				80887F6B300D4ECD007EF3E5 /* InstagramTests/TestModels.swift in Sources */,
+				80887F6C300D4ECD007EF3E5 /* InstagramTests/DataSchemaMappingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

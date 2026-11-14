@@ -15,23 +15,33 @@ nonisolated struct UserDTO: Decodable, Sendable {
     let id: String
     let firebaseUid: String?
     let username: String?
+    let name: String?
     let fullName: String?
     let email: String?
     let phone: String?
     let avatarUrl: String?
+    let avatarThumbUrl: String?
     let bio: String?
     let website: String?
     let isVerified: Bool?
     let isPrivate: Bool?
+    let isBusiness: Bool?
+    let businessCategory: String?
     let followersCount: Int?
     let followingCount: Int?
     let postsCount: Int?
+    let reelsCount: Int?
+    let settings: UserSettingsDTO?
     let createdAt: String?
     let updatedAt: String?
     // Relationship states (only present in profile endpoints)
     let isFollowing: Bool?
     let isFollowedBy: Bool?
     let isBlocked: Bool?
+
+    var displayName: String {
+        fullName ?? name ?? username ?? ""
+    }
 }
 
 // MARK: - UserWrapperDTO

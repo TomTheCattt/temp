@@ -20,8 +20,12 @@ nonisolated struct Reel: Identifiable, Hashable, Sendable {
     let likesCount: Int
     let commentsCount: Int
     let sharesCount: Int
+    let savesCount: Int
     let viewsCount: Int
     let duration: String
+    let durationSeconds: Double?
+    let allowRemix: Bool
+    let allowDownload: Bool
     let isLiked: Bool
     let isSaved: Bool
     let createdAt: Date
@@ -37,8 +41,12 @@ nonisolated struct Reel: Identifiable, Hashable, Sendable {
         likesCount: Int,
         commentsCount: Int,
         sharesCount: Int,
+        savesCount: Int = 0,
         viewsCount: Int,
         duration: String,
+        durationSeconds: Double? = nil,
+        allowRemix: Bool = true,
+        allowDownload: Bool = true,
         isLiked: Bool,
         isSaved: Bool,
         createdAt: Date
@@ -53,8 +61,12 @@ nonisolated struct Reel: Identifiable, Hashable, Sendable {
         self.likesCount = likesCount
         self.commentsCount = commentsCount
         self.sharesCount = sharesCount
+        self.savesCount = savesCount
         self.viewsCount = viewsCount
         self.duration = duration
+        self.durationSeconds = durationSeconds
+        self.allowRemix = allowRemix
+        self.allowDownload = allowDownload
         self.isLiked = isLiked
         self.isSaved = isSaved
         self.createdAt = createdAt
@@ -91,8 +103,12 @@ extension Reel {
             likesCount: likesCount,
             commentsCount: commentsCount,
             sharesCount: sharesCount,
+            savesCount: savesCount,
             viewsCount: viewsCount,
             duration: duration,
+            durationSeconds: durationSeconds,
+            allowRemix: allowRemix,
+            allowDownload: allowDownload,
             isLiked: isLiked,
             isSaved: isSaved,
             createdAt: createdAt
@@ -116,8 +132,12 @@ extension Reel {
             likesCount: likesCount ?? self.likesCount,
             commentsCount: commentsCount,
             sharesCount: sharesCount,
+            savesCount: savesCount,
             viewsCount: viewsCount,
             duration: duration,
+            durationSeconds: durationSeconds,
+            allowRemix: allowRemix,
+            allowDownload: allowDownload,
             isLiked: isLiked ?? self.isLiked,
             isSaved: isSaved ?? self.isSaved,
             createdAt: createdAt

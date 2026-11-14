@@ -14,13 +14,31 @@ nonisolated struct NotificationDTO: Decodable, Sendable {
     let id: String
     let recipientId: String
     let actorId: String
-    let type: String        // "LIKE" | "COMMENT" | "FOLLOW" | "FOLLOW_REQUEST" | "MENTION" | "TAGGED_IN_POST" | "STORY_MENTION" | "LIVE_VIDEO" (uppercase)
+    let type: String
+    let referenceType: String?
+    let referenceId: String?
+    let previewText: String?
+    let thumbnailUrl: String?
+    let deepLink: String?
+    // Legacy fallback fields
     let postId: String?
     let postThumbnailUrl: String?
     let commentText: String?
     let isRead: Bool
     let createdAt: String
     let actor: NotificationActorDTO
+
+    var resolvedReferenceId: String? {
+        referenceId ?? postId
+    }
+
+    var resolvedThumbnailUrl: String? {
+        thumbnailUrl ?? postThumbnailUrl
+    }
+
+    var resolvedPreviewText: String? {
+        previewText ?? commentText
+    }
 }
 
 // MARK: - PaginatedNotificationsDTO

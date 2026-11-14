@@ -121,9 +121,9 @@ class MockCallMediaPipeline: CallMediaPipelineProtocol {
     var shouldFailStartVideo = false
 
     // Publishers
-    let audioLevelSubject = PassthroughSubject<Float, Never>()
-    let localSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
-    let remoteSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
+    nonisolated let audioLevelSubject = PassthroughSubject<Float, Never>()
+    nonisolated let localSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
+    nonisolated let remoteSampleBufferSubject = PassthroughSubject<CMSampleBuffer, Never>()
 
     nonisolated var audioLevelPublisher: AnyPublisher<Float, Never> {
         audioLevelSubject.eraseToAnyPublisher()

@@ -46,6 +46,7 @@ struct ConversationDetailsView: View {
         }
         .navigationTitle("Chi tiết")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -79,22 +80,26 @@ struct ConversationDetailsView: View {
 
     private var profileHeaderSection: some View {
         VStack(spacing: DS.Spacing.xs) {
-            LazyImage(url: recipient?.avatarURL) { state in
-                if let image = state.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    Circle().fill(ColorTokens.buttonSecondary)
-                }
-            }
-            .frame(width: 80, height: 80)
-            .clipShape(Circle())
+            InstagramAvatarView(
+                url: recipient?.avatarURL,
+                size: 80
+            )
 
-            Text(recipient?.fullName.isEmpty == false ? (recipient?.fullName ?? "") : (recipient?.username ?? "User"))
+            let displayName: String = {
+                if let full = recipient?.fullName, !full.isEmpty { return full }
+                if let uname = recipient?.username, !uname.isEmpty { return uname }
+                return "Người dùng"
+            }()
+
+            Text(displayName)
                 .font(DS.Font.title3)
+                .fontWeight(.semibold)
 
-            Text("@\(recipient?.username ?? "user")")
-                .font(DS.Font.subheadline)
-                .foregroundStyle(.secondary)
+            if let username = recipient?.username, !username.isEmpty {
+                Text("@\(username)")
+                    .font(DS.Font.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
             HStack(spacing: DS.Spacing.xs) {
                 Button {

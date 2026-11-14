@@ -158,7 +158,9 @@ final class AuthViewModel {
     // MARK: - Private Helpers
 
     private func handleAuthSuccess(_ session: AuthSession) {
-        // AuthManager and SessionStore are updated by the repository
+        // Populate SessionStore with authenticated user profile
+        SessionStore.shared.setSession(user: session.user)
+
         // Navigate to main app
         router.isAuthenticated = true
         router.dismiss()

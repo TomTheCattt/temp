@@ -12,7 +12,14 @@ import Foundation
 nonisolated enum PostMapper {
 
     static func toEntity(_ dto: PostDTO) -> Post {
-        Post(
+        let postAudience: PostAudience?
+        if let raw = dto.audience?.uppercased() {
+            postAudience = PostAudience(rawValue: raw)
+        } else {
+            postAudience = nil
+        }
+
+        return Post(
             id: dto.id,
             author: toPostUser(dto.author),
             caption: dto.caption,
@@ -20,7 +27,12 @@ nonisolated enum PostMapper {
             location: toLocation(name: dto.locationName, lat: dto.locationLat, lng: dto.locationLng),
             likesCount: dto.likesCount,
             commentsCount: dto.commentsCount,
+            savesCount: dto.savesCount,
+            viewsCount: dto.viewsCount,
+            audience: postAudience,
+            closeFriendsOnly: dto.closeFriendsOnly,
             createdAt: DateMapper.toDate(dto.createdAt),
+            updatedAt: dto.updatedAt.map { DateMapper.toDate($0) },
             isLiked: dto.isLiked ?? false,
             isSaved: dto.isSaved ?? false,
             isSponsored: dto.isSponsored
